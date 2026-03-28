@@ -16,9 +16,10 @@ local function InitVars()
     if not CC_Settings then
         CC_Settings = {UseBuffFood = false}
     end
-    if not CC_Settings.Minimap then
-        CC_Settings.Minimap = {}
+    if not CC_MinimapSettings then
+        CC_MinimapSettings = {}
     end
+    CC_Settings.Minimap = nil
 
     if CC_ItemCacheVersion ~= ITEM_CACHE_VERSION then
         CC_ItemCache = {}
@@ -51,7 +52,7 @@ local function InitVars()
 
     local LDBIcon = LibStub("LibDBIcon-1.0", true)
     if LDBIcon and ns.LDBObj and not ns.IconRegistered then
-        LDBIcon:Register("Connoisseur", ns.LDBObj, CC_Settings.Minimap)
+        LDBIcon:Register("Connoisseur", ns.LDBObj, CC_MinimapSettings)
         ns.IconRegistered = true
     end
 
