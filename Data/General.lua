@@ -2,16 +2,37 @@ local _, ns = ...
 
 assert(ns.L, "Consumable Connoisseur: Locales must be loaded before Data/General.lua — check your .toc load order.")
 
+--------------------------------------------------------------------------------
 -- Brand Colors
+--------------------------------------------------------------------------------
+
 ns.Colors = {
-    TITLE    = "|cffFFD100",
-    INFO     = "|cff00BBFF",
-    DESC     = "|cffCCCCCC",
-    TEXT     = "|cffFFFFFF",
-    SUCCESS  = "|cff33CC33",
-    DISABLED = "|cffCC3333",
-    MUTED    = "|cff808080",
+    TITLE    = "FFD100",
+    INFO     = "00BBFF",
+    DESC     = "CCCCCC",
+    TEXT     = "FFFFFF",
+    SUCCESS  = "33CC33",
+    DISABLED = "CC3333",
+    SEP      = "AAAAAA",
+    MUTED    = "808080",
 }
+
+function ns.GetColor(key)
+    return "|cff" .. (ns.Colors[key] or ns.Colors.TEXT)
+end
+
+
+--------------------------------------------------------------------------------
+-- URLs
+--------------------------------------------------------------------------------
+
+ns.CURSEFORGE_URL = "https://www.curseforge.com/wow/addons/consumable-connoisseur"
+ns.GITHUB_URL     = "https://github.com/Gogo1951/Consumable-Connoisseur"
+ns.DISCORD_URL    = "https://discord.gg/eh8hKq992Q"
+
+--------------------------------------------------------------------------------
+-- Macro Configuration
+--------------------------------------------------------------------------------
 
 ns.Config = {
     ["Bandage"]       = { macro = ns.L["MACRO_BANDAGE"], defaultID = 1251  },
@@ -24,7 +45,10 @@ ns.Config = {
     ["Water"]         = { macro = ns.L["MACRO_WATER"],   defaultID = 5350  },
 }
 
+--------------------------------------------------------------------------------
 -- Additional "Well Fed" Buff IDs
+--------------------------------------------------------------------------------
+
 ns.WellFedBuffIDs = {
     [18125] = true, -- blessed-sunfruit
     [18141] = true, -- blessed-sunfruit-juice
@@ -37,6 +61,27 @@ ns.WellFedBuffIDs = {
     [23697] = true, -- alterac-spring-water
 }
 
+--------------------------------------------------------------------------------
+-- Default Settings
+--------------------------------------------------------------------------------
+
+ns.SETTINGS_DEFAULTS = {
+    useBuffFood = false,
+    useScrolls  = false,
+    scrollTypes = {
+        Agility    = true,
+        Intellect  = true,
+        Protection = true,
+        Spirit     = true,
+        Stamina    = true,
+        Strength   = true,
+    },
+}
+
+--------------------------------------------------------------------------------
+-- Utility
+--------------------------------------------------------------------------------
+
 function ns.KnowsAny(spellList)
     if not spellList then return false end
     for _, data in ipairs(spellList) do
@@ -47,7 +92,10 @@ function ns.KnowsAny(spellList)
     return false
 end
 
+--------------------------------------------------------------------------------
 -- Mage and Warlock Spells
+--------------------------------------------------------------------------------
+
 ns.ConjureSpells = {
     MageCreateTable = {
         { 43987, 70 },

@@ -28,7 +28,6 @@ ns.RawData.Potions = {
     [858] = {140, 0}, -- Lesser Healing Potion
     [3385] = {0, 280}, -- Lesser Mana Potion
     [35287] = {0, 455}, -- Luminous Bluetail
-    [34440] = {1650, 1650, nil, 315}, -- Mad Alchemist's Potion
     [31853] = {1050, 0}, -- Major Combat Healing Potion
     [31838] = {1050, 0}, -- Major Combat Healing Potion
     [31839] = {1050, 0}, -- Major Combat Healing Potion
@@ -59,5 +58,6 @@ ns.RawData.Potions = {
     [23579] = {1050, 0}, -- The McWeaksauce Classic
     [28101] = {0, 1350}, -- Unstable Mana Potion
     [28100] = {1050, 0}, -- Volatile Healing Potion
+    [34440] = {1650, 1650, nil, 315}, -- Mad Alchemist's Potion
     -- [11951] = {700, 0}, -- Whipper Root Tuber
 }
