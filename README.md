@@ -32,6 +32,9 @@ And by simply targeting a lower-level player, when you Right-click on the macro,
 
 <img width="260" src="https://github.com/user-attachments/assets/4a4cd1b4-d227-4731-8988-36f505611883" />
 
+For Hunters, the Feed Pet macro works as an all-in-one Pet Call / Feed / Mend / Revive / Dismiss button.
+
+<img width="260" src="https://github.com/user-attachments/assets/6ced7fae-f0bf-48f0-b317-b382e11a3bc1" />
 
 ## Setup
 
