@@ -11,6 +11,7 @@ local strings = {
     ["MACRO_MPOT"]    = "- Poc. Maná",
     ["MACRO_SS"]      = "- Piedra de alma",
     ["MACRO_WATER"]   = "- Agua",
+    ["MACRO_FEED_PET"]= "- Alim. mascota",
 
     ["ERR_ZONE"] = "No puedes usar eso aquí.",
     ["RANK"]     = "Rango",
@@ -30,10 +31,12 @@ local strings = {
     ["MENU_SCROLL_BUFFS_DESC"] = "Usa pergaminos de atributos como parte de tu macro de Comida cuando falta el beneficio.",
     ["MENU_OPTIONS_HINT"]      = "Opciones adicionales disponibles en Opciones > Accesorios > Connoisseur.",
 
+    ["PREFIX_HUNTER"]  = "Atención Cazadores",
     ["PREFIX_MAGE"]    = "Atención Magos",
     ["PREFIX_WARLOCK"] = "Atención Brujos",
 
     ["TIP_DOWNRANK"]        = "Seleccionar a un jugador de menor nivel hará que la macro conjure objetos apropiados para su nivel.",
+    ["TIP_HUNTER_FEED_PET"] = "¡Alimentar mascota es un botón todo en uno! Haz clic para llamar, alimentar o revivir a tu mascota automáticamente. Haz clic derecho o úsalo en combate para lanzar Aliviar mascota. Mantén presionado Shift para forzar Revivir, o Ctrl para Retirar.",
     ["TIP_MAGE_CONJURE"]    = "Clic derecho en tus macros de Comida o Agua para crear Comida o Agua.",
     ["TIP_MAGE_GEM"]        = "Clic derecho en tu macro de Gema de maná para conjurar una nueva gema. Vuelve a hacer clic derecho para conjurar una gema de rango inferior como respaldo.",
     ["TIP_MAGE_TABLE"]      = "Clic central para lanzar Ritual de refrigerio.",
@@ -41,6 +44,7 @@ local strings = {
     ["TIP_WARLOCK_SOUL"]    = "Clic central para lanzar Ritual de almas.",
 
     ["UI_BEST_FOOD"]    = "Mejor comida actual",
+    ["UI_BEST_PET_FOOD"]= "Comida de mascota",
     ["UI_DISABLED"]     = "Desactivado",
     ["UI_ENABLED"]      = "Activado",
     ["UI_IGNORE_LIST"]  = "Lista de ignorados",
@@ -65,12 +69,19 @@ local strings = {
     ["OPTIONS_SCROLL_STAMINA"]    = "Aguante",
     ["OPTIONS_SCROLL_STRENGTH"]   = "Fuerza",
 
+    ["OPTIONS_PET_HEADER"]           = "Beneficios de comida de mascota",
+    ["OPTIONS_USE_PET_BUFFS"]        = "Usar beneficios de comida de mascota",
+    ["OPTIONS_USE_PET_BUFFS_DESC"]   = "Usa comida de mascota, como parte de tu macro de Comida, cuando a tu mascota le falta el beneficio \"Bien alimentado\".",
+    ["OPTIONS_PET_BUFF_TYPES"]       = "Incluir tipos de comida de mascota en la comprobación",
+    ["OPTIONS_PET_BUFF_KIBLERS"]     = "Bocado de Kibler",
+    ["OPTIONS_PET_BUFF_SPORELING"]   = "Bocados de esporino",
+
     ["OPTIONS_NIGHTELF_HEADER"]           = "Elfos de la noche",
     ["OPTIONS_SHADOWMELD_DRINKING"]      = "Beber con Fusión de las sombras",
     ["OPTIONS_SHADOWMELD_DRINKING_DESC"] = "Añade Fusión de las sombras a tu macro de Agua para entrar en sigilo mientras bebes.",
 
     ["OPTIONS_COMMANDS_HEADER"] = "/Commands",
-    ["OPTIONS_COMMANDS_DESC"]   = "/connoisseur",
+    ["OPTIONS_COMMANDS_DESC"]   = "/foodie",
 
     ["OPTIONS_RESET_HEADER"]         = "Reiniciar",
     ["OPTIONS_RESET_IGNORE_DESC"]    = "Eliminar todos los objetos de la lista de ignorados.",

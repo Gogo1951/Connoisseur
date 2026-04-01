@@ -31,6 +31,7 @@ Locales/enUS.lua
 Locales/deDE.lua
 Locales/esES.lua
 Locales/frFR.lua
+Locales/itIT.lua
 Locales/koKR.lua
 Locales/ptBR.lua
 Locales/ruRU.lua
@@ -46,12 +47,13 @@ Data/Healthstones.lua
 Data/Soulstones.lua
 Data/Mana-Gems.lua
 Data/Potions.lua
+Data/Pet-Foods.lua
 
 # Connoisseur
 Core.lua
 Scanner.lua
 Macro-Builder.lua
-Minimap-Menu.lua
+Minimap-Button.lua
 Options.lua
 
 # Feedback Welcome! (=

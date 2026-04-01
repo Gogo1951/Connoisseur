@@ -8,6 +8,7 @@ local Config = ns.Config
 --------------------------------------------------------------------------------
 
 local currentMacroState = {}
+local currentPetFoodState = nil
 
 local conjuredGemItemIDBySpell = {
     [27101] = 22044,
@@ -135,13 +136,27 @@ function ns.UpdateMacros(forced)
     end
 
     for typeName, cfg in pairs(Config) do
+
+        -- Feed Pet is handled separately below
+        if typeName == "Feed Pet" then
+            -- skip, handled by UpdateFeedPetMacro
+        else
+
         local itemID = best[typeName] and best[typeName].id
 
-        -- Scroll override: when a scroll should be used, replace the Food macro item
+        -- Overrides: replace the Food macro item with buffs when missing
         local scrollOverride = false
-        if typeName == "Food" and ns.ScrollOverrideID then
-            itemID = ns.ScrollOverrideID
-            scrollOverride = true
+        local petBuffOverride = false
+        
+        if typeName == "Food" then
+            -- Pet buff takes priority, or scroll if no pet buff needed
+            if ns.PetBuffOverrideID then
+                itemID = ns.PetBuffOverrideID
+                petBuffOverride = true
+            elseif ns.ScrollOverrideID then
+                itemID = ns.ScrollOverrideID
+                scrollOverride = true
+            end
         end
 
         local rightClickSpellName, rightClickSpellID
@@ -188,14 +203,17 @@ function ns.UpdateMacros(forced)
             if itemID then
                 tooltipLine = "#showtooltip item:" .. itemID .. "\n"
 
-                -- Scrolls target the player to avoid buffing the current target
                 if scrollOverride then
+                    -- Scrolls target the player to avoid buffing the current target
                     actionBlock = "/run CC_LastID=" .. itemID .. ";CC_LastTime=GetTime()\n" .. "/use [@player] item:" .. itemID
+                elseif petBuffOverride then
+                    -- Pet food buffs target the pet
+                    actionBlock = "/run CC_LastID=" .. itemID .. ";CC_LastTime=GetTime()\n" .. "/use [@pet] item:" .. itemID
                 else
                     actionBlock = "/run CC_LastID=" .. itemID .. ";CC_LastTime=GetTime()\n" .. "/use item:" .. itemID
                 end
 
-                icon = C_Item.GetItemIconByID(itemID)
+                icon = ns.QUESTION_MARK_ICON
             else
                 local message = string.format(L["MSG_NO_ITEM"], typeName)
                 tooltipLine = "#showtooltip item:" .. cfg.defaultID .. "\n"
@@ -203,7 +221,7 @@ function ns.UpdateMacros(forced)
                     "/run print('%s%s%s // %s%s')",
                     GetColor("INFO"), L["BRAND"], GetColor("MUTED"), GetColor("TEXT"), message
                 )
-                icon = C_Item.GetItemIconByID(cfg.defaultID)
+                icon = ns.QUESTION_MARK_ICON
             end
 
             local conjureBlock = ""
@@ -234,6 +252,13 @@ function ns.UpdateMacros(forced)
 
             WriteMacro(cfg.macro, icon, body, stateID, typeName)
         end
+
+        end -- if typeName ~= "Feed Pet"
+    end
+
+    -- Feed Pet (Hunter only)
+    if ns.IsHunter and ns.FeedPetSpellName then
+        ns.UpdateFeedPetMacro(forced)
     end
 
     if ns.UpdateLDB then
@@ -243,4 +268,92 @@ end
 
 function ns.ResetMacroState()
     wipe(currentMacroState)
+    currentPetFoodState = nil
+end
+
+--------------------------------------------------------------------------------
+-- Feed Pet Macro (Hunter)
+--
+-- Logic flow prioritizes modifier inputs first, then pet state, then combat.
+-- By combining multiple conditions into bracket groups (e.g., [btn:2][combat]), 
+-- we save a massive amount of string characters ensuring the macro stays well 
+-- under the 255 character limit even in highly localized clients (German, etc).
+--
+-- Modifier actions:
+--   [mod:ctrl]                 → Dismiss Pet
+--   [mod:shift] OR [@pet,dead] → Revive Pet
+--   [nopet]                    → Call Pet (or Revive Pet when dead-dismissed)
+--   [btn:2] OR [combat]        → Mend Pet
+--   default                    → Feed Pet + /use food
+--------------------------------------------------------------------------------
+
+function ns.UpdateFeedPetMacro(forced)
+    if InCombatLockdown() then
+        ns.RequestUpdate()
+        return
+    end
+
+    if forced then
+        currentPetFoodState = nil
+    end
+
+    ns.ScanPetFood()
+
+    local feedName    = ns.FeedPetSpellName
+    local reviveName  = ns.RevivePetSpellName
+    local mendName    = ns.MendPetSpellName
+    local callName    = ns.CallPetSpellName
+    local dismissName = ns.DismissPetSpellName
+
+    if not feedName or not reviveName or not mendName or not callName or not dismissName then return end
+
+    local cfg = Config["Feed Pet"]
+    if not cfg then return end
+    local macroName = cfg.macro
+
+    local itemID = ns.BestPetFoodID
+
+    -- When we know the pet is dead but dismissed, [nopet] uses Revive Pet
+    local nopetSpell = ns.PetDeadDismissed and reviveName or callName
+
+    local stateID = (itemID and tostring(itemID) or "none")
+        .. "_" .. (ns.PetDeadDismissed and "DD" or "ND")
+
+    if currentPetFoodState == stateID and not forced then return end
+
+    local modifiers = "[mod:ctrl] " .. dismissName
+        .. "; [mod:shift][@pet,dead] " .. reviveName
+
+    local body
+
+    if itemID then
+        -- Food found: full macro with /use
+        body = "#showtooltip\n"
+            .. "/cast " .. modifiers
+            .. "; [nopet] " .. nopetSpell
+            .. "; [btn:2][combat] " .. mendName
+            .. "; " .. feedName .. "\n"
+            .. "/stopmacro [mod][btn:2][nopet][@pet,dead][combat]\n"
+            .. "/use item:" .. itemID
+    else
+        -- No food: default action is Mend Pet, no /use line needed
+        body = "#showtooltip\n"
+            .. "/cast " .. modifiers
+            .. "; [nopet] " .. nopetSpell
+            .. "; " .. mendName
+    end
+
+    local icon = ns.QUESTION_MARK_ICON
+
+    local index = GetMacroIndexByName(macroName)
+    if index == 0 then
+        CreateMacro(macroName, icon, body, 1)
+    else
+        local existingBody = GetMacroBody(macroName)
+        if existingBody ~= body then
+            EditMacro(index, macroName, icon, body)
+        end
+    end
+
+    currentPetFoodState = stateID
 end

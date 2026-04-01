@@ -31,15 +31,6 @@ local function Spacer(order)
     }
 end
 
-local function SubHeader(text, order)
-    return {
-        type     = "description",
-        name     = "\n" .. GetColor("TITLE") .. text .. "|r",
-        fontSize = "medium",
-        order    = order,
-    }
-end
-
 --------------------------------------------------------------------------------
 -- Options Table
 --------------------------------------------------------------------------------
@@ -215,30 +206,106 @@ local function GetOptions()
                 },
             },
 
+            -- Pets
+            spacePet0 = Spacer(35),
+            headerPet = Header(L["OPTIONS_PET_HEADER"], 36),
+
+            descPet = Desc(
+                GetColor("DESC") .. L["OPTIONS_USE_PET_BUFFS_DESC"] .. "|r",
+                37
+            ),
+
+            spacePet1 = Spacer(38),
+
+            togglePetBuffs = {
+                type  = "toggle",
+                name  = L["OPTIONS_USE_PET_BUFFS"],
+                desc  = L["OPTIONS_USE_PET_BUFFS_DESC"],
+                order = 39,
+                width = "full",
+                get   = function()
+                    return ConnoisseurCharDB and ConnoisseurCharDB.settings and ConnoisseurCharDB.settings.usePetBuffFood
+                end,
+                set   = function(_, value)
+                    ConnoisseurCharDB.settings.usePetBuffFood = value
+                    if ns.UpdateAuraTracking then ns.UpdateAuraTracking() end
+                    if ns.ResetMacroState then ns.ResetMacroState() end
+                    ns.RequestUpdate()
+                end,
+            },
+
+            spacePetTypes0 = Spacer(40),
+
+            petTypesGroup = {
+                type   = "group",
+                name   = L["OPTIONS_PET_BUFF_TYPES"],
+                order  = 41,
+                inline = true,
+                hidden = function()
+                    return not (ConnoisseurCharDB and ConnoisseurCharDB.settings and ConnoisseurCharDB.settings.usePetBuffFood)
+                end,
+                args   = {
+                    petKiblers = {
+                        type  = "toggle",
+                        name  = L["OPTIONS_PET_BUFF_KIBLERS"],
+                        order = 1,
+                        get   = function()
+                            local pt = ConnoisseurCharDB and ConnoisseurCharDB.settings and ConnoisseurCharDB.settings.petBuffTypes
+                            return pt == nil or pt.KiblersBits ~= false
+                        end,
+                        set   = function(_, value)
+                            if not ConnoisseurCharDB.settings.petBuffTypes then 
+                                ConnoisseurCharDB.settings.petBuffTypes = { KiblersBits = true, SporelingSnacks = true } 
+                            end
+                            ConnoisseurCharDB.settings.petBuffTypes.KiblersBits = value
+                            if ns.ResetMacroState then ns.ResetMacroState() end
+                            ns.RequestUpdate()
+                        end,
+                    },
+                    petSporeling = {
+                        type  = "toggle",
+                        name  = L["OPTIONS_PET_BUFF_SPORELING"],
+                        order = 2,
+                        get   = function()
+                            local pt = ConnoisseurCharDB and ConnoisseurCharDB.settings and ConnoisseurCharDB.settings.petBuffTypes
+                            return pt == nil or pt.SporelingSnacks ~= false
+                        end,
+                        set   = function(_, value)
+                            if not ConnoisseurCharDB.settings.petBuffTypes then 
+                                ConnoisseurCharDB.settings.petBuffTypes = { KiblersBits = true, SporelingSnacks = true } 
+                            end
+                            ConnoisseurCharDB.settings.petBuffTypes.SporelingSnacks = value
+                            if ns.ResetMacroState then ns.ResetMacroState() end
+                            ns.RequestUpdate()
+                        end,
+                    },
+                },
+            },
+
             -- Night Elves
             spaceNightElf0 = {
                 type   = "description",
                 name   = " ",
-                order  = 40,
+                order  = 50,
                 hidden = function() return not ns.IsNightElf end,
             },
             headerNightElf = {
                 type   = "header",
                 name   = GetColor("TITLE") .. L["OPTIONS_NIGHTELF_HEADER"] .. "|r",
-                order  = 41,
+                order  = 51,
                 hidden = function() return not ns.IsNightElf end,
             },
             spaceNightElf1 = {
                 type   = "description",
                 name   = " ",
-                order  = 42,
+                order  = 52,
                 hidden = function() return not ns.IsNightElf end,
             },
             toggleShadowmeldDrinking = {
                 type   = "toggle",
                 name   = L["OPTIONS_SHADOWMELD_DRINKING"],
                 desc   = L["OPTIONS_SHADOWMELD_DRINKING_DESC"],
-                order  = 43,
+                order  = 53,
                 width  = "full",
                 hidden = function() return not ns.IsNightElf end,
                 get    = function()
@@ -344,7 +411,7 @@ end
 -- Slash Commands
 --------------------------------------------------------------------------------
 
-SLASH_CONNOISSEUR1 = "/connoisseur"
+SLASH_CONNOISSEUR1 = "/foodie"
 SLASH_CONNOISSEUR2 = "/cc"
 SlashCmdList["CONNOISSEUR"] = function()
     if ns.OpenOptions then

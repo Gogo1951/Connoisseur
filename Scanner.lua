@@ -8,10 +8,8 @@ ns.BestFoodID = nil
 ns.BestFoodLink = nil
 ns.ScrollOverrideID = nil
 
-ns.CachedPlayerLevel = 1
-ns.CachedMapID = nil
-
-ns.WellFedState = false
+ns.BestPetFoodID   = nil
+ns.BestPetFoodLink = nil
 
 local currentFirstAidSkill = 0
 local currentAlchemySkill = 0
@@ -370,6 +368,59 @@ function ns.FindScrollOverride(bagItemCounts)
 end
 
 --------------------------------------------------------------------------------
+-- Pet Buff Scanning
+--------------------------------------------------------------------------------
+
+ns.PetBuffOverrideID = nil
+
+-- Returns true if the pet already has the Kibler's or Sporeling well-fed buff
+function ns.HasPetFoodBuff()
+    if not UnitExists("pet") then return false end
+    for i = 1, 40 do
+        local name, _, _, _, _, _, _, _, _, spellID = UnitAura("pet", i, "HELPFUL")
+        if not name then break end
+        if spellID == ns.KIBLERS_BUFF_ID or spellID == ns.SPORELING_BUFF_ID then
+            return true
+        end
+    end
+    return false
+end
+
+-- Returns the item ID of the pet food buff that should be used, or nil
+function ns.FindPetBuffOverride(bagItemCounts)
+    local charDB = ConnoisseurCharDB
+    if not charDB or not charDB.settings or not charDB.settings.usePetBuffFood then
+        return nil
+    end
+
+    local playerLevel = ns.CachedPlayerLevel or 1
+    if playerLevel < 55 then return nil end
+
+    if not UnitExists("pet") or UnitIsDead("pet") or UnitIsGhost("pet") then
+        return nil
+    end
+
+    if ns.HasPetFoodBuff() then
+        return nil
+    end
+
+    local petTypes = charDB.settings.petBuffTypes
+    if not petTypes then
+        petTypes = { KiblersBits = true, SporelingSnacks = true }
+    end
+
+    if petTypes.KiblersBits ~= false and bagItemCounts[ns.KIBLERS_BITS_ITEM_ID] and bagItemCounts[ns.KIBLERS_BITS_ITEM_ID] > 0 then
+        return ns.KIBLERS_BITS_ITEM_ID
+    end
+
+    if petTypes.SporelingSnacks ~= false and bagItemCounts[ns.SPORELING_SNACKS_ITEM_ID] and bagItemCounts[ns.SPORELING_SNACKS_ITEM_ID] > 0 then
+        return ns.SPORELING_SNACKS_ITEM_ID
+    end
+
+    return nil
+end
+
+--------------------------------------------------------------------------------
 -- Bag Scanning
 --------------------------------------------------------------------------------
 
@@ -406,8 +457,9 @@ function ns.ScanBags()
         end
     end
 
-    -- Scroll override check happens before consumable scan
+    -- Overrides check happens before standard consumable scan
     ns.ScrollOverrideID = ns.FindScrollOverride(itemCounts)
+    ns.PetBuffOverrideID = ns.FindPetBuffOverride(itemCounts)
 
     for id, hyperlink in pairs(slotItems) do
         local ignoreList = charDB.ignoreList or {}
@@ -532,4 +584,140 @@ function ns.ScanBags()
     ns.BestFoodLink = best["Food"].link
 
     return best, dataRetry
+end
+
+--------------------------------------------------------------------------------
+-- Active Quest Set (Hunter)
+--
+-- Builds a set of quest IDs the player currently has in their quest log.
+-- Used by ScanPetFood to skip foods that are objectives for active quests.
+--------------------------------------------------------------------------------
+
+local activeQuestIDs = {}
+
+local function BuildActiveQuestSet()
+    wipe(activeQuestIDs)
+    for questIndex = 1, GetNumQuestLogEntries() do
+        local _, _, _, _, isHeader, _, isComplete, questID = GetQuestLogTitle(questIndex)
+        if not isHeader and questID and not isComplete then
+            activeQuestIDs[questID] = true
+        end
+    end
+end
+
+-- Returns true if this food item is associated with an active quest.
+local function IsNeededForQuest(questIDs)
+    for _, questID in ipairs(questIDs) do
+        if activeQuestIDs[questID] then
+            return true
+        end
+    end
+    return false
+end
+
+--------------------------------------------------------------------------------
+-- Pet Food Scanning (Hunter)
+--
+-- Selects the lowest-itemLevel food that still gives maximum happiness
+-- (petLevel - foodItemLevel between 0 and 10). Ties broken by sell price
+-- (lower wins), then total count in bags (fewer wins).
+--
+-- All data (itemLevel, dietID, sellPrice, questIDs) comes from the stored
+-- ns.PetFoodData table. No server queries are needed during scanning.
+--
+-- Quest objective foods are skipped only when the player has that quest
+-- active.
+--------------------------------------------------------------------------------
+
+function ns.ScanPetFood()
+    ns.BestPetFoodID   = nil
+    ns.BestPetFoodLink = nil
+
+    if not ns.PetFoodData or not ns.PetDietMap then return end
+
+    -- Must have a living pet out
+    if not UnitExists("pet") or UnitIsDead("pet") or UnitIsGhost("pet") then return end
+
+    local petLevel = UnitLevel("pet")
+    if not petLevel or petLevel < 1 then return end
+
+    -- Build a set of diet IDs the current pet accepts
+    local petDiets = { GetPetFoodTypes() }
+    if not petDiets or #petDiets == 0 then return end
+
+    local dietSet = {}
+    for _, dietName in ipairs(petDiets) do
+        local dietID = ns.PetDietMap[dietName]
+        if dietID then
+            dietSet[dietID] = true
+        end
+    end
+
+    -- Snapshot the player's active quests once per scan
+    BuildActiveQuestSet()
+
+    local ignoreList = ConnoisseurCharDB and ConnoisseurCharDB.ignoreList or {}
+
+    local bestID, bestLink
+    local bestLevel = 999
+    local bestPrice = 999999
+    local bestCount = 999999
+
+    for bag = 0, NUM_BAG_SLOTS do
+        for slot = 1, C_Container.GetContainerNumSlots(bag) do
+            local info = C_Container.GetContainerItemInfo(bag, slot)
+            if info and info.itemID then
+                local id = info.itemID
+                local foodData = ns.PetFoodData[id]
+
+                if foodData and not ignoreList[id] then
+                    local foodLevel = foodData[1]
+                    local foodDiet  = foodData[2]
+                    local sellPrice = foodData[3]
+                    local questIDs  = foodData[4]
+
+                    if dietSet[foodDiet] then
+                        local levelDelta = petLevel - foodLevel
+
+                        -- Only consider foods in the max-happiness bracket (delta 0 to 10)
+                        if levelDelta >= 0 and levelDelta <= 10 then
+
+                            -- Skip foods needed for active quests
+                            local skipQuest = false
+                            if questIDs then
+                                skipQuest = IsNeededForQuest(questIDs)
+                            end
+
+                            if not skipQuest then
+                                local totalCount = C_Item.GetItemCount(id)
+
+                                -- Prefer: lowest itemLevel, then lowest sell price, then fewest in bags
+                                local isBetter = false
+                                if not bestID then
+                                    isBetter = true
+                                elseif foodLevel ~= bestLevel then
+                                    isBetter = foodLevel < bestLevel
+                                elseif sellPrice ~= bestPrice then
+                                    isBetter = sellPrice < bestPrice
+                                else
+                                    isBetter = totalCount < bestCount
+                                end
+
+                                if isBetter then
+                                    bestID    = id
+                                    bestLink  = info.hyperlink
+                                    bestLevel = foodLevel
+                                    bestPrice = sellPrice
+                                    bestCount = totalCount
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    ns.BestPetFoodID   = bestID
+    ns.BestPetFoodLink = bestLink
 end

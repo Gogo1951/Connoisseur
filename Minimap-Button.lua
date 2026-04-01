@@ -2,8 +2,8 @@ local addonName, ns = ...
 local GetColor = ns.GetColor
 local L = ns.L
 
-local LDB = LibStub("LibDataBroker-1.1", true)
-local LDBIcon = LibStub("LibDBIcon-1.0", true)
+local LDB = LibStub("LibDataBroker-1.1")
+local LDBIcon = LibStub("LibDBIcon-1.0")
 
 --------------------------------------------------------------------------------
 -- LDB Icon Update
@@ -47,58 +47,9 @@ UpdateTooltip = function(anchor)
 
     tooltip:AddDoubleLine(GetColor("TITLE") .. L["BRAND"] .. "|r", GetColor("MUTED") .. ns.Version .. "|r")
     tooltip:AddLine(" ")
-
-    -- Class-specific conjure tips
-    local _, playerClass = UnitClass("player")
-    local descriptionColor = GetColor("DESC")
-
-    if playerClass == "MAGE" and ns.ConjureSpells then
-        local mageColor = "|cff3FC7EB"
-        local knowsTable   = KnowsAny(ns.ConjureSpells.MageCreateTable)
-        local knowsFood    = KnowsAny(ns.ConjureSpells.MageCreateFood)
-        local knowsWater   = KnowsAny(ns.ConjureSpells.MageCreateWater)
-        local knowsManaGem = KnowsAny(ns.ConjureSpells.MageCreateManaGem)
-
-        if knowsFood or knowsWater or knowsTable or knowsManaGem then
-            tooltip:AddLine(" ")
-            tooltip:AddLine(mageColor .. L["PREFIX_MAGE"] .. "|r")
-            if knowsFood or knowsWater then
-                tooltip:AddLine(descriptionColor .. L["TIP_MAGE_CONJURE"] .. "|r", 1, 1, 1, true)
-            end
-            if knowsManaGem then
-                tooltip:AddLine(" ")
-                tooltip:AddLine(descriptionColor .. L["TIP_MAGE_GEM"] .. "|r", 1, 1, 1, true)
-            end
-            if knowsTable then
-                tooltip:AddLine(" ")
-                tooltip:AddLine(descriptionColor .. L["TIP_MAGE_TABLE"] .. "|r", 1, 1, 1, true)
-            end
-            tooltip:AddLine(" ")
-            tooltip:AddLine(descriptionColor .. L["TIP_DOWNRANK"] .. "|r", 1, 1, 1, true)
-        end
-    elseif playerClass == "WARLOCK" and ns.ConjureSpells then
-        local warlockColor = "|cff8788EE"
-        local knowsSoulwell    = KnowsAny(ns.ConjureSpells.WarlockCreateSoulwell)
-        local knowsHealthstone = KnowsAny(ns.ConjureSpells.WarlockCreateHealthstone)
-        local knowsSoulstone   = KnowsAny(ns.ConjureSpells.WarlockCreateSoulstone)
-
-        if knowsHealthstone or knowsSoulstone or knowsSoulwell then
-            tooltip:AddLine(" ")
-            tooltip:AddLine(warlockColor .. L["PREFIX_WARLOCK"] .. "|r")
-            if knowsHealthstone or knowsSoulstone then
-                tooltip:AddLine(descriptionColor .. L["TIP_WARLOCK_CONJURE"] .. "|r", 1, 1, 1, true)
-            end
-            if knowsSoulwell then
-                tooltip:AddLine(" ")
-                tooltip:AddLine(descriptionColor .. L["TIP_WARLOCK_SOUL"] .. "|r", 1, 1, 1, true)
-            end
-            tooltip:AddLine(" ")
-            tooltip:AddLine(descriptionColor .. L["TIP_DOWNRANK"] .. "|r", 1, 1, 1, true)
-        end
-    end
-
-    -- Prioritize Buff Food
     tooltip:AddLine(" ")
+    
+    -- Prioritize Buff Food
     local buffState = settings.useBuffFood
         and (GetColor("SUCCESS") .. L["UI_ENABLED"] .. "|r")
         or  (GetColor("DISABLED") .. L["UI_DISABLED"] .. "|r")
@@ -155,6 +106,68 @@ UpdateTooltip = function(anchor)
         end
 
         tooltip:AddDoubleLine(GetColor("INFO") .. L["UI_MIDDLE_CLICK"] .. "|r", GetColor("INFO") .. L["MENU_CLEAR_IGNORE"] .. "|r")
+    end
+
+    -- Class-specific conjure tips
+    local _, playerClass = UnitClass("player")
+    local descriptionColor = GetColor("DESC")
+
+    if playerClass == "MAGE" and ns.ConjureSpells then
+        local mageColor = "|cff3FC7EB"
+        local knowsTable   = KnowsAny(ns.ConjureSpells.MageCreateTable)
+        local knowsFood    = KnowsAny(ns.ConjureSpells.MageCreateFood)
+        local knowsWater   = KnowsAny(ns.ConjureSpells.MageCreateWater)
+        local knowsManaGem = KnowsAny(ns.ConjureSpells.MageCreateManaGem)
+
+        if knowsFood or knowsWater or knowsTable or knowsManaGem then
+            tooltip:AddLine(" ")
+            tooltip:AddLine(mageColor .. L["PREFIX_MAGE"] .. "|r")
+            if knowsFood or knowsWater then
+                tooltip:AddLine(descriptionColor .. L["TIP_MAGE_CONJURE"] .. "|r", 1, 1, 1, true)
+            end
+            if knowsTable then
+                tooltip:AddLine(" ")
+                tooltip:AddLine(descriptionColor .. L["TIP_MAGE_TABLE"] .. "|r", 1, 1, 1, true)
+            end
+            tooltip:AddLine(" ")
+            tooltip:AddLine(descriptionColor .. L["TIP_DOWNRANK"] .. "|r", 1, 1, 1, true)
+            if knowsManaGem then
+                tooltip:AddLine(" ")
+                tooltip:AddLine(descriptionColor .. L["TIP_MAGE_GEM"] .. "|r", 1, 1, 1, true)
+            end
+        end
+    elseif playerClass == "WARLOCK" and ns.ConjureSpells then
+        local warlockColor = "|cff8788EE"
+        local knowsSoulwell    = KnowsAny(ns.ConjureSpells.WarlockCreateSoulwell)
+        local knowsHealthstone = KnowsAny(ns.ConjureSpells.WarlockCreateHealthstone)
+        local knowsSoulstone   = KnowsAny(ns.ConjureSpells.WarlockCreateSoulstone)
+
+        if knowsHealthstone or knowsSoulstone or knowsSoulwell then
+            tooltip:AddLine(" ")
+            tooltip:AddLine(warlockColor .. L["PREFIX_WARLOCK"] .. "|r")
+            if knowsHealthstone or knowsSoulstone then
+                tooltip:AddLine(descriptionColor .. L["TIP_WARLOCK_CONJURE"] .. "|r", 1, 1, 1, true)
+            end
+            if knowsSoulwell then
+                tooltip:AddLine(" ")
+                tooltip:AddLine(descriptionColor .. L["TIP_WARLOCK_SOUL"] .. "|r", 1, 1, 1, true)
+            end
+            tooltip:AddLine(" ")
+            tooltip:AddLine(descriptionColor .. L["TIP_DOWNRANK"] .. "|r", 1, 1, 1, true)
+        end
+    elseif playerClass == "HUNTER" and ns.FeedPetSpellName then
+        local hunterColor = "|cffAAD372"
+
+        tooltip:AddLine(" ")
+        tooltip:AddLine(hunterColor .. L["PREFIX_HUNTER"] .. "|r")
+        tooltip:AddLine(descriptionColor .. L["TIP_HUNTER_FEED_PET"] .. "|r", 1, 1, 1, true)
+
+        if ns.BestPetFoodID and ns.BestPetFoodLink then
+            tooltip:AddLine(" ")
+            tooltip:AddLine(GetColor("TITLE") .. L["UI_BEST_PET_FOOD"] .. "|r")
+            local foodIcon = C_Item.GetItemIconByID(ns.BestPetFoodID)
+            tooltip:AddLine(format("|T%s:14:14|t %s", foodIcon, ns.BestPetFoodLink))
+        end
     end
 
     -- Options hint

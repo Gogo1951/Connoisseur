@@ -115,6 +115,19 @@ local function InitVars()
         ns.ShadowmeldSpellName = GetSpellInfo(ns.SHADOWMELD_SPELL_ID)
     end
 
+    -- Hunter detection and pet spell resolution
+    local _, classToken = UnitClass("player")
+    ns.IsHunter = (classToken == "HUNTER")
+
+    if ns.IsHunter then
+        ns.FeedPetSpellName    = GetSpellInfo(ns.FEED_PET_SPELL_ID)
+        ns.RevivePetSpellName  = GetSpellInfo(ns.REVIVE_PET_SPELL_ID)
+        ns.MendPetSpellName    = GetSpellInfo(ns.MEND_PET_SPELL_ID)
+        ns.CallPetSpellName    = GetSpellInfo(ns.CALL_PET_SPELL_ID)
+        ns.DismissPetSpellName = GetSpellInfo(ns.DISMISS_PET_SPELL_ID)
+        ns.PetDeadDismissed    = false
+    end
+
     ns.SpellCache = {}
     if ns.ConjureSpells then
         for _, spellList in pairs(ns.ConjureSpells) do
@@ -134,19 +147,10 @@ local function InitVars()
         ns.UpdateAlchemySkill()
     end
 
-    local LDBIcon = LibStub("LibDBIcon-1.0", true)
+    local LDBIcon = LibStub("LibDBIcon-1.0")
     if LDBIcon and ns.LDBObj and not ns.IconRegistered then
         LDBIcon:Register("Connoisseur", ns.LDBObj, ConnoisseurDB.minimap)
         ns.IconRegistered = true
-    end
-
-    local settings = ConnoisseurCharDB.settings
-    if settings.useBuffFood or settings.useScrolls then
-        frame:RegisterUnitEvent("UNIT_AURA", "player")
-        ns.WellFedState = ns.HasWellFedBuff and ns.HasWellFedBuff() or false
-    else
-        frame:UnregisterEvent("UNIT_AURA")
-        ns.WellFedState = false
     end
 end
 
@@ -154,21 +158,25 @@ end
 -- Feature Toggles
 --------------------------------------------------------------------------------
 
-local function UpdateAuraTracking()
+function ns.UpdateAuraTracking()
     local settings = ConnoisseurCharDB.settings
     if settings.useBuffFood or settings.useScrolls then
-        frame:RegisterUnitEvent("UNIT_AURA", "player")
         ns.WellFedState = ns.HasWellFedBuff and ns.HasWellFedBuff() or false
     else
-        frame:UnregisterEvent("UNIT_AURA")
         ns.WellFedState = false
+    end
+    
+    if settings.useBuffFood or settings.useScrolls or settings.usePetBuffFood then
+        frame:RegisterUnitEvent("UNIT_AURA", "player", "pet")
+    else
+        frame:UnregisterEvent("UNIT_AURA")
     end
 end
 
 function ns.ToggleBuffFood()
     local settings = ConnoisseurCharDB.settings
     settings.useBuffFood = not settings.useBuffFood
-    UpdateAuraTracking()
+    ns.UpdateAuraTracking()
     if ns.ResetMacroState then
         ns.ResetMacroState()
     end
@@ -178,7 +186,7 @@ end
 function ns.ToggleScrollBuffs()
     local settings = ConnoisseurCharDB.settings
     settings.useScrolls = not settings.useScrolls
-    UpdateAuraTracking()
+    ns.UpdateAuraTracking()
     if ns.ResetMacroState then
         ns.ResetMacroState()
     end
@@ -268,6 +276,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
         ns.RequestUpdate()
     elseif event == "PLAYER_ENTERING_WORLD" then
         InitVars()
+        ns.UpdateAuraTracking()
         ns.RequestUpdate()
         C_Timer.After(3, function()
             ns.RequestUpdate()
@@ -282,30 +291,62 @@ frame:SetScript("OnEvent", function(self, event, ...)
         ns.RequestUpdate()
     elseif event == "UNIT_AURA" then
         local needsUpdate = false
+        local unit = ...
 
-        if ns.HasWellFedBuff then
-            local currentState = ns.HasWellFedBuff()
-            if currentState ~= ns.WellFedState then
-                ns.WellFedState = currentState
+        if unit == "player" then
+            if ns.HasWellFedBuff then
+                local currentState = ns.HasWellFedBuff()
+                if currentState ~= ns.WellFedState then
+                    ns.WellFedState = currentState
+                    needsUpdate = true
+                end
+            end
+
+            if ConnoisseurCharDB and ConnoisseurCharDB.settings and ConnoisseurCharDB.settings.useScrolls then
                 needsUpdate = true
             end
-        end
-
-        if ConnoisseurCharDB and ConnoisseurCharDB.settings and ConnoisseurCharDB.settings.useScrolls then
-            needsUpdate = true
+        elseif unit == "pet" then
+            if ConnoisseurCharDB and ConnoisseurCharDB.settings and ConnoisseurCharDB.settings.usePetBuffFood then
+                needsUpdate = true
+            end
         end
 
         if needsUpdate then
             ns.RequestUpdate()
         end
+        
     elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
         local _, _, spellID = ...
         if ns.SpellCache and ns.SpellCache[spellID] then
             ns.RequestUpdate()
         end
+    elseif event == "UNIT_PET" then
+        local unit = ...
+        if unit == "player" then
+            -- Pet appeared or changed: clear the dead-dismissed flag
+            if ns.IsHunter and UnitExists("pet") and not UnitIsDead("pet") then
+                ns.PetDeadDismissed = false
+            end
+            ns.RequestUpdate()
+        end
     elseif event == "UI_ERROR_MESSAGE" then
+        local _, msg = ...
+
+        -- Hunter: detect dead-but-dismissed pet
+        -- When Call Pet fails because the pet is dead, the client fires
+        -- SPELL_FAILED_TARGETS_DEAD. We catch it here and flip the flag
+        -- so the macro rebuilds with Revive Pet on the next cycle.
+        -- If the error ID changes in a future build, update this check.
+        if ns.IsHunter and not UnitExists("pet") and msg then
+            local deadMsg = SPELL_FAILED_TARGETS_DEAD
+            if deadMsg and msg == deadMsg then
+                ns.PetDeadDismissed = true
+                ns.RequestUpdate()
+            end
+        end
+
+        -- Existing zone-error reporting for consumables
         if CC_LastTime and (GetTime() - CC_LastTime) < 1.0 then
-            local _, msg = ...
             if msg == ERR_ITEM_WRONG_ZONE then
                 local mapID = C_Map.GetBestMapForUnit("player") or "0"
                 local zone = GetZoneText() or "?"
@@ -358,4 +399,5 @@ frame:RegisterEvent("PLAYER_UNGHOST")
 frame:RegisterEvent("UI_ERROR_MESSAGE")
 frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 frame:RegisterEvent("SKILL_LINES_CHANGED")
+frame:RegisterEvent("UNIT_PET")
 frame:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
