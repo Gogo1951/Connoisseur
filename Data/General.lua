@@ -101,7 +101,9 @@ ns.WellFedBuffIDs = {
 
 ns.SETTINGS_DEFAULTS = {
     useBuffFood = false,
+    buffFoodMode = "always",
     useScrolls = false,
+    scrollsMode = "always",
     scrollTypes = {
         Agility = true,
         Intellect = true,
@@ -112,11 +114,25 @@ ns.SETTINGS_DEFAULTS = {
     },
     enableShadowmeldDrinking = false,
     usePetBuffFood = false,
+    petBuffFoodMode = "always",
     petBuffTypes = {
         KiblersBits = true,
         SporelingSnacks = true
     }
 }
+
+--------------------------------------------------------------------------------
+-- Mode Helper
+--------------------------------------------------------------------------------
+
+function ns.IsModeActive(mode)
+    if mode == "always" then return true end
+    if mode == "party" then return IsInGroup() end
+    if mode == "raid" then return IsInRaid() end
+    return true
+end
+
+ns.MODE_ORDER = { "always", "party", "raid" }
 
 --------------------------------------------------------------------------------
 -- Utility
