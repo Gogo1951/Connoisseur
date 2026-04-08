@@ -55,6 +55,9 @@ For Hunters, the Feed Pet macro works as a complete, all-in-one Pet Call / Feed 
 
 *Note: If you run out of a specific consumable type, the macro will default to a fallback icon.*
 
+<img width="800" src="https://github.com/user-attachments/assets/c0e8e916-b3b9-4ce1-a5ff-d4b023a8ee20" />
+
+
 ## Download
 
 You can find this on Curseforge.
