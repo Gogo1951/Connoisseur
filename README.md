@@ -77,6 +77,6 @@ Please reach out if you would like to be involved with testing!
 
 ## Report Issues & Get Involved
 
-You can find this project on GitHub // https://github.com/Gogo1951/Consumable-Connoisseur
+You can find this project on GitHub // https://github.com/Gogo1951/Connoisseur
 
 😈 Gogo1951 on Discord // https://discord.gg/eh8hKq992Q
