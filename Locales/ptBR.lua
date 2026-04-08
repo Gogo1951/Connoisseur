@@ -61,7 +61,7 @@ L["MODE_PARTY"]  = "Apenas em grupo"
 L["MODE_RAID"]   = "Apenas em raide"
 
 -- Options Panel
-L["OPTIONS_DESC"]              = "Cria macros para usar a melhor comida, água, poções, pedras de vida, pedras de alma, gemas de mana ou bandagens disponíveis para você."
+L["OPTIONS_DESC"] = "Cria macros que se atualizam automaticamente para seus melhores consumíveis, rastreando buffs para manter você com o melhor desempenho. Possui um Feed-O-Matic tudo-em-um para Caçadores e conjuração inteligente com clique direito para Magos e Bruxos que se adapta ao nível do seu alvo."
 L["OPTIONS_BUFF_FOOD"]         = "Priorizar Comida com Buff"
 L["OPTIONS_BUFF_FOOD_DESC"]    = "Prioriza comida que concede o buff \"Bem Alimentado\", quando o buff estiver faltando."
 L["OPTIONS_SCROLL_HEADER"]     = "Buffs de Pergaminho"

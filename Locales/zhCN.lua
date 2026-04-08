@@ -61,7 +61,7 @@ L["MODE_PARTY"]  = "仅在小队时"
 L["MODE_RAID"]   = "仅在团队时"
 
 -- Options Panel
-L["OPTIONS_DESC"]              = "创建宏以使用你可用的最佳食物、水、药水、治疗石、灵魂石、法力宝石或绷带。"
+L["OPTIONS_DESC"] = "为你最好的消耗品创建自动更新宏，追踪增益状态以保持你的最佳表现。为猎人提供多合一的自动喂食功能，为法师和术士提供根据目标等级自适应的智能右键制造功能。"
 L["OPTIONS_BUFF_FOOD"]         = "优先增益食物"
 L["OPTIONS_BUFF_FOOD_DESC"]    = "当缺少 \"进食充分\" BUFF时，优先使用提供该BUFF的食物。"
 L["OPTIONS_SCROLL_HEADER"]     = "卷轴增益"

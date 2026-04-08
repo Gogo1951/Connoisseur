@@ -61,7 +61,7 @@ L["MODE_PARTY"]  = "Uniquement en groupe"
 L["MODE_RAID"]   = "Uniquement en raid"
 
 -- Options Panel
-L["OPTIONS_DESC"]              = "Crée des macros pour utiliser la meilleure nourriture, eau, potions, pierres de soins, pierres d'âme, gemmes de mana ou bandages à votre disposition."
+L["OPTIONS_DESC"] = "Crée des macros à mise à jour automatique pour vos meilleurs consommables, en suivant les améliorations pour vous garder au sommet de vos performances. Comprend un Feed-O-Matic tout-en-un pour les Chasseurs et une invocation intelligente par clic droit pour les Mages et Démonistes qui s'adapte au niveau de votre cible."
 L["OPTIONS_BUFF_FOOD"]         = "Priorité : Bien nourri"
 L["OPTIONS_BUFF_FOOD_DESC"]    = "Priorise la nourriture conférant l'amélioration \"Bien nourri\" si elle est absente."
 L["OPTIONS_SCROLL_HEADER"]     = "Améliorations de parchemins"

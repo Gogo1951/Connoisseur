@@ -13,7 +13,7 @@ L["MACRO_MGEM"]    = "- Manastein"
 L["MACRO_MPOT"]    = "- Manatrank"
 L["MACRO_SS"]      = "- Seelenstein"
 L["MACRO_WATER"]   = "- Wasser"
-L["MACRO_FEED_PET"]= "- Tier füttern"
+L["MACRO_FEED_PET"]	= "- Tier füttern"
 
 L["ERR_ZONE"] = "Das kannst du hier nicht benutzen."
 L["RANK"]     = "Rang"
@@ -61,7 +61,7 @@ L["MODE_PARTY"]  = "Nur in einer Gruppe"
 L["MODE_RAID"]   = "Nur in einem Schlachtzug"
 
 -- Options Panel
-L["OPTIONS_DESC"]              = "Erstellt Makros, um das beste verfügbare Essen, Wasser, Tränke, Gesundheitssteine, Seelensteine, Manasteine oder Verbände zu verwenden."
+L["OPTIONS_DESC"] = "Erstellt sich automatisch aktualisierende Makros für deine besten Verbrauchsgüter und verfolgt Buffs, um dich auf Höchstleistung zu halten. Bietet einen All-in-One Feed-O-Matic für Jäger und intelligentes Herbeizaubern per Rechtsklick für Magier und Hexenmeister, das sich der Stufe deines Ziels anpasst."
 L["OPTIONS_BUFF_FOOD"]         = "Buff-Essen bevorzugen"
 L["OPTIONS_BUFF_FOOD_DESC"]    = "Bevorzugt Essen, das den \"Satt\"-Buff gewährt, wenn der Buff fehlt."
 L["OPTIONS_SCROLL_HEADER"]     = "Schriftrollen-Buffs"

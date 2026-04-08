@@ -59,7 +59,7 @@ local strings = {
     ["MODE_RAID"]   = "Solo en banda",
 
     -- Options Panel
-    ["OPTIONS_DESC"]              = "Crea macros para usar la mejor comida, agua, pociones, piedras de salud, piedras de alma, gemas de maná o vendas que tengas disponibles.",
+    ["OPTIONS_DESC"] = "Crea macros que se actualizan automáticamente para tus mejores consumibles, rastreando beneficios para mantenerte en tu máximo rendimiento. Incluye un Feed-O-Matic todo en uno para Cazadores y una conjuración inteligente con clic derecho para Magos y Brujos que se adapta al nivel de tu objetivo.",
     ["OPTIONS_BUFF_FOOD"]         = "Priorizar comida con beneficios",
     ["OPTIONS_BUFF_FOOD_DESC"]    = "Prioriza la comida que otorga el beneficio \"Bien alimentado\" cuando te falta.",
     ["OPTIONS_SCROLL_HEADER"]     = "Beneficios de pergaminos",

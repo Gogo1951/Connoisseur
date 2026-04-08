@@ -61,7 +61,7 @@ L["MODE_PARTY"]  = "僅在隊伍時"
 L["MODE_RAID"]   = "僅在團隊時"
 
 -- Options Panel
-L["OPTIONS_DESC"]              = "建立巨集以使用你可用的最佳食物、水、藥水、治療石、靈魂石、法力寶石或繃帶。"
+L["OPTIONS_DESC"] = "為你最好的消耗品建立自動更新巨集，追蹤增益狀態以保持你的最佳表現。為獵人提供多合一的自動餵食功能，為法師和術士提供根據目標等級自適應的智能右鍵製造功能。"
 L["OPTIONS_BUFF_FOOD"]         = "優先使用增益食物"
 L["OPTIONS_BUFF_FOOD_DESC"]    = "當缺少 \"進食充分\" 增益時，優先使用會給予該增益的食物。"
 L["OPTIONS_SCROLL_HEADER"]     = "卷軸增益"

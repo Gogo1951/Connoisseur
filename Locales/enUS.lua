@@ -64,7 +64,7 @@ L["MODE_PARTY"] = "Only when in Party"
 L["MODE_RAID"] = "Only when in Raid"
 
 -- Options Panel
-L["OPTIONS_DESC"] = "Creates macros to use the best food, water, potions, healthstones, soulstones, mana gems, or bandages available to you."
+L["OPTIONS_DESC"] = "Creates auto-updating macros for your best consumables, tracking buffs to keep you at peak performance. Features an all-in-one Feed-O-Matic for Hunters and smart right-click conjuring for Mages and Warlocks that adapts to your target’s level."
 L["OPTIONS_BUFF_FOOD"] = "Prioritize Buff Food"
 L["OPTIONS_BUFF_FOOD_DESC"] = 'Prioritizes food that grants the "Well Fed" buff, when the buff is missing.'
 L["OPTIONS_SCROLL_HEADER"] = "Scroll Buffs"
