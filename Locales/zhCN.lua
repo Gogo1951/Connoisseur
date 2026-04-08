@@ -56,6 +56,10 @@ L["UI_RIGHT_CLICK"]  = "右键点击"
 L["UI_SHIFT_LEFT"]   = "Shift + 左键点击"
 L["UI_TOGGLE"]       = "切换"
 
+L["MODE_ALWAYS"] = "总是"
+L["MODE_PARTY"]  = "仅在小队时"
+L["MODE_RAID"]   = "仅在团队时"
+
 -- Options Panel
 L["OPTIONS_DESC"]              = "创建宏以使用你可用的最佳食物、水、药水、治疗石、灵魂石、法力宝石或绷带。"
 L["OPTIONS_BUFF_FOOD"]         = "优先增益食物"
@@ -84,6 +88,7 @@ L["OPTIONS_SHADOWMELD_DRINKING_DESC"] = "将影遁添加到你的水宏中，以
 
 L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
 L["OPTIONS_COMMANDS_DESC"]   = "/foodie"
+L["OPTIONS_COMMANDS_DETAIL"] = "打开 Connoisseur 选项界面。"
 
 L["OPTIONS_RESET_HEADER"]         = "重置"
 L["OPTIONS_RESET_IGNORE_DESC"]    = "从忽略列表中移除所有物品。"

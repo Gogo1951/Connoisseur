@@ -56,6 +56,10 @@ L["UI_RIGHT_CLICK"]  = "右鍵點擊"
 L["UI_SHIFT_LEFT"]   = "Shift + 左鍵點擊"
 L["UI_TOGGLE"]       = "切換"
 
+L["MODE_ALWAYS"] = "總是"
+L["MODE_PARTY"]  = "僅在隊伍時"
+L["MODE_RAID"]   = "僅在團隊時"
+
 -- Options Panel
 L["OPTIONS_DESC"]              = "建立巨集以使用你可用的最佳食物、水、藥水、治療石、靈魂石、法力寶石或繃帶。"
 L["OPTIONS_BUFF_FOOD"]         = "優先使用增益食物"
@@ -84,6 +88,7 @@ L["OPTIONS_SHADOWMELD_DRINKING_DESC"] = "將影遁加入你的水巨集中，讓
 
 L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
 L["OPTIONS_COMMANDS_DESC"]   = "/foodie"
+L["OPTIONS_COMMANDS_DETAIL"] = "開啟 Connoisseur 選項介面。"
 
 L["OPTIONS_RESET_HEADER"]         = "重置"
 L["OPTIONS_RESET_IGNORE_DESC"]    = "從忽略清單中移除所有物品。"

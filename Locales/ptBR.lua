@@ -56,6 +56,10 @@ L["UI_RIGHT_CLICK"]  = "Clique Direito"
 L["UI_SHIFT_LEFT"]   = "Shift + Clique Esquerdo"
 L["UI_TOGGLE"]       = "Alternar"
 
+L["MODE_ALWAYS"] = "Sempre"
+L["MODE_PARTY"]  = "Apenas em grupo"
+L["MODE_RAID"]   = "Apenas em raide"
+
 -- Options Panel
 L["OPTIONS_DESC"]              = "Cria macros para usar a melhor comida, água, poções, pedras de vida, pedras de alma, gemas de mana ou bandagens disponíveis para você."
 L["OPTIONS_BUFF_FOOD"]         = "Priorizar Comida com Buff"
@@ -84,6 +88,7 @@ L["OPTIONS_SHADOWMELD_DRINKING_DESC"] = "Anexa Fusão Espiritual à sua macro de
 
 L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
 L["OPTIONS_COMMANDS_DESC"]   = "/foodie"
+L["OPTIONS_COMMANDS_DETAIL"] = "Abre a interface de opções do Connoisseur."
 
 L["OPTIONS_RESET_HEADER"]         = "Redefinir"
 L["OPTIONS_RESET_IGNORE_DESC"]    = "Remover todos os itens da lista de ignorados."

@@ -56,6 +56,10 @@ L["UI_RIGHT_CLICK"]  = "Rechtsklick"
 L["UI_SHIFT_LEFT"]   = "Shift + Linksklick"
 L["UI_TOGGLE"]       = "Umschalten"
 
+L["MODE_ALWAYS"] = "Immer"
+L["MODE_PARTY"]  = "Nur in einer Gruppe"
+L["MODE_RAID"]   = "Nur in einem Schlachtzug"
+
 -- Options Panel
 L["OPTIONS_DESC"]              = "Erstellt Makros, um das beste verfügbare Essen, Wasser, Tränke, Gesundheitssteine, Seelensteine, Manasteine oder Verbände zu verwenden."
 L["OPTIONS_BUFF_FOOD"]         = "Buff-Essen bevorzugen"
@@ -84,6 +88,7 @@ L["OPTIONS_SHADOWMELD_DRINKING_DESC"] = "Fügt Schattenmimik zu deinem Wasser-Ma
 
 L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
 L["OPTIONS_COMMANDS_DESC"]   = "/foodie"
+L["OPTIONS_COMMANDS_DETAIL"] = "Öffnet das Connoisseur-Optionsmenü."
 
 L["OPTIONS_RESET_HEADER"]         = "Zurücksetzen"
 L["OPTIONS_RESET_IGNORE_DESC"]    = "Alle Gegenstände von der Ignorierliste entfernen."

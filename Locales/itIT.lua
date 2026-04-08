@@ -59,6 +59,10 @@ L["UI_RIGHT_CLICK"] = "Clic Destro"
 L["UI_SHIFT_LEFT"] = "Shift + Clic Sinistro"
 L["UI_TOGGLE"] = "Attiva/Disattiva"
 
+L["MODE_ALWAYS"] = "Sempre"
+L["MODE_PARTY"] = "Solo in gruppo"
+L["MODE_RAID"] = "Solo in incursione"
+
 -- Options Panel
 L["OPTIONS_DESC"] = "Crea macro per usare il miglior cibo, acqua, pozioni, pietre della salute, pietre dell'anima, gemme di mana o bende a tua disposizione."
 L["OPTIONS_BUFF_FOOD"] = "Priorità Cibo con Buff"
@@ -87,6 +91,7 @@ L["OPTIONS_SHADOWMELD_DRINKING_DESC"] = "Aggiunge Fondersi con l'Ombra alla tua 
 
 L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
 L["OPTIONS_COMMANDS_DESC"] = "/foodie"
+L["OPTIONS_COMMANDS_DETAIL"] = "Apre l'interfaccia delle opzioni di Connoisseur."
 
 L["OPTIONS_RESET_HEADER"] = "Reimposta"
 L["OPTIONS_RESET_IGNORE_DESC"] = "Rimuovi tutti gli oggetti dalla lista ignorati."

@@ -56,6 +56,10 @@ L["UI_RIGHT_CLICK"]  = "ПКМ"
 L["UI_SHIFT_LEFT"]   = "Shift + ЛКМ"
 L["UI_TOGGLE"]       = "Переключить"
 
+L["MODE_ALWAYS"] = "Всегда"
+L["MODE_PARTY"]  = "Только в группе"
+L["MODE_RAID"]   = "Только в рейде"
+
 -- Options Panel
 L["OPTIONS_DESC"]              = "Создает макросы для использования лучшей еды, воды, зелий, камней здоровья, камней душ, мана-камней или бинтов, доступных вам."
 L["OPTIONS_BUFF_FOOD"]         = "Еда с баффами"
@@ -84,6 +88,7 @@ L["OPTIONS_SHADOWMELD_DRINKING_DESC"] = "Добавляет способност
 
 L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
 L["OPTIONS_COMMANDS_DESC"]   = "/foodie"
+L["OPTIONS_COMMANDS_DETAIL"] = "Открывает интерфейс настроек Connoisseur."
 
 L["OPTIONS_RESET_HEADER"]      = "Сброс"
 L["OPTIONS_RESET_IGNORE_DESC"] = "Удалить все предметы из списка игнорирования."

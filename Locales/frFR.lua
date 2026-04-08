@@ -56,12 +56,16 @@ L["UI_RIGHT_CLICK"]  = "Clic Droit"
 L["UI_SHIFT_LEFT"]   = "Maj + Clic Gauche"
 L["UI_TOGGLE"]       = "Basculer"
 
+L["MODE_ALWAYS"] = "Toujours"
+L["MODE_PARTY"]  = "Uniquement en groupe"
+L["MODE_RAID"]   = "Uniquement en raid"
+
 -- Options Panel
 L["OPTIONS_DESC"]              = "Crée des macros pour utiliser la meilleure nourriture, eau, potions, pierres de soins, pierres d'âme, gemmes de mana ou bandages à votre disposition."
 L["OPTIONS_BUFF_FOOD"]         = "Priorité : Bien nourri"
 L["OPTIONS_BUFF_FOOD_DESC"]    = "Priorise la nourriture conférant l'amélioration \"Bien nourri\" si elle est absente."
 L["OPTIONS_SCROLL_HEADER"]     = "Améliorations de parchemins"
-L["OPTIONS_USE_SCROLLS"]       = "Inclure les parchemins"
+L["OPTIONS_USE_SCROLLS"]       = "Incluir les parchemins"
 L["OPTIONS_USE_SCROLLS_DESC"]  = "Utilise des parchemins, si l'amélioration est absente, dans votre macro Nourriture."
 L["OPTIONS_SCROLL_TYPES"]      = "Types de parchemins à vérifier"
 L["OPTIONS_SCROLL_AGILITY"]    = "Agilité"
@@ -84,6 +88,7 @@ L["OPTIONS_SHADOWMELD_DRINKING_DESC"] = "Ajoute Camouflage dans l'ombre à votre
 
 L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
 L["OPTIONS_COMMANDS_DESC"]   = "/foodie"
+L["OPTIONS_COMMANDS_DETAIL"] = "Ouvre l'interface des options de Connoisseur."
 
 L["OPTIONS_RESET_HEADER"]         = "Réinitialiser"
 L["OPTIONS_RESET_IGNORE_DESC"]    = "Retire tous les objets de la liste d'exclusion."

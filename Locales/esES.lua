@@ -54,6 +54,10 @@ local strings = {
     ["UI_SHIFT_LEFT"]   = "Shift + Clic izquierdo",
     ["UI_TOGGLE"]       = "Alternar",
 
+    ["MODE_ALWAYS"] = "Siempre",
+    ["MODE_PARTY"]  = "Solo en grupo",
+    ["MODE_RAID"]   = "Solo en banda",
+
     -- Options Panel
     ["OPTIONS_DESC"]              = "Crea macros para usar la mejor comida, agua, pociones, piedras de salud, piedras de alma, gemas de maná o vendas que tengas disponibles.",
     ["OPTIONS_BUFF_FOOD"]         = "Priorizar comida con beneficios",
@@ -82,6 +86,7 @@ local strings = {
 
     ["OPTIONS_COMMANDS_HEADER"] = "/Commands",
     ["OPTIONS_COMMANDS_DESC"]   = "/foodie",
+    ["OPTIONS_COMMANDS_DETAIL"] = "Abre la interfaz de opciones de Connoisseur.",
 
     ["OPTIONS_RESET_HEADER"]         = "Reiniciar",
     ["OPTIONS_RESET_IGNORE_DESC"]    = "Eliminar todos los objetos de la lista de ignorados.",

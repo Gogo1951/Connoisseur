@@ -59,6 +59,10 @@ L["UI_RIGHT_CLICK"] = "Right-Click"
 L["UI_SHIFT_LEFT"] = "Shift + Left-Click"
 L["UI_TOGGLE"] = "Toggle"
 
+L["MODE_ALWAYS"] = "Always"
+L["MODE_PARTY"] = "Only when in Party"
+L["MODE_RAID"] = "Only when in Raid"
+
 -- Options Panel
 L["OPTIONS_DESC"] = "Creates macros to use the best food, water, potions, healthstones, soulstones, mana gems, or bandages available to you."
 L["OPTIONS_BUFF_FOOD"] = "Prioritize Buff Food"
@@ -87,6 +91,7 @@ L["OPTIONS_SHADOWMELD_DRINKING_DESC"] = "Appends Shadowmeld to your Water macro 
 
 L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
 L["OPTIONS_COMMANDS_DESC"] = "/foodie"
+L["OPTIONS_COMMANDS_DETAIL"] = "Opens the Connoisseur options interface."
 
 L["OPTIONS_RESET_HEADER"] = "Reset"
 L["OPTIONS_RESET_IGNORE_DESC"] = "Remove all items from the ignore list."
