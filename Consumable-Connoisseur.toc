@@ -1,5 +1,5 @@
 ## Title: Connoisseur
-## Notes: Creates macros to use the best food, water, potions, healthstones, soulstones, mana gems, or bandages available to you. Also automatically conjures the right items for low-level friends.
+## Notes: Creates auto-updating macros for your best consumables, tracking buffs to keep you at peak performance. Features an all-in-one Feed-O-Matic for Hunters and smart right-click conjuring for Mages and Warlocks that adapts to your target’s level.
 ## Author: Gogo1951
 
 ## IconTexture: Interface/AddOns/Consumable-Connoisseur/Consumable-Connoisseur.tga

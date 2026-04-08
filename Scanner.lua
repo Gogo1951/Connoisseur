@@ -351,6 +351,9 @@ function ns.FindScrollOverride(bagItemCounts)
     if not charDB or not charDB.settings or not charDB.settings.useScrolls then
         return nil
     end
+    if not ns.IsModeActive(charDB.settings.scrollsMode) then
+        return nil
+    end
 
     local scrollTypes = charDB.settings.scrollTypes
     if not scrollTypes then return nil end
@@ -390,6 +393,9 @@ end
 function ns.FindPetBuffOverride(bagItemCounts)
     local charDB = ConnoisseurCharDB
     if not charDB or not charDB.settings or not charDB.settings.usePetBuffFood then
+        return nil
+    end
+    if not ns.IsModeActive(charDB.settings.petBuffFoodMode) then
         return nil
     end
 
@@ -434,7 +440,9 @@ function ns.ScanBags()
     local settings = charDB.settings or {}
     local itemCache = ConnoisseurDB and ConnoisseurDB.itemCache or {}
 
-    ns.AllowBuffFood = settings.useBuffFood and not ns.WellFedState
+    ns.AllowBuffFood = settings.useBuffFood
+    and ns.IsModeActive(settings.buffFoodMode)
+    and not ns.WellFedState
 
     for _, entry in pairs(best) do
         ResetBest(entry)

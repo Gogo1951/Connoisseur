@@ -160,13 +160,18 @@ end
 
 function ns.UpdateAuraTracking()
     local settings = ConnoisseurCharDB.settings
-    if settings.useBuffFood or settings.useScrolls then
+
+    local buffFoodActive = settings.useBuffFood and ns.IsModeActive(settings.buffFoodMode)
+    local scrollsActive  = settings.useScrolls and ns.IsModeActive(settings.scrollsMode)
+    local petBuffActive  = settings.usePetBuffFood and ns.IsModeActive(settings.petBuffFoodMode)
+
+    if buffFoodActive or scrollsActive then
         ns.WellFedState = ns.HasWellFedBuff and ns.HasWellFedBuff() or false
     else
         ns.WellFedState = false
     end
-    
-    if settings.useBuffFood or settings.useScrolls or settings.usePetBuffFood then
+
+    if buffFoodActive or scrollsActive or petBuffActive then
         frame:RegisterUnitEvent("UNIT_AURA", "player", "pet")
     else
         frame:UnregisterEvent("UNIT_AURA")
@@ -266,6 +271,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
         or event == "GET_ITEM_INFO_RECEIVED"
         or event == "PLAYER_ALIVE"
         or event == "PLAYER_UNGHOST"
+        or event == "GROUP_ROSTER_UPDATE"
     then
         ns.RequestUpdate()
     elseif event == "ZONE_CHANGED_NEW_AREA" then
@@ -401,3 +407,4 @@ frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 frame:RegisterEvent("SKILL_LINES_CHANGED")
 frame:RegisterEvent("UNIT_PET")
 frame:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
+frame:RegisterEvent("GROUP_ROSTER_UPDATE")
