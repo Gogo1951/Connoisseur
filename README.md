@@ -6,7 +6,7 @@ Creates auto-updating macros for your best consumables, tracking buffs to keep y
 
 ## What It Does
 
-Connoisseur scans your bags every time something changes (loot, vendor purchase, level up, zone change) and rewrites a set of macros so they always use your best available consumable. It picks the highest-value item you can actually use right now, factoring in your level, profession skills, zone restrictions, and vendor sell price as a tiebreaker.
+Connoisseur scans your bags every time something changes (loot, vendor purchase, level up, zone change) and rewrites a set of macros so they always use your best available consumable. It picks the highest-value item you can actually use right now, factoring in your level, profession skills, zone restrictions, and then looks at lowest vendor sell price, and lowest stack count, as tiebreakers.
 
 ## Quick Start
 
