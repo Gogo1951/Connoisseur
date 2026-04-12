@@ -1,70 +1,103 @@
 # Connoisseur
 
-Creates macros to use the best food, water, potions, healthstones, soulstones, mana gems, scrolls, or bandages available to you. Also automatically conjures the right items for low-level friends.
+Creates auto-updating macros for your best consumables, tracking buffs to keep you at peak performance. Features an all-in-one Feed-O-Matic for Hunters and smart right-click conjuring for Mages and Warlocks that adapts to your target's level.
 
 ![Consumable-Connoisseur](https://github.com/user-attachments/assets/326eb93f-329f-4967-b750-909011a05b01)
 
-Whether you just leveled up, traded for a Healthstone from a new warlock, or just zoned into Tempest Keep -- your buttons are always ready.
+## Quick Start
 
-Connoisseur can even prioritize food that keeps you "Well Fed" if your buff drops off.
+1. Install from [CurseForge](https://www.curseforge.com/wow/addons/consumable-connoisseur) or clone from [GitHub](https://github.com/Gogo1951/Consumable-Connoisseur).
+2. Log in. Connoisseur automatically scans your bags and creates macros in your General macro tab.
+3. Drag the macros onto your action bars. They start with a dash: `- Food`, `- Water`, `- Health Potion`, etc.
+4. Play normally. The macros update themselves whenever your bags change, you level up, or you move to a new zone.
 
-<img width="360" alt="image" src="https://github.com/user-attachments/assets/c57060c0-4eee-44ab-af88-48e077d886cc" />
+That's it. No configuration required for basic use.
 
-## Features
+<img width="300" src="https://github.com/user-attachments/assets/c57060c0-4eee-44ab-af88-48e077d886cc" />
 
-🤖 Automatic : Macros update instantly when you loot items, level up, or change zones.
+## What It Does
 
-🦺 Safety First : You can easily add items (like pet food) to the Ignore List directly from the minimap menu.
+Connoisseur scans your bags every time something changes (loot, vendor purchase, level up, zone change) and rewrites a set of macros so they always use your best available consumable. It picks the highest-value item you can actually use right now, factoring in your level, profession skills, zone restrictions, and vendor sell price as a tiebreaker.
 
-🧠 Zone Aware : Prioritizes Battleground-specific consumables (like Arathi Basin Runecloth Bandages) when you are in the correct zone.
+### Macros Created
 
-💬 Perfect Tooltips : What You See Is What You Get. No more shoehorned macros that don't show the correct tooltips or item counts.
+| Macro Name | Category |
+|---|---|
+| `- Food` | Best food (or buff food / scroll / pet buff food when enabled) |
+| `- Water` | Best drink |
+| `- Health Potion` | Best healing potion |
+| `- Mana Potion` | Best mana potion |
+| `- Healthstone` | Best Healthstone (Warlock) |
+| `- Soulstone` | Best Soulstone (Warlock) |
+| `- Mana Gem` | Best Mana Gem (Mage) |
+| `- Bandage` | Best bandage (requires First Aid skill) |
+| `- Feed Pet` | All-in-one pet button (Hunter only) |
 
-⏩ Optimized : Light-weight, but also only updates when inventory changes or combat ends.
+### Class Features
 
-📜 Fully Stocked : Full support for automatically prioritizing your best stat scrolls, elixirs, and potions as you adventure.
+**Mages** can right-click Food, Water, or Mana Gem macros to conjure items. Middle-click casts Ritual of Refreshment. Targeting a lower-level friendly player auto-selects the appropriate conjure rank.
 
-🐾 Pet Friendly : Replaces outdated pet feeding addons (like Feed-O-Matic) by automatically managing your pet's diet in a single button.
+<img width="300" src="https://github.com/user-attachments/assets/4a4cd1b4-d227-4731-8988-36f505611883" />
 
-🗺️ Localized : Works with all Classic WoW Locales (enUS, deDE, esES, esMX, frFR, koKR, ptBR, ruRU, zhCN, zhTW).
+**Warlocks** can right-click Healthstone or Soulstone macros to create them. Middle-click casts Ritual of Souls.
 
-## Automatically Conjour Relevant Items
+**Hunters** get an all-in-one `- Feed Pet` macro. Left-click feeds your pet the cheapest food that still gives max happiness. Right-click or entering combat casts Mend Pet. Shift forces Revive Pet. Ctrl dismisses. If your pet is dead but dismissed, it auto-switches to Revive Pet.
 
-For Mages and Warlocks, Right-Click on your Food, Water, Mana Gem, or Healthstone macros to make more.
+<img width="300" src="https://github.com/user-attachments/assets/6ced7fae-f0bf-48f0-b317-b382e11a3bc1" />
 
-And by simply targeting a lower-level player, when you Right-click on the macro, you'll conjour items useful to that player.
+**Night Elves** can enable Shadowmeld Drinking, which appends Shadowmeld to the Water macro so you stealth while drinking.
 
-<img width="260" src="https://github.com/user-attachments/assets/4a4cd1b4-d227-4731-8988-36f505611883" />
+## Settings
 
-## The Ultimate Feed-O-Matic
-
-For Hunters, the Feed Pet macro works as a complete, all-in-one Pet Call / Feed / Mend / Revive / Dismiss button. It automatically finds the right food in your bags based on your pet's specific diet so you never have to micromanage their happiness again.
-
-<img width="260" src="https://github.com/user-attachments/assets/6ced7fae-f0bf-48f0-b317-b382e11a3bc1" />
-
-## Setup
-
-**Easy Setup:** Just drag these macros to your action bar once. As you loot new items, level up, or enter a Battleground, the addon updates the macro in the background.
-
-1. Install the addon.
-2. Log in.
-3. Open your Macro window (`/macro` or `/m`).
-4. Look for macros named `- Food`, `- Water`, `- Mana Gem`, etc.
-5. Drag them to your bars.
-6. Done, never think about consumables again. (=
-
-*Note: If you run out of a specific consumable type, the macro will default to a fallback icon.*
+Type `/foodie` or go to **Options > AddOns > Connoisseur** to open the settings panel.
 
 <img width="800" src="https://github.com/user-attachments/assets/c0e8e916-b3b9-4ce1-a5ff-d4b023a8ee20" />
 
+### Prioritize Buff Food
 
-## Download
+When enabled, the Food macro prefers items that grant the "Well Fed" buff, but only when you don't already have the buff active. Can be restricted to only activate when in a party or raid.
 
-You can find this on Curseforge.
+### Scroll Buffs
 
-https://www.curseforge.com/wow/addons/consumable-connoisseur
+When enabled, the Food macro will use attribute scrolls (Agility, Intellect, Protection, Spirit, Stamina, Strength) before regular food when the corresponding scroll buff is missing. Scrolls are targeted at yourself, so they won't accidentally buff your current target. You can toggle individual scroll types on and off. Scrolls are skipped when a class buff (e.g. Arcane Intellect) already covers the same stat at equal or greater value.
 
-Please reach out if you can help with other languages!
+### Pet Food Buffs
+
+When enabled, the Food macro will use Kibler's Bits or Sporeling Snacks on your pet when its "Well Fed" buff is missing. Requires level 55+. Can be restricted to party or raid.
+
+### Ignore List
+
+Right-click the minimap button to add your current best food to the ignore list. The addon will skip ignored items and pick the next best option. Middle-click the minimap button to clear the entire ignore list. You can also clear it from the settings panel.
+
+## Minimap Button
+
+Hover for a full tooltip showing the current state of all features, your best food, the ignore list, and class-specific tips. Click actions:
+
+| Action | Effect |
+|---|---|
+| Left-click | Toggle Buff Food priority |
+| Shift + Left-click | Toggle Scroll Buffs |
+| Right-click | Ignore current best food |
+| Middle-click | Clear ignore list |
+
+The minimap icon updates dynamically to show the icon of your current best food item.
+
+## How Item Selection Works
+
+For each consumable category, the addon picks the best item by comparing every usable item in your bags. The priority order is:
+
+1. Buff food preferred (when Buff Food is enabled and you lack the Well Fed buff)
+2. Percentage-based items preferred over flat values
+3. Highest restore value wins
+4. Lowest vendor sell price breaks ties (use up cheap items first)
+5. Hybrid food+water items are preferred or avoided depending on the slot
+6. Fewest total count in bags breaks the final tie
+
+Items are filtered out if you don't meet the level requirement, lack the required profession skill (First Aid for bandages, Alchemy for certain potions), or are in the wrong zone for zone-restricted items.
+
+## Saved Variables
+
+Connoisseur stores data in two scopes. Account-wide settings (`ConnoisseurDB`) hold the minimap position and an item data cache that resets on each addon version update. Per-character settings (`ConnoisseurCharDB`) hold your ignore list, buff food preference, scroll settings, and all other toggles.
 
 ## Testing Status
 
@@ -80,6 +113,8 @@ Please reach out if you would like to be involved with testing!
 
 ## Report Issues & Get Involved
 
-You can find this project on GitHub // https://github.com/Gogo1951/Connoisseur
+## Links
 
-😈 Gogo1951 on Discord // https://discord.gg/eh8hKq992Q
+- [CurseForge](https://www.curseforge.com/wow/addons/consumable-connoisseur)
+- [GitHub](https://github.com/Gogo1951/Consumable-Connoisseur)
+- [Discord](https://discord.gg/eh8hKq992Q)
