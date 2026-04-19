@@ -6,6 +6,7 @@ L["BRAND"] = "Connoisseur"
 
 -- Macro Names Can't Exceed 16 Total Characters
 L["MACRO_BANDAGE"] = "- 绷带"
+L["MACRO_FEED_PET"]= "- 喂养宠物"
 L["MACRO_FOOD"]    = "- 食物"
 L["MACRO_HPOT"]    = "- 治疗药水"
 L["MACRO_HS"]      = "- 治疗石"
@@ -13,7 +14,6 @@ L["MACRO_MGEM"]    = "- 法力宝石"
 L["MACRO_MPOT"]    = "- 法力药水"
 L["MACRO_SS"]      = "- 灵魂石"
 L["MACRO_WATER"]   = "- 水"
-L["MACRO_FEED_PET"]= "- 喂养宠物"
 
 L["ERR_ZONE"] = "你不能在这里使用该物品。"
 L["RANK"]     = "等级"
@@ -90,7 +90,14 @@ L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
 L["OPTIONS_COMMANDS_DESC"]   = "/foodie"
 L["OPTIONS_COMMANDS_DETAIL"] = "打开 Connoisseur 选项界面。"
 
+L["OPTIONS_ENABLE_MACROS_HEADER"] = "启用宏"
+L["OPTIONS_ENABLE_MACROS_DESC"]   = "切换 Connoisseur 创建和维护哪些宏。禁用一个宏也会将其移除。"
+
 L["OPTIONS_RESET_HEADER"]         = "重置"
 L["OPTIONS_RESET_IGNORE_DESC"]    = "从忽略列表中移除所有物品。"
 L["OPTIONS_RESET_IGNORE_CONFIRM"] = "你确定要清除忽略列表吗？"
+L["OPTIONS_RESET_ALL"]            = "重置所有 Connoisseur 选项"
+L["OPTIONS_RESET_ALL_DESC"]       = "将所有设置和忽略列表重置为默认值。"
+L["OPTIONS_RESET_ALL_CONFIRM"]    = "将所有 Connoisseur 选项重置为默认值？"
+
 L["OPTIONS_COMMUNITY_HEADER"]     = "反馈与支持"

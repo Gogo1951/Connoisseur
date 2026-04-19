@@ -9,6 +9,7 @@ L["BRAND"] = "Connoisseur"
 
 -- Macro Names Can't Exceed 16 Total Characters
 L["MACRO_BANDAGE"] = "- Benda"
+L["MACRO_FEED_PET"] = "- Nutri Famiglio"
 L["MACRO_FOOD"] = "- Cibo"
 L["MACRO_HPOT"] = "- Poz. Salute"
 L["MACRO_HS"] = "- Pietra Salute"
@@ -16,7 +17,6 @@ L["MACRO_MGEM"] = "- Gemma di Mana"
 L["MACRO_MPOT"] = "- Poz. Mana"
 L["MACRO_SS"] = "- Pietra Anima"
 L["MACRO_WATER"] = "- Acqua"
-L["MACRO_FEED_PET"] = "- Nutri Famiglio"
 
 L["ERR_ZONE"] = "Non puoi usarlo qui."
 L["RANK"] = "Grado"
@@ -93,7 +93,14 @@ L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
 L["OPTIONS_COMMANDS_DESC"] = "/foodie"
 L["OPTIONS_COMMANDS_DETAIL"] = "Apre l'interfaccia delle opzioni di Connoisseur."
 
+L["OPTIONS_ENABLE_MACROS_HEADER"] = "Abilita Macro"
+L["OPTIONS_ENABLE_MACROS_DESC"] = "Scegli quali macro Connoisseur deve creare e mantenere. Disabilitare una macro la rimuoverà anche."
+
 L["OPTIONS_RESET_HEADER"] = "Reimposta"
 L["OPTIONS_RESET_IGNORE_DESC"] = "Rimuovi tutti gli oggetti dalla lista ignorati."
 L["OPTIONS_RESET_IGNORE_CONFIRM"] = "Sei sicuro di voler svuotare la lista ignorati?"
+L["OPTIONS_RESET_ALL"] = "Reimposta Tutte le Opzioni di Connoisseur"
+L["OPTIONS_RESET_ALL_DESC"] = "Reimposta tutte le impostazioni e la lista ignorati ai valori predefiniti."
+L["OPTIONS_RESET_ALL_CONFIRM"] = "Reimpostare tutte le opzioni di Connoisseur ai valori predefiniti?"
+
 L["OPTIONS_COMMUNITY_HEADER"] = "Feedback e Supporto"

@@ -6,6 +6,7 @@ L["BRAND"] = "Connoisseur"
 
 -- Macro Names Can't Exceed 16 Total Characters
 L["MACRO_BANDAGE"] = "- 붕대"
+L["MACRO_FEED_PET"]= "- 먹이 주기"
 L["MACRO_FOOD"]    = "- 음식"
 L["MACRO_HPOT"]    = "- 치유 물약"
 L["MACRO_HS"]      = "- 생명석"
@@ -13,7 +14,6 @@ L["MACRO_MGEM"]    = "- 마나 보석"
 L["MACRO_MPOT"]    = "- 마나 물약"
 L["MACRO_SS"]      = "- 영혼석"
 L["MACRO_WATER"]   = "- 물"
-L["MACRO_FEED_PET"]= "- 먹이 주기"
 
 L["ERR_ZONE"] = "여기선 사용할 수 없습니다."
 L["RANK"]     = "레벨"
@@ -90,7 +90,14 @@ L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
 L["OPTIONS_COMMANDS_DESC"]   = "/foodie"
 L["OPTIONS_COMMANDS_DETAIL"] = "Connoisseur 설정 인터페이스를 엽니다."
 
+L["OPTIONS_ENABLE_MACROS_HEADER"] = "매크로 활성화"
+L["OPTIONS_ENABLE_MACROS_DESC"]   = "Connoisseur가 생성하고 관리할 매크로를 선택합니다. 매크로를 비활성화하면 해당 매크로도 삭제됩니다."
+
 L["OPTIONS_RESET_HEADER"]         = "초기화"
 L["OPTIONS_RESET_IGNORE_DESC"]    = "차단 목록에서 모든 아이템을 제거합니다."
 L["OPTIONS_RESET_IGNORE_CONFIRM"] = "차단 목록을 지우시겠습니까?"
+L["OPTIONS_RESET_ALL"]            = "모든 Connoisseur 설정 초기화"
+L["OPTIONS_RESET_ALL_DESC"]       = "모든 설정 및 차단 목록을 기본값으로 되돌립니다."
+L["OPTIONS_RESET_ALL_CONFIRM"]    = "모든 Connoisseur 설정을 기본값으로 초기화하시겠습니까?"
+
 L["OPTIONS_COMMUNITY_HEADER"]     = "피드백 및 지원"

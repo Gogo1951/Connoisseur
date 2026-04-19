@@ -6,6 +6,7 @@ L["BRAND"] = "Connoisseur"
 
 -- Macro Names Can't Exceed 16 Total Characters
 L["MACRO_BANDAGE"] = "- Бинты"
+L["MACRO_FEED_PET"]= "- Корм. питомца"
 L["MACRO_FOOD"]    = "- Еда"
 L["MACRO_HPOT"]    = "- Леч. зелье"
 L["MACRO_HS"]      = "- Кам. здоровья"
@@ -13,7 +14,6 @@ L["MACRO_MGEM"]    = "- Мана-камень"
 L["MACRO_MPOT"]    = "- Зелье маны"
 L["MACRO_SS"]      = "- Кам. души"
 L["MACRO_WATER"]   = "- Вода"
-L["MACRO_FEED_PET"]= "- Корм. питомца"
 
 L["ERR_ZONE"] = "Вы не можете использовать это здесь."
 L["RANK"]     = "Уровень"
@@ -90,7 +90,14 @@ L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
 L["OPTIONS_COMMANDS_DESC"]   = "/foodie"
 L["OPTIONS_COMMANDS_DETAIL"] = "Открывает интерфейс настроек Connoisseur."
 
+L["OPTIONS_ENABLE_MACROS_HEADER"] = "Включить макросы"
+L["OPTIONS_ENABLE_MACROS_DESC"]   = "Выбор макросов, которые Connoisseur создает и поддерживает. Отключение макроса также удалит его."
+
 L["OPTIONS_RESET_HEADER"]      = "Сброс"
 L["OPTIONS_RESET_IGNORE_DESC"] = "Удалить все предметы из списка игнорирования."
 L["OPTIONS_RESET_IGNORE_CONFIRM"] = "Вы уверены, что хотите очистить список игнорирования?"
+L["OPTIONS_RESET_ALL"]         = "Сбросить все настройки Connoisseur"
+L["OPTIONS_RESET_ALL_DESC"]    = "Сбросить все настройки и список игнорирования по умолчанию."
+L["OPTIONS_RESET_ALL_CONFIRM"] = "Сбросить все настройки Connoisseur по умолчанию?"
+
 L["OPTIONS_COMMUNITY_HEADER"]  = "Обратная связь и поддержка"

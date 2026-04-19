@@ -6,6 +6,7 @@ L["BRAND"] = "Connoisseur"
 
 -- Macro Names Can't Exceed 16 Total Characters
 L["MACRO_BANDAGE"] = "- Bandage"
+L["MACRO_FEED_PET"]= "- Nourrir fam."
 L["MACRO_FOOD"]    = "- Manger"
 L["MACRO_HPOT"]    = "- Pot. Soins"
 L["MACRO_HS"]      = "- Pierre"
@@ -13,7 +14,6 @@ L["MACRO_MGEM"]    = "- Gemme de mana"
 L["MACRO_MPOT"]    = "- Pot. Mana"
 L["MACRO_SS"]      = "- Pierre d'âme"
 L["MACRO_WATER"]   = "- Boire"
-L["MACRO_FEED_PET"]= "- Nourrir fam."
 
 L["ERR_ZONE"] = "Vous ne pouvez pas utiliser cela ici."
 L["RANK"]     = "Rang"
@@ -90,7 +90,14 @@ L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
 L["OPTIONS_COMMANDS_DESC"]   = "/foodie"
 L["OPTIONS_COMMANDS_DETAIL"] = "Ouvre l'interface des options de Connoisseur."
 
+L["OPTIONS_ENABLE_MACROS_HEADER"] = "Activer les macros"
+L["OPTIONS_ENABLE_MACROS_DESC"]   = "Permet d'activer ou de désactiver les macros créées et gérées par Connoisseur. La désactivation d'une macro la supprimera également."
+
 L["OPTIONS_RESET_HEADER"]         = "Réinitialiser"
 L["OPTIONS_RESET_IGNORE_DESC"]    = "Retire tous les objets de la liste d'exclusion."
 L["OPTIONS_RESET_IGNORE_CONFIRM"] = "Voulez-vous vraiment vider la liste d'exclusion ?"
+L["OPTIONS_RESET_ALL"]            = "Réinitialiser toutes les options de Connoisseur"
+L["OPTIONS_RESET_ALL_DESC"]       = "Réinitialiser tous les paramètres et la liste d'exclusion à leurs valeurs par défaut."
+L["OPTIONS_RESET_ALL_CONFIRM"]    = "Réinitialiser toutes les options de Connoisseur par défaut ?"
+
 L["OPTIONS_COMMUNITY_HEADER"]     = "Commentaires et Assistance"

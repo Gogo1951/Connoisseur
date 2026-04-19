@@ -4,8 +4,8 @@ local GetColor = ns.GetColor
 
 local MODE_VALUES = {
     always = L["MODE_ALWAYS"],
-    party  = L["MODE_PARTY"],
-    raid   = L["MODE_RAID"],
+    party = L["MODE_PARTY"],
+    raid = L["MODE_RAID"]
 }
 
 --------------------------------------------------------------------------------
@@ -16,7 +16,16 @@ local function Header(text, order)
     return {
         type = "header",
         name = GetColor("TITLE") .. text .. "|r",
-        order = order
+        order = order,
+    }
+end
+
+local function SubHeader(text, order)
+    return {
+        type = "description",
+        name = GetColor("TITLE") .. text .. "|r",
+        fontSize = "medium",
+        order = order,
     }
 end
 
@@ -25,7 +34,7 @@ local function Desc(text, order)
         type = "description",
         name = text,
         fontSize = "medium",
-        order = order
+        order = order,
     }
 end
 
@@ -33,8 +42,54 @@ local function Spacer(order)
     return {
         type = "description",
         name = " ",
-        order = order
+        order = order,
     }
+end
+
+--------------------------------------------------------------------------------
+-- Enabled-Macros Toggle Helper
+--
+-- One factory for the nine Enable Macros toggles. hiddenFn is optional —
+-- Feed Pet uses it to stay hidden on non-Hunter characters.
+--------------------------------------------------------------------------------
+
+local function MacroToggle(label, key, order, hiddenFn)
+    return {
+        type = "toggle",
+        name = label,
+        order = order,
+        width = "normal",
+        hidden = hiddenFn,
+        get = function()
+            return ConnoisseurCharDB.settings.enabledMacros[key]
+        end,
+        set = function(_, value)
+            ConnoisseurCharDB.settings.enabledMacros[key] = value
+            if ns.ResetMacroState then
+                ns.ResetMacroState()
+            end
+            ns.RequestUpdate()
+        end,
+    }
+end
+
+--------------------------------------------------------------------------------
+-- Predicates
+--------------------------------------------------------------------------------
+
+local function BuffFoodActive()
+    return ConnoisseurCharDB and ConnoisseurCharDB.settings
+        and ConnoisseurCharDB.settings.useBuffFood
+end
+
+local function ScrollsActive()
+    return ConnoisseurCharDB and ConnoisseurCharDB.settings
+        and ConnoisseurCharDB.settings.useScrolls
+end
+
+local function PetBuffActive()
+    return ConnoisseurCharDB and ConnoisseurCharDB.settings
+        and ConnoisseurCharDB.settings.usePetBuffFood
 end
 
 --------------------------------------------------------------------------------
@@ -47,6 +102,7 @@ local function GetOptions()
         type = "group",
         args = {
             descIntro = Desc(L["OPTIONS_DESC"], 1),
+
             -- /Commands
             spaceCommands0 = Spacer(5),
             headerCommands = Header(L["OPTIONS_COMMANDS_HEADER"], 6),
@@ -55,6 +111,7 @@ local function GetOptions()
                 GetColor("INFO") .. L["OPTIONS_COMMANDS_DESC"] .. "|r" .. "  " .. L["OPTIONS_COMMANDS_DETAIL"],
                 8
             ),
+
             -- Buff Food
             spaceBuff0 = Spacer(10),
             headerBuff = Header(L["MENU_BUFF_FOOD"], 11),
@@ -67,13 +124,13 @@ local function GetOptions()
                 order = 14,
                 width = 1.5,
                 get = function()
-                    return ConnoisseurCharDB and ConnoisseurCharDB.settings and ConnoisseurCharDB.settings.useBuffFood
+                    return BuffFoodActive()
                 end,
                 set = function(_, value)
                     if ns.ToggleBuffFood then
-                        ns.ToggleBuffFood()
+                        ns.ToggleBuffFood(value)
                     end
-                end
+                end,
             },
             buffFoodMode = {
                 type = "select",
@@ -82,13 +139,11 @@ local function GetOptions()
                 width = "normal",
                 values = MODE_VALUES,
                 sorting = ns.MODE_ORDER,
-                disabled = function()
-                    return not (ConnoisseurCharDB and ConnoisseurCharDB.settings and
-                        ConnoisseurCharDB.settings.useBuffFood)
+                hidden = function()
+                    return not BuffFoodActive()
                 end,
                 get = function()
-                    return ConnoisseurCharDB and ConnoisseurCharDB.settings and ConnoisseurCharDB.settings.buffFoodMode or
-                        "always"
+                    return ConnoisseurCharDB.settings.buffFoodMode or "always"
                 end,
                 set = function(_, value)
                     ConnoisseurCharDB.settings.buffFoodMode = value
@@ -96,8 +151,9 @@ local function GetOptions()
                         ns.ResetMacroState()
                     end
                     ns.RequestUpdate()
-                end
+                end,
             },
+
             -- Scroll Buffs
             spaceScroll0 = Spacer(20),
             headerScroll = Header(L["OPTIONS_SCROLL_HEADER"], 21),
@@ -110,13 +166,13 @@ local function GetOptions()
                 order = 24,
                 width = 1.5,
                 get = function()
-                    return ConnoisseurCharDB and ConnoisseurCharDB.settings and ConnoisseurCharDB.settings.useScrolls
+                    return ScrollsActive()
                 end,
                 set = function(_, value)
                     if ns.ToggleScrollBuffs then
-                        ns.ToggleScrollBuffs()
+                        ns.ToggleScrollBuffs(value)
                     end
-                end
+                end,
             },
             scrollsMode = {
                 type = "select",
@@ -125,13 +181,11 @@ local function GetOptions()
                 width = "normal",
                 values = MODE_VALUES,
                 sorting = ns.MODE_ORDER,
-                disabled = function()
-                    return not (ConnoisseurCharDB and ConnoisseurCharDB.settings and
-                        ConnoisseurCharDB.settings.useScrolls)
+                hidden = function()
+                    return not ScrollsActive()
                 end,
                 get = function()
-                    return ConnoisseurCharDB and ConnoisseurCharDB.settings and ConnoisseurCharDB.settings.scrollsMode or
-                        "always"
+                    return ConnoisseurCharDB.settings.scrollsMode or "always"
                 end,
                 set = function(_, value)
                     ConnoisseurCharDB.settings.scrollsMode = value
@@ -139,7 +193,7 @@ local function GetOptions()
                         ns.ResetMacroState()
                     end
                     ns.RequestUpdate()
-                end
+                end,
             },
             spaceScrollTypes0 = Spacer(29),
             scrollTypesGroup = {
@@ -148,8 +202,7 @@ local function GetOptions()
                 order = 30,
                 inline = true,
                 hidden = function()
-                    return not (ConnoisseurCharDB and ConnoisseurCharDB.settings and
-                        ConnoisseurCharDB.settings.useScrolls)
+                    return not ScrollsActive()
                 end,
                 args = {
                     scrollAgility = {
@@ -157,10 +210,8 @@ local function GetOptions()
                         name = L["OPTIONS_SCROLL_AGILITY"],
                         order = 1,
                         get = function()
-                            local st =
-                                ConnoisseurCharDB and ConnoisseurCharDB.settings and
-                                ConnoisseurCharDB.settings.scrollTypes
-                            return st and st.Agility
+                            local scrollTypes = ConnoisseurCharDB.settings.scrollTypes
+                            return scrollTypes and scrollTypes.Agility
                         end,
                         set = function(_, value)
                             ConnoisseurCharDB.settings.scrollTypes.Agility = value
@@ -168,17 +219,15 @@ local function GetOptions()
                                 ns.ResetMacroState()
                             end
                             ns.RequestUpdate()
-                        end
+                        end,
                     },
                     scrollIntellect = {
                         type = "toggle",
                         name = L["OPTIONS_SCROLL_INTELLECT"],
                         order = 2,
                         get = function()
-                            local st =
-                                ConnoisseurCharDB and ConnoisseurCharDB.settings and
-                                ConnoisseurCharDB.settings.scrollTypes
-                            return st and st.Intellect
+                            local scrollTypes = ConnoisseurCharDB.settings.scrollTypes
+                            return scrollTypes and scrollTypes.Intellect
                         end,
                         set = function(_, value)
                             ConnoisseurCharDB.settings.scrollTypes.Intellect = value
@@ -186,17 +235,15 @@ local function GetOptions()
                                 ns.ResetMacroState()
                             end
                             ns.RequestUpdate()
-                        end
+                        end,
                     },
                     scrollProtection = {
                         type = "toggle",
                         name = L["OPTIONS_SCROLL_PROTECTION"],
                         order = 3,
                         get = function()
-                            local st =
-                                ConnoisseurCharDB and ConnoisseurCharDB.settings and
-                                ConnoisseurCharDB.settings.scrollTypes
-                            return st and st.Protection
+                            local scrollTypes = ConnoisseurCharDB.settings.scrollTypes
+                            return scrollTypes and scrollTypes.Protection
                         end,
                         set = function(_, value)
                             ConnoisseurCharDB.settings.scrollTypes.Protection = value
@@ -204,17 +251,15 @@ local function GetOptions()
                                 ns.ResetMacroState()
                             end
                             ns.RequestUpdate()
-                        end
+                        end,
                     },
                     scrollSpirit = {
                         type = "toggle",
                         name = L["OPTIONS_SCROLL_SPIRIT"],
                         order = 4,
                         get = function()
-                            local st =
-                                ConnoisseurCharDB and ConnoisseurCharDB.settings and
-                                ConnoisseurCharDB.settings.scrollTypes
-                            return st and st.Spirit
+                            local scrollTypes = ConnoisseurCharDB.settings.scrollTypes
+                            return scrollTypes and scrollTypes.Spirit
                         end,
                         set = function(_, value)
                             ConnoisseurCharDB.settings.scrollTypes.Spirit = value
@@ -222,17 +267,15 @@ local function GetOptions()
                                 ns.ResetMacroState()
                             end
                             ns.RequestUpdate()
-                        end
+                        end,
                     },
                     scrollStamina = {
                         type = "toggle",
                         name = L["OPTIONS_SCROLL_STAMINA"],
                         order = 5,
                         get = function()
-                            local st =
-                                ConnoisseurCharDB and ConnoisseurCharDB.settings and
-                                ConnoisseurCharDB.settings.scrollTypes
-                            return st and st.Stamina
+                            local scrollTypes = ConnoisseurCharDB.settings.scrollTypes
+                            return scrollTypes and scrollTypes.Stamina
                         end,
                         set = function(_, value)
                             ConnoisseurCharDB.settings.scrollTypes.Stamina = value
@@ -240,17 +283,15 @@ local function GetOptions()
                                 ns.ResetMacroState()
                             end
                             ns.RequestUpdate()
-                        end
+                        end,
                     },
                     scrollStrength = {
                         type = "toggle",
                         name = L["OPTIONS_SCROLL_STRENGTH"],
                         order = 6,
                         get = function()
-                            local st =
-                                ConnoisseurCharDB and ConnoisseurCharDB.settings and
-                                ConnoisseurCharDB.settings.scrollTypes
-                            return st and st.Strength
+                            local scrollTypes = ConnoisseurCharDB.settings.scrollTypes
+                            return scrollTypes and scrollTypes.Strength
                         end,
                         set = function(_, value)
                             ConnoisseurCharDB.settings.scrollTypes.Strength = value
@@ -258,10 +299,11 @@ local function GetOptions()
                                 ns.ResetMacroState()
                             end
                             ns.RequestUpdate()
-                        end
-                    }
-                }
+                        end,
+                    },
+                },
             },
+
             -- Pets
             spacePet0 = Spacer(35),
             headerPet = Header(L["OPTIONS_PET_HEADER"], 36),
@@ -274,8 +316,7 @@ local function GetOptions()
                 order = 39,
                 width = 1.5,
                 get = function()
-                    return ConnoisseurCharDB and ConnoisseurCharDB.settings and
-                        ConnoisseurCharDB.settings.usePetBuffFood
+                    return PetBuffActive()
                 end,
                 set = function(_, value)
                     ConnoisseurCharDB.settings.usePetBuffFood = value
@@ -286,7 +327,7 @@ local function GetOptions()
                         ns.ResetMacroState()
                     end
                     ns.RequestUpdate()
-                end
+                end,
             },
             petBuffFoodMode = {
                 type = "select",
@@ -295,14 +336,11 @@ local function GetOptions()
                 width = "normal",
                 values = MODE_VALUES,
                 sorting = ns.MODE_ORDER,
-                disabled = function()
-                    return not (ConnoisseurCharDB and ConnoisseurCharDB.settings and
-                        ConnoisseurCharDB.settings.usePetBuffFood)
+                hidden = function()
+                    return not PetBuffActive()
                 end,
                 get = function()
-                    return ConnoisseurCharDB and ConnoisseurCharDB.settings and
-                        ConnoisseurCharDB.settings.petBuffFoodMode or
-                        "always"
+                    return ConnoisseurCharDB.settings.petBuffFoodMode or "always"
                 end,
                 set = function(_, value)
                     ConnoisseurCharDB.settings.petBuffFoodMode = value
@@ -310,17 +348,16 @@ local function GetOptions()
                         ns.ResetMacroState()
                     end
                     ns.RequestUpdate()
-                end
+                end,
             },
-            spacePetTypes0 = Spacer(40),
+            spacePetTypes0 = Spacer(45),
             petTypesGroup = {
                 type = "group",
                 name = L["OPTIONS_PET_BUFF_TYPES"],
-                order = 41,
+                order = 46,
                 inline = true,
                 hidden = function()
-                    return not (ConnoisseurCharDB and ConnoisseurCharDB.settings and
-                        ConnoisseurCharDB.settings.usePetBuffFood)
+                    return not PetBuffActive()
                 end,
                 args = {
                     petKiblers = {
@@ -328,69 +365,52 @@ local function GetOptions()
                         name = L["OPTIONS_PET_BUFF_KIBLERS"],
                         order = 1,
                         get = function()
-                            local pt =
-                                ConnoisseurCharDB and ConnoisseurCharDB.settings and
-                                ConnoisseurCharDB.settings.petBuffTypes
-                            return pt == nil or pt.KiblersBits ~= false
+                            return ConnoisseurCharDB.settings.petBuffTypes.KiblersBits
                         end,
                         set = function(_, value)
-                            if not ConnoisseurCharDB.settings.petBuffTypes then
-                                ConnoisseurCharDB.settings.petBuffTypes = {KiblersBits = true, SporelingSnacks = true}
-                            end
                             ConnoisseurCharDB.settings.petBuffTypes.KiblersBits = value
                             if ns.ResetMacroState then
                                 ns.ResetMacroState()
                             end
                             ns.RequestUpdate()
-                        end
+                        end,
                     },
                     petSporeling = {
                         type = "toggle",
                         name = L["OPTIONS_PET_BUFF_SPORELING"],
                         order = 2,
                         get = function()
-                            local pt =
-                                ConnoisseurCharDB and ConnoisseurCharDB.settings and
-                                ConnoisseurCharDB.settings.petBuffTypes
-                            return pt == nil or pt.SporelingSnacks ~= false
+                            return ConnoisseurCharDB.settings.petBuffTypes.SporelingSnacks
                         end,
                         set = function(_, value)
-                            if not ConnoisseurCharDB.settings.petBuffTypes then
-                                ConnoisseurCharDB.settings.petBuffTypes = {KiblersBits = true, SporelingSnacks = true}
-                            end
                             ConnoisseurCharDB.settings.petBuffTypes.SporelingSnacks = value
                             if ns.ResetMacroState then
                                 ns.ResetMacroState()
                             end
                             ns.RequestUpdate()
-                        end
-                    }
-                }
+                        end,
+                    },
+                },
             },
+
             -- Night Elves
             spaceNightElf0 = {
                 type = "description",
                 name = " ",
                 order = 50,
-                hidden = function()
-                    return not ns.IsNightElf
-                end
+                hidden = function() return not ns.IsNightElf end,
             },
             headerNightElf = {
                 type = "header",
                 name = GetColor("TITLE") .. L["OPTIONS_NIGHTELF_HEADER"] .. "|r",
                 order = 51,
-                hidden = function()
-                    return not ns.IsNightElf
-                end
+                hidden = function() return not ns.IsNightElf end,
             },
             spaceNightElf1 = {
                 type = "description",
                 name = " ",
                 order = 52,
-                hidden = function()
-                    return not ns.IsNightElf
-                end
+                hidden = function() return not ns.IsNightElf end,
             },
             toggleShadowmeldDrinking = {
                 type = "toggle",
@@ -398,19 +418,33 @@ local function GetOptions()
                 desc = L["OPTIONS_SHADOWMELD_DRINKING_DESC"],
                 order = 53,
                 width = "full",
-                hidden = function()
-                    return not ns.IsNightElf
-                end,
+                hidden = function() return not ns.IsNightElf end,
                 get = function()
-                    return ConnoisseurCharDB and ConnoisseurCharDB.settings and
-                        ConnoisseurCharDB.settings.enableShadowmeldDrinking
+                    return ConnoisseurCharDB and ConnoisseurCharDB.settings
+                        and ConnoisseurCharDB.settings.enableShadowmeldDrinking
                 end,
                 set = function(_, value)
                     if ns.ToggleShadowmeldDrinking then
-                        ns.ToggleShadowmeldDrinking()
+                        ns.ToggleShadowmeldDrinking(value)
                     end
-                end
+                end,
             },
+
+            -- Enable Macros
+            spaceEnableMacros0 = Spacer(60),
+            headerEnableMacros = Header(L["OPTIONS_ENABLE_MACROS_HEADER"], 61),
+            descEnableMacros = Desc(GetColor("DESC") .. L["OPTIONS_ENABLE_MACROS_DESC"] .. "|r", 62),
+            spaceEnableMacros1 = Spacer(63),
+            enableBandage      = MacroToggle(L["MACRO_BANDAGE"],  "Bandage",       64),
+            enableFeedPet      = MacroToggle(L["MACRO_FEED_PET"], "Feed Pet",      65),
+            enableFood         = MacroToggle(L["MACRO_FOOD"],     "Food",          66),
+            enableHealthPotion = MacroToggle(L["MACRO_HPOT"],     "Health Potion", 67),
+            enableHealthstone  = MacroToggle(L["MACRO_HS"],       "Healthstone",   68),
+            enableManaGem      = MacroToggle(L["MACRO_MGEM"],     "Mana Gem",      69),
+            enableManaPotion   = MacroToggle(L["MACRO_MPOT"],     "Mana Potion",   70),
+            enableSoulstone    = MacroToggle(L["MACRO_SS"],       "Soulstone",     71),
+            enableWater        = MacroToggle(L["MACRO_WATER"],    "Water",         72),
+
             -- Reset
             spaceReset0 = Spacer(80),
             headerReset = Header(L["OPTIONS_RESET_HEADER"], 81),
@@ -430,8 +464,23 @@ local function GetOptions()
                     if ns.UpdateMacros then
                         ns.UpdateMacros(true)
                     end
-                end
+                end,
             },
+            resetAll = {
+                type = "execute",
+                name = L["OPTIONS_RESET_ALL"],
+                desc = L["OPTIONS_RESET_ALL_DESC"],
+                order = 84,
+                width = "double",
+                confirm = true,
+                confirmText = L["OPTIONS_RESET_ALL_CONFIRM"],
+                func = function()
+                    if ns.ResetSettings then
+                        ns.ResetSettings()
+                    end
+                end,
+            },
+
             -- Feedback & Support
             spaceCommunity0 = Spacer(90),
             headerCommunity = Header(L["OPTIONS_COMMUNITY_HEADER"], 91),
@@ -442,11 +491,8 @@ local function GetOptions()
                 name = "",
                 order = 94,
                 width = "double",
-                get = function()
-                    return ns.CURSEFORGE_URL
-                end,
-                set = function()
-                end
+                get = function() return ns.CURSEFORGE_URL end,
+                set = function() end,
             },
             spaceCommunity2 = Spacer(95),
             githubLabel = Desc(GetColor("TITLE") .. "GitHub" .. "|r", 96),
@@ -455,11 +501,8 @@ local function GetOptions()
                 name = "",
                 order = 97,
                 width = "double",
-                get = function()
-                    return ns.GITHUB_URL
-                end,
-                set = function()
-                end
+                get = function() return ns.GITHUB_URL end,
+                set = function() end,
             },
             spaceCommunity3 = Spacer(98),
             discordLabel = Desc(GetColor("TITLE") .. "Discord" .. "|r", 99),
@@ -468,13 +511,10 @@ local function GetOptions()
                 name = "",
                 order = 100,
                 width = "double",
-                get = function()
-                    return ns.DISCORD_URL
-                end,
-                set = function()
-                end
-            }
-        }
+                get = function() return ns.DISCORD_URL end,
+                set = function() end,
+            },
+        },
     }
 end
 

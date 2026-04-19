@@ -6,6 +6,7 @@ L["BRAND"] = "Connoisseur"
 
 -- Macro Names Can't Exceed 16 Total Characters
 L["MACRO_BANDAGE"] = "- Verband"
+L["MACRO_FEED_PET"]	= "- Tier füttern"
 L["MACRO_FOOD"]    = "- Essen"
 L["MACRO_HPOT"]    = "- Heiltrank"
 L["MACRO_HS"]      = "- GS"
@@ -13,7 +14,6 @@ L["MACRO_MGEM"]    = "- Manastein"
 L["MACRO_MPOT"]    = "- Manatrank"
 L["MACRO_SS"]      = "- Seelenstein"
 L["MACRO_WATER"]   = "- Wasser"
-L["MACRO_FEED_PET"]	= "- Tier füttern"
 
 L["ERR_ZONE"] = "Das kannst du hier nicht benutzen."
 L["RANK"]     = "Rang"
@@ -90,7 +90,14 @@ L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
 L["OPTIONS_COMMANDS_DESC"]   = "/foodie"
 L["OPTIONS_COMMANDS_DETAIL"] = "Öffnet das Connoisseur-Optionsmenü."
 
+L["OPTIONS_ENABLE_MACROS_HEADER"] = "Makros aktivieren"
+L["OPTIONS_ENABLE_MACROS_DESC"]   = "Schaltet um, welche Makros Connoisseur erstellt und pflegt. Wenn du ein Makro deaktivierst, wird es auch entfernt."
+
 L["OPTIONS_RESET_HEADER"]         = "Zurücksetzen"
 L["OPTIONS_RESET_IGNORE_DESC"]    = "Alle Gegenstände von der Ignorierliste entfernen."
 L["OPTIONS_RESET_IGNORE_CONFIRM"] = "Bist du sicher, dass du die Ignorierliste löschen möchtest?"
+L["OPTIONS_RESET_ALL"]            = "Alle Connoisseur-Optionen zurücksetzen"
+L["OPTIONS_RESET_ALL_DESC"]       = "Alle Einstellungen und die Ignorierliste auf die Standardwerte zurücksetzen."
+L["OPTIONS_RESET_ALL_CONFIRM"]    = "Alle Connoisseur-Optionen auf Standardwerte zurücksetzen?"
+
 L["OPTIONS_COMMUNITY_HEADER"]     = "Feedback & Support"

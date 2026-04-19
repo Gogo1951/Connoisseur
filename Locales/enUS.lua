@@ -9,6 +9,7 @@ L["BRAND"] = "Connoisseur"
 
 -- Macro Names Can't Exceed 16 Total Characters
 L["MACRO_BANDAGE"] = "- Bandage"
+L["MACRO_FEED_PET"] = "- Feed Pet"
 L["MACRO_FOOD"] = "- Food"
 L["MACRO_HPOT"] = "- Health Potion"
 L["MACRO_HS"] = "- Healthstone"
@@ -16,7 +17,6 @@ L["MACRO_MGEM"] = "- Mana Gem"
 L["MACRO_MPOT"] = "- Mana Potion"
 L["MACRO_SS"] = "- Soulstone"
 L["MACRO_WATER"] = "- Water"
-L["MACRO_FEED_PET"] = "- Feed Pet"
 
 L["ERR_ZONE"] = "You can't use that here."
 L["RANK"] = "Rank"
@@ -93,7 +93,14 @@ L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
 L["OPTIONS_COMMANDS_DESC"] = "/foodie"
 L["OPTIONS_COMMANDS_DETAIL"] = "Opens the Connoisseur options interface."
 
+L["OPTIONS_ENABLE_MACROS_HEADER"] = "Enable Macros"
+L["OPTIONS_ENABLE_MACROS_DESC"] = "Toggle which macros Connoisseur creates and maintains. Disabling a macro will also remove it."
+
 L["OPTIONS_RESET_HEADER"] = "Reset"
 L["OPTIONS_RESET_IGNORE_DESC"] = "Remove all items from the ignore list."
 L["OPTIONS_RESET_IGNORE_CONFIRM"] = "Are you sure you want to clear the ignore list?"
+L["OPTIONS_RESET_ALL"] = "Reset All Connoisseur Options"
+L["OPTIONS_RESET_ALL_DESC"] = "Reset all settings and the ignore list back to defaults."
+L["OPTIONS_RESET_ALL_CONFIRM"] = "Reset all Connoisseur options to defaults?"
+
 L["OPTIONS_COMMUNITY_HEADER"] = "Feedback & Support"

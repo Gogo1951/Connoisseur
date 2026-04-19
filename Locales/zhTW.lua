@@ -6,6 +6,7 @@ L["BRAND"] = "Connoisseur"
 
 -- Macro Names Can't Exceed 16 Total Characters
 L["MACRO_BANDAGE"] = "- 繃帶"
+L["MACRO_FEED_PET"]= "- 餵養寵物"
 L["MACRO_FOOD"]    = "- 食物"
 L["MACRO_HPOT"]    = "- 治療藥水"
 L["MACRO_HS"]      = "- 治療石"
@@ -13,7 +14,6 @@ L["MACRO_MGEM"]    = "- 法力寶石"
 L["MACRO_MPOT"]    = "- 法力藥水"
 L["MACRO_SS"]      = "- 靈魂石"
 L["MACRO_WATER"]   = "- 水"
-L["MACRO_FEED_PET"]= "- 餵養寵物"
 
 L["ERR_ZONE"] = "你不能在這裡使用這個。"
 L["RANK"]     = "等級"
@@ -90,7 +90,14 @@ L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
 L["OPTIONS_COMMANDS_DESC"]   = "/foodie"
 L["OPTIONS_COMMANDS_DETAIL"] = "開啟 Connoisseur 選項介面。"
 
+L["OPTIONS_ENABLE_MACROS_HEADER"] = "啟用巨集"
+L["OPTIONS_ENABLE_MACROS_DESC"]   = "切換 Connoisseur 建立和維護哪些巨集。停用一個巨集也會將其移除。"
+
 L["OPTIONS_RESET_HEADER"]         = "重置"
 L["OPTIONS_RESET_IGNORE_DESC"]    = "從忽略清單中移除所有物品。"
 L["OPTIONS_RESET_IGNORE_CONFIRM"] = "你確定要清除忽略清單嗎？"
+L["OPTIONS_RESET_ALL"]            = "重置所有 Connoisseur 選項"
+L["OPTIONS_RESET_ALL_DESC"]       = "將所有設定和忽略清單重置為預設值。"
+L["OPTIONS_RESET_ALL_CONFIRM"]    = "將所有 Connoisseur 選項重置為預設值？"
+
 L["OPTIONS_COMMUNITY_HEADER"]     = "回饋與支援"

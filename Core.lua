@@ -2,6 +2,11 @@ local addonName, ns = ...
 local L = ns.L
 local GetColor = ns.GetColor
 
+-- Transport between the /run snippet in consumable macros and the
+-- UI_ERROR_MESSAGE handler. The macro writes lastID and lastTime so
+-- we can correlate a zone-restriction error back to its triggering item.
+ConnoisseurState = ConnoisseurState or {}
+
 --------------------------------------------------------------------------------
 -- State
 --------------------------------------------------------------------------------
@@ -10,6 +15,17 @@ local frame = CreateFrame("Frame")
 local isUpdatePending = false
 local updateTimer = 0
 local UPDATE_THROTTLE = 0.5
+
+--------------------------------------------------------------------------------
+-- Chat Output
+--------------------------------------------------------------------------------
+
+function ns.PrintMessage(text)
+    print(
+        GetColor("INFO") .. L["BRAND"] .. GetColor("MUTED") .. " // " ..
+        GetColor("TEXT") .. text
+    )
+end
 
 --------------------------------------------------------------------------------
 -- Version
@@ -25,6 +41,24 @@ local function GetVersion()
 end
 
 ns.Version = GetVersion()
+
+--------------------------------------------------------------------------------
+-- Defaults
+--------------------------------------------------------------------------------
+
+local function ApplyDefaults(target, defaults)
+    if not defaults then return end
+    for key, value in pairs(defaults) do
+        if type(value) == "table" then
+            if type(target[key]) ~= "table" then
+                target[key] = {}
+            end
+            ApplyDefaults(target[key], value)
+        elseif target[key] == nil then
+            target[key] = value
+        end
+    end
+end
 
 --------------------------------------------------------------------------------
 -- Saved Variable Migration
@@ -67,20 +101,6 @@ end
 --------------------------------------------------------------------------------
 -- Initialization
 --------------------------------------------------------------------------------
-
-local function ApplyDefaults(target, defaults)
-    if not defaults then return end
-    for key, value in pairs(defaults) do
-        if type(value) == "table" then
-            if type(target[key]) ~= "table" then
-                target[key] = {}
-            end
-            ApplyDefaults(target[key], value)
-        elseif target[key] == nil then
-            target[key] = value
-        end
-    end
-end
 
 local function InitVars()
     ConnoisseurDB = ConnoisseurDB or {}
@@ -155,7 +175,45 @@ local function InitVars()
 end
 
 --------------------------------------------------------------------------------
+-- Reset
+--------------------------------------------------------------------------------
+
+function ns.ResetSettings()
+    if not ConnoisseurCharDB then return end
+
+    -- Wipe per-character user state in place, preserving the table
+    -- references held by other modules.
+    if ConnoisseurCharDB.ignoreList then
+        wipe(ConnoisseurCharDB.ignoreList)
+    end
+    if ConnoisseurCharDB.settings then
+        wipe(ConnoisseurCharDB.settings)
+    else
+        ConnoisseurCharDB.settings = {}
+    end
+
+    -- Rebuild the item cache from scratch on next scan
+    if ConnoisseurDB and ConnoisseurDB.itemCache then
+        wipe(ConnoisseurDB.itemCache)
+    end
+
+    ApplyDefaults(ConnoisseurCharDB.settings, ns.SETTINGS_DEFAULTS)
+
+    ns.UpdateAuraTracking()
+    if ns.ResetMacroState then
+        ns.ResetMacroState()
+    end
+    if ns.UpdateMacros then
+        ns.UpdateMacros(true)
+    end
+end
+
+--------------------------------------------------------------------------------
 -- Feature Toggles
+--
+-- Each toggle accepts an optional value. No argument flips the current state
+-- (minimap click path). A boolean argument sets state directly (options-panel
+-- path) and matches what AceConfig hands back to the set callback.
 --------------------------------------------------------------------------------
 
 function ns.UpdateAuraTracking()
@@ -178,9 +236,13 @@ function ns.UpdateAuraTracking()
     end
 end
 
-function ns.ToggleBuffFood()
+function ns.ToggleBuffFood(value)
     local settings = ConnoisseurCharDB.settings
-    settings.useBuffFood = not settings.useBuffFood
+    if value == nil then
+        settings.useBuffFood = not settings.useBuffFood
+    else
+        settings.useBuffFood = value
+    end
     ns.UpdateAuraTracking()
     if ns.ResetMacroState then
         ns.ResetMacroState()
@@ -188,9 +250,13 @@ function ns.ToggleBuffFood()
     ns.RequestUpdate()
 end
 
-function ns.ToggleScrollBuffs()
+function ns.ToggleScrollBuffs(value)
     local settings = ConnoisseurCharDB.settings
-    settings.useScrolls = not settings.useScrolls
+    if value == nil then
+        settings.useScrolls = not settings.useScrolls
+    else
+        settings.useScrolls = value
+    end
     ns.UpdateAuraTracking()
     if ns.ResetMacroState then
         ns.ResetMacroState()
@@ -198,9 +264,13 @@ function ns.ToggleScrollBuffs()
     ns.RequestUpdate()
 end
 
-function ns.ToggleShadowmeldDrinking()
+function ns.ToggleShadowmeldDrinking(value)
     local settings = ConnoisseurCharDB.settings
-    settings.enableShadowmeldDrinking = not settings.enableShadowmeldDrinking
+    if value == nil then
+        settings.enableShadowmeldDrinking = not settings.enableShadowmeldDrinking
+    else
+        settings.enableShadowmeldDrinking = value
+    end
     if ns.ResetMacroState then
         ns.ResetMacroState()
     end
@@ -320,7 +390,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
         if needsUpdate then
             ns.RequestUpdate()
         end
-        
+
     elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
         local _, _, spellID = ...
         if ns.SpellCache and ns.SpellCache[spellID] then
@@ -338,7 +408,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
     elseif event == "UI_ERROR_MESSAGE" then
         local _, msg = ...
 
-        -- Hunter: detect dead-but-dismissed pet
+        -- Hunter: detect dead-but-dismissed pet.
         -- When Call Pet fails because the pet is dead, the client fires
         -- SPELL_FAILED_TARGETS_DEAD. We catch it here and flip the flag
         -- so the macro rebuilds with Revive Pet on the next cycle.
@@ -351,8 +421,10 @@ frame:SetScript("OnEvent", function(self, event, ...)
             end
         end
 
-        -- Existing zone-error reporting for consumables
-        if CC_LastTime and (GetTime() - CC_LastTime) < 1.0 then
+        -- Zone-restriction reporting. The macro's /run snippet writes
+        -- lastID and lastTime to ConnoisseurState. If we see ERR_ITEM_WRONG_ZONE
+        -- within one second of a macro firing, we know which item to blame.
+        if ConnoisseurState.lastTime and (GetTime() - ConnoisseurState.lastTime) < 1.0 then
             if msg == ERR_ITEM_WRONG_ZONE then
                 local mapID = C_Map.GetBestMapForUnit("player") or "0"
                 local zone = GetZoneText() or "?"
@@ -361,7 +433,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
                     subzone = zone
                 end
 
-                local itemID = CC_LastID or 0
+                local itemID = ConnoisseurState.lastID or 0
                 local link = "Item #" .. itemID
                 if itemID ~= 0 then
                     local _, itemLink = GetItemInfo(itemID)
@@ -370,11 +442,8 @@ frame:SetScript("OnEvent", function(self, event, ...)
                     end
                 end
 
-                print(
-                    GetColor("INFO") .. L["BRAND"] .. GetColor("MUTED") .. " // " ..
-                    GetColor("TEXT") .. string.format(L["MSG_BUG_REPORT"], link, itemID, zone, subzone, mapID)
-                )
-                CC_LastTime = 0
+                ns.PrintMessage(string.format(L["MSG_BUG_REPORT"], link, itemID, zone, subzone, mapID))
+                ConnoisseurState.lastTime = 0
             end
         end
     elseif event == "PLAYER_LOGOUT" then

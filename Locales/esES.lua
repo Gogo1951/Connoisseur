@@ -4,6 +4,7 @@ local strings = {
 
     -- Macro Names Can't Exceed 16 Total Characters
     ["MACRO_BANDAGE"] = "- Venda",
+    ["MACRO_FEED_PET"]= "- Alim. mascota",
     ["MACRO_FOOD"]    = "- Comida",
     ["MACRO_HPOT"]    = "- Poc. Salud",
     ["MACRO_HS"]      = "- Piedra",
@@ -11,7 +12,6 @@ local strings = {
     ["MACRO_MPOT"]    = "- Poc. Maná",
     ["MACRO_SS"]      = "- Piedra de alma",
     ["MACRO_WATER"]   = "- Agua",
-    ["MACRO_FEED_PET"]= "- Alim. mascota",
 
     ["ERR_ZONE"] = "No puedes usar eso aquí.",
     ["RANK"]     = "Rango",
@@ -88,9 +88,16 @@ local strings = {
     ["OPTIONS_COMMANDS_DESC"]   = "/foodie",
     ["OPTIONS_COMMANDS_DETAIL"] = "Abre la interfaz de opciones de Connoisseur.",
 
+    ["OPTIONS_ENABLE_MACROS_HEADER"] = "Activar macros",
+    ["OPTIONS_ENABLE_MACROS_DESC"]   = "Alterna qué macros crea y mantiene Connoisseur. Al desactivar una macro también se eliminará.",
+
     ["OPTIONS_RESET_HEADER"]         = "Reiniciar",
     ["OPTIONS_RESET_IGNORE_DESC"]    = "Eliminar todos los objetos de la lista de ignorados.",
     ["OPTIONS_RESET_IGNORE_CONFIRM"] = "¿Estás seguro de que quieres borrar la lista de ignorados?",
+    ["OPTIONS_RESET_ALL"]            = "Restablecer todas las opciones de Connoisseur",
+    ["OPTIONS_RESET_ALL_DESC"]       = "Restablecer todos los ajustes y la lista de ignorados a sus valores predeterminados.",
+    ["OPTIONS_RESET_ALL_CONFIRM"]    = "¿Restablecer todas las opciones de Connoisseur a sus valores predeterminados?",
+
     ["OPTIONS_COMMUNITY_HEADER"]     = "Comentarios y soporte"
 }
 

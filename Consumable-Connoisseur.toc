@@ -20,9 +20,7 @@ Includes/LibStub/LibStub.lua
 Includes/CallbackHandler-1.0/CallbackHandler-1.0.lua
 Includes/AceLocale-3.0/AceLocale-3.0.lua
 Includes/AceGUI-3.0/AceGUI-3.0.xml
-Includes/AceConfig-3.0/AceConfigRegistry-3.0/AceConfigRegistry-3.0.lua
-Includes/AceConfig-3.0/AceConfigDialog-3.0/AceConfigDialog-3.0.lua
-Includes/AceConfig-3.0/AceConfig-3.0.lua
+Includes/AceConfig-3.0/AceConfig-3.0.xml
 Includes/LibDataBroker-1.1/LibDataBroker-1.1.lua
 Includes/LibDBIcon-1.0/LibDBIcon-1.0.lua
 
@@ -39,7 +37,7 @@ Locales/zhCN.lua
 Locales/zhTW.lua
 
 # Data
-Data/General.lua
+Data/Data-General.lua
 Data/Scrolls.lua
 Data/Bandages.lua
 Data/Food-and-Water.lua
@@ -51,7 +49,9 @@ Data/Pet-Foods.lua
 
 # Connoisseur
 Core.lua
-Scanner.lua
+Scanner/Item-Data.lua
+Scanner/Buffs.lua
+Scanner/Inventory.lua
 Macro-Builder.lua
 Minimap-Button.lua
 Options.lua
