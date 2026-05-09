@@ -120,6 +120,8 @@ Please reach out if you would like to be involved!
 
 🟢 Pairs With // Pupp3h's [Buffwatch Classic](https://www.curseforge.com/wow/addons/buffwatch-classic)
 
+🟢 Pairs With // ForsakenNGS's [DruidMacroHelper](https://www.curseforge.com/wow/addons/druidmacrohelper)
+
 🟢 Pairs With // ykiigor's [Method Raid Tools](https://www.curseforge.com/wow/addons/method-raid-tools)
 
 🟢 Pairs With // oscarucb's [RaidBuffStatus](https://www.curseforge.com/wow/addons/raidbuffstatus)
