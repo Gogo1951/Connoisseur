@@ -6,11 +6,11 @@ Auto-updating macros for your best food, buff food, water, scrolls, healing and 
 
 ## Features
 
-🪄 **Auto-Updating Macros** // Always picks your best food, water, potions, healthstones, mana gems, and bandages — rescans your bags whenever loot, level, or zone changes.
+🧞‍♂️ **Auto-Updating Macros** // Always picks your best food, water, potions, healthstones, mana gems, and bandages — rescans your bags whenever loot, level, or zone changes.
 
 🎯 **Smart Conjuring** // Mages and Warlocks right-click their food, water, healthstone, or soulstone macros to conjure the item on the spot. Middle-click casts Ritual of Refreshment (Mage) or Ritual of Souls (Warlock) for the whole group. The rank auto-matches your target, so a lower-level friend always gets something they can actually use.
 
-🐾 **Class Buttons** // Hunters get an all-in-one `- Feed Pet` macro that handles Call Pet, Feed Pet, Mend Pet, Revive Pet, and Dismiss in a single button. Mages can right-click the `- Mana Gem` macro to conjure a backup gem. Night Elves can drink while Shadowmelded.
+🦄 **Class Buttons** // Hunters get an all-in-one `- Feed Pet` macro that handles Call Pet, Feed Pet, Mend Pet, Revive Pet, and Dismiss in a single button. Mages can right-click the `- Mana Gem` macro to conjure a backup gem. Druids can enable DruidMacroHelper integration. Night Elves can drink while Shadowmelded.
 
 📜 **Scroll Buff Stacking** // When you're missing scroll buffs, your Food macro turns into a one-tap scroll applier — fires every missing scroll on you, then flips back to food on the next press.
 
