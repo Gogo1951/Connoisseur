@@ -12,11 +12,12 @@ local MODE_VALUES = {
 -- AceConfig Helpers
 --------------------------------------------------------------------------------
 
-local function Header(text, order)
+local function Header(text, order, hidden)
     return {
         type = "header",
         name = GetColor("TITLE") .. text .. "|r",
         order = order,
+        hidden = hidden,
     }
 end
 
@@ -38,11 +39,12 @@ local function Desc(text, order)
     }
 end
 
-local function Spacer(order)
+local function Spacer(order, hidden)
     return {
         type = "description",
         name = " ",
         order = order,
+        hidden = hidden,
     }
 end
 
@@ -412,24 +414,9 @@ local function GetOptions()
             },
 
             -- Druids
-            spaceDruid0 = {
-                type = "description",
-                name = " ",
-                order = 47,
-                hidden = function() return not ns.IsDruid end,
-            },
-            headerDruid = {
-                type = "header",
-                name = GetColor("TITLE") .. L["OPTIONS_DRUIDS_HEADER"] .. "|r",
-                order = 48,
-                hidden = function() return not ns.IsDruid end,
-            },
-            spaceDruid1 = {
-                type = "description",
-                name = " ",
-                order = 49,
-                hidden = function() return not ns.IsDruid end,
-            },
+            spaceDruid0 = Spacer(47, function() return not ns.IsDruid end),
+            headerDruid = Header(L["OPTIONS_DRUIDS_HEADER"], 48, function() return not ns.IsDruid end),
+            spaceDruid1 = Spacer(49, function() return not ns.IsDruid end),
             toggleDruidMacroHelper = {
                 type = "toggle",
                 name = L["OPTIONS_DRUID_MACRO_HELPER"],
@@ -475,24 +462,9 @@ local function GetOptions()
             },
 
             -- Night Elves
-            spaceNightElf0 = {
-                type = "description",
-                name = " ",
-                order = 53,
-                hidden = function() return not ns.IsNightElf end,
-            },
-            headerNightElf = {
-                type = "header",
-                name = GetColor("TITLE") .. L["OPTIONS_NIGHTELF_HEADER"] .. "|r",
-                order = 54,
-                hidden = function() return not ns.IsNightElf end,
-            },
-            spaceNightElf1 = {
-                type = "description",
-                name = " ",
-                order = 55,
-                hidden = function() return not ns.IsNightElf end,
-            },
+            spaceNightElf0 = Spacer(53, function() return not ns.IsNightElf end),
+            headerNightElf = Header(L["OPTIONS_NIGHTELF_HEADER"], 54, function() return not ns.IsNightElf end),
+            spaceNightElf1 = Spacer(55, function() return not ns.IsNightElf end),
             toggleShadowmeldDrinking = {
                 type = "toggle",
                 name = L["OPTIONS_SHADOWMELD_DRINKING"],
