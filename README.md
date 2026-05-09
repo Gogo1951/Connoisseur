@@ -1,30 +1,35 @@
 # Connoisseur
 
-Creates auto-updating macros for your best consumables, tracking buffs to keep you at peak performance. Features an all-in-one Feed-O-Matic for Hunters and smart right-click conjuring for Mages and Warlocks that adapts to your target's level.
+Auto-updating macros for your best food, buff food, water, scrolls, healing and mana potions, healthstones, soulstones, mana gems, and bandages. One-click conjuring for Mages and Warlocks, smart Feed Pet for Hunters. Eat well, fight well.
 
 ![Consumable-Connoisseur](https://github.com/user-attachments/assets/326eb93f-329f-4967-b750-909011a05b01)
 
-## What It Does
+## Features
 
-Connoisseur scans your bags every time something changes (loot, vendor purchase, level up, zone change) and rewrites a set of macros so they always use your best available consumable. It picks the highest-value item you can actually use right now, factoring in your level, profession skills, zone restrictions, and then looks at lowest vendor sell price, and lowest stack count, as tiebreakers.
+🪄 **Auto-Updating Macros** // Always picks your best food, water, potions, healthstones, mana gems, and bandages — rescans your bags whenever loot, level, or zone changes.
 
-🗺️ Localized : Works with all Classic WoW Locales (enUS, deDE, esES, esMX, frFR, itIT, koKR, ptBR, ruRU, zhCN, zhTW).
+🎯 **Smart Conjuring** // Mages and Warlocks right-click their food, water, healthstone, or soulstone macros to conjure the item on the spot. Middle-click casts Ritual of Refreshment (Mage) or Ritual of Souls (Warlock) for the whole group. The rank auto-matches your target, so a lower-level friend always gets something they can actually use.
 
-## Quick Start
+🐾 **Class Buttons** // Hunters get an all-in-one `- Feed Pet` macro that handles Call Pet, Feed Pet, Mend Pet, Revive Pet, and Dismiss in a single button. Mages can right-click the `- Mana Gem` macro to conjure a backup gem. Night Elves can drink while Shadowmelded.
 
-1. Install from [CurseForge](https://www.curseforge.com/wow/addons/consumable-connoisseur) or clone from [GitHub](https://github.com/Gogo1951/Consumable-Connoisseur).
-2. Log in. Connoisseur automatically scans your bags and creates macros in your General macro tab.
-3. Drag the macros onto your action bars. They start with a dash: `- Food`, `- Water`, `- Health Potion`, etc.
-4. Play normally. The macros update themselves whenever your bags change, you level up, or you move to a new zone.
+📜 **Scroll Buff Stacking** // When you're missing scroll buffs, your Food macro turns into a one-tap scroll applier — fires every missing scroll on you, then flips back to food on the next press.
 
-That's it. No configuration required for basic use.
+⚙️ **Tune to Taste** // Drop items into an ignore list to skip them, and restrict buff food, scrolls, and pet food to party or raid only.
 
-<img width="300" src="https://github.com/user-attachments/assets/c57060c0-4eee-44ab-af88-48e077d886cc" />
+## Setup
+
+1. Install the add-on, ideally using [CurseForge](https://www.curseforge.com/wow/addons/consumable-connoisseur).
+2. Log in. Connoisseur scans your bags and creates macros in your General macro tab.
+3. Drag the dash-prefixed macros (`- Food`, `- Water`, `- Health Potion`, etc.) onto your action bars.
+4. Optional: type `/foodie` to fine-tune scroll buffs, buff food, pet food, and class options.
+5. Never miss a meal! Breakfast, second breakfast, elevenses, luncheon, afternoon tea, dinner, supper… (=
+
+## How It Works
 
 ### Macros Created
 
 | Macro Name | Category |
-|---|---|
+| --- | --- |
 | `- Food` | Best food (with optional buff food, scroll stacking, and pet buff food) |
 | `- Water` | Best drink |
 | `- Health Potion` | Best healing potion |
@@ -34,6 +39,32 @@ That's it. No configuration required for basic use.
 | `- Mana Gem` | Best Mana Gem (Mage) |
 | `- Bandage` | Best bandage (requires First Aid skill) |
 | `- Feed Pet` | All-in-one pet button (Hunter only) |
+
+### Minimap Button
+
+Hover for a tooltip showing the current state of every feature, your best food, the ignore list, and class-specific tips. The icon updates to match your current best food.
+
+| Action | Effect |
+| --- | --- |
+| Left-click | Toggle Buff Food priority |
+| Shift + Left-click | Toggle Scroll Buffs |
+| Right-click | Ignore current best food |
+| Middle-click | Clear ignore list |
+
+<img width="300" src="https://github.com/user-attachments/assets/c57060c0-4eee-44ab-af88-48e077d886cc" />
+
+### Item Selection Priority
+
+For each consumable category, Connoisseur compares every usable item in your bags using this priority order:
+
+1. Buff food preferred (when Buff Food is enabled and Well Fed is missing)
+2. Percentage-based items preferred over flat values
+3. Highest restore value wins
+4. Lowest vendor sell price breaks ties (use up cheap items first)
+5. Hybrid food+water items preferred or avoided depending on the slot
+6. Fewest total in bags breaks the final tie
+
+Items are filtered out if you don't meet the level requirement, lack the required profession skill (First Aid for bandages, Alchemy for certain potions), or are in the wrong zone.
 
 ### Class Features
 
@@ -49,82 +80,68 @@ That's it. No configuration required for basic use.
 
 **Night Elves** can enable Shadowmeld Drinking, which appends Shadowmeld to the Water macro so you stealth while drinking.
 
-## Settings
+### Settings
 
-Type `/foodie` or go to **Options > AddOns > Connoisseur** to open the settings panel.
+Type `/foodie` or open **Options > AddOns > Connoisseur** to configure the add-on.
 
 <img width="800" src="https://github.com/user-attachments/assets/c0e8e916-b3b9-4ce1-a5ff-d4b023a8ee20" />
 
-### Prioritize Buff Food
+**Prioritize Buff Food** // The Food macro prefers items that grant the Well Fed buff, but only when you don't already have it. Can be restricted to party or raid only.
 
-When enabled, the Food macro prefers items that grant the "Well Fed" buff, but only when you don't already have the buff active. Can be restricted to only activate when in a party or raid.
+**Scroll Buffs** // Your `- Food` macro doubles as a scroll-buff button. When you're missing scroll buffs, the macro turns into a dedicated scroll-applier — one tap fires every missing scroll on you, off the global cooldown, then flips back to food on the next press. Scrolls always target you, are skipped when a class buff already covers the same stat at equal or greater value, and the macro reverts to food mode immediately when you target a friendly player so it stays safe for Mages conjuring for friends. Firing order: Agility, Strength, Protection, Intellect, Spirit, Stamina.
 
-### Scroll Buffs
+**Pet Food Buffs** // Uses Kibler's Bits or Sporeling Snacks on your pet when its Well Fed buff is missing. Requires level 55+. Can be restricted to party or raid. Pet food only fires in food mode — if you're missing scroll buffs, scrolls go first.
 
-When enabled, your `- Food` macro doubles as a scroll-buff button. Whenever you're missing scroll buffs, the macro turns into a dedicated scroll-applier — one tap fires every missing scroll on you, off the global cooldown. After scrolls are applied, the macro flips back to its normal food form for your next press.
+**Ignore List** // Tell Connoisseur to skip an item it's currently picking. Right-click the minimap button to add the current best food. Middle-click to clear the list. Also clearable from the settings panel.
 
-How it works:
+## Testing & Localization Status
 
-- The macro icon shows the first missing scroll when scrolls are needed, and your best food otherwise. So you can always tell at a glance whether your next press will buff or feed you.
-- Scroll mode and food mode never coexist in the same macro body. Tap once to apply scrolls; tap again to eat.
-- Scrolls always target you (`[@player]`), so they never accidentally buff your current target.
-- Scrolls are skipped when a class buff already covers the same stat at equal or greater value (e.g. Arcane Intellect blocks Scroll of Intellect).
-- You can toggle individual scroll types on and off, and restrict the feature to party or raid only.
-- **When you target another friendly player, the macro reverts to food mode immediately.** This keeps the macro safe for Mages right-clicking to conjure food for a friend — no scrolls fire on you while you're targeting them.
-- Scroll firing order follows priority: Agility, Strength, Protection, Intellect, Spirit, Stamina.
+🟢 World of Warcraft Classic (🟡 Season of Discovery) // WoW 1.15.8
 
-### Pet Food Buffs
+🟢 Burning Crusade Anniversary // WoW 2.5.5
 
-When enabled, your Food macro will use Kibler's Bits or Sporeling Snacks on your pet when its "Well Fed" buff is missing. Requires level 55+. Can be restricted to party or raid. Pet food only fires in food mode — if you also have missing scroll buffs, scrolls go first; pet food (and your own food) come on the next press.
+🔴 Mists of Pandaria Classic // WoW 5.5.3
 
-### Ignore List
+🔴 World of Warcraft // WoW 12.0.5
 
-Right-click the minimap button to add your current best food to the ignore list. The addon will skip ignored items and pick the next best option. Middle-click the minimap button to clear the entire ignore list. You can also clear it from the settings panel.
+**Localization Status** // Works with all Classic WoW Locales (enUS, deDE, esES, esMX, frFR, itIT, koKR, ptBR, ruRU, zhCN, zhTW).
 
-## Minimap Button
-
-Hover for a full tooltip showing the current state of all features, your best food, the ignore list, and class-specific tips. Click actions:
-
-| Action | Effect |
-|---|---|
-| Left-click | Toggle Buff Food priority |
-| Shift + Left-click | Toggle Scroll Buffs |
-| Right-click | Ignore current best food |
-| Middle-click | Clear ignore list |
-
-The minimap icon updates dynamically to show the icon of your current best food item.
-
-## How Item Selection Works
-
-For each consumable category, the addon picks the best item by comparing every usable item in your bags. The priority order is:
-
-1. Buff food preferred (when Buff Food is enabled and you lack the Well Fed buff)
-2. Percentage-based items preferred over flat values
-3. Highest restore value wins
-4. Lowest vendor sell price breaks ties (use up cheap items first)
-5. Hybrid food+water items are preferred or avoided depending on the slot
-6. Fewest total count in bags breaks the final tie
-
-Items are filtered out if you don't meet the level requirement, lack the required profession skill (First Aid for bandages, Alchemy for certain potions), or are in the wrong zone for zone-restricted items.
-
-## Saved Variables
-
-Connoisseur stores data in two scopes. Account-wide settings (`ConnoisseurDB`) hold the minimap position and an item data cache that resets on each addon version update. Per-character settings (`ConnoisseurCharDB`) hold your ignore list, buff food preference, scroll settings, and all other toggles.
-
-## Testing Status
-
-🟢 World of Warcraft Classic (🟡 Season of Discover)
-
-🟢 Burning Crusade Anniversary
-
-🔴 Mists of Pandaria Classic
-
-🔴 World of Warcraft
-
-Please reach out if you would like to be involved with testing!
+Please reach out if you would like to be involved!
 
 ## Links
 
-- [CurseForge](https://www.curseforge.com/wow/addons/consumable-connoisseur)
-- [GitHub](https://github.com/Gogo1951/Consumable-Connoisseur)
-- [Discord](https://discord.gg/eh8hKq992Q)
+* [CurseForge](https://www.curseforge.com/wow/addons/consumable-connoisseur)
+* [GitHub](https://github.com/Gogo1951/Consumable-Connoisseur)
+* [Discord](https://discord.gg/eh8hKq992Q)
+
+## Related Add-ons
+
+🟢 Pairs With // kvakvs's [Buffomat Classic](https://www.curseforge.com/wow/addons/buffomat-classic)
+
+🟢 Pairs With // Pupp3h's [Buffwatch Classic](https://www.curseforge.com/wow/addons/buffwatch-classic)
+
+🟢 Pairs With // ykiigor's [Method Raid Tools](https://www.curseforge.com/wow/addons/method-raid-tools)
+
+🟢 Pairs With // oscarucb's [RaidBuffStatus](https://www.curseforge.com/wow/addons/raidbuffstatus)
+
+🟢 Pairs With // kvakvs's [Restocker Classic](https://www.curseforge.com/wow/addons/restocker-classic)
+
+🟡 Some Overlap // Galeina's [Consumable Checker](https://www.curseforge.com/wow/addons/consumable-checker)
+
+🟡 Some Overlap // aeldra_'s [SmartBuff (Classic)](https://www.curseforge.com/wow/addons/smartbuff-classic)
+
+🔴 Direct Alternative // ollidiemaus's [Auto Potion](https://www.curseforge.com/wow/addons/auto-potion)
+
+🔴 Direct Alternative // ayjaycoding's [Automated Eat Drink Macro Changer](https://www.curseforge.com/wow/addons/automated-eat-drink-macro-changer)
+
+🔴 Direct Alternative // mZHg's [Buffet](https://www.curseforge.com/wow/addons/buffet)
+
+🔴 Direct Alternative // funki's [DrinkBot](https://www.curseforge.com/wow/addons/drinkbot)
+
+🔴 Direct Alternative // FubarVS's [Eat Drink AI](https://www.curseforge.com/wow/addons/eatdrinkai)
+
+🔴 Direct Alternative // executedpoorly's [Feed Me](https://www.curseforge.com/wow/addons/feed-me)
+
+🔴 Direct Alternative // Gazmik Fizzwidget's [Feed-O-Matic](https://www.wowinterface.com/downloads/info4160-FizzwidgetFeed-O-Matic.html)
+
+🔴 Direct Alternative // Aryax's [Well Feed](https://www.curseforge.com/wow/addons/well-feed)
