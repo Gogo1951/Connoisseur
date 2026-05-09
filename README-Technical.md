@@ -15,7 +15,7 @@ Consumable-Connoisseur/
 ├── Options.lua                    Settings panel
 ├── Data/
 │   ├── Bandages.lua               Bandage item definitions
-│   ├── Data-General.lua           Brand colors, defaults, conjure spell tables
+│   ├── Data-General.lua           Brand colors, class colors, defaults, conjure spell tables, spell/item IDs
 │   ├── Food-and-Water.lua         Food/water/buff-food definitions
 │   ├── Healthstones.lua           Healthstone item definitions
 │   ├── Mana-Gems.lua              Mana gem item definitions
@@ -30,8 +30,6 @@ Consumable-Connoisseur/
     ├── Inventory.lua              Bag scan and best-item selection
     └── Item-Data.lua              Async item data fetch and cache
 ```
-
-`Data/General.lua` does **not** exist in the load order — only `Data/Data-General.lua`. If you find a `General.lua` file, it is stale and should be deleted.
 
 ---
 
@@ -83,7 +81,15 @@ ITEMID(_C(_M:mid)?(_R:rid)?)?(_SM)?
 SCROLLS:s1,s2,...
 ```
 
-The `SCROLLS:` prefix can never collide with an `ITEMID`-prefixed key (item IDs are numeric, no colon), which means a transition between scroll mode and food mode always changes the key and always triggers a rewrite. Within scroll mode, a different ordered list of scroll IDs is also a different key, so adding or losing a scroll buff still causes a rewrite.
+**DMH mode** (Druid Health Potion / Mana Potion / Healthstone with DruidMacroHelper integration enabled):
+
+```text
+DMH:formKey:ITEMID
+```
+
+`formKey` is `bear` or `cat` per the `druidReturnForm` setting. See the [DruidMacroHelper Integration](#druidmacrohelper-integration-druid-hp--mp--hs) deep-dive for the body shape.
+
+The three prefixes (`ITEMID`, `SCROLLS:`, `DMH:`) are pairwise disjoint — item IDs are numeric (no colon), `SCROLLS:` and `DMH:` use different stems — so any transition between modes always changes the key and always triggers a rewrite. Within a mode, a different ordered list of scroll IDs, a different selected item, or a different return form is also a different key, so the relevant change always causes a rewrite.
 
 If the key matches `currentMacroState[typeName]`, the macro is byte-for-byte identical to what's already written and we skip the `EditMacro` call. This is what makes `BAG_UPDATE_DELAYED` storms cheap.
 
@@ -164,14 +170,30 @@ The compact form uses bracket conditional groups to stay well under 255 chars ev
 
 When the pet is dead and dismissed, `[nopet]` swaps to Revive Pet so a single click works regardless of pet state. Combat forces Mend Pet because Feed Pet can't be cast in combat.
 
+### DruidMacroHelper Integration (Druid HP / MP / HS)
+
+When `enableDruidMacroHelper` is on for a Druid character, the Health Potion, Mana Potion, and Healthstone macros are rewritten to use the [DruidMacroHelper](https://www.curseforge.com/wow/addons/druidmacrohelper) addon's `/dmh` slash syntax. The shape lets a druid powershift out of form, `/use` the consumable, and shift back into bear or cat — guarded against breaking form when the consumable is on cooldown, the player is stunned, on GCD, or out of mana.
+
+Each consumable type uses a slightly different `/dmh` guard prefix, copied from the DMH addon's own examples:
+
+- **Health Potion** — `/dmh start` (stun + GCD + mana check) plus `/dmh cd pot` (shared-potion-CD check)
+- **Healthstone** — `/dmh start` plus `/dmh cd hs`
+- **Mana Potion** — `/dmh stun gcd cd pot` — explicitly skips the mana check, since the whole point of a mana pot is that the druid is OOM and would otherwise fail the start guard
+
+The macro returns to the form named by `settings.druidReturnForm` (`"bear"` or `"cat"`), set via the dropdown in the Druids options section.
+
+**Why hard-coded rather than auto-tracked.** WoW prevents `EditMacro` calls during combat lockdown. Any auto-tracking design — listening to `UPDATE_SHAPESHIFT_FORM` and rewriting the body in response — would queue updates for after combat ends, leaving the macro stale during the actual combat where the druid powershifts back and forth. A druid who shifted cat→bear mid-combat and pressed the macro before `PLAYER_REGEN_ENABLED` would end up in cat instead of bear (or vice versa). The hard-coded preference eliminates the risk; switching forms in earnest is an out-of-combat action, and the dropdown is one click.
+
+**Bear vs Dire Bear smartness.** At login, `Core.lua` resolves the bear form spell name via `GetSpellInfo(9634)` (Dire Bear Form, learned at level 40 in pre-Cataclysm builds) with a fallback to `GetSpellInfo(5487)` (Bear Form). The dropdown stores the abstract `"bear"` preference; the macro builder substitutes whichever real spell name the druid has learned, so the same dropdown setting renders the correct `/cast !Bear Form` or `/cast !Dire Bear Form` for the character's level.
+
 ---
 
 ## Saved Variables
 
 Two scopes:
 
-- **`ConnoisseurDB`** (account-wide): `minimap` table for LibDBIcon, `itemCache` table keyed by item ID, `version` for cache invalidation.
-- **`ConnoisseurCharDB`** (per-character): `ignoreList` (set of item IDs), `settings` table with all toggle/mode/type fields. Defaults are merged from `ns.SETTINGS_DEFAULTS` on load so new settings introduced in updates pick up sensible values.
+- **`ConnoisseurDB`** (account-wide): `minimap` table for LibDBIcon, `itemCache` table keyed by item ID, `itemCacheVersion` for cache invalidation, `showWelcome` (boolean, default `true`) for the on-login welcome message.
+- **`ConnoisseurCharDB`** (per-character): `ignoreList` (set of item IDs), `settings` table with all toggle/mode/type fields. Defaults are merged from `ns.SETTINGS_DEFAULTS` on load so new settings introduced in updates pick up sensible values. Druid-specific fields (`enableDruidMacroHelper` boolean, `druidReturnForm` `"bear"`/`"cat"`) are present on every character but only consulted when `ns.IsDruid` is true.
 
 `MigrateFromLegacy()` in Core.lua handles legacy variable layouts. Add a new migration step there when changing the saved-variable schema; never silently rewrite user data.
 
@@ -185,7 +207,7 @@ Two scopes:
 4. Add a `best[]` entry in `Scanner/Inventory.lua` and a branch in the `itemType` dispatch.
 5. Add the `Item-Data.lua` `itemType` classification for the new category.
 6. Add the macro name to `enabledMacros` defaults in `Data-General.lua`.
-7. Add a localization key to `Locales/enUS.lua` (`MACRO_*` prefix).
+7. Add a localization key to `Locales/enUS.lua` (`MACRO_*` prefix, full words — `MACRO_HEALTH_POTION`, not `MACRO_HPOT`).
 
 Test against the 255-character limit with the longest possible spell names. German enables this by setting `SET locale "deDE"` in the .toc — most overflow bugs surface in deDE, frFR, or ruRU first.
 
@@ -206,12 +228,13 @@ Be conservative with macro string lengths. Macro names cap at 16 characters. The
 - **Forgetting state encoding**: if you add a new input that affects the macro body, add it to the state key. Otherwise the body won't rewrite when that input changes.
 - **Hardcoding spell names**: always resolve via `GetSpellInfo(spellID)`. Names vary across locales and patch revisions.
 - **Stacking too many lines in Food**: food mode and scroll mode each have their own budget. Food mode keeps the same shape it had pre-scrolls, so additions there should walk the worst-case 255-char check on a deDE Mage at max level. Scroll mode is short and won't approach the limit, but anything you add there should still be measured.
+- **Auto-tracking druid form**: don't. `EditMacro` is gated by `InCombatLockdown`, so any auto-tracker that listens to `UPDATE_SHAPESHIFT_FORM` produces stale macros during combat — exactly when a druid is powershifting in earnest. Use the hardcoded `druidReturnForm` setting; the user picks bear or cat via the dropdown and the macro reflects that choice. Switching is one out-of-combat click.
 
 ---
 
 ## Contributing
 
-Pull requests welcome at https://github.com/Gogo1951/Consumable-Connoisseur. For bugs or feature ideas, please open a GitHub issue with:
+Pull requests welcome at https://github.com/Gogo1951/Connoisseur. For bugs or feature ideas, please open a GitHub issue with:
 
 - Game version and locale
 - Class and level

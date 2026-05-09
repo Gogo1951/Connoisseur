@@ -39,6 +39,47 @@ function ns.PrintMessage(text)
     )
 end
 
+-- PLAYER_ENTERING_WORLD fires on instance transitions and reloads, not
+-- just initial login. Guard with a flag so the welcome lands once per
+-- session.
+local welcomePrinted = false
+
+local function PrintWelcome()
+    if welcomePrinted then return end
+    if not (ConnoisseurDB and ConnoisseurDB.showWelcome) then return end
+    welcomePrinted = true
+    ns.PrintMessage(L["CHAT_LOADED"])
+end
+
+--------------------------------------------------------------------------------
+-- Utility
+--------------------------------------------------------------------------------
+
+function ns.IsModeActive(mode)
+    if mode == "always" then
+        return true
+    end
+    if mode == "party" then
+        return IsInGroup()
+    end
+    if mode == "raid" then
+        return IsInRaid()
+    end
+    return true
+end
+
+function ns.KnowsAny(spellList)
+    if not spellList then
+        return false
+    end
+    for _, data in ipairs(spellList) do
+        if IsSpellKnown(data[1]) then
+            return true
+        end
+    end
+    return false
+end
+
 --------------------------------------------------------------------------------
 -- Version
 --------------------------------------------------------------------------------
@@ -116,6 +157,11 @@ end
 
 local function InitVars()
     ConnoisseurDB = ConnoisseurDB or {}
+    -- Booleans need an explicit nil check; `or true` would clobber a
+    -- user's saved `false`. Initialize before migrations so legacy paths
+    -- can rely on the field existing.
+    if ConnoisseurDB.showWelcome == nil then ConnoisseurDB.showWelcome = true end
+
     ConnoisseurCharDB = ConnoisseurCharDB or {}
     ConnoisseurCharDB.ignoreList = ConnoisseurCharDB.ignoreList or {}
     ConnoisseurCharDB.settings = ConnoisseurCharDB.settings or {}
@@ -150,6 +196,14 @@ local function InitVars()
     -- Hunter detection and pet spell resolution
     local _, classToken = UnitClass("player")
     ns.IsHunter = (classToken == "HUNTER")
+    ns.IsDruid = (classToken == "DRUID")
+
+    if ns.IsDruid then
+        -- Dire Bear was merged into Bear Form in Cataclysm; resolve whichever exists.
+        ns.DruidBearFormName = GetSpellInfo(ns.DRUID_DIRE_BEAR_FORM_SPELL_ID)
+            or GetSpellInfo(ns.DRUID_BEAR_FORM_SPELL_ID)
+        ns.DruidCatFormName = GetSpellInfo(ns.DRUID_CAT_FORM_SPELL_ID)
+    end
 
     if ns.IsHunter then
         ns.FeedPetSpellName    = GetSpellInfo(ns.FEED_PET_SPELL_ID)
@@ -222,11 +276,11 @@ end
 
 --------------------------------------------------------------------------------
 -- Feature Toggles
---
+--------------------------------------------------------------------------------
+
 -- Each toggle accepts an optional value. No argument flips the current state
 -- (minimap click path). A boolean argument sets state directly (options-panel
 -- path) and matches what AceConfig hands back to the set callback.
---------------------------------------------------------------------------------
 
 function ns.UpdateAuraTracking()
     local settings = ConnoisseurCharDB.settings
@@ -282,6 +336,19 @@ function ns.ToggleShadowmeldDrinking(value)
         settings.enableShadowmeldDrinking = not settings.enableShadowmeldDrinking
     else
         settings.enableShadowmeldDrinking = value
+    end
+    if ns.ResetMacroState then
+        ns.ResetMacroState()
+    end
+    ns.RequestUpdate()
+end
+
+function ns.ToggleDruidMacroHelper(value)
+    local settings = ConnoisseurCharDB.settings
+    if value == nil then
+        settings.enableDruidMacroHelper = not settings.enableDruidMacroHelper
+    else
+        settings.enableDruidMacroHelper = value
     end
     if ns.ResetMacroState then
         ns.ResetMacroState()
@@ -364,6 +431,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
         ns.RequestUpdate()
     elseif event == "PLAYER_ENTERING_WORLD" then
         InitVars()
+        PrintWelcome()
         ns.UpdateAuraTracking()
         ns.RequestUpdate()
         C_Timer.After(3, function()

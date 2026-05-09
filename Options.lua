@@ -23,7 +23,7 @@ end
 local function SubHeader(text, order)
     return {
         type = "description",
-        name = GetColor("TITLE") .. text .. "|r",
+        name = "\n" .. GetColor("TITLE") .. text .. "|r",
         fontSize = "medium",
         order = order,
     }
@@ -48,10 +48,10 @@ end
 
 --------------------------------------------------------------------------------
 -- Enabled-Macros Toggle Helper
---
+--------------------------------------------------------------------------------
+
 -- One factory for the nine Enable Macros toggles. hiddenFn is optional —
 -- Feed Pet uses it to stay hidden on non-Hunter characters.
---------------------------------------------------------------------------------
 
 local function MacroToggle(label, key, order, hiddenFn)
     return {
@@ -102,6 +102,24 @@ local function GetOptions()
         type = "group",
         args = {
             descIntro = Desc(L["OPTIONS_DESC"], 1),
+
+            -- Welcome Message
+            spaceWelcome0 = Spacer(2),
+            toggleWelcomeMessage = {
+                type = "toggle",
+                name = L["OPTIONS_WELCOME_MESSAGE"],
+                desc = L["OPTIONS_WELCOME_MESSAGE_DESC"],
+                order = 3,
+                width = "full",
+                get = function()
+                    return ConnoisseurDB and ConnoisseurDB.showWelcome
+                end,
+                set = function(_, value)
+                    if ConnoisseurDB then
+                        ConnoisseurDB.showWelcome = value
+                    end
+                end,
+            },
 
             -- /Commands
             spaceCommands0 = Spacer(5),
@@ -393,30 +411,93 @@ local function GetOptions()
                 },
             },
 
+            -- Druids
+            spaceDruid0 = {
+                type = "description",
+                name = " ",
+                order = 47,
+                hidden = function() return not ns.IsDruid end,
+            },
+            headerDruid = {
+                type = "header",
+                name = GetColor("TITLE") .. L["OPTIONS_DRUIDS_HEADER"] .. "|r",
+                order = 48,
+                hidden = function() return not ns.IsDruid end,
+            },
+            spaceDruid1 = {
+                type = "description",
+                name = " ",
+                order = 49,
+                hidden = function() return not ns.IsDruid end,
+            },
+            toggleDruidMacroHelper = {
+                type = "toggle",
+                name = L["OPTIONS_DRUID_MACRO_HELPER"],
+                desc = L["OPTIONS_DRUID_MACRO_HELPER_DESC"],
+                order = 50,
+                width = "full",
+                hidden = function() return not ns.IsDruid end,
+                get = function()
+                    return ConnoisseurCharDB and ConnoisseurCharDB.settings
+                        and ConnoisseurCharDB.settings.enableDruidMacroHelper
+                end,
+                set = function(_, value)
+                    if ns.ToggleDruidMacroHelper then
+                        ns.ToggleDruidMacroHelper(value)
+                    end
+                end,
+            },
+            druidReturnForm = {
+                type = "select",
+                name = L["OPTIONS_DRUID_RETURN_FORM"],
+                order = 51,
+                width = "normal",
+                values = {
+                    bear = L["DRUID_FORM_BEAR"],
+                    cat = L["DRUID_FORM_CAT"],
+                },
+                sorting = {"bear", "cat"},
+                hidden = function()
+                    if not ns.IsDruid then return true end
+                    local settings = ConnoisseurCharDB and ConnoisseurCharDB.settings
+                    return not (settings and settings.enableDruidMacroHelper)
+                end,
+                get = function()
+                    return ConnoisseurCharDB.settings.druidReturnForm or "bear"
+                end,
+                set = function(_, value)
+                    ConnoisseurCharDB.settings.druidReturnForm = value
+                    if ns.ResetMacroState then
+                        ns.ResetMacroState()
+                    end
+                    ns.RequestUpdate()
+                end,
+            },
+
             -- Night Elves
             spaceNightElf0 = {
                 type = "description",
                 name = " ",
-                order = 50,
+                order = 53,
                 hidden = function() return not ns.IsNightElf end,
             },
             headerNightElf = {
                 type = "header",
                 name = GetColor("TITLE") .. L["OPTIONS_NIGHTELF_HEADER"] .. "|r",
-                order = 51,
+                order = 54,
                 hidden = function() return not ns.IsNightElf end,
             },
             spaceNightElf1 = {
                 type = "description",
                 name = " ",
-                order = 52,
+                order = 55,
                 hidden = function() return not ns.IsNightElf end,
             },
             toggleShadowmeldDrinking = {
                 type = "toggle",
                 name = L["OPTIONS_SHADOWMELD_DRINKING"],
                 desc = L["OPTIONS_SHADOWMELD_DRINKING_DESC"],
-                order = 53,
+                order = 56,
                 width = "full",
                 hidden = function() return not ns.IsNightElf end,
                 get = function()
@@ -438,11 +519,11 @@ local function GetOptions()
             enableBandage      = MacroToggle(L["MACRO_BANDAGE"],  "Bandage",       64),
             enableFeedPet      = MacroToggle(L["MACRO_FEED_PET"], "Feed Pet",      65),
             enableFood         = MacroToggle(L["MACRO_FOOD"],     "Food",          66),
-            enableHealthPotion = MacroToggle(L["MACRO_HPOT"],     "Health Potion", 67),
-            enableHealthstone  = MacroToggle(L["MACRO_HS"],       "Healthstone",   68),
-            enableManaGem      = MacroToggle(L["MACRO_MGEM"],     "Mana Gem",      69),
-            enableManaPotion   = MacroToggle(L["MACRO_MPOT"],     "Mana Potion",   70),
-            enableSoulstone    = MacroToggle(L["MACRO_SS"],       "Soulstone",     71),
+            enableHealthPotion = MacroToggle(L["MACRO_HEALTH_POTION"],     "Health Potion", 67),
+            enableHealthstone  = MacroToggle(L["MACRO_HEALTHSTONE"],       "Healthstone",   68),
+            enableManaGem      = MacroToggle(L["MACRO_MANA_GEM"],     "Mana Gem",      69),
+            enableManaPotion   = MacroToggle(L["MACRO_MANA_POTION"],     "Mana Potion",   70),
+            enableSoulstone    = MacroToggle(L["MACRO_SOULSTONE"],       "Soulstone",     71),
             enableWater        = MacroToggle(L["MACRO_WATER"],    "Water",         72),
 
             -- Reset
@@ -513,6 +594,20 @@ local function GetOptions()
                 width = "double",
                 get = function() return ns.DISCORD_URL end,
                 set = function() end,
+            },
+
+            -- Version
+            spaceVersion0 = {
+                type = "description",
+                name = " ",
+                width = "full",
+                order = 998
+            },
+            versionLine = {
+                type = "description",
+                name = GetColor("MUTED") .. "Version " .. ns.Version .. "|r",
+                fontSize = "medium",
+                order = 999,
             },
         },
     }

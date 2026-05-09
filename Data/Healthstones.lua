@@ -1,6 +1,10 @@
 local _, ns = ...
 ns.RawData = ns.RawData or {}
 
+-- SELECT entry, name FROM item_template
+-- WHERE name LIKE '%Healthstone%'
+-- ORDER BY entry;
+-- Heal Amount derived from the heal spell on item_template.spellid_1.
 ns.RawData.Healthstone = {
     -- [ID] = {Healthstone Amount, {Allowed Zones}}, -- Name
 
@@ -21,5 +25,5 @@ ns.RawData.Healthstone = {
     [22103] = {2080}, -- Master Healthstone
     [19005] = {120}, -- Minor Healthstone
     [19004] = {110}, -- Minor Healthstone
-    [5512] = {100}, -- Minor Healthstone
+    [5512] = {100} -- Minor Healthstone
 }

@@ -3,24 +3,47 @@ local L = LibStub("AceLocale-3.0"):NewLocale("Connoisseur", "zhCN")
 if not L then return end
 
 -- [[ SIMPLIFIED CHINESE (zhCN) ]] --
+
+--------------------------------------------------------------------------------
+-- Brand
+--------------------------------------------------------------------------------
+
 L["BRAND"] = "Connoisseur"
 
--- Macro Names Can't Exceed 16 Total Characters
+--------------------------------------------------------------------------------
+-- Macro Names
+--------------------------------------------------------------------------------
+
+-- Macro names cannot exceed 16 total characters.
+
 L["MACRO_BANDAGE"] = "- 绷带"
 L["MACRO_FEED_PET"] = "- 喂养宠物"
 L["MACRO_FOOD"] = "- 食物"
-L["MACRO_HPOT"] = "- 治疗药水"
-L["MACRO_HS"] = "- 治疗石"
-L["MACRO_MGEM"] = "- 法力宝石"
-L["MACRO_MPOT"] = "- 法力药水"
-L["MACRO_SS"] = "- 灵魂石"
+L["MACRO_HEALTH_POTION"] = "- 治疗药水"
+L["MACRO_HEALTHSTONE"] = "- 治疗石"
+L["MACRO_MANA_GEM"] = "- 法力宝石"
+L["MACRO_MANA_POTION"] = "- 法力药水"
+L["MACRO_SOULSTONE"] = "- 灵魂石"
 L["MACRO_WATER"] = "- 水"
 
-L["ERR_ZONE"] = "你不能在这里使用该物品。"
+--------------------------------------------------------------------------------
+-- Common
+--------------------------------------------------------------------------------
+
 L["RANK"] = "等级"
+
+--------------------------------------------------------------------------------
+-- Chat Messages
+--------------------------------------------------------------------------------
 
 L["MSG_BUG_REPORT"] = "看来你发现了一个BUG！%s (%s) 无法在 %s > %s (%s) 使用。请报告给我们以便修复。谢谢！ https://discord.gg/eh8hKq992Q"
 L["MSG_NO_ITEM"] = "背包中未找到合适的 %s。"
+
+L["CHAT_LOADED"] = "版本 @project-version@。设置（包括禁用此消息的选项）可以在 选项 > 插件 > Connoisseur 中找到。喜欢这个插件吗？告诉朋友吧！(="
+
+--------------------------------------------------------------------------------
+-- Minimap Tooltip
+--------------------------------------------------------------------------------
 
 L["MENU_BUFF_FOOD"] = "优先增益食物"
 L["MENU_BUFF_FOOD_DESC"] = "当缺少 \"进食充分\" BUFF时，优先使用提供该BUFF的食物。"
@@ -54,14 +77,29 @@ L["UI_RIGHT_CLICK"] = "右键点击"
 L["UI_SHIFT_LEFT"] = "Shift + 左键点击"
 L["UI_TOGGLE"] = "切换"
 
+--------------------------------------------------------------------------------
+-- Mode Values
+--------------------------------------------------------------------------------
+
 L["MODE_ALWAYS"] = "总是"
 L["MODE_PARTY"] = "仅在小队时"
 L["MODE_RAID"] = "仅在团队时"
 
+--------------------------------------------------------------------------------
 -- Options Panel
-L["OPTIONS_DESC"] = "为你最好的消耗品创建自动更新宏，追踪增益状态以保持你的最佳表现。为猎人提供多合一的自动喂食功能，为法师和术士提供根据目标等级自适应的智能右键制造功能。"
+--------------------------------------------------------------------------------
+
+L["OPTIONS_DESC"] = "为你最好的食物、增益食物、水、卷轴、治疗和法力药水、治疗石、灵魂石、法力宝石和绷带创建自动更新的宏。为法师和术士提供一键制造，为猎人提供智能喂食。最佳营养，巅峰表现。"
+
+-- Welcome Message
+L["OPTIONS_WELCOME_MESSAGE"] = "启用欢迎消息"
+L["OPTIONS_WELCOME_MESSAGE_DESC"] = "登录时在聊天框打印欢迎消息。"
+
+-- Buff Food
 L["OPTIONS_BUFF_FOOD"] = "优先增益食物"
 L["OPTIONS_BUFF_FOOD_DESC"] = "当缺少 \"进食充分\" BUFF时，优先使用提供该BUFF的食物。"
+
+-- Scroll Buffs
 L["OPTIONS_SCROLL_HEADER"] = "卷轴增益"
 L["OPTIONS_USE_SCROLLS"] = "包含卷轴增益"
 L["OPTIONS_USE_SCROLLS_DESC"] = "只要你缺少卷轴增益，就会将你的食物宏转变为专用的卷轴施放器。按一次施放卷轴；再按一次进食。卷轴不占用GCD，以你为目标，并且当你的目标是其他友方玩家时，宏会立刻还原为食物。"
@@ -73,6 +111,7 @@ L["OPTIONS_SCROLL_SPIRIT"] = "精神"
 L["OPTIONS_SCROLL_STAMINA"] = "耐力"
 L["OPTIONS_SCROLL_STRENGTH"] = "力量"
 
+-- Pet Food Buffs
 L["OPTIONS_PET_HEADER"] = "宠物食物增益"
 L["OPTIONS_USE_PET_BUFFS"] = "使用宠物食物增益"
 L["OPTIONS_USE_PET_BUFFS_DESC"] = "当你的宠物缺少 \"进食充分\" BUFF时，在你的食物宏中使用宠物食物。"
@@ -80,17 +119,29 @@ L["OPTIONS_PET_BUFF_TYPES"] = "在检查中包含宠物食物类型"
 L["OPTIONS_PET_BUFF_KIBLERS"] = "基布雷尔的宠物食品"
 L["OPTIONS_PET_BUFF_SPORELING"] = "孢子村点心"
 
+-- Druids
+L["OPTIONS_DRUIDS_HEADER"] = "德鲁伊"
+L["OPTIONS_DRUID_MACRO_HELPER"] = "启用 DruidMacroHelper 整合"
+L["OPTIONS_DRUID_MACRO_HELPER_DESC"] = "使用 DruidMacroHelper (/dmh) 为治疗药水、法力药水和治疗石构建变形宏。"
+L["OPTIONS_DRUID_RETURN_FORM"] = "使用消耗品后，切换至"
+L["DRUID_FORM_BEAR"] = "熊"
+L["DRUID_FORM_CAT"] = "猎豹"
+
+-- Night Elves
 L["OPTIONS_NIGHTELF_HEADER"] = "暗夜精灵"
 L["OPTIONS_SHADOWMELD_DRINKING"] = "影遁饮水"
 L["OPTIONS_SHADOWMELD_DRINKING_DESC"] = "将影遁添加到你的水宏中，以便你在喝水时潜行。"
 
+-- /Commands
 L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
 L["OPTIONS_COMMANDS_DESC"] = "/foodie"
 L["OPTIONS_COMMANDS_DETAIL"] = "打开 Connoisseur 选项界面。"
 
+-- Enable Macros
 L["OPTIONS_ENABLE_MACROS_HEADER"] = "启用宏"
 L["OPTIONS_ENABLE_MACROS_DESC"] = "切换 Connoisseur 创建和维护哪些宏。禁用一个宏也会将其移除。"
 
+-- Reset
 L["OPTIONS_RESET_HEADER"] = "重置"
 L["OPTIONS_RESET_IGNORE_DESC"] = "从忽略列表中移除所有物品。"
 L["OPTIONS_RESET_IGNORE_CONFIRM"] = "你确定要清除忽略列表吗？"
@@ -98,4 +149,5 @@ L["OPTIONS_RESET_ALL"] = "重置所有 Connoisseur 选项"
 L["OPTIONS_RESET_ALL_DESC"] = "将所有设置和忽略列表重置为默认值。"
 L["OPTIONS_RESET_ALL_CONFIRM"] = "将所有 Connoisseur 选项重置为默认值？"
 
+-- Feedback & Support
 L["OPTIONS_COMMUNITY_HEADER"] = "反馈与支持"

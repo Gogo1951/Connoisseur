@@ -1,5 +1,5 @@
 ## Title: Connoisseur
-## Notes: Creates auto-updating macros for your best consumables, tracking buffs to keep you at peak performance. Features an all-in-one Feed-O-Matic for Hunters and smart right-click conjuring for Mages and Warlocks that adapts to your target’s level.
+## Notes: Auto-updating macros for your best food, buff food, water, scrolls, healing and mana potions, healthstones, soulstones, mana gems, and bandages. One-click conjuring for Mages and Warlocks, smart Feed Pet for Hunters. Optimal nutrition, peak performance.
 ## Author: Gogo1951
 
 ## IconTexture: Interface/AddOns/Consumable-Connoisseur/Consumable-Connoisseur.tga
@@ -20,7 +20,9 @@ Includes/LibStub/LibStub.lua
 Includes/CallbackHandler-1.0/CallbackHandler-1.0.lua
 Includes/AceLocale-3.0/AceLocale-3.0.lua
 Includes/AceGUI-3.0/AceGUI-3.0.xml
-Includes/AceConfig-3.0/AceConfig-3.0.xml
+Includes/AceConfig-3.0/AceConfigRegistry-3.0/AceConfigRegistry-3.0.lua
+Includes/AceConfig-3.0/AceConfigDialog-3.0/AceConfigDialog-3.0.lua
+Includes/AceConfig-3.0/AceConfig-3.0.lua
 Includes/LibDataBroker-1.1/LibDataBroker-1.1.lua
 Includes/LibDBIcon-1.0/LibDBIcon-1.0.lua
 
@@ -58,5 +60,5 @@ Options.lua
 
 # Feedback Welcome! (=
 # Consumable Connoisseur on CurseForge // https://www.curseforge.com/wow/addons/consumable-connoisseur
-# Consumable Connoisseur on GitHub // https://github.com/Gogo1951/Consumable-Connoisseur
+# Consumable Connoisseur on GitHub // https://github.com/Gogo1951/Connoisseur
 # Consumable Connoisseur on Discord // https://discord.gg/eh8hKq992Q

@@ -1,9 +1,15 @@
 local _, ns = ...
 ns.RawData = ns.RawData or {}
 
+-- SELECT entry, name FROM item_template
+-- WHERE class = 0 AND subclass = 7
+-- ORDER BY entry;
+-- Bandage Amount and First Aid skill requirement come from the heal
+-- spell on item_template.spellid_1; Allowed Zones from Map/Area
+-- restrictions where present.
 ns.RawData.Bandage = {
     -- [ID] = {Bandage Amount, First Aid Skill, {Allowed Zones}}, -- Name
-    
+
     [19307] = {2000, 225, {1459}}, -- Alterac Heavy Runecloth Bandage
     [20065] = {1104, 175, {1461}}, -- Arathi Basin Mageweave Bandage
     [20066] = {2000, 225, {1461}}, -- Arathi Basin Runecloth Bandage
@@ -28,5 +34,5 @@ ns.RawData.Bandage = {
     [19067] = {1104, 175, {1460}}, -- Warsong Gulch Mageweave Bandage
     [19066] = {2000, 225, {1460}}, -- Warsong Gulch Runecloth Bandage
     [19068] = {640, 125, {1460}}, -- Warsong Gulch Silk Bandage
-    [3530] = {161, 50}, -- Wool Bandage
+    [3530] = {161, 50} -- Wool Bandage
 }

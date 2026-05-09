@@ -111,7 +111,7 @@ Please reach out if you would like to be involved!
 ## Links
 
 * [CurseForge](https://www.curseforge.com/wow/addons/consumable-connoisseur)
-* [GitHub](https://github.com/Gogo1951/Consumable-Connoisseur)
+* [GitHub](https://github.com/Gogo1951/Connoisseur)
 * [Discord](https://discord.gg/eh8hKq992Q)
 
 ## Related Add-ons

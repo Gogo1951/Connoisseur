@@ -7,13 +7,17 @@ local LDBIcon = LibStub("LibDBIcon-1.0")
 
 --------------------------------------------------------------------------------
 -- Class Color
---
+--------------------------------------------------------------------------------
+
 -- Reads the class's display color from Blizzard's RAID_CLASS_COLORS.
 -- colorStr is an 8-char "ffRRGGBB" prefix-ready string. Falls back to
 -- white if the table isn't available (extremely old Classic builds).
---------------------------------------------------------------------------------
 
 local function GetClassColorStr(classToken)
+    local localHex = ns.CLASS_COLORS and ns.CLASS_COLORS[classToken]
+    if localHex then
+        return "|cff" .. localHex
+    end
     local color = RAID_CLASS_COLORS and RAID_CLASS_COLORS[classToken]
     if color and color.colorStr then
         return "|c" .. color.colorStr

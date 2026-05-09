@@ -58,14 +58,86 @@ end
 --------------------------------------------------------------------------------
 
 local best = {
-    ["Bandage"]       = { id = nil, value = 0, price = 0, count = 0, link = nil, isBuffFood = false, isPercent = false, isHybrid = false },
-    ["Food"]          = { id = nil, value = 0, price = 0, count = 0, link = nil, isBuffFood = false, isPercent = false, isHybrid = false },
-    ["Health Potion"] = { id = nil, value = 0, price = 0, count = 0, link = nil, isBuffFood = false, isPercent = false, isHybrid = false },
-    ["Healthstone"]   = { id = nil, value = 0, price = 0, count = 0, link = nil, isBuffFood = false, isPercent = false, isHybrid = false },
-    ["Mana Gem"]      = { id = nil, value = 0, price = 0, count = 0, link = nil, isBuffFood = false, isPercent = false, isHybrid = false },
-    ["Mana Potion"]   = { id = nil, value = 0, price = 0, count = 0, link = nil, isBuffFood = false, isPercent = false, isHybrid = false },
-    ["Soulstone"]     = { id = nil, value = 0, price = 0, count = 0, link = nil, isBuffFood = false, isPercent = false, isHybrid = false },
-    ["Water"]         = { id = nil, value = 0, price = 0, count = 0, link = nil, isBuffFood = false, isPercent = false, isHybrid = false },
+    ["Bandage"] = {
+        id = nil,
+        value = 0,
+        price = 0,
+        count = 0,
+        link = nil,
+        isBuffFood = false,
+        isPercent = false,
+        isHybrid = false
+    },
+    ["Food"] = {
+        id = nil,
+        value = 0,
+        price = 0,
+        count = 0,
+        link = nil,
+        isBuffFood = false,
+        isPercent = false,
+        isHybrid = false
+    },
+    ["Health Potion"] = {
+        id = nil,
+        value = 0,
+        price = 0,
+        count = 0,
+        link = nil,
+        isBuffFood = false,
+        isPercent = false,
+        isHybrid = false
+    },
+    ["Healthstone"] = {
+        id = nil,
+        value = 0,
+        price = 0,
+        count = 0,
+        link = nil,
+        isBuffFood = false,
+        isPercent = false,
+        isHybrid = false
+    },
+    ["Mana Gem"] = {
+        id = nil,
+        value = 0,
+        price = 0,
+        count = 0,
+        link = nil,
+        isBuffFood = false,
+        isPercent = false,
+        isHybrid = false
+    },
+    ["Mana Potion"] = {
+        id = nil,
+        value = 0,
+        price = 0,
+        count = 0,
+        link = nil,
+        isBuffFood = false,
+        isPercent = false,
+        isHybrid = false
+    },
+    ["Soulstone"] = {
+        id = nil,
+        value = 0,
+        price = 0,
+        count = 0,
+        link = nil,
+        isBuffFood = false,
+        isPercent = false,
+        isHybrid = false
+    },
+    ["Water"] = {
+        id = nil,
+        value = 0,
+        price = 0,
+        count = 0,
+        link = nil,
+        isBuffFood = false,
+        isPercent = false,
+        isHybrid = false
+    }
 }
 
 local function ResetBest(entry)
@@ -134,9 +206,7 @@ function ns.ScanBags()
     local settings = charDB.settings or {}
     local itemCache = ConnoisseurDB and ConnoisseurDB.itemCache or {}
 
-    ns.AllowBuffFood = settings.useBuffFood
-        and ns.IsModeActive(settings.buffFoodMode)
-        and not ns.WellFedState
+    ns.AllowBuffFood = settings.useBuffFood and ns.IsModeActive(settings.buffFoodMode) and not ns.WellFedState
 
     for _, entry in pairs(best) do
         ResetBest(entry)
@@ -233,14 +303,27 @@ function ns.ScanBags()
                                 winner.count = totalCount
                             end
                         elseif itemType == "potion" then
-                            if data.healthValue > 0 and IsBetter(data, totalCount, data.price, best["Health Potion"], data.healthValue, false) then
+                            if
+                                data.healthValue > 0 and
+                                    IsBetter(
+                                        data,
+                                        totalCount,
+                                        data.price,
+                                        best["Health Potion"],
+                                        data.healthValue,
+                                        false
+                                    )
+                             then
                                 local winner = best["Health Potion"]
                                 winner.id = id
                                 winner.value = data.healthValue
                                 winner.price = data.price
                                 winner.count = totalCount
                             end
-                            if data.manaValue > 0 and IsBetter(data, totalCount, data.price, best["Mana Potion"], data.manaValue, false) then
+                            if
+                                data.manaValue > 0 and
+                                    IsBetter(data, totalCount, data.price, best["Mana Potion"], data.manaValue, false)
+                             then
                                 local winner = best["Mana Potion"]
                                 winner.id = id
                                 winner.value = data.manaValue
@@ -250,7 +333,17 @@ function ns.ScanBags()
                         elseif itemType == "food" or itemType == "water" or itemType == "foodwater" then
                             if not (data.isBuffFood and not ns.AllowBuffFood) then
                                 if itemType == "food" or itemType == "foodwater" then
-                                    if IsBetter(data, totalCount, data.price, best["Food"], data.healthValue, ns.AllowBuffFood, true) then
+                                    if
+                                        IsBetter(
+                                            data,
+                                            totalCount,
+                                            data.price,
+                                            best["Food"],
+                                            data.healthValue,
+                                            ns.AllowBuffFood,
+                                            true
+                                        )
+                                     then
                                         local winner = best["Food"]
                                         winner.id = id
                                         winner.value = data.healthValue
@@ -263,7 +356,17 @@ function ns.ScanBags()
                                     end
                                 end
                                 if itemType == "water" or itemType == "foodwater" then
-                                    if IsBetter(data, totalCount, data.price, best["Water"], data.manaValue, ns.AllowBuffFood, false) then
+                                    if
+                                        IsBetter(
+                                            data,
+                                            totalCount,
+                                            data.price,
+                                            best["Water"],
+                                            data.manaValue,
+                                            ns.AllowBuffFood,
+                                            false
+                                        )
+                                     then
                                         local winner = best["Water"]
                                         winner.id = id
                                         winner.value = data.manaValue
@@ -334,17 +437,25 @@ function ns.ScanPetFood()
     ns.BestPetFoodID = nil
     ns.BestPetFoodLink = nil
 
-    if not ns.PetFoodData or not ns.PetDietMap then return end
+    if not ns.PetFoodData or not ns.PetDietMap then
+        return
+    end
 
     -- Must have a living pet out
-    if not UnitExists("pet") or UnitIsDead("pet") or UnitIsGhost("pet") then return end
+    if not UnitExists("pet") or UnitIsDead("pet") or UnitIsGhost("pet") then
+        return
+    end
 
     local petLevel = UnitLevel("pet")
-    if not petLevel or petLevel < 1 then return end
+    if not petLevel or petLevel < 1 then
+        return
+    end
 
     -- Build a set of diet IDs the current pet accepts
-    local petDiets = { GetPetFoodTypes() }
-    if not petDiets or #petDiets == 0 then return end
+    local petDiets = {GetPetFoodTypes()}
+    if not petDiets or #petDiets == 0 then
+        return
+    end
 
     local dietSet = {}
     for _, dietName in ipairs(petDiets) do
@@ -373,16 +484,15 @@ function ns.ScanPetFood()
 
                 if foodData and not ignoreList[id] then
                     local foodLevel = foodData[1]
-                    local foodDiet  = foodData[2]
+                    local foodDiet = foodData[2]
                     local sellPrice = foodData[3]
-                    local questIDs  = foodData[4]
+                    local questIDs = foodData[4]
 
                     if dietSet[foodDiet] then
                         local levelDelta = petLevel - foodLevel
 
                         -- Only consider foods in the max-happiness bracket (delta 0 to 10)
                         if levelDelta >= 0 and levelDelta <= 10 then
-
                             -- Skip foods needed for active quests
                             local skipQuest = false
                             if questIDs then
@@ -405,8 +515,8 @@ function ns.ScanPetFood()
                                 end
 
                                 if isBetter then
-                                    bestID    = id
-                                    bestLink  = info.hyperlink
+                                    bestID = id
+                                    bestLink = info.hyperlink
                                     bestLevel = foodLevel
                                     bestPrice = sellPrice
                                     bestCount = totalCount

@@ -6,20 +6,49 @@ ns.L = LibStub("AceLocale-3.0"):GetLocale("Connoisseur")
 -- Brand Colors
 --------------------------------------------------------------------------------
 
-ns.Colors = {
-    TITLE = "FFD100",
-    INFO = "00BBFF",
-    DESC = "CCCCCC",
-    TEXT = "FFFFFF",
-    SUCCESS = "33CC33",
-    DISABLED = "CC3333",
-    SEP = "AAAAAA",
-    MUTED = "808080"
+local C_TITLE = "FFD100" -- Gold: Titles, Headers, Section Names
+local C_INFO = "00BBFF" -- Blue: Interactions, Toggles, Links, Keybinds, Slash Commands
+local C_BODY = "CCCCCC" -- Silver: Descriptions, Help Text
+local C_TEXT = "FFFFFF" -- White: Messages, Values, Spell Names
+local C_SUCCESS = "33CC33" -- Green: Enabled / On
+local C_DISABLED = "CC3333" -- Red: Disabled / Off
+local C_SEP = "AAAAAA" -- Gray: Separators, Dividers
+local C_MUTED = "808080" -- Dark Gray: Meta-data, Version Numbers
+
+local COLOR_PREFIX = "|cff"
+
+local COLORS = {
+    TITLE = COLOR_PREFIX .. C_TITLE,
+    INFO = COLOR_PREFIX .. C_INFO,
+    DESC = COLOR_PREFIX .. C_BODY,
+    TEXT = COLOR_PREFIX .. C_TEXT,
+    SUCCESS = COLOR_PREFIX .. C_SUCCESS,
+    DISABLED = COLOR_PREFIX .. C_DISABLED,
+    SEP = COLOR_PREFIX .. C_SEP,
+    MUTED = COLOR_PREFIX .. C_MUTED
 }
 
 function ns.GetColor(key)
-    return "|cff" .. (ns.Colors[key] or ns.Colors.TEXT)
+    return COLORS[key] or COLORS.TEXT
 end
+
+--------------------------------------------------------------------------------
+-- Class Colors
+--------------------------------------------------------------------------------
+
+ns.CLASS_COLORS = {
+    DEATHKNIGHT = "C41E3A",
+    DRUID = "FF7C0A",
+    HUNTER = "AAD372",
+    MAGE = "3FC7EB",
+    PALADIN = "F48CBA",
+    PRIEST = "FFFFFF",
+    ROGUE = "FFF468",
+    SHAMAN = "0070DD",
+    WARLOCK = "8788EE",
+    WARRIOR = "C69B6D",
+    ITEMS = "A335EE"
+}
 
 --------------------------------------------------------------------------------
 -- URLs
@@ -43,11 +72,11 @@ ns.QUESTION_MARK_ICON = 134400
 ns.Config = {
     ["Bandage"] = {macro = ns.L["MACRO_BANDAGE"], defaultID = 1251},
     ["Food"] = {macro = ns.L["MACRO_FOOD"], defaultID = 5349},
-    ["Health Potion"] = {macro = ns.L["MACRO_HPOT"], defaultID = 118},
-    ["Healthstone"] = {macro = ns.L["MACRO_HS"], defaultID = 5512},
-    ["Mana Gem"] = {macro = ns.L["MACRO_MGEM"], defaultID = 5514},
-    ["Mana Potion"] = {macro = ns.L["MACRO_MPOT"], defaultID = 2455},
-    ["Soulstone"] = {macro = ns.L["MACRO_SS"], defaultID = 5232},
+    ["Health Potion"] = {macro = ns.L["MACRO_HEALTH_POTION"], defaultID = 118},
+    ["Healthstone"] = {macro = ns.L["MACRO_HEALTHSTONE"], defaultID = 5512},
+    ["Mana Gem"] = {macro = ns.L["MACRO_MANA_GEM"], defaultID = 5514},
+    ["Mana Potion"] = {macro = ns.L["MACRO_MANA_POTION"], defaultID = 2455},
+    ["Soulstone"] = {macro = ns.L["MACRO_SOULSTONE"], defaultID = 5232},
     ["Water"] = {macro = ns.L["MACRO_WATER"], defaultID = 5350},
     ["Feed Pet"] = {macro = ns.L["MACRO_FEED_PET"], defaultID = 117}
 }
@@ -57,6 +86,14 @@ ns.Config = {
 --------------------------------------------------------------------------------
 
 ns.SHADOWMELD_SPELL_ID = 20580
+
+--------------------------------------------------------------------------------
+-- Druid Forms (DruidMacroHelper integration)
+--------------------------------------------------------------------------------
+
+ns.DRUID_DIRE_BEAR_FORM_SPELL_ID = 9634
+ns.DRUID_BEAR_FORM_SPELL_ID = 5487
+ns.DRUID_CAT_FORM_SPELL_ID = 768
 
 --------------------------------------------------------------------------------
 -- Hunter Pet Spells
@@ -113,6 +150,8 @@ ns.SETTINGS_DEFAULTS = {
         Strength = true
     },
     enableShadowmeldDrinking = false,
+    enableDruidMacroHelper = false,
+    druidReturnForm = "bear",
     usePetBuffFood = false,
     petBuffFoodMode = "always",
     petBuffTypes = {
@@ -133,39 +172,10 @@ ns.SETTINGS_DEFAULTS = {
 }
 
 --------------------------------------------------------------------------------
--- Mode Helper
+-- Mode Order
 --------------------------------------------------------------------------------
-
-function ns.IsModeActive(mode)
-    if mode == "always" then
-        return true
-    end
-    if mode == "party" then
-        return IsInGroup()
-    end
-    if mode == "raid" then
-        return IsInRaid()
-    end
-    return true
-end
 
 ns.MODE_ORDER = {"always", "party", "raid"}
-
---------------------------------------------------------------------------------
--- Utility
---------------------------------------------------------------------------------
-
-function ns.KnowsAny(spellList)
-    if not spellList then
-        return false
-    end
-    for _, data in ipairs(spellList) do
-        if IsSpellKnown(data[1]) then
-            return true
-        end
-    end
-    return false
-end
 
 --------------------------------------------------------------------------------
 -- Mage and Warlock Spells

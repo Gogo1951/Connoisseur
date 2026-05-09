@@ -1,6 +1,11 @@
 local _, ns = ...
 ns.RawData = ns.RawData or {}
 
+-- SELECT entry, name FROM item_template
+-- WHERE class = 0 AND subclass = 1
+-- ORDER BY entry;
+-- Healing/Mana amounts derived from item_template.spellid_1 spell
+-- effects; Allowed Zones from Map/Area restrictions where present.
 ns.RawData.Potions = {
     -- [ID] = {Healing Potion Amount, Mana Potion Amount, {Allowed Zones}}, -- Name
 
@@ -58,6 +63,6 @@ ns.RawData.Potions = {
     [23579] = {1050, 0}, -- The McWeaksauce Classic
     [28101] = {0, 1350}, -- Unstable Mana Potion
     [28100] = {1050, 0}, -- Volatile Healing Potion
-    [34440] = {1650, 1650, nil, 315}, -- Mad Alchemist's Potion
+    [34440] = {1650, 1650, nil, 315} -- Mad Alchemist's Potion
     -- [11951] = {700, 0}, -- Whipper Root Tuber
 }
