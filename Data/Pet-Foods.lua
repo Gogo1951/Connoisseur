@@ -22,6 +22,11 @@ ns.PetDietMap = {
 -- questIDs is a table of quest IDs that use this item as an objective,
 -- or nil when the item is not a quest objective.
 
+-- SELECT entry, name, ItemLevel, FoodType, SellPrice
+-- FROM item_template
+-- WHERE class = 0 AND subclass = 5 AND FoodType > 0
+-- ORDER BY FoodType, ItemLevel, entry;
+-- Quest objective IDs come from quest_template (RequiredItemId1-6).
 ns.PetFoodData = {
     -- Meat
     [4739] = {1, 1, 0, {747}}, -- Plainstrider Meat

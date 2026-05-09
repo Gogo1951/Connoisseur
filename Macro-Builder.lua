@@ -20,12 +20,12 @@ local conjuredGemItemIDBySpell = {
 
 --------------------------------------------------------------------------------
 -- Target Helpers
---
+--------------------------------------------------------------------------------
+
 -- Single source of truth for "is the current target a friendly player." Used
 -- by both GetSmartSpell (for conjure rank downranking) and the scroll block
 -- builder (which drops scrolls so a Mage can right-click to conjure food
 -- for a friend without firing scrolls on themselves).
---------------------------------------------------------------------------------
 
 local function HasFriendlyPlayerTarget()
     return UnitExists("target")
@@ -35,11 +35,11 @@ end
 
 --------------------------------------------------------------------------------
 -- Smart Spell Resolution
---
+--------------------------------------------------------------------------------
+
 -- Picks the highest-rank spell the player knows that the target (or player)
 -- can still receive. Targeting a friendly player of lower level drops the
 -- rank down so the conjured item matches their level cap.
---------------------------------------------------------------------------------
 
 local function GetSmartSpell(spellList, ignoreTarget, checkUnique)
     if not spellList then
@@ -117,6 +117,63 @@ local function ShouldAppendShadowmeld(typeName)
 end
 
 --------------------------------------------------------------------------------
+-- DruidMacroHelper Integration
+--------------------------------------------------------------------------------
+
+-- When the Druid toggle is on, HP/MP/HS macros are rewritten to use DMH
+-- syntax so the druid powershifts out of form, /uses the consumable, and
+-- shifts back into the form chosen by settings.druidReturnForm (bear or
+-- cat). Hard-coded rather than auto-tracked: macros can't be edited
+-- during combat, so a mid-combat form swap on an auto-tracking macro
+-- could return the druid to the wrong form.
+--
+-- Guard prefixes follow the DMH addon's own examples:
+--   HP / HS  → "/dmh start" (stun + gcd + mana) plus a /dmh cd line
+--   MP       → "/dmh stun gcd cd pot" (skips the mana check, since the
+--              whole point of a mana pot is that the druid is OOM)
+
+local DMH_TYPES = {
+    ["Health Potion"] = true,
+    ["Mana Potion"]   = true,
+    ["Healthstone"]   = true,
+}
+
+local DMH_GUARDS = {
+    ["Health Potion"] = { "/dmh start", "/dmh cd pot" },
+    ["Healthstone"]   = { "/dmh start", "/dmh cd hs" },
+    ["Mana Potion"]   = { "/dmh stun gcd cd pot" },
+}
+
+local function ShouldUseDMHMacro(typeName)
+    if not ns.IsDruid then return false end
+    if not DMH_TYPES[typeName] then return false end
+    local settings = ConnoisseurCharDB and ConnoisseurCharDB.settings
+    return settings and settings.enableDruidMacroHelper and true or false
+end
+
+local function GetDruidReturnForm()
+    local settings = ConnoisseurCharDB and ConnoisseurCharDB.settings
+    local key = settings and settings.druidReturnForm
+    if key ~= "cat" then key = "bear" end
+    local name = (key == "cat") and ns.DruidCatFormName or ns.DruidBearFormName
+    return key, name
+end
+
+local function BuildDMHBody(typeName, itemID, formName)
+    local lines = {
+        "#showtooltip item:" .. itemID,
+        "/run ConnFire(" .. itemID .. ")",
+    }
+    for _, guard in ipairs(DMH_GUARDS[typeName]) do
+        lines[#lines + 1] = guard
+    end
+    lines[#lines + 1] = "/use item:" .. itemID
+    lines[#lines + 1] = "/cast !" .. formName
+    lines[#lines + 1] = "/dmh end"
+    return table.concat(lines, "\n") .. "\n"
+end
+
+--------------------------------------------------------------------------------
 -- Macro Enablement
 --------------------------------------------------------------------------------
 
@@ -170,7 +227,8 @@ end
 
 --------------------------------------------------------------------------------
 -- Scroll-Only Macro Body
---
+--------------------------------------------------------------------------------
+
 -- When the player has missing scroll buffs and is not targeting a friendly
 -- player, the Food macro becomes a dedicated scroll-fire macro. The body
 -- is just `#showtooltip` plus one /use [@player] item:NNN line per scroll
@@ -184,7 +242,6 @@ end
 --
 -- All scrolls fit comfortably under WoW's 255-char macro limit: 14 chars
 -- for the tooltip line + at most 6 scrolls × ~25 chars ≈ 164 chars.
---------------------------------------------------------------------------------
 
 local function BuildScrollOnlyBody(scrollList)
     local lines = { "#showtooltip" }
@@ -251,6 +308,16 @@ function ns.UpdateMacros(forced)
             local scrollIDsForThisMacro = (typeName == "Food") and activeScrollIDs or nil
             local scrollMode = scrollIDsForThisMacro and #scrollIDsForThisMacro > 0
 
+            -- DMH mode requires both the toggle and a known return form.
+            -- A druid who hasn't learned bear or cat yet falls through to
+            -- the standard macro body rather than getting an unusable
+            -- "/cast !" line.
+            local dmhFormKey, dmhFormName
+            if itemID and ShouldUseDMHMacro(typeName) then
+                dmhFormKey, dmhFormName = GetDruidReturnForm()
+            end
+            local dmhMode = dmhFormName ~= nil
+
             if scrollMode then
                 ------------------------------------------------------------
                 -- Scroll mode: scrolls only, nothing else.
@@ -263,6 +330,20 @@ function ns.UpdateMacros(forced)
 
                 local body = BuildScrollOnlyBody(scrollIDsForThisMacro)
                 local stateID = "SCROLLS:" .. table.concat(scrollIDsForThisMacro, ",")
+
+                if currentMacroState[typeName] ~= stateID or forced then
+                    WriteMacro(config.macro, ns.QUESTION_MARK_ICON, body, stateID, typeName)
+                end
+            elseif dmhMode then
+                ------------------------------------------------------------
+                -- DMH mode (druid HP/MP/HS): /dmh-wrapped /use plus a
+                -- !FormName cast that returns to whichever form the druid
+                -- was last in. State key prefixed with "DMH:" so it never
+                -- collides with the standard or scroll-mode keys.
+                ------------------------------------------------------------
+
+                local body = BuildDMHBody(typeName, itemID, dmhFormName)
+                local stateID = "DMH:" .. dmhFormKey .. ":" .. itemID
 
                 if currentMacroState[typeName] ~= stateID or forced then
                     WriteMacro(config.macro, ns.QUESTION_MARK_ICON, body, stateID, typeName)
@@ -374,7 +455,7 @@ function ns.UpdateMacros(forced)
                 WriteMacro(config.macro, icon, body, stateID, typeName)
             end
 
-            end -- if scrollMode
+            end -- if scrollMode / DMH / standard
         end
     end
 
@@ -406,7 +487,8 @@ end
 
 --------------------------------------------------------------------------------
 -- Feed Pet Macro (Hunter)
---
+--------------------------------------------------------------------------------
+
 -- Logic flow prioritizes modifier inputs first, then pet state, then combat.
 -- By combining multiple conditions into bracket groups (e.g., [btn:2][combat]),
 -- we save a massive amount of string characters ensuring the macro stays well
@@ -418,7 +500,6 @@ end
 --   [nopet]                    → Call Pet (or Revive Pet when dead-dismissed)
 --   [btn:2] OR [combat]        → Mend Pet
 --   default                    → Feed Pet + /use food
---------------------------------------------------------------------------------
 
 function ns.UpdateFeedPetMacro(forced)
     if InCombatLockdown() then

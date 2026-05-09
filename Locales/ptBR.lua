@@ -3,24 +3,47 @@ local L = LibStub("AceLocale-3.0"):NewLocale("Connoisseur", "ptBR")
 if not L then return end
 
 -- [[ BRAZILIAN PORTUGUESE (ptBR) ]] --
+
+--------------------------------------------------------------------------------
+-- Brand
+--------------------------------------------------------------------------------
+
 L["BRAND"] = "Connoisseur"
 
--- Macro Names Can't Exceed 16 Total Characters
+--------------------------------------------------------------------------------
+-- Macro Names
+--------------------------------------------------------------------------------
+
+-- Macro names cannot exceed 16 total characters.
+
 L["MACRO_BANDAGE"] = "- Bandagem"
 L["MACRO_FEED_PET"] = "- Alim. Ajudante"
 L["MACRO_FOOD"] = "- Comida"
-L["MACRO_HPOT"] = "- Poção de Cura"
-L["MACRO_HS"] = "- Pedra de Vida"
-L["MACRO_MGEM"] = "- Gema de Mana"
-L["MACRO_MPOT"] = "- Poção de Mana"
-L["MACRO_SS"] = "- Pedra de Alma"
+L["MACRO_HEALTH_POTION"] = "- Poção de Cura"
+L["MACRO_HEALTHSTONE"] = "- Pedra de Vida"
+L["MACRO_MANA_GEM"] = "- Gema de Mana"
+L["MACRO_MANA_POTION"] = "- Poção de Mana"
+L["MACRO_SOULSTONE"] = "- Pedra de Alma"
 L["MACRO_WATER"] = "- Água"
 
-L["ERR_ZONE"] = "Você não pode usar isso aqui."
+--------------------------------------------------------------------------------
+-- Common
+--------------------------------------------------------------------------------
+
 L["RANK"] = "Grau"
+
+--------------------------------------------------------------------------------
+-- Chat Messages
+--------------------------------------------------------------------------------
 
 L["MSG_BUG_REPORT"] = "Parece que você encontrou um bug! %s (%s) não pode ser usado em %s > %s (%s). Por favor, reporte isso para que possamos consertar. Obrigado! https://discord.gg/eh8hKq992Q"
 L["MSG_NO_ITEM"] = "Nenhum %s adequado encontrado em suas bolsas."
+
+L["CHAT_LOADED"] = "Versão @project-version@. As configurações (incluindo a opção de desativar esta mensagem) podem ser encontradas em Opções > AddOns > Connoisseur. Gostando do addon? Conte para um amigo! (="
+
+--------------------------------------------------------------------------------
+-- Minimap Tooltip
+--------------------------------------------------------------------------------
 
 L["MENU_BUFF_FOOD"] = "Priorizar Comida com Buff"
 L["MENU_BUFF_FOOD_DESC"] = "Prioriza comida que concede o buff \"Bem Alimentado\", quando o buff estiver faltando."
@@ -54,14 +77,29 @@ L["UI_RIGHT_CLICK"] = "Clique Direito"
 L["UI_SHIFT_LEFT"] = "Shift + Clique Esquerdo"
 L["UI_TOGGLE"] = "Alternar"
 
+--------------------------------------------------------------------------------
+-- Mode Values
+--------------------------------------------------------------------------------
+
 L["MODE_ALWAYS"] = "Sempre"
 L["MODE_PARTY"] = "Apenas em grupo"
 L["MODE_RAID"] = "Apenas em raide"
 
+--------------------------------------------------------------------------------
 -- Options Panel
-L["OPTIONS_DESC"] = "Cria macros que se atualizam automaticamente para seus melhores consumíveis, rastreando buffs para manter você com o melhor desempenho. Possui um Feed-O-Matic tudo-em-um para Caçadores e conjuração inteligente com clique direito para Magos e Bruxos que se adapta ao nível do seu alvo."
+--------------------------------------------------------------------------------
+
+L["OPTIONS_DESC"] = "Macros de atualização automática para sua melhor comida, comida com buff, água, pergaminhos, poções de cura e mana, pedras de vida, pedras de alma, gemas de mana e bandagens. Conjuração com um clique para Magos e Bruxos, Alimentar Ajudante inteligente para Caçadores. Nutrição ideal, desempenho máximo."
+
+-- Welcome Message
+L["OPTIONS_WELCOME_MESSAGE"] = "Ativar Mensagem de Boas-vindas"
+L["OPTIONS_WELCOME_MESSAGE_DESC"] = "Imprime uma mensagem de boas-vindas no chat ao entrar."
+
+-- Buff Food
 L["OPTIONS_BUFF_FOOD"] = "Priorizar Comida com Buff"
 L["OPTIONS_BUFF_FOOD_DESC"] = "Prioriza comida que concede o buff \"Bem Alimentado\", quando o buff estiver faltando."
+
+-- Scroll Buffs
 L["OPTIONS_SCROLL_HEADER"] = "Buffs de Pergaminho"
 L["OPTIONS_USE_SCROLLS"] = "Incluir Buffs de Pergaminho"
 L["OPTIONS_USE_SCROLLS_DESC"] = "Transforma sua macro de Comida em um aplicador de pergaminhos dedicado sempre que faltarem buffs de pergaminhos. Toque uma vez para aplicar os pergaminhos; toque novamente para comer. Os pergaminhos não ativam o GCD, têm você como alvo e a macro volta para a comida no momento em que você seleciona outro jogador amigável."
@@ -73,6 +111,7 @@ L["OPTIONS_SCROLL_SPIRIT"] = "Espírito"
 L["OPTIONS_SCROLL_STAMINA"] = "Vigor"
 L["OPTIONS_SCROLL_STRENGTH"] = "Força"
 
+-- Pet Food Buffs
 L["OPTIONS_PET_HEADER"] = "Buffs de Comida de Ajudante"
 L["OPTIONS_USE_PET_BUFFS"] = "Usar Buffs de Comida de Ajudante"
 L["OPTIONS_USE_PET_BUFFS_DESC"] = "Usa Comida de Ajudante, como parte da sua macro de Comida, quando o buff \"Bem Alimentado\" estiver faltando no seu ajudante."
@@ -80,17 +119,29 @@ L["OPTIONS_PET_BUFF_TYPES"] = "Incluir Tipos de Comida de Ajudante na Verificaç
 L["OPTIONS_PET_BUFF_KIBLERS"] = "Petiscos do Kibler"
 L["OPTIONS_PET_BUFF_SPORELING"] = "Lanchinho de Esporino"
 
+-- Druids
+L["OPTIONS_DRUIDS_HEADER"] = "Druidas"
+L["OPTIONS_DRUID_MACRO_HELPER"] = "Ativar Integração do DruidMacroHelper"
+L["OPTIONS_DRUID_MACRO_HELPER_DESC"] = "Cria macros de mudança de forma para Poções de Cura, Poções de Mana e Pedras de Vida usando o DruidMacroHelper (/dmh)."
+L["OPTIONS_DRUID_RETURN_FORM"] = "Após Consumível, Mudar para"
+L["DRUID_FORM_BEAR"] = "Urso"
+L["DRUID_FORM_CAT"] = "Gato"
+
+-- Night Elves
 L["OPTIONS_NIGHTELF_HEADER"] = "Elfos Noturnos"
 L["OPTIONS_SHADOWMELD_DRINKING"] = "Beber com Fusão Espiritual"
 L["OPTIONS_SHADOWMELD_DRINKING_DESC"] = "Anexa Fusão Espiritual à sua macro de Água para que você entre em furtividade enquanto bebe."
 
+-- /Commands
 L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
 L["OPTIONS_COMMANDS_DESC"] = "/foodie"
 L["OPTIONS_COMMANDS_DETAIL"] = "Abre a interface de opções do Connoisseur."
 
+-- Enable Macros
 L["OPTIONS_ENABLE_MACROS_HEADER"] = "Ativar Macros"
 L["OPTIONS_ENABLE_MACROS_DESC"] = "Alterne quais macros o Connoisseur cria e mantém. Desativar uma macro também a removerá."
 
+-- Reset
 L["OPTIONS_RESET_HEADER"] = "Redefinir"
 L["OPTIONS_RESET_IGNORE_DESC"] = "Remover todos os itens da lista de ignorados."
 L["OPTIONS_RESET_IGNORE_CONFIRM"] = "Tem certeza de que deseja limpar a lista de ignorados?"
@@ -98,4 +149,5 @@ L["OPTIONS_RESET_ALL"] = "Redefinir Todas as Opções do Connoisseur"
 L["OPTIONS_RESET_ALL_DESC"] = "Redefinir todas as configurações e a lista de ignorados para os padrões."
 L["OPTIONS_RESET_ALL_CONFIRM"] = "Redefinir todas as opções do Connoisseur para os padrões?"
 
+-- Feedback & Support
 L["OPTIONS_COMMUNITY_HEADER"] = "Feedback e Suporte"
