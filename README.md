@@ -1,6 +1,6 @@
 # Connoisseur
 
-Auto-updating macros for your best food, buff food, water, scrolls, healing and mana potions, healthstones, soulstones, mana gems, and bandages. One-click conjuring for Mages and Warlocks, smart Feed Pet for Hunters.     Optimal nutrition, peak performance.
+Auto-updating macros for your best food, buff food, water, scrolls, healing and mana potions, healthstones, soulstones, mana gems, and bandages. One-click conjuring for Mages and Warlocks, smart Feed Pet for Hunters. Optimal nutrition, peak performance.
 
 ![Consumable-Connoisseur](https://github.com/user-attachments/assets/326eb93f-329f-4967-b750-909011a05b01)
 
