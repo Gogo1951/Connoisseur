@@ -88,7 +88,7 @@ L["MODE_RAID"] = "Only when in Raid"
 -- Options Panel
 --------------------------------------------------------------------------------
 
-L["OPTIONS_DESC"] = "Auto-updating macros for your best food, buff food, water, scrolls, healing and mana potions, healthstones, soulstones, mana gems, and bandages. One-click conjuring for Mages and Warlocks, smart Feed Pet for Hunters. Optimal nutrition, peak performance."
+L["OPTIONS_DESC"] = "Auto-updating macros for your best food, buff food, water, healing and mana potions, healthstones, scrolls, soulstones, mana gems, and bandages. One-click conjuring for Mages and Warlocks, smart Feed Pet for Hunters. Optimal nutrition, peak performance."
 
 -- Welcome Message
 L["OPTIONS_WELCOME_MESSAGE"] = "Enable Welcome Message"
