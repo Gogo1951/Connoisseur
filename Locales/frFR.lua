@@ -106,7 +106,7 @@ L["OPTIONS_BUFF_FOOD_DETAIL"] = "Astuce de pro : Vous cibler vous-même forcera 
 
 -- Scroll Buffs
 L["OPTIONS_SCROLL_HEADER"] = "Améliorations de parchemins"
-L["OPTIONS_USE_SCROLLS"] = "Incluir les parchemins"
+L["OPTIONS_USE_SCROLLS"] = "Inclure les parchemins"
 L["OPTIONS_USE_SCROLLS_DESCRIPTION"] = "Transforme votre macro Nourriture en applicateur de parchemins dédié lorsqu'il vous manque des améliorations de parchemins. Appuyez une fois pour appliquer les parchemins ; appuyez à nouveau pour manger. Les parchemins sont hors du GCD, vous ciblent, et la macro redevient de la nourriture dès que vous ciblez un autre joueur amical."
 L["OPTIONS_SCROLL_TYPES"] = "Types de parchemins à vérifier"
 L["OPTIONS_SCROLL_AGILITY"] = "Agilité"
