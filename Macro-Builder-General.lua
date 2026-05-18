@@ -91,7 +91,7 @@ function ns.GetSmartSpell(spellList, ignoreTarget, checkUnique)
 
             if checkUnique and ns.ConjuredManaGemItemIDBySpell
                 and ns.ConjuredManaGemItemIDBySpell[spellID] then
-                if C_Item.GetItemCount(ns.ConjuredManaGemItemIDBySpell[spellID]) > 0 then
+                if ns.GetItemCount(ns.ConjuredManaGemItemIDBySpell[spellID]) > 0 then
                     shouldSkip = true
                 end
             end
