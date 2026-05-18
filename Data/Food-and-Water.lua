@@ -1,11 +1,14 @@
 local _, ns = ...
 ns.RawData = ns.RawData or {}
 
--- SELECT entry, name FROM item_template
--- WHERE class = 0 AND subclass = 5
--- ORDER BY entry;
--- Buff Food flag and Food/Water % + amounts come from the spell taught
--- by item_template.spellid_1; Allowed Zones from Map/Area restrictions.
+--[[
+    SELECT entry, name FROM item_template
+    WHERE class = 0 AND subclass = 5
+    ORDER BY entry;
+
+    Buff Food flag and Food/Water % + amounts come from the spell taught
+    by item_template.spellid_1; Allowed Zones from Map/Area restrictions.
+]]
 ns.RawData.FoodAndWater = {
     -- [ID] = {Buff Food, Food %, Food Amount, Water %, Water Amount, {Allowed Zones}}, -- Name
 

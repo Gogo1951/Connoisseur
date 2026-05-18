@@ -2,10 +2,12 @@ local _, ns = ...
 
 --------------------------------------------------------------------------------
 -- Raw Data Safety Init
---
--- Defensive in case a Data/*.lua file fails to load. Scanner modules read
--- ns.RawData tables and must never index nil.
 --------------------------------------------------------------------------------
+
+--[[
+    Defensive in case a Data/*.lua file fails to load. Scanner modules read
+    ns.RawData tables and must never index nil.
+]]
 
 ns.RawData = ns.RawData or {}
 ns.RawData.Bandage = ns.RawData.Bandage or {}
@@ -56,18 +58,20 @@ end
 
 --------------------------------------------------------------------------------
 -- Item Data Caching
---
--- Looks up an item in the RawData tables, derives a canonical shape
--- (type, health/mana values, requirements, zones), and caches it under
--- ConnoisseurDB.itemCache. Non-consumable items are cached as "IGNORE"
--- so we never look them up a second time.
 --------------------------------------------------------------------------------
+
+--[[
+    Looks up an item in the RawData tables, derives a canonical shape
+    (type, health/mana values, requirements, zones), and caches it under
+    ConnoisseurDB.itemCache. Non-consumable items are cached as "IGNORE"
+    so we never look them up a second time.
+]]
 
 function ns.CacheItemData(itemID)
     local itemCache = ConnoisseurDB and ConnoisseurDB.itemCache
     if not itemCache then return nil end
 
-    local name, _, _, _, minLevel, _, _, _, _, _, vendorPrice = GetItemInfo(itemID)
+    local name, _, _, _, minLevel, _, _, maxStack, _, _, vendorPrice = GetItemInfo(itemID)
     if not name then return nil end
 
     local rawFoodAndWater = ns.RawData.FoodAndWater[itemID]
@@ -91,6 +95,7 @@ function ns.CacheItemData(itemID)
         requiredFirstAid = 0,
         requiredAlchemy  = 0,
         price            = vendorPrice or 0,
+        maxStack         = maxStack or 1,
         isBuffFood       = false,
         isPercent        = false,
         zones            = nil,
@@ -146,10 +151,11 @@ function ns.CacheItemData(itemID)
         data.itemType = "soulstone"
         data.healthValue = rawSoulstone[1]
     elseif rawBandage then
+        -- Bandage row shape: {healAmount, requiredSkill, sellPrice, {zones}}
         data.itemType = "bandage"
         data.healthValue = rawBandage[1]
         data.requiredFirstAid = rawBandage[2] or 0
-        data.zones = BuildZoneSet(rawBandage[3])
+        data.zones = BuildZoneSet(rawBandage[4])
     elseif rawManaGem then
         data.itemType = "managem"
         data.manaValue = rawManaGem[1]

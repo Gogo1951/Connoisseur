@@ -39,19 +39,19 @@ L["RANK"] = "레벨"
 L["MSG_BUG_REPORT"] = "버그를 발견한 것 같습니다! %s (%s) 아이템은 %s > %s (%s)에서 사용할 수 없습니다. 수정할 수 있도록 제보해 주세요. 감사합니다! https://discord.gg/eh8hKq992Q"
 L["MSG_NO_ITEM"] = "가방에 적합한 %s(이)가 없습니다."
 
-L["CHAT_LOADED"] = "버전 @project-version@. 설정(이 메시지 비활성화 옵션 포함)은 설정 > 애드온 > Connoisseur에서 찾을 수 있습니다. 애드온이 마음에 드시나요? 친구에게 알려주세요! (="
+L["CHAT_LOADED"] = "버전 %s. 설정(이 메시지 비활성화 옵션 포함)은 설정 > 애드온 > Connoisseur에서 찾을 수 있습니다. 애드온이 마음에 드시나요? 친구에게 알려주세요! (="
 
 --------------------------------------------------------------------------------
 -- Minimap Tooltip
 --------------------------------------------------------------------------------
 
 L["MENU_BUFF_FOOD"] = "버프 음식 우선"
-L["MENU_BUFF_FOOD_DESC"] = "\"포만감\" 버프가 없을 때 해당 버프를 주는 음식을 우선 사용합니다."
+L["MENU_BUFF_FOOD_DESCRIPTION"] = "\"포만감\" 버프가 없을 때 해당 버프를 주는 음식을 우선 사용합니다."
 L["MENU_CLEAR_IGNORE"] = "차단 목록 초기화"
 L["MENU_IGNORE"] = "차단"
 
 L["MENU_SCROLL_BUFFS"] = "두루마리 버프"
-L["MENU_SCROLL_BUFFS_DESC"] = "두루마리 버프가 없을 때 음식 매크로를 두루마리 적용기로 전환합니다."
+L["MENU_SCROLL_BUFFS_DESCRIPTION"] = "두루마리 버프가 없을 때 음식 매크로를 두루마리 적용기로 전환합니다."
 L["MENU_OPTIONS_HINT"] = "설정 > 애드온 > Connoisseur에서 추가 옵션을 사용할 수 있습니다."
 
 L["PREFIX_HUNTER"] = "사냥꾼 주의"
@@ -66,8 +66,12 @@ L["TIP_MAGE_TABLE"] = "마우스 휠(가운데) 클릭 시 재충전의 의식�
 L["TIP_WARLOCK_CONJURE"] = "생명석 또는 영혼석 매크로를 우클릭하면 생명석 또는 영혼석을 창조합니다."
 L["TIP_WARLOCK_SOUL"] = "마우스 휠(가운데) 클릭 시 영혼의 의식을 시전합니다."
 
-L["UI_BEST_FOOD"] = "현재 최고 음식"
+L["UI_BEST_FOOD"] = "현재 음식"
 L["UI_BEST_PET_FOOD"] = "현재 최고 먹이"
+
+-- Labels that get plugged into MSG_NO_ITEM ("No suitable %s found...").
+L["LABEL_FOOD"] = "음식"
+L["LABEL_PET_FOOD"] = "야수 먹이"
 L["UI_DISABLED"] = "비활성화됨"
 L["UI_ENABLED"] = "활성화됨"
 L["UI_IGNORE_LIST"] = "차단 목록"
@@ -89,20 +93,21 @@ L["MODE_RAID"] = "공격대 중일 때만"
 -- Options Panel
 --------------------------------------------------------------------------------
 
-L["OPTIONS_DESC"] = "최고의 음식, 버프 음식, 물, 두루마리, 치유 및 마나 물약, 생명석, 영혼석, 마나 보석, 붕대에 대해 자동으로 업데이트되는 매크로입니다. 마법사와 흑마법사를 위한 원클릭 창조, 사냥꾼을 위한 스마트한 야수 먹이 주기 기능. 최적의 영양 상태, 최고의 성능."
+L["OPTIONS_DESCRIPTION"] = "최고의 음식, 버프 음식, 물, 두루마리, 치유 및 마나 물약, 생명석, 영혼석, 마나 보석, 붕대에 대해 자동으로 업데이트되는 매크로입니다. 마법사와 흑마법사를 위한 원클릭 창조, 사냥꾼을 위한 스마트한 야수 먹이 주기 기능. 최적의 영양 상태, 최고의 성능."
 
 -- Welcome Message
 L["OPTIONS_WELCOME_MESSAGE"] = "환영 메시지 활성화"
-L["OPTIONS_WELCOME_MESSAGE_DESC"] = "로그인 시 채팅창에 환영 메시지를 출력합니다."
+L["OPTIONS_WELCOME_MESSAGE_DESCRIPTION"] = "로그인 시 채팅창에 환영 메시지를 출력합니다."
 
 -- Buff Food
 L["OPTIONS_BUFF_FOOD"] = "버프 음식 우선"
-L["OPTIONS_BUFF_FOOD_DESC"] = "\"포만감\" 버프가 없을 때 해당 버프를 주는 음식을 우선 사용합니다."
+L["OPTIONS_BUFF_FOOD_DESCRIPTION"] = "\"포만감\" 버프가 없을 때 해당 버프를 주는 음식을 우선 사용합니다."
+L["OPTIONS_BUFF_FOOD_DETAIL"] = "프로 팁: 자신을 대상으로 지정하면 음식 매크로가 항상 버프 음식과 두루마리를 건너뜁니다."
 
 -- Scroll Buffs
 L["OPTIONS_SCROLL_HEADER"] = "두루마리 버프"
 L["OPTIONS_USE_SCROLLS"] = "두루마리 버프 포함"
-L["OPTIONS_USE_SCROLLS_DESC"] = "두루마리 버프가 없을 때마다 음식 매크로를 전용 두루마리 적용기로 전환합니다. 한 번 누르면 두루마리를 적용하고, 다시 누르면 음식을 먹습니다. 두루마리는 전역 재사용 대기시간(GCD)의 영향을 받지 않고 자신을 대상으로 하며, 다른 우호적인 플레이어를 대상으로 지정하는 순간 매크로가 음식으로 되돌아갑니다."
+L["OPTIONS_USE_SCROLLS_DESCRIPTION"] = "두루마리 버프가 없을 때마다 음식 매크로를 전용 두루마리 적용기로 전환합니다. 한 번 누르면 두루마리를 적용하고, 다시 누르면 음식을 먹습니다. 두루마리는 전역 재사용 대기시간(GCD)의 영향을 받지 않고 자신을 대상으로 하며, 다른 우호적인 플레이어를 대상으로 지정하는 순간 매크로가 음식으로 되돌아갑니다."
 L["OPTIONS_SCROLL_TYPES"] = "확인할 두루마리 유형 포함"
 L["OPTIONS_SCROLL_AGILITY"] = "민첩성"
 L["OPTIONS_SCROLL_INTELLECT"] = "지능"
@@ -111,10 +116,10 @@ L["OPTIONS_SCROLL_SPIRIT"] = "정신력"
 L["OPTIONS_SCROLL_STAMINA"] = "체력"
 L["OPTIONS_SCROLL_STRENGTH"] = "힘"
 
--- Pet Food Buffs
+-- Pets Food Buffs
 L["OPTIONS_PET_HEADER"] = "소환수 음식 버프"
 L["OPTIONS_USE_PET_BUFFS"] = "소환수 음식 버프 사용"
-L["OPTIONS_USE_PET_BUFFS_DESC"] = "소환수에게 \"포만감\" 버프가 없을 때 음식 매크로의 일부로 소환수 음식을 사용합니다."
+L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] = "소환수에게 \"포만감\" 버프가 없을 때 음식 매크로의 일부로 소환수 음식을 사용합니다."
 L["OPTIONS_PET_BUFF_TYPES"] = "확인할 소환수 음식 유형 포함"
 L["OPTIONS_PET_BUFF_KIBLERS"] = "키블러의 간식"
 L["OPTIONS_PET_BUFF_SPORELING"] = "스포어가르 간식"
@@ -122,7 +127,7 @@ L["OPTIONS_PET_BUFF_SPORELING"] = "스포어가르 간식"
 -- Druids
 L["OPTIONS_DRUIDS_HEADER"] = "드루이드"
 L["OPTIONS_DRUID_MACRO_HELPER"] = "DruidMacroHelper 연동 활성화"
-L["OPTIONS_DRUID_MACRO_HELPER_DESC"] = "DruidMacroHelper(/dmh)를 사용하여 치유 물약, 마나 물약, 생명석에 대한 변신 매크로를 생성합니다."
+L["OPTIONS_DRUID_MACRO_HELPER_DESCRIPTION"] = "DruidMacroHelper(/dmh)를 사용하여 치유 물약, 마나 물약, 생명석에 대한 변신 매크로를 생성합니다."
 L["OPTIONS_DRUID_RETURN_FORM"] = "소모품 사용 후 변신"
 L["DRUID_FORM_BEAR"] = "곰"
 L["DRUID_FORM_CAT"] = "표범"
@@ -130,23 +135,23 @@ L["DRUID_FORM_CAT"] = "표범"
 -- Night Elves
 L["OPTIONS_NIGHTELF_HEADER"] = "나이트 엘프"
 L["OPTIONS_SHADOWMELD_DRINKING"] = "그림자 숨기 상태로 마시기"
-L["OPTIONS_SHADOWMELD_DRINKING_DESC"] = "물 매크로에 그림자 숨기를 추가하여 물을 마시는 동안 은신합니다."
+L["OPTIONS_SHADOWMELD_DRINKING_DESCRIPTION"] = "물 매크로에 그림자 숨기를 추가하여 물을 마시는 동안 은신합니다."
 
 -- /Commands
 L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
-L["OPTIONS_COMMANDS_DESC"] = "/foodie"
+L["OPTIONS_COMMANDS_DESCRIPTION"] = "/foodie"
 L["OPTIONS_COMMANDS_DETAIL"] = "Connoisseur 설정 인터페이스를 엽니다."
 
 -- Enable Macros
 L["OPTIONS_ENABLE_MACROS_HEADER"] = "매크로 활성화"
-L["OPTIONS_ENABLE_MACROS_DESC"] = "Connoisseur가 생성하고 관리할 매크로를 선택합니다. 매크로를 비활성화하면 해당 매크로도 삭제됩니다."
+L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] = "Connoisseur가 생성하고 관리할 매크로를 선택합니다. 매크로를 비활성화하면 해당 매크로도 삭제됩니다."
 
 -- Reset
 L["OPTIONS_RESET_HEADER"] = "초기화"
-L["OPTIONS_RESET_IGNORE_DESC"] = "차단 목록에서 모든 아이템을 제거합니다."
+L["OPTIONS_RESET_IGNORE_DESCRIPTION"] = "차단 목록에서 모든 아이템을 제거합니다."
 L["OPTIONS_RESET_IGNORE_CONFIRM"] = "차단 목록을 지우시겠습니까?"
 L["OPTIONS_RESET_ALL"] = "모든 Connoisseur 설정 초기화"
-L["OPTIONS_RESET_ALL_DESC"] = "모든 설정 및 차단 목록을 기본값으로 되돌립니다."
+L["OPTIONS_RESET_ALL_DESCRIPTION"] = "모든 설정 및 차단 목록을 기본값으로 되돌립니다."
 L["OPTIONS_RESET_ALL_CONFIRM"] = "모든 Connoisseur 설정을 기본값으로 초기화하시겠습니까?"
 
 -- Feedback & Support

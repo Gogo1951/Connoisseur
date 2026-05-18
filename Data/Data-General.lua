@@ -10,9 +10,9 @@ local C_TITLE = "FFD100" -- Gold: Titles, Headers, Section Names
 local C_INFO = "00BBFF" -- Blue: Interactions, Toggles, Links, Keybinds, Slash Commands
 local C_BODY = "CCCCCC" -- Silver: Descriptions, Help Text
 local C_TEXT = "FFFFFF" -- White: Messages, Values, Spell Names
-local C_SUCCESS = "33CC33" -- Green: Enabled / On
-local C_DISABLED = "CC3333" -- Red: Disabled / Off
-local C_SEP = "AAAAAA" -- Gray: Separators, Dividers
+local C_ON = "33CC33" -- Green: On
+local C_OFF = "CC3333" -- Red: Off
+local C_SEPARATOR = "AAAAAA" -- Gray: Separators, Dividers
 local C_MUTED = "808080" -- Dark Gray: Meta-data, Version Numbers
 
 local COLOR_PREFIX = "|cff"
@@ -22,9 +22,9 @@ local COLORS = {
     INFO = COLOR_PREFIX .. C_INFO,
     DESC = COLOR_PREFIX .. C_BODY,
     TEXT = COLOR_PREFIX .. C_TEXT,
-    SUCCESS = COLOR_PREFIX .. C_SUCCESS,
-    DISABLED = COLOR_PREFIX .. C_DISABLED,
-    SEP = COLOR_PREFIX .. C_SEP,
+    ON = COLOR_PREFIX .. C_ON,
+    OFF = COLOR_PREFIX .. C_OFF,
+    SEPARATOR = COLOR_PREFIX .. C_SEPARATOR,
     MUTED = COLOR_PREFIX .. C_MUTED
 }
 
@@ -94,6 +94,64 @@ ns.SHADOWMELD_SPELL_ID = 20580
 ns.DRUID_DIRE_BEAR_FORM_SPELL_ID = 9634
 ns.DRUID_BEAR_FORM_SPELL_ID = 5487
 ns.DRUID_CAT_FORM_SPELL_ID = 768
+
+-- Which macro types are eligible for DMH wrapping when the druid toggle is on.
+ns.DMHMacroTypes = {
+    ["Health Potion"] = true,
+    ["Mana Potion"]   = true,
+    ["Healthstone"]   = true,
+}
+
+--[[
+    The /dmh guard prefix lines prepended to each DMH-wrapped macro body.
+    Copied from the DruidMacroHelper addon's own example macros:
+      HP / HS  → "/dmh start" (stun + GCD + mana) plus a "/dmh cd <token>" line
+      MP       → "/dmh stun gcd cd pot" (skips the mana check, since the
+                 whole point of a mana pot is that the druid is OOM)
+]]
+ns.DMHGuards = {
+    ["Health Potion"] = { "/dmh start", "/dmh cd pot" },
+    ["Healthstone"]   = { "/dmh start", "/dmh cd hs" },
+    ["Mana Potion"]   = { "/dmh stun gcd cd pot" },
+}
+
+--------------------------------------------------------------------------------
+-- ConnTip Messages
+--------------------------------------------------------------------------------
+
+--[[
+    Canned chat messages the macro bodies can fire via `/run ConnTip("key")`.
+    ConnTip (in Core.lua) consults two tables:
+      ns.MessageStrings        → static message text
+      ns.MissingSpellMessageIDs → spell IDs that ConnTip resolves at print time
+                                   via GetSpellInfo, producing "You don't
+                                   currently know <Localized Spell Name>."
+    A spell ID that doesn't exist on the current client (e.g. Refreshment
+    Table in Era 1.15) returns nil from GetSpellInfo, so ConnTip silently
+    skips the print rather than naming a spell the player will never see.
+]]
+
+ns.MessageStrings = {
+    nofood   = "You don't currently have any food that is useful for your pet.",
+    noskills = "You don't currently know Feed Pet, Mend Pet, or Revive Pet.",
+    nomend   = "You don't currently know Mend Pet.",
+}
+
+--[[
+    Mage and Warlock conjure spell IDs — keyed match the conjure tables
+    above. The IDs here are the rank-1 entries from ns.ConjureSpells.
+]]
+ns.MissingSpellMessageIDs = {
+    -- Mage conjures
+    ncwater = 5504,  -- Conjure Water (rank 1)
+    ncfood  = 587,   -- Conjure Food (rank 1)
+    ncgem   = 759,   -- Conjure Mana Agate
+    nctable = 43987, -- Refreshment Table (TBC+)
+    -- Warlock conjures
+    nchs = 6201,  -- Create Healthstone (Minor)
+    ncss = 693,   -- Create Soulstone (Minor)
+    ncsw = 29893, -- Ritual of Souls (TBC+)
+}
 
 --------------------------------------------------------------------------------
 -- Hunter Pet Spells

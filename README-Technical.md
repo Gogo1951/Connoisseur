@@ -10,7 +10,11 @@ This document combines architecture notes and contribution guidance for develope
 Consumable-Connoisseur/
 ├── Consumable-Connoisseur.toc    Load order and metadata
 ├── Core.lua                       Event dispatch, throttling, error handling
-├── Macro-Builder.lua              Macro composition and write-back
+├── Macro-Builder-General.lua      Macro composition, write-back, conjure-block assembly
+├── Macro-Builder-Druids.lua       DruidMacroHelper override for HP / MP / HS
+├── Macro-Builder-Hunters.lua      Feed Pet macro and pet knowledge-tier handling
+├── Macro-Builder-Mages.lua        Mage conjure resolvers (Water, Food, Mana Gem)
+├── Macro-Builder-Warlocks.lua     Warlock conjure resolvers (Healthstone, Soulstone)
 ├── Minimap-Button.lua             LDB data object and minimap UI
 ├── Options.lua                    Settings panel
 ├── Data/
@@ -51,7 +55,7 @@ Macro edits via `EditMacro` are silently dropped during combat lockdown. Any upd
 
 1. **Scan** (`Scanner/Inventory.lua`): walks all bag slots, calls `ScanBags()` which iterates `best[]` per category, applying the comparison ladder (buff food preference → percent vs flat → score → vendor price → hybrid preference → bag count). Side effects: populates `ns.BestFoodID`, `ns.ScrollOverrideIDs`, `ns.PetBuffOverrideID`.
 
-2. **Compose** (`Macro-Builder.lua`): for each consumable type in `Config`, builds the macro body string. The body is a concatenation of: tooltip line → conjure block (Mage/Warlock click handlers) → scroll block (Food only) → state-write line → action block → optional Shadowmeld suffix.
+2. **Compose** (`Macro-Builder-General.lua` plus class-specific resolver files): for each consumable type in `Config`, builds the macro body string. The body is a concatenation of: tooltip line → conjure block (Mage/Warlock click handlers) → scroll block (Food only) → state-write line → action block → optional Shadowmeld suffix. Class-specific files (`Macro-Builder-Mages.lua`, `Macro-Builder-Warlocks.lua`, `Macro-Builder-Druids.lua`, `Macro-Builder-Hunters.lua`) register entries into `ns.ConjureResolvers` (or own a dedicated builder, in Hunters' case) that `Macro-Builder-General.lua` consults during composition.
 
 3. **Write**: hashes the composition into a state key, compares against `currentMacroState[typeName]`, and only calls `EditMacro` if the body has actually changed. Writing during combat is a no-op; the dirty flag re-runs on `PLAYER_REGEN_ENABLED`.
 
@@ -66,13 +70,16 @@ Every macro write is preceded by computing a state key that captures every input
 **Food mode:**
 
 ```text
-ITEMID(_C(_M:mid)?(_R:rid)?)?(_SM)?
+ITEMID(_C(_M:mid)?(_R:rid)?(_MR:key)?(_MM:key)?(_NI:key)?)?(_SM)?
 ```
 
 - `ITEMID` — primary item slotted into the macro (or `none`).
 - `_C` — conjure block present.
 - `_M:mid` — middle-click spell ID (Ritual of Refreshment / Ritual of Souls).
 - `_R:rid` — right-click spell ID (current rank).
+- `_MR:key` — right-click miss tip (player can't yet cast the right-click conjure).
+- `_MM:key` — middle-click miss tip (player can't yet cast the middle-click conjure).
+- `_NI:key` — no-item miss tip (replaces the generic "no item in bags" message for classes that can eventually conjure this category).
 - `_SM` — Shadowmeld suffix appended (Night Elf Water macro).
 
 **Scroll mode:**
@@ -195,7 +202,7 @@ Two scopes:
 - **`ConnoisseurDB`** (account-wide): `minimap` table for LibDBIcon, `itemCache` table keyed by item ID, `itemCacheVersion` for cache invalidation, `showWelcome` (boolean, default `true`) for the on-login welcome message.
 - **`ConnoisseurCharDB`** (per-character): `ignoreList` (set of item IDs), `settings` table with all toggle/mode/type fields. Defaults are merged from `ns.SETTINGS_DEFAULTS` on load so new settings introduced in updates pick up sensible values. Druid-specific fields (`enableDruidMacroHelper` boolean, `druidReturnForm` `"bear"`/`"cat"`) are present on every character but only consulted when `ns.IsDruid` is true.
 
-`MigrateFromLegacy()` in Core.lua handles legacy variable layouts. Add a new migration step there when changing the saved-variable schema; never silently rewrite user data.
+When changing the saved-variable schema, never silently rewrite user data. Add a one-shot migration in `InitVars()` (Core.lua), gated on the presence of the legacy field so it runs once and then becomes a no-op. Remove the migration after the upgrade window has passed.
 
 ---
 
@@ -247,6 +254,6 @@ When opening a PR:
 
 - Keep changes scoped — one concern per PR is easier to review.
 - Match the existing code style (4-space indent, no trailing whitespace, comments above non-obvious blocks).
-- If you change saved-variable structure, add a migration step in `MigrateFromLegacy()`.
+- If you change saved-variable structure, add a one-shot migration in `InitVars()` (Core.lua) gated on the legacy field, and plan its removal in a later release.
 - If you change the macro body composition, walk the worst-case 255-char check on a deDE-locale Mage at max level.
 - Update this document if the architecture or file map changes.

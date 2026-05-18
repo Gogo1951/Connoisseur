@@ -12,12 +12,11 @@ local MODE_VALUES = {
 -- AceConfig Helpers
 --------------------------------------------------------------------------------
 
-local function Header(text, order, hidden)
+local function Header(text, order)
     return {
         type = "header",
         name = GetColor("TITLE") .. text .. "|r",
         order = order,
-        hidden = hidden,
     }
 end
 
@@ -39,12 +38,11 @@ local function Desc(text, order)
     }
 end
 
-local function Spacer(order, hidden)
+local function Spacer(order)
     return {
         type = "description",
         name = " ",
         order = order,
-        hidden = hidden,
     }
 end
 
@@ -52,8 +50,10 @@ end
 -- Enabled-Macros Toggle Helper
 --------------------------------------------------------------------------------
 
--- One factory for the nine Enable Macros toggles. hiddenFn is optional —
--- Feed Pet uses it to stay hidden on non-Hunter characters.
+--[[
+    One factory for the nine Enable Macros toggles. hiddenFn is optional —
+    Feed Pet uses it to stay hidden on non-Hunter characters.
+]]
 
 local function MacroToggle(label, key, order, hiddenFn)
     return {
@@ -103,14 +103,14 @@ local function GetOptions()
         name = L["BRAND"],
         type = "group",
         args = {
-            descIntro = Desc(L["OPTIONS_DESC"], 1),
+            descIntro = Desc(L["OPTIONS_DESCRIPTION"], 1),
 
             -- Welcome Message
             spaceWelcome0 = Spacer(2),
             toggleWelcomeMessage = {
                 type = "toggle",
                 name = L["OPTIONS_WELCOME_MESSAGE"],
-                desc = L["OPTIONS_WELCOME_MESSAGE_DESC"],
+                desc = L["OPTIONS_WELCOME_MESSAGE_DESCRIPTION"],
                 order = 3,
                 width = "full",
                 get = function()
@@ -128,19 +128,19 @@ local function GetOptions()
             headerCommands = Header(L["OPTIONS_COMMANDS_HEADER"], 6),
             spaceCommands1 = Spacer(7),
             descCommands = Desc(
-                GetColor("INFO") .. L["OPTIONS_COMMANDS_DESC"] .. "|r" .. "  " .. L["OPTIONS_COMMANDS_DETAIL"],
+                GetColor("INFO") .. L["OPTIONS_COMMANDS_DESCRIPTION"] .. "|r" .. "  " .. L["OPTIONS_COMMANDS_DETAIL"],
                 8
             ),
 
             -- Buff Food
             spaceBuff0 = Spacer(10),
             headerBuff = Header(L["MENU_BUFF_FOOD"], 11),
-            descBuff = Desc(GetColor("DESC") .. L["OPTIONS_BUFF_FOOD_DESC"] .. "|r", 12),
+            descBuff = Desc(GetColor("DESC") .. L["OPTIONS_BUFF_FOOD_DESCRIPTION"] .. "|r", 12),
             spaceBuff1 = Spacer(13),
             toggleBuffFood = {
                 type = "toggle",
                 name = L["OPTIONS_BUFF_FOOD"],
-                desc = L["OPTIONS_BUFF_FOOD_DESC"],
+                desc = L["OPTIONS_BUFF_FOOD_DESCRIPTION"],
                 order = 14,
                 width = 1.5,
                 get = function()
@@ -173,16 +173,18 @@ local function GetOptions()
                     ns.RequestUpdate()
                 end,
             },
+            spaceBuff2 = Spacer(16),
+            detailBuff = Desc(GetColor("DESC") .. L["OPTIONS_BUFF_FOOD_DETAIL"] .. "|r", 17),
 
             -- Scroll Buffs
             spaceScroll0 = Spacer(20),
             headerScroll = Header(L["OPTIONS_SCROLL_HEADER"], 21),
-            descScroll = Desc(GetColor("DESC") .. L["OPTIONS_USE_SCROLLS_DESC"] .. "|r", 22),
+            descScroll = Desc(GetColor("DESC") .. L["OPTIONS_USE_SCROLLS_DESCRIPTION"] .. "|r", 22),
             spaceScroll1 = Spacer(23),
             toggleScrolls = {
                 type = "toggle",
                 name = L["OPTIONS_USE_SCROLLS"],
-                desc = L["OPTIONS_USE_SCROLLS_DESC"],
+                desc = L["OPTIONS_USE_SCROLLS_DESCRIPTION"],
                 order = 24,
                 width = 1.5,
                 get = function()
@@ -327,12 +329,12 @@ local function GetOptions()
             -- Pets
             spacePet0 = Spacer(35),
             headerPet = Header(L["OPTIONS_PET_HEADER"], 36),
-            descPet = Desc(GetColor("DESC") .. L["OPTIONS_USE_PET_BUFFS_DESC"] .. "|r", 37),
+            descPet = Desc(GetColor("DESC") .. L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] .. "|r", 37),
             spacePet1 = Spacer(38),
             togglePetBuffs = {
                 type = "toggle",
                 name = L["OPTIONS_USE_PET_BUFFS"],
-                desc = L["OPTIONS_USE_PET_BUFFS_DESC"],
+                desc = L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"],
                 order = 39,
                 width = 1.5,
                 get = function()
@@ -414,13 +416,28 @@ local function GetOptions()
             },
 
             -- Druids
-            spaceDruid0 = Spacer(47, function() return not ns.IsDruid end),
-            headerDruid = Header(L["OPTIONS_DRUIDS_HEADER"], 48, function() return not ns.IsDruid end),
-            spaceDruid1 = Spacer(49, function() return not ns.IsDruid end),
+            spaceDruid0 = {
+                type = "description",
+                name = " ",
+                order = 47,
+                hidden = function() return not ns.IsDruid end,
+            },
+            headerDruid = {
+                type = "header",
+                name = GetColor("TITLE") .. L["OPTIONS_DRUIDS_HEADER"] .. "|r",
+                order = 48,
+                hidden = function() return not ns.IsDruid end,
+            },
+            spaceDruid1 = {
+                type = "description",
+                name = " ",
+                order = 49,
+                hidden = function() return not ns.IsDruid end,
+            },
             toggleDruidMacroHelper = {
                 type = "toggle",
                 name = L["OPTIONS_DRUID_MACRO_HELPER"],
-                desc = L["OPTIONS_DRUID_MACRO_HELPER_DESC"],
+                desc = L["OPTIONS_DRUID_MACRO_HELPER_DESCRIPTION"],
                 order = 50,
                 width = "full",
                 hidden = function() return not ns.IsDruid end,
@@ -462,13 +479,28 @@ local function GetOptions()
             },
 
             -- Night Elves
-            spaceNightElf0 = Spacer(53, function() return not ns.IsNightElf end),
-            headerNightElf = Header(L["OPTIONS_NIGHTELF_HEADER"], 54, function() return not ns.IsNightElf end),
-            spaceNightElf1 = Spacer(55, function() return not ns.IsNightElf end),
+            spaceNightElf0 = {
+                type = "description",
+                name = " ",
+                order = 53,
+                hidden = function() return not ns.IsNightElf end,
+            },
+            headerNightElf = {
+                type = "header",
+                name = GetColor("TITLE") .. L["OPTIONS_NIGHTELF_HEADER"] .. "|r",
+                order = 54,
+                hidden = function() return not ns.IsNightElf end,
+            },
+            spaceNightElf1 = {
+                type = "description",
+                name = " ",
+                order = 55,
+                hidden = function() return not ns.IsNightElf end,
+            },
             toggleShadowmeldDrinking = {
                 type = "toggle",
                 name = L["OPTIONS_SHADOWMELD_DRINKING"],
-                desc = L["OPTIONS_SHADOWMELD_DRINKING_DESC"],
+                desc = L["OPTIONS_SHADOWMELD_DRINKING_DESCRIPTION"],
                 order = 56,
                 width = "full",
                 hidden = function() return not ns.IsNightElf end,
@@ -486,7 +518,7 @@ local function GetOptions()
             -- Enable Macros
             spaceEnableMacros0 = Spacer(60),
             headerEnableMacros = Header(L["OPTIONS_ENABLE_MACROS_HEADER"], 61),
-            descEnableMacros = Desc(GetColor("DESC") .. L["OPTIONS_ENABLE_MACROS_DESC"] .. "|r", 62),
+            descEnableMacros = Desc(GetColor("DESC") .. L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] .. "|r", 62),
             spaceEnableMacros1 = Spacer(63),
             enableBandage      = MacroToggle(L["MACRO_BANDAGE"],  "Bandage",       64),
             enableFeedPet      = MacroToggle(L["MACRO_FEED_PET"], "Feed Pet",      65),
@@ -505,7 +537,7 @@ local function GetOptions()
             resetIgnore = {
                 type = "execute",
                 name = L["MENU_CLEAR_IGNORE"],
-                desc = L["OPTIONS_RESET_IGNORE_DESC"],
+                desc = L["OPTIONS_RESET_IGNORE_DESCRIPTION"],
                 order = 83,
                 width = "normal",
                 confirm = true,
@@ -522,7 +554,7 @@ local function GetOptions()
             resetAll = {
                 type = "execute",
                 name = L["OPTIONS_RESET_ALL"],
-                desc = L["OPTIONS_RESET_ALL_DESC"],
+                desc = L["OPTIONS_RESET_ALL_DESCRIPTION"],
                 order = 84,
                 width = "double",
                 confirm = true,

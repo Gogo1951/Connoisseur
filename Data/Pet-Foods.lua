@@ -1,13 +1,16 @@
 local _, ns = ...
 
-----------------------------------------------------------------------
--- Pet-Foods.lua
--- Pet food data for Hunter Feed Pet support.
--- Diet IDs: 1 = Meat, 2 = Fish, 3 = Bread, 4 = Cheese, 5 = Fruit, 6 = Fungus
-----------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-- Pet Foods
+--------------------------------------------------------------------------------
 
--- Maps localized diet names from GetPetFoodTypes() to internal diet IDs.
--- For non-English clients, add overrides in the appropriate locale file.
+--[[
+    Pet food data for Hunter Feed Pet support.
+    Diet IDs: 1 = Meat, 2 = Fish, 3 = Bread, 4 = Cheese, 5 = Fruit, 6 = Fungus
+
+    Maps localized diet names from GetPetFoodTypes() to internal diet IDs.
+    For non-English clients, add overrides in the appropriate locale file.
+]]
 ns.PetDietMap = {
     ["Meat"] = 1,
     ["Fish"] = 2,
@@ -17,16 +20,19 @@ ns.PetDietMap = {
     ["Fungus"] = 6
 }
 
--- { [itemID] = { itemLevel, dietID, sellPrice, questIDs or nil } }
--- sellPrice is in copper (vendor sell value per unit).
--- questIDs is a table of quest IDs that use this item as an objective,
--- or nil when the item is not a quest objective.
+--[[
+    SELECT entry, name, ItemLevel, FoodType, SellPrice
+    FROM item_template
+    WHERE class = 0 AND subclass = 5 AND FoodType > 0
+    ORDER BY FoodType, ItemLevel, entry;
 
--- SELECT entry, name, ItemLevel, FoodType, SellPrice
--- FROM item_template
--- WHERE class = 0 AND subclass = 5 AND FoodType > 0
--- ORDER BY FoodType, ItemLevel, entry;
--- Quest objective IDs come from quest_template (RequiredItemId1-6).
+    Quest objective IDs come from quest_template (RequiredItemId1-6).
+
+    Row shape: [itemID] = { itemLevel, dietID, sellPrice, questIDs or nil }
+    sellPrice is in copper (vendor sell value per unit).
+    questIDs is a table of quest IDs that use this item as an objective,
+    or nil when the item is not a quest objective.
+]]
 ns.PetFoodData = {
     -- Meat
     [4739] = {1, 1, 0, {747}}, -- Plainstrider Meat

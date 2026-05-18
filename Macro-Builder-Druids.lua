@@ -1,0 +1,78 @@
+local _, ns = ...
+
+--------------------------------------------------------------------------------
+-- DruidMacroHelper Integration
+--------------------------------------------------------------------------------
+
+--[[
+    When the Druid toggle is on, HP/MP/HS macros are rewritten to use DMH
+    syntax so the druid powershifts out of form, /uses the consumable, and
+    shifts back into the form chosen by settings.druidReturnForm (bear or
+    cat). Hard-coded rather than auto-tracked: macros can't be edited
+    during combat, so a mid-combat form swap on an auto-tracking macro
+    could return the druid to the wrong form.
+
+    Guard prefixes follow the DMH addon's own examples:
+      HP / HS  → "/dmh start" (stun + gcd + mana) plus a /dmh cd line
+      MP       → "/dmh stun gcd cd pot" (skips the mana check, since the
+                 whole point of a mana pot is that the druid is OOM)
+
+    Eligible macro types and guard prefixes both live in Data-General.lua
+    (ns.DMHMacroTypes, ns.DMHGuards) so the data is shared and not buried
+    here.
+]]
+
+local function ShouldUseDMHMacro(typeName)
+    if not ns.IsDruid then return false end
+    if not (ns.DMHMacroTypes and ns.DMHMacroTypes[typeName]) then return false end
+    local settings = ConnoisseurCharDB and ConnoisseurCharDB.settings
+    return settings and settings.enableDruidMacroHelper and true or false
+end
+
+local function GetDruidReturnForm()
+    local settings = ConnoisseurCharDB and ConnoisseurCharDB.settings
+    local key = settings and settings.druidReturnForm
+    if key ~= "cat" then key = "bear" end
+    local name = (key == "cat") and ns.DruidCatFormName or ns.DruidBearFormName
+    return key, name
+end
+
+local function BuildDMHBody(typeName, itemID, formName)
+    local lines = {
+        "#showtooltip item:" .. itemID,
+        "/run ConnFire(" .. itemID .. ")",
+    }
+    for _, guard in ipairs(ns.DMHGuards[typeName]) do
+        lines[#lines + 1] = guard
+    end
+    lines[#lines + 1] = "/use item:" .. itemID
+    lines[#lines + 1] = "/cast !" .. formName
+    lines[#lines + 1] = "/dmh end"
+    return table.concat(lines, "\n") .. "\n"
+end
+
+--------------------------------------------------------------------------------
+-- Public Hook
+--------------------------------------------------------------------------------
+
+--[[
+    The General builder consults this for every macro type/itemID pair it is
+    about to write. Returns (body, stateID) when the DMH override applies;
+    returns nil to mean "use the standard macro body."
+
+    A druid who hasn't learned bear or cat yet (no return form available)
+    also gets nil, so the standard body wins rather than emitting an
+    unusable "/cast !" line.
+]]
+
+function ns.BuildDruidMacroOverride(typeName, itemID)
+    if not itemID then return nil end
+    if not ShouldUseDMHMacro(typeName) then return nil end
+
+    local formKey, formName = GetDruidReturnForm()
+    if not formName then return nil end
+
+    local body = BuildDMHBody(typeName, itemID, formName)
+    local stateID = "DMH:" .. formKey .. ":" .. itemID
+    return body, stateID
+end

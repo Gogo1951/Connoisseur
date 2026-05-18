@@ -1,8 +1,8 @@
 local addonName, ns = ...
-local L = LibStub("AceLocale-3.0"):NewLocale("Connoisseur", "esES")
+local L = LibStub("AceLocale-3.0"):NewLocale("Connoisseur", "esMX")
 if not L then return end
 
--- [[ SPANISH (esES) ]] --
+-- [[ LATIN AMERICAN SPANISH (esMX) ]] --
 
 --------------------------------------------------------------------------------
 -- Brand

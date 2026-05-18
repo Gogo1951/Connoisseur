@@ -1,11 +1,14 @@
 local _, ns = ...
 ns.RawData = ns.RawData or {}
 
--- SELECT entry, name FROM item_template
--- WHERE name LIKE '%Soulstone%'
--- ORDER BY entry;
--- Rank Value: hand-curated tier score (Minor < Lesser < Soulstone <
--- Greater < Major < Master), used as a sortable preference order.
+--[[
+    SELECT entry, name FROM item_template
+    WHERE name LIKE '%Soulstone%'
+    ORDER BY entry;
+
+    Rank Value: hand-curated tier score (Minor < Lesser < Soulstone <
+    Greater < Major < Master), used as a sortable preference order.
+]]
 ns.RawData.Soulstone = {
     -- [ID] = {Rank Value}, -- Name
 
