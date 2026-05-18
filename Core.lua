@@ -3,6 +3,14 @@ local L = ns.L
 local GetColor = ns.GetColor
 
 --[[
+    Cross-client item API shims. Retail exposes these on C_Item; Classic /
+    TBC only expose the globals. Resolving once at load keeps call sites
+    branch-free and avoids "attempt to index nil" errors on Classic.
+]]
+ns.GetItemCount = (C_Item and C_Item.GetItemCount) or GetItemCount
+ns.GetItemIcon  = (C_Item and C_Item.GetItemIconByID) or GetItemIcon
+
+--[[
     Transport between the /run snippet in consumable macros and the
     UI_ERROR_MESSAGE handler. The macro writes lastID and lastTime so
     we can correlate a zone-restriction error back to its triggering item.
