@@ -152,12 +152,47 @@ local function ResetBest(entry)
 end
 
 --------------------------------------------------------------------------------
--- Comparison Logic
---
--- Candidate wins if, in order: it's a buff food when we want one, it's a
--- percent-heal, it has a higher score, a lower price, the correct hybrid
--- preference, or fewer copies in bags.
+-- Adjusted Score (Potions & Bandages)
 --------------------------------------------------------------------------------
+
+--[[
+    Layers two small priority bonuses onto the raw heal/mana value so the
+    scoring still falls back to vendor price → count when items truly tie:
+
+      +2 if the item is zone-restricted (data.zones present). The scanner has
+         already gated on currentMap before this is called, so "has zones" at
+         this point implies "usable here." Zone-locked consumables (Nethergon
+         potions in Tempest Keep, BG-specific bandages, etc.) are worthless
+         outside their zone, so we burn them first when we're inside.
+
+      +1 if the item stacks above 10. Favors Healing/Mana Potion Injectors
+         (stack 20) over the plain potions they are crafted from (stack 5):
+         it preserves the reagent supply and frees bag space.
+
+    The bonuses are intentionally tiny relative to typical heal values, so a
+    stronger raw value still wins; the +1/+2 only matter when raw values tie.
+]]
+
+local function AdjustedScore(data, baseValue)
+    local score = baseValue
+    if data.zones then
+        score = score + 2
+    end
+    if (data.maxStack or 1) > 10 then
+        score = score + 1
+    end
+    return score
+end
+
+--------------------------------------------------------------------------------
+-- Comparison Logic
+--------------------------------------------------------------------------------
+
+--[[
+    Candidate wins if, in order: it's a buff food when we want one, it's a
+    percent-heal, it has a higher score, a lower price, the correct hybrid
+    preference, or fewer copies in bags.
+]]
 
 local function IsBetter(candidate, candidateCount, candidatePrice, currentBest, score, allowBuffFood, preferHybrid)
     if not currentBest.id then
@@ -206,7 +241,19 @@ function ns.ScanBags()
     local settings = charDB.settings or {}
     local itemCache = ConnoisseurDB and ConnoisseurDB.itemCache or {}
 
-    ns.AllowBuffFood = settings.useBuffFood and ns.IsModeActive(settings.buffFoodMode) and not ns.WellFedState
+    --[[
+        Testing aid: targeting yourself forces the Food macro into plain-food
+        mode — no scrolls, no buff food, just the best non-buff food. Useful
+        for verifying what the macro picks without re-toggling settings.
+        Scrolls are already suppressed on any friendly-player target (including
+        self) in UpdateMacros, so we only need to disable buff-food here.
+    ]]
+    local targetingSelf = UnitExists("target") and UnitIsUnit("target", "player")
+
+    ns.AllowBuffFood = settings.useBuffFood
+        and ns.IsModeActive(settings.buffFoodMode)
+        and not ns.WellFedState
+        and not targetingSelf
 
     for _, entry in pairs(best) do
         ResetBest(entry)
@@ -241,6 +288,14 @@ function ns.ScanBags()
                 -- Scrolls are handled by the scroll override system
             else
                 local data = itemCache[id]
+                --[[
+                    Evict stale entries that predate the maxStack schema field
+                    (and any associated buggy fields they may have cached).
+                ]]
+                if data and data ~= "IGNORE" and data.maxStack == nil then
+                    data = nil
+                    itemCache[id] = nil
+                end
                 if not data then
                     data = ns.CacheItemData(id)
                 end
@@ -271,10 +326,11 @@ function ns.ScanBags()
                         local itemType = data.itemType
 
                         if itemType == "bandage" then
-                            if IsBetter(data, totalCount, data.price, best["Bandage"], data.healthValue, false) then
+                            local adjusted = AdjustedScore(data, data.healthValue)
+                            if IsBetter(data, totalCount, data.price, best["Bandage"], adjusted, false) then
                                 local winner = best["Bandage"]
                                 winner.id = id
-                                winner.value = data.healthValue
+                                winner.value = adjusted
                                 winner.price = data.price
                                 winner.count = totalCount
                             end
@@ -303,32 +359,36 @@ function ns.ScanBags()
                                 winner.count = totalCount
                             end
                         elseif itemType == "potion" then
-                            if
-                                data.healthValue > 0 and
+                            if data.healthValue > 0 then
+                                local adjusted = AdjustedScore(data, data.healthValue)
+                                if
                                     IsBetter(
                                         data,
                                         totalCount,
                                         data.price,
                                         best["Health Potion"],
-                                        data.healthValue,
+                                        adjusted,
                                         false
                                     )
-                             then
-                                local winner = best["Health Potion"]
-                                winner.id = id
-                                winner.value = data.healthValue
-                                winner.price = data.price
-                                winner.count = totalCount
+                                 then
+                                    local winner = best["Health Potion"]
+                                    winner.id = id
+                                    winner.value = adjusted
+                                    winner.price = data.price
+                                    winner.count = totalCount
+                                end
                             end
-                            if
-                                data.manaValue > 0 and
-                                    IsBetter(data, totalCount, data.price, best["Mana Potion"], data.manaValue, false)
-                             then
-                                local winner = best["Mana Potion"]
-                                winner.id = id
-                                winner.value = data.manaValue
-                                winner.price = data.price
-                                winner.count = totalCount
+                            if data.manaValue > 0 then
+                                local adjusted = AdjustedScore(data, data.manaValue)
+                                if
+                                    IsBetter(data, totalCount, data.price, best["Mana Potion"], adjusted, false)
+                                 then
+                                    local winner = best["Mana Potion"]
+                                    winner.id = id
+                                    winner.value = adjusted
+                                    winner.price = data.price
+                                    winner.count = totalCount
+                                end
                             end
                         elseif itemType == "food" or itemType == "water" or itemType == "foodwater" then
                             if not (data.isBuffFood and not ns.AllowBuffFood) then
@@ -393,18 +453,21 @@ end
 
 --------------------------------------------------------------------------------
 -- Active Quest Set (Hunter)
---
--- Builds a set of quest IDs the player currently has in their quest log.
--- Used by ScanPetFood to skip foods that are objectives for active quests.
 --------------------------------------------------------------------------------
+
+--[[
+    Builds a set of quest IDs the player currently has in their quest log.
+    Used by ScanPetFood to skip foods that are objectives for active quests.
+]]
 
 local activeQuestIDs = {}
 
 local function BuildActiveQuestSet()
     wipe(activeQuestIDs)
     for questIndex = 1, GetNumQuestLogEntries() do
-        local _, _, _, _, isHeader, _, isComplete, questID = GetQuestLogTitle(questIndex)
-        if not isHeader and questID and not isComplete then
+        local _, _, _, isHeader, _, _, _, questID = GetQuestLogTitle(questIndex)
+        -- Include completed-but-not-turned-in quests too: turn-in still consumes the items.
+        if not isHeader and questID then
             activeQuestIDs[questID] = true
         end
     end
@@ -421,17 +484,29 @@ end
 
 --------------------------------------------------------------------------------
 -- Pet Food Scanning (Hunter)
---
--- Selects the lowest-itemLevel food that still gives maximum happiness
--- (petLevel - foodItemLevel between 0 and 10). Ties broken by sell price
--- (lower wins), then total count in bags (fewer wins).
---
--- All data (itemLevel, dietID, sellPrice, questIDs) comes from the stored
--- ns.PetFoodData table. No server queries are needed during scanning.
---
--- Quest objective foods are skipped only when the player has that quest
--- active.
 --------------------------------------------------------------------------------
+
+--[[
+    Selects the lowest-itemLevel food that still gives maximum happiness
+    (petLevel - foodItemLevel between 0 and 10). Ties broken by sell price
+    (lower wins), then total count in bags (fewer wins).
+
+    If no food sits in the max-happiness bracket, falls back to the food
+    closest to (but above) the pet's level. Pets eat above-level food, just
+    wastefully — better than letting the pet go hungry.
+
+    Note: there is no upper cap on how far above pet level the fallback can
+    reach. Confirmed empirically on Anniversary (1.15.x): a level-8 cat will
+    happily eat level-70 meat. The fallback ranks by lowest food level first,
+    so the *least* wasteful option still wins when multiple are available.
+
+    All data (itemLevel, dietID, sellPrice, questIDs) comes from the stored
+    ns.PetFoodData table. No server queries are needed during scanning.
+
+    Quest objective foods are skipped whenever the player has that quest in
+    their log (including completed-but-not-turned-in), since turn-in consumes
+    the items.
+]]
 
 function ns.ScanPetFood()
     ns.BestPetFoodID = nil
@@ -475,6 +550,15 @@ function ns.ScanPetFood()
     local bestPrice = 999999
     local bestCount = 999999
 
+    --[[
+        Wasteful fallback: pets will eat food above their level when no in-bracket
+        option is available. Prefer the food closest to pet level (lowest waste).
+    ]]
+    local fallbackID, fallbackLink
+    local fallbackLevel = 999
+    local fallbackPrice = 999999
+    local fallbackCount = 999999
+
     for bag = 0, NUM_BAG_SLOTS do
         for slot = 1, C_Container.GetContainerNumSlots(bag) do
             local info = C_Container.GetContainerItemInfo(bag, slot)
@@ -490,9 +574,10 @@ function ns.ScanPetFood()
 
                     if dietSet[foodDiet] then
                         local levelDelta = petLevel - foodLevel
+                        local inHappyBracket = (levelDelta >= 0 and levelDelta <= 10)
+                        local isAbovePet = (levelDelta < 0)
 
-                        -- Only consider foods in the max-happiness bracket (delta 0 to 10)
-                        if levelDelta >= 0 and levelDelta <= 10 then
+                        if inHappyBracket or isAbovePet then
                             -- Skip foods needed for active quests
                             local skipQuest = false
                             if questIDs then
@@ -502,24 +587,52 @@ function ns.ScanPetFood()
                             if not skipQuest then
                                 local totalCount = C_Item.GetItemCount(id)
 
-                                -- Prefer: lowest itemLevel, then lowest sell price, then fewest in bags
-                                local isBetter = false
-                                if not bestID then
-                                    isBetter = true
-                                elseif foodLevel ~= bestLevel then
-                                    isBetter = foodLevel < bestLevel
-                                elseif sellPrice ~= bestPrice then
-                                    isBetter = sellPrice < bestPrice
-                                else
-                                    isBetter = totalCount < bestCount
-                                end
+                                if inHappyBracket then
+                                    -- Prefer: lowest itemLevel, then lowest sell price, then fewest in bags
+                                    local isBetter = false
+                                    if not bestID then
+                                        isBetter = true
+                                    elseif foodLevel ~= bestLevel then
+                                        isBetter = foodLevel < bestLevel
+                                    elseif sellPrice ~= bestPrice then
+                                        isBetter = sellPrice < bestPrice
+                                    else
+                                        isBetter = totalCount < bestCount
+                                    end
 
-                                if isBetter then
-                                    bestID = id
-                                    bestLink = info.hyperlink
-                                    bestLevel = foodLevel
-                                    bestPrice = sellPrice
-                                    bestCount = totalCount
+                                    if isBetter then
+                                        bestID = id
+                                        bestLink = info.hyperlink
+                                        bestLevel = foodLevel
+                                        bestPrice = sellPrice
+                                        bestCount = totalCount
+                                    end
+                                else
+                                    --[[
+                                        Fallback (food above pet level). No upper cap:
+                                        pets will eat food at any level higher than their
+                                        own (confirmed: lvl-8 cat eats lvl-70 meat). Prefer
+                                        closest to pet level (lowest), then cheapest, then
+                                        fewest in bags.
+                                    ]]
+                                    local isBetter = false
+                                    if not fallbackID then
+                                        isBetter = true
+                                    elseif foodLevel ~= fallbackLevel then
+                                        isBetter = foodLevel < fallbackLevel
+                                    elseif sellPrice ~= fallbackPrice then
+                                        isBetter = sellPrice < fallbackPrice
+                                    else
+                                        isBetter = totalCount < fallbackCount
+                                    end
+
+                                    if isBetter then
+                                        fallbackID = id
+                                        fallbackLink = info.hyperlink
+                                        fallbackLevel = foodLevel
+                                        fallbackPrice = sellPrice
+                                        fallbackCount = totalCount
+                                    end
                                 end
                             end
                         end
@@ -529,6 +642,11 @@ function ns.ScanPetFood()
         end
     end
 
-    ns.BestPetFoodID = bestID
-    ns.BestPetFoodLink = bestLink
+    if bestID then
+        ns.BestPetFoodID = bestID
+        ns.BestPetFoodLink = bestLink
+    else
+        ns.BestPetFoodID = fallbackID
+        ns.BestPetFoodLink = fallbackLink
+    end
 end

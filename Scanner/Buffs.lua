@@ -29,11 +29,13 @@ end
 
 --------------------------------------------------------------------------------
 -- Scroll Buffs
---
--- A scroll buff of any rank counts as covered. A conflict spell (e.g. Fort)
--- only counts as covered if its base amount is at least as large as the
--- scroll we would use — otherwise the scroll would still improve the stat.
 --------------------------------------------------------------------------------
+
+--[[
+    A scroll buff of any rank counts as covered. A conflict spell (e.g. Fort)
+    only counts as covered if its base amount is at least as large as the
+    scroll we would use — otherwise the scroll would still improve the stat.
+]]
 
 function ns.HasScrollBuff(scrollType, scrollAmount)
     if not ns.ScrollData or not ns.ScrollData[scrollType] then
@@ -57,8 +59,10 @@ function ns.HasScrollBuff(scrollType, scrollAmount)
             return true
         end
 
-        -- Check conflict spells — only block the scroll if the class buff
-        -- provides at least as much stat as our best scroll would
+        --[[
+            Check conflict spells — only block the scroll if the class buff
+            provides at least as much stat as our best scroll would.
+        ]]
         local conflictAmount = data.conflictSpells[spellID]
         if conflictAmount and conflictAmount >= (scrollAmount or 0) then
             return true
@@ -68,9 +72,11 @@ function ns.HasScrollBuff(scrollType, scrollAmount)
     return false
 end
 
--- Finds the best available scroll for a type from bag contents.
--- Scroll entries: {[1] itemID, [2] buffID, [3] requiredLevel, [4] amount}
--- Returns itemID, amount (or nil, nil if nothing usable is found).
+--[[
+    Finds the best available scroll for a type from bag contents.
+    Scroll entries: {[1] itemID, [2] buffID, [3] requiredLevel, [4] amount}
+    Returns itemID, amount (or nil, nil if nothing usable is found).
+]]
 local function FindBestScroll(scrollType, bagItemCounts)
     if not ns.ScrollData or not ns.ScrollData[scrollType] then
         return nil, nil
@@ -89,9 +95,11 @@ local function FindBestScroll(scrollType, bagItemCounts)
     return nil, nil
 end
 
--- Returns an ordered list of scroll item IDs the player should use, or nil
--- if none apply. Order follows ns.SCROLL_CHECK_ORDER so the macro builder
--- can use that priority when truncating to fit the 255-char macro limit.
+--[[
+    Returns an ordered list of scroll item IDs the player should use, or nil
+    if none apply. Order follows ns.SCROLL_CHECK_ORDER so the macro builder
+    can use that priority when truncating to fit the 255-char macro limit.
+]]
 function ns.FindScrollOverrides(bagItemCounts)
     local charDB = ConnoisseurCharDB
     if not charDB or not charDB.settings or not charDB.settings.useScrolls then

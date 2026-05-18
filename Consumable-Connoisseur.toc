@@ -10,10 +10,8 @@
 ## Version: @project-version@
 ## X-Curse-Project-ID: 1416865
 
-## X-Discord: https://discord.gg/eh8hKq992Q
-
-## SavedVariables: ConnoisseurDB, CC_ItemCache, CC_ItemCacheVersion, CC_MinimapSettings
-## SavedVariablesPerCharacter: ConnoisseurCharDB, CC_IgnoreList, CC_Settings
+## SavedVariables: ConnoisseurDB
+## SavedVariablesPerCharacter: ConnoisseurCharDB
 
 # Includes
 Includes/LibStub/LibStub.lua
@@ -30,6 +28,7 @@ Includes/LibDBIcon-1.0/LibDBIcon-1.0.lua
 Locales/enUS.lua
 Locales/deDE.lua
 Locales/esES.lua
+Locales/esMX.lua
 Locales/frFR.lua
 Locales/itIT.lua
 Locales/koKR.lua
@@ -54,11 +53,15 @@ Core.lua
 Scanner/Item-Data.lua
 Scanner/Buffs.lua
 Scanner/Inventory.lua
-Macro-Builder.lua
+Macro-Builder-General.lua
+Macro-Builder-Druids.lua
+Macro-Builder-Hunters.lua
+Macro-Builder-Mages.lua
+Macro-Builder-Warlocks.lua
 Minimap-Button.lua
 Options.lua
 
 # Feedback Welcome! (=
-# Consumable Connoisseur on CurseForge // https://www.curseforge.com/wow/addons/consumable-connoisseur
-# Consumable Connoisseur on GitHub // https://github.com/Gogo1951/Connoisseur
-# Consumable Connoisseur on Discord // https://discord.gg/eh8hKq992Q
+# Connoisseur on CurseForge // https://www.curseforge.com/wow/addons/consumable-connoisseur
+# Connoisseur on GitHub // https://github.com/Gogo1951/Connoisseur
+# Connoisseur on Discord // https://discord.gg/eh8hKq992Q

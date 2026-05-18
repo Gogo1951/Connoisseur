@@ -2,21 +2,67 @@ local addonName, ns = ...
 local L = ns.L
 local GetColor = ns.GetColor
 
--- Transport between the /run snippet in consumable macros and the
--- UI_ERROR_MESSAGE handler. The macro writes lastID and lastTime so
--- we can correlate a zone-restriction error back to its triggering item.
+--[[
+    Transport between the /run snippet in consumable macros and the
+    UI_ERROR_MESSAGE handler. The macro writes lastID and lastTime so
+    we can correlate a zone-restriction error back to its triggering item.
+]]
 ConnoisseurState = ConnoisseurState or {}
 
--- Tiny helper exposed as a global so macro bodies can record the firing
--- item with `/run ConnFire(itemID)` instead of inlining a longer
--- snippet. That savings matters when stacking scroll uses against the
--- 255-character macro body limit.
---
--- Name choice: 8 characters, distinctive "Conn" prefix to avoid collisions
--- with two-letter or generic globals other addons might define.
+--[[
+    Tiny helper exposed as a global so macro bodies can record the firing
+    item with `/run ConnFire(itemID)` instead of inlining a longer
+    snippet. That savings matters when stacking scroll uses against the
+    255-character macro body limit.
+
+    Name choice: 8 characters, distinctive "Conn" prefix to avoid collisions
+    with two-letter or generic globals other addons might define.
+]]
 function ConnFire(itemID)
     ConnoisseurState.lastID = itemID
     ConnoisseurState.lastTime = GetTime()
+end
+
+--[[
+    Resolves a ConnTip key to its display text. Static messages come from
+    ns.MessageStrings; "you don't know <spell>" keys come from
+    ns.MissingSpellMessageIDs and are rendered with the localized spell
+    name via GetSpellInfo at print time. A spell that doesn't exist on the
+    current client returns nil here so ConnTip silently skips rather than
+    naming a spell the player will never see.
+]]
+local function ResolveConnTip(key)
+    if ns.MessageStrings and ns.MessageStrings[key] then
+        return ns.MessageStrings[key]
+    end
+    if ns.MissingSpellMessageIDs and ns.MissingSpellMessageIDs[key] then
+        local name = GetSpellInfo(ns.MissingSpellMessageIDs[key])
+        if not name then return nil end
+        return "You don't currently know " .. name .. "."
+    end
+    return nil
+end
+
+function ConnTip(key)
+    local text = ResolveConnTip(key)
+    if text then
+        ns.PrintMessage(text)
+    end
+end
+
+--[[
+    Conditional sibling of ConnTip — fires the tip only when the macro
+    conditional `cond` matches. Used by the Feed Pet macro for level-10/11
+    hunters who don't know Mend Pet yet, so right-click or in-combat clicks
+    print an explanation instead of silently doing nothing useful. We append
+    a sentinel " 1" so SecureCmdOptionParse returns "1" on match and nil on
+    miss — clean truthy/falsy semantics regardless of how the API treats an
+    empty action body.
+]]
+function ConnIf(cond, key)
+    if SecureCmdOptionParse(cond .. " 1") then
+        ConnTip(key)
+    end
 end
 
 --------------------------------------------------------------------------------
@@ -34,21 +80,24 @@ local UPDATE_THROTTLE = 0.5
 
 function ns.PrintMessage(text)
     print(
-        GetColor("INFO") .. L["BRAND"] .. GetColor("MUTED") .. " // " ..
-        GetColor("TEXT") .. text
+        GetColor("INFO") .. L["BRAND"] .. "|r " ..
+        GetColor("SEPARATOR") .. "//" .. "|r " ..
+        GetColor("TEXT") .. text .. "|r"
     )
 end
 
--- PLAYER_ENTERING_WORLD fires on instance transitions and reloads, not
--- just initial login. Guard with a flag so the welcome lands once per
--- session.
+--[[
+    PLAYER_ENTERING_WORLD fires on instance transitions and reloads, not
+    just initial login. Guard with a flag so the welcome lands once per
+    session.
+]]
 local welcomePrinted = false
 
 local function PrintWelcome()
     if welcomePrinted then return end
     if not (ConnoisseurDB and ConnoisseurDB.showWelcome) then return end
     welcomePrinted = true
-    ns.PrintMessage(L["CHAT_LOADED"])
+    ns.PrintMessage(L["CHAT_LOADED"]:format(ns.Version))
 end
 
 --------------------------------------------------------------------------------
@@ -114,41 +163,34 @@ local function ApplyDefaults(target, defaults)
 end
 
 --------------------------------------------------------------------------------
--- Saved Variable Migration
+-- Hunter Pet Spell Resolution
 --------------------------------------------------------------------------------
 
-local function MigrateFromLegacy()
-    -- Account-wide: CC_MinimapSettings → ConnoisseurDB.minimap
-    if CC_MinimapSettings and next(CC_MinimapSettings) then
-        ConnoisseurDB.minimap = CC_MinimapSettings
+--[[
+    Resolves each pet spell's name only if the player actually knows the spell.
+    GetSpellInfo returns a name even for unlearned spells, so a level-8 hunter
+    without Mend Pet would otherwise get a macro referencing a spell they can't
+    cast. Re-run on PLAYER_LEVEL_UP and SPELLS_CHANGED so newly-learned spells
+    (Mend Pet at 12) start participating in the macro without a /reload.
+]]
+local function ResolveIfKnown(spellID)
+    local known = IsSpellKnown(spellID)
+    if not known and IsPlayerSpell then
+        known = IsPlayerSpell(spellID)
     end
-    CC_MinimapSettings = nil
+    if known then
+        return GetSpellInfo(spellID)
+    end
+    return nil
+end
 
-    -- Account-wide: CC_ItemCache → ConnoisseurDB.itemCache
-    if CC_ItemCache then
-        ConnoisseurDB.itemCache = CC_ItemCache
-    end
-    CC_ItemCache = nil
-
-    if CC_ItemCacheVersion then
-        ConnoisseurDB.itemCacheVersion = CC_ItemCacheVersion
-    end
-    CC_ItemCacheVersion = nil
-
-    -- Per-character: CC_IgnoreList → ConnoisseurCharDB.ignoreList
-    if CC_IgnoreList and next(CC_IgnoreList) then
-        ConnoisseurCharDB.ignoreList = CC_IgnoreList
-    end
-    CC_IgnoreList = nil
-
-    -- Per-character: CC_Settings → ConnoisseurCharDB.settings
-    if CC_Settings then
-        if CC_Settings.UseBuffFood then
-            ConnoisseurCharDB.settings.useBuffFood = true
-        end
-        CC_Settings.Minimap = nil
-    end
-    CC_Settings = nil
+function ns.ResolveHunterSpells()
+    if not ns.IsHunter then return end
+    ns.FeedPetSpellName    = ResolveIfKnown(ns.FEED_PET_SPELL_ID)
+    ns.RevivePetSpellName  = ResolveIfKnown(ns.REVIVE_PET_SPELL_ID)
+    ns.MendPetSpellName    = ResolveIfKnown(ns.MEND_PET_SPELL_ID)
+    ns.CallPetSpellName    = ResolveIfKnown(ns.CALL_PET_SPELL_ID)
+    ns.DismissPetSpellName = ResolveIfKnown(ns.DISMISS_PET_SPELL_ID)
 end
 
 --------------------------------------------------------------------------------
@@ -157,18 +199,16 @@ end
 
 local function InitVars()
     ConnoisseurDB = ConnoisseurDB or {}
-    -- Booleans need an explicit nil check; `or true` would clobber a
-    -- user's saved `false`. Initialize before migrations so legacy paths
-    -- can rely on the field existing.
+    --[[
+        Booleans need an explicit nil check; `or true` would clobber a
+        user's saved `false`. Initialize before migrations so legacy paths
+        can rely on the field existing.
+    ]]
     if ConnoisseurDB.showWelcome == nil then ConnoisseurDB.showWelcome = true end
 
     ConnoisseurCharDB = ConnoisseurCharDB or {}
     ConnoisseurCharDB.ignoreList = ConnoisseurCharDB.ignoreList or {}
     ConnoisseurCharDB.settings = ConnoisseurCharDB.settings or {}
-
-    if CC_MinimapSettings or CC_ItemCache or CC_IgnoreList or CC_Settings then
-        MigrateFromLegacy()
-    end
 
     ConnoisseurDB.minimap = ConnoisseurDB.minimap or {}
 
@@ -193,10 +233,17 @@ local function InitVars()
         ns.ShadowmeldSpellName = GetSpellInfo(ns.SHADOWMELD_SPELL_ID)
     end
 
-    -- Hunter detection and pet spell resolution
+    --[[
+        Class detection. Used by macro builders to decide which conjure
+        branches the player could *eventually* know — so a low-level mage
+        gets "You don't currently know Conjure Food." while a hunter sees no
+        message at all (they'll never learn that spell).
+    ]]
     local _, classToken = UnitClass("player")
-    ns.IsHunter = (classToken == "HUNTER")
-    ns.IsDruid = (classToken == "DRUID")
+    ns.IsHunter  = (classToken == "HUNTER")
+    ns.IsDruid   = (classToken == "DRUID")
+    ns.IsMage    = (classToken == "MAGE")
+    ns.IsWarlock = (classToken == "WARLOCK")
 
     if ns.IsDruid then
         -- Dire Bear was merged into Bear Form in Cataclysm; resolve whichever exists.
@@ -206,12 +253,8 @@ local function InitVars()
     end
 
     if ns.IsHunter then
-        ns.FeedPetSpellName    = GetSpellInfo(ns.FEED_PET_SPELL_ID)
-        ns.RevivePetSpellName  = GetSpellInfo(ns.REVIVE_PET_SPELL_ID)
-        ns.MendPetSpellName    = GetSpellInfo(ns.MEND_PET_SPELL_ID)
-        ns.CallPetSpellName    = GetSpellInfo(ns.CALL_PET_SPELL_ID)
-        ns.DismissPetSpellName = GetSpellInfo(ns.DISMISS_PET_SPELL_ID)
-        ns.PetDeadDismissed    = false
+        ns.ResolveHunterSpells()
+        ns.PetDeadDismissed = false
     end
 
     ns.SpellCache = {}
@@ -247,8 +290,10 @@ end
 function ns.ResetSettings()
     if not ConnoisseurCharDB then return end
 
-    -- Wipe per-character user state in place, preserving the table
-    -- references held by other modules.
+    --[[
+        Wipe per-character user state in place, preserving the table
+        references held by other modules.
+    ]]
     if ConnoisseurCharDB.ignoreList then
         wipe(ConnoisseurCharDB.ignoreList)
     end
@@ -278,9 +323,11 @@ end
 -- Feature Toggles
 --------------------------------------------------------------------------------
 
--- Each toggle accepts an optional value. No argument flips the current state
--- (minimap click path). A boolean argument sets state directly (options-panel
--- path) and matches what AceConfig hands back to the set callback.
+--[[
+    Each toggle accepts an optional value. No argument flips the current state
+    (minimap click path). A boolean argument sets state directly (options-panel
+    path) and matches what AceConfig hands back to the set callback.
+]]
 
 function ns.UpdateAuraTracking()
     local settings = ConnoisseurCharDB.settings
@@ -421,6 +468,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
         or event == "PLAYER_ALIVE"
         or event == "PLAYER_UNGHOST"
         or event == "GROUP_ROSTER_UPDATE"
+        or event == "QUEST_LOG_UPDATE"
     then
         ns.RequestUpdate()
     elseif event == "ZONE_CHANGED_NEW_AREA" then
@@ -428,6 +476,21 @@ frame:SetScript("OnEvent", function(self, event, ...)
         ns.RequestUpdate()
     elseif event == "PLAYER_LEVEL_UP" then
         ns.CachedPlayerLevel = UnitLevel("player") or 1
+        if ns.IsHunter then
+            ns.ResolveHunterSpells()
+        end
+        ns.RequestUpdate()
+    elseif event == "SPELLS_CHANGED" then
+        --[[
+            Hunter spell-name cache refreshes here so a level-up training
+            visit (e.g. Mend Pet at 12) starts participating in the macro
+            immediately. Mages/warlocks don't have a name cache, but their
+            macro bodies still depend on KnowsAny / GetSmartSpell results,
+            so we trigger a generic rebuild for everyone.
+        ]]
+        if ns.IsHunter then
+            ns.ResolveHunterSpells()
+        end
         ns.RequestUpdate()
     elseif event == "PLAYER_ENTERING_WORLD" then
         InitVars()
@@ -488,11 +551,13 @@ frame:SetScript("OnEvent", function(self, event, ...)
     elseif event == "UI_ERROR_MESSAGE" then
         local _, msg = ...
 
-        -- Hunter: detect dead-but-dismissed pet.
-        -- When Call Pet fails because the pet is dead, the client fires
-        -- SPELL_FAILED_TARGETS_DEAD. We catch it here and flip the flag
-        -- so the macro rebuilds with Revive Pet on the next cycle.
-        -- If the error ID changes in a future build, update this check.
+        --[[
+            Hunter: detect dead-but-dismissed pet.
+            When Call Pet fails because the pet is dead, the client fires
+            SPELL_FAILED_TARGETS_DEAD. We catch it here and flip the flag
+            so the macro rebuilds with Revive Pet on the next cycle.
+            If the error ID changes in a future build, update this check.
+        ]]
         if ns.IsHunter and not UnitExists("pet") and msg then
             local deadMsg = SPELL_FAILED_TARGETS_DEAD
             if deadMsg and msg == deadMsg then
@@ -501,10 +566,12 @@ frame:SetScript("OnEvent", function(self, event, ...)
             end
         end
 
-        -- Zone-restriction reporting. The macro's /run snippet writes
-        -- lastID and lastTime via ConnFire(). If we see
-        -- ERR_ITEM_WRONG_ZONE within one second of a macro firing, we
-        -- know which item to blame.
+        --[[
+            Zone-restriction reporting. The macro's /run snippet writes
+            lastID and lastTime via ConnFire(). If we see
+            ERR_ITEM_WRONG_ZONE within one second of a macro firing, we
+            know which item to blame.
+        ]]
         if ConnoisseurState.lastTime and (GetTime() - ConnoisseurState.lastTime) < 1.0 then
             if msg == ERR_ITEM_WRONG_ZONE then
                 local mapID = C_Map.GetBestMapForUnit("player") or "0"
@@ -555,6 +622,8 @@ frame:RegisterEvent("PLAYER_UNGHOST")
 frame:RegisterEvent("UI_ERROR_MESSAGE")
 frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 frame:RegisterEvent("SKILL_LINES_CHANGED")
+frame:RegisterEvent("SPELLS_CHANGED")
 frame:RegisterEvent("UNIT_PET")
 frame:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
 frame:RegisterEvent("GROUP_ROSTER_UPDATE")
+frame:RegisterEvent("QUEST_LOG_UPDATE")

@@ -9,9 +9,11 @@ local LDBIcon = LibStub("LibDBIcon-1.0")
 -- Class Color
 --------------------------------------------------------------------------------
 
--- Reads the class's display color from Blizzard's RAID_CLASS_COLORS.
--- colorStr is an 8-char "ffRRGGBB" prefix-ready string. Falls back to
--- white if the table isn't available (extremely old Classic builds).
+--[[
+    Reads the class's display color from Blizzard's RAID_CLASS_COLORS.
+    colorStr is an 8-char "ffRRGGBB" prefix-ready string. Falls back to
+    white if the table isn't available (extremely old Classic builds).
+]]
 
 local function GetClassColorStr(classToken)
     local localHex = ns.CLASS_COLORS and ns.CLASS_COLORS[classToken]
@@ -71,28 +73,30 @@ UpdateTooltip = function(anchor)
 
     -- Prioritize Buff Food
     local buffState = settings.useBuffFood
-        and (GetColor("SUCCESS") .. L["UI_ENABLED"] .. "|r")
-        or  (GetColor("DISABLED") .. L["UI_DISABLED"] .. "|r")
+        and (GetColor("ON") .. L["UI_ENABLED"] .. "|r")
+        or  (GetColor("OFF") .. L["UI_DISABLED"] .. "|r")
     tooltip:AddDoubleLine(GetColor("TITLE") .. L["MENU_BUFF_FOOD"] .. "|r", buffState)
-    tooltip:AddLine(GetColor("DESC") .. L["MENU_BUFF_FOOD_DESC"] .. "|r", 1, 1, 1, true)
+    tooltip:AddLine(GetColor("DESC") .. L["MENU_BUFF_FOOD_DESCRIPTION"] .. "|r", 1, 1, 1, true)
     tooltip:AddDoubleLine(GetColor("INFO") .. L["UI_LEFT_CLICK"] .. "|r", GetColor("INFO") .. L["UI_TOGGLE"] .. "|r")
     tooltip:AddLine(" ")
 
     -- Include Scroll Buffs
     local scrollState = settings.useScrolls
-        and (GetColor("SUCCESS") .. L["UI_ENABLED"] .. "|r")
-        or  (GetColor("DISABLED") .. L["UI_DISABLED"] .. "|r")
+        and (GetColor("ON") .. L["UI_ENABLED"] .. "|r")
+        or  (GetColor("OFF") .. L["UI_DISABLED"] .. "|r")
     tooltip:AddDoubleLine(GetColor("TITLE") .. L["MENU_SCROLL_BUFFS"] .. "|r", scrollState)
-    tooltip:AddLine(GetColor("DESC") .. L["MENU_SCROLL_BUFFS_DESC"] .. "|r", 1, 1, 1, true)
+    tooltip:AddLine(GetColor("DESC") .. L["MENU_SCROLL_BUFFS_DESCRIPTION"] .. "|r", 1, 1, 1, true)
     tooltip:AddDoubleLine(GetColor("INFO") .. L["UI_SHIFT_LEFT"] .. "|r", GetColor("INFO") .. L["UI_TOGGLE"] .. "|r")
 
     -- Current Best Food
+    tooltip:AddLine(" ")
+    tooltip:AddLine(GetColor("TITLE") .. L["UI_BEST_FOOD"] .. "|r")
     if ns.BestFoodID and ns.BestFoodLink then
-        tooltip:AddLine(" ")
-        tooltip:AddLine(GetColor("TITLE") .. L["UI_BEST_FOOD"] .. "|r")
         local foodIcon = C_Item.GetItemIconByID(ns.BestFoodID)
         tooltip:AddLine(format("|T%s:14:14|t %s", foodIcon, ns.BestFoodLink))
         tooltip:AddDoubleLine(GetColor("INFO") .. L["UI_RIGHT_CLICK"] .. "|r", GetColor("INFO") .. L["MENU_IGNORE"] .. "|r")
+    else
+        tooltip:AddLine(GetColor("DESC") .. format(L["MSG_NO_ITEM"], L["LABEL_FOOD"]) .. "|r", 1, 1, 1, true)
     end
 
     -- Ignore List
@@ -182,11 +186,13 @@ UpdateTooltip = function(anchor)
         tooltip:AddLine(classColor .. L["PREFIX_HUNTER"] .. "|r")
         tooltip:AddLine(descriptionColor .. L["TIP_HUNTER_FEED_PET"] .. "|r", 1, 1, 1, true)
 
+        tooltip:AddLine(" ")
+        tooltip:AddLine(GetColor("TITLE") .. L["UI_BEST_PET_FOOD"] .. "|r")
         if ns.BestPetFoodID and ns.BestPetFoodLink then
-            tooltip:AddLine(" ")
-            tooltip:AddLine(GetColor("TITLE") .. L["UI_BEST_PET_FOOD"] .. "|r")
             local foodIcon = C_Item.GetItemIconByID(ns.BestPetFoodID)
             tooltip:AddLine(format("|T%s:14:14|t %s", foodIcon, ns.BestPetFoodLink))
+        else
+            tooltip:AddLine(GetColor("DESC") .. format(L["MSG_NO_ITEM"], L["LABEL_PET_FOOD"]) .. "|r", 1, 1, 1, true)
         end
     end
 
