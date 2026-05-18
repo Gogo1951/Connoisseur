@@ -18,51 +18,51 @@ Auto-updating macros for your best food, buff food, water, healing and mana poti
 
 ## Setup
 
-1. Install the add-on, ideally using [CurseForge](https://www.curseforge.com/wow/addons/consumable-connoisseur).
-2. Log in. Connoisseur scans your bags and creates macros in your General macro tab.
-3. Drag the dash-prefixed macros (`- Food`, `- Water`, `- Health Potion`, etc.) onto your action bars.
-4. Optional: type `/foodie` to fine-tune scroll buffs, buff food, pet food, and class options.
-5. Never miss a meal! Breakfast, second breakfast, elevenses, luncheon, afternoon tea, dinner, supper… (=
+1.  Install the add-on, ideally using [CurseForge](https://www.curseforge.com/wow/addons/consumable-connoisseur).
+2.  Log in. Connoisseur scans your bags and creates macros in your General macro tab.
+3.  Drag the dash-prefixed macros (`- Food`, `- Water`, `- Health Potion`, etc.) onto your action bars.
+4.  Optional: type `/foodie` to fine-tune scroll buffs, buff food, pet food, and class options.
+5.  Never miss a meal! Breakfast, second breakfast, elevenses, luncheon, afternoon tea, dinner, supper… (=
 
 ## How It Works
 
 ### Macros Created
 
-| Macro Name | Category |
-| --- | --- |
-| `- Food` | Best food (with optional buff food, scroll stacking, and pet buff food) |
-| `- Water` | Best drink |
-| `- Health Potion` | Best healing potion |
-| `- Mana Potion` | Best mana potion |
-| `- Healthstone` | Best Healthstone (Warlock) |
-| `- Soulstone` | Best Soulstone (Warlock) |
-| `- Mana Gem` | Best Mana Gem (Mage) |
-| `- Bandage` | Best bandage (requires First Aid skill) |
-| `- Feed Pet` | All-in-one pet button (Hunter only) |
+| Macro Name      |Category                                                                |
+| --------------- |----------------------------------------------------------------------- |
+| <code>- Food</code> |Best food (with optional buff food, scroll stacking, and pet buff food) |
+| <code>- Water</code> |Best drink                                                              |
+| <code>- Health Potion</code> |Best healing potion                                                     |
+| <code>- Mana Potion</code> |Best mana potion                                                        |
+| <code>- Healthstone</code> |Best Healthstone (Warlock)                                              |
+| <code>- Soulstone</code> |Best Soulstone (Warlock)                                                |
+| <code>- Mana Gem</code> |Best Mana Gem (Mage)                                                    |
+| <code>- Bandage</code> |Best bandage (requires First Aid skill)                                 |
+| <code>- Feed Pet</code> |All-in-one pet button (Hunter only)                                     |
 
 ### Minimap Button
 
 Hover for a tooltip showing the current state of every feature, your best food, the ignore list, and class-specific tips. The icon updates to match your current best food.
 
-| Action | Effect |
-| --- | --- |
-| Left-click | Toggle Buff Food priority |
-| Shift + Left-click | Toggle Scroll Buffs |
-| Right-click | Ignore current best food |
-| Middle-click | Clear ignore list |
+| Action             |Effect                    |
+| ------------------ |------------------------- |
+| Left-click         |Toggle Buff Food priority |
+| Shift + Left-click |Toggle Scroll Buffs       |
+| Right-click        |Ignore current best food  |
+| Middle-click       |Clear ignore list         |
 
-<img width="300" src="https://github.com/user-attachments/assets/c57060c0-4eee-44ab-af88-48e077d886cc" />
+<img src="https://github.com/user-attachments/assets/c57060c0-4eee-44ab-af88-48e077d886cc" width="260">
 
 ### Item Selection Priority
 
 For each consumable category, Connoisseur compares every usable item in your bags using this priority order:
 
-1. Buff food preferred (when Buff Food is enabled and Well Fed is missing)
-2. Percentage-based items preferred over flat values
-3. Highest restore value wins
-4. Lowest vendor sell price breaks ties (use up cheap items first)
-5. Hybrid food+water items preferred or avoided depending on the slot
-6. Fewest total in bags breaks the final tie
+1.  Buff food preferred (when Buff Food is enabled and Well Fed is missing)
+2.  Percentage-based items preferred over flat values
+3.  Highest restore value wins
+4.  Lowest vendor sell price breaks ties (use up cheap items first)
+5.  Hybrid food+water items preferred or avoided depending on the slot
+6.  Fewest total in bags breaks the final tie
 
 Items are filtered out if you don't meet the level requirement, lack the required profession skill (First Aid for bandages, Alchemy for certain potions), or are in the wrong zone.
 
@@ -70,13 +70,13 @@ Items are filtered out if you don't meet the level requirement, lack the require
 
 **Mages** can right-click Food, Water, or Mana Gem macros to conjure items. Middle-click casts Ritual of Refreshment. Targeting a lower-level friendly player auto-selects the appropriate conjure rank.
 
-<img width="300" src="https://github.com/user-attachments/assets/4a4cd1b4-d227-4731-8988-36f505611883" />
+<img src="https://github.com/user-attachments/assets/4a4cd1b4-d227-4731-8988-36f505611883" width="260">
 
 **Warlocks** can right-click Healthstone or Soulstone macros to create them. Middle-click casts Ritual of Souls.
 
 **Hunters** get an all-in-one `- Feed Pet` macro. Left-click feeds your pet the cheapest food that still gives max happiness. Right-click or entering combat casts Mend Pet. Shift forces Revive Pet. Ctrl dismisses. If your pet is dead but dismissed, it auto-switches to Revive Pet.
 
-<img width="300" src="https://github.com/user-attachments/assets/6ced7fae-f0bf-48f0-b317-b382e11a3bc1" />
+<img src="https://github.com/user-attachments/assets/6ced7fae-f0bf-48f0-b317-b382e11a3bc1" width="260">
 
 **Night Elves** can enable Shadowmeld Drinking, which appends Shadowmeld to the Water macro so you stealth while drinking.
 
@@ -84,7 +84,7 @@ Items are filtered out if you don't meet the level requirement, lack the require
 
 Type `/foodie` or open **Options > AddOns > Connoisseur** to configure the add-on.
 
-<img width="800" src="https://github.com/user-attachments/assets/c0e8e916-b3b9-4ce1-a5ff-d4b023a8ee20" />
+<img src="https://github.com/user-attachments/assets/c0e8e916-b3b9-4ce1-a5ff-d4b023a8ee20" width="800">
 
 **Prioritize Buff Food** // The Food macro prefers items that grant the Well Fed buff, but only when you don't already have it. Can be restricted to party or raid only.
 
@@ -110,9 +110,9 @@ Please reach out if you would like to be involved!
 
 ## Links
 
-* [CurseForge](https://www.curseforge.com/wow/addons/consumable-connoisseur)
-* [GitHub](https://github.com/Gogo1951/Connoisseur)
-* [Discord](https://discord.gg/eh8hKq992Q)
+*   [CurseForge](https://www.curseforge.com/wow/addons/consumable-connoisseur)
+*   [GitHub](https://github.com/Gogo1951/Connoisseur)
+*   [Discord](https://discord.gg/eh8hKq992Q)
 
 ## Related Add-ons
 
@@ -130,7 +130,7 @@ Please reach out if you would like to be involved!
 
 🟡 Some Overlap // Galeina's [Consumable Checker](https://www.curseforge.com/wow/addons/consumable-checker)
 
-🟡 Some Overlap // aeldra_'s [SmartBuff (Classic)](https://www.curseforge.com/wow/addons/smartbuff-classic)
+🟡 Some Overlap // aeldra\_'s [SmartBuff (Classic)](https://www.curseforge.com/wow/addons/smartbuff-classic)
 
 🔴 Direct Alternative // ollidiemaus's [Auto Potion](https://www.curseforge.com/wow/addons/auto-potion)
 
