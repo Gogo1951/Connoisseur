@@ -37,7 +37,7 @@ function ns.UpdateLDB()
     if not ns.LDBObj then return end
 
     local iconID = ns.BestFoodID or ns.Config["Food"].defaultID
-    local newIcon = C_Item.GetItemIconByID(iconID) or "Interface\\Icons\\INV_Misc_Food_02"
+    local newIcon = ns.GetItemIcon(iconID) or "Interface\\Icons\\INV_Misc_Food_02"
     ns.LDBObj.icon = newIcon
 
     if LDBIcon then
@@ -92,7 +92,7 @@ UpdateTooltip = function(anchor)
     tooltip:AddLine(" ")
     tooltip:AddLine(GetColor("TITLE") .. L["UI_BEST_FOOD"] .. "|r")
     if ns.BestFoodID and ns.BestFoodLink then
-        local foodIcon = C_Item.GetItemIconByID(ns.BestFoodID)
+        local foodIcon = ns.GetItemIcon(ns.BestFoodID)
         tooltip:AddLine(format("|T%s:14:14|t %s", foodIcon, ns.BestFoodLink))
         tooltip:AddDoubleLine(GetColor("INFO") .. L["UI_RIGHT_CLICK"] .. "|r", GetColor("INFO") .. L["MENU_IGNORE"] .. "|r")
     else
@@ -189,7 +189,7 @@ UpdateTooltip = function(anchor)
         tooltip:AddLine(" ")
         tooltip:AddLine(GetColor("TITLE") .. L["UI_BEST_PET_FOOD"] .. "|r")
         if ns.BestPetFoodID and ns.BestPetFoodLink then
-            local foodIcon = C_Item.GetItemIconByID(ns.BestPetFoodID)
+            local foodIcon = ns.GetItemIcon(ns.BestPetFoodID)
             tooltip:AddLine(format("|T%s:14:14|t %s", foodIcon, ns.BestPetFoodLink))
         else
             tooltip:AddLine(GetColor("DESC") .. format(L["MSG_NO_ITEM"], L["LABEL_PET_FOOD"]) .. "|r", 1, 1, 1, true)
