@@ -199,6 +199,26 @@ end
 local itemCounts = {}
 local slotItems = {}
 
+local PreferredManaPotionByMapID = {
+    [334] = 32902, -- Tempest Keep: The Eye -> Bottled Nethergon Energy
+    [332] = 32903  -- Serpentshrine Cavern -> Cenarion Mana Salve
+}
+
+local function IsPreferredManaPotionForMap(itemID, currentMap)
+    return currentMap and PreferredManaPotionByMapID[currentMap] == itemID
+end
+
+local function IsBetterManaPotion(candidate, candidateCount, candidatePrice, currentBest, currentMap)
+    local candidateIsPreferred = IsPreferredManaPotionForMap(candidate.id, currentMap)
+    local currentIsPreferred = IsPreferredManaPotionForMap(currentBest.id, currentMap)
+
+    if candidateIsPreferred ~= currentIsPreferred then
+        return candidateIsPreferred
+    end
+
+    return IsBetter(candidate, candidateCount, candidatePrice, currentBest, candidate.manaValue, false)
+end
+
 function ns.ScanBags()
     local playerLevel = ns.CachedPlayerLevel
     local currentMap = ns.CachedMapID
@@ -322,7 +342,7 @@ function ns.ScanBags()
                             end
                             if
                                 data.manaValue > 0 and
-                                    IsBetter(data, totalCount, data.price, best["Mana Potion"], data.manaValue, false)
+                                    IsBetterManaPotion(data, totalCount, data.price, best["Mana Potion"], currentMap)
                              then
                                 local winner = best["Mana Potion"]
                                 winner.id = id
