@@ -585,7 +585,7 @@ function ns.ScanPetFood()
                             end
 
                             if not skipQuest then
-                                local totalCount = C_Item.GetItemCount(id)
+                                local totalCount = ns.GetItemCount(id)
 
                                 if inHappyBracket then
                                     -- Prefer: lowest itemLevel, then lowest sell price, then fewest in bags
