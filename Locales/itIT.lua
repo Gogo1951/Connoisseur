@@ -55,7 +55,7 @@ L["MENU_SCROLL_BUFFS_DESCRIPTION"] = "Trasforma la tua macro Cibo in un applicat
 L["MENU_OPTIONS_HINT"] = "Impostazioni aggiuntive in Opzioni > Addon > Connoisseur."
 
 L["PREFIX_HUNTER"] = "Attenzione Cacciatori"
-L["PREFIX_MAGE"] = "Attenzione Magos"
+L["PREFIX_MAGE"] = "Attenzione Maghi"
 L["PREFIX_WARLOCK"] = "Attenzione Stregoni"
 
 L["TIP_DOWNRANK"] = "Selezionare un giocatore di livello inferiore farà creare alla macro oggetti adatti al suo livello."
