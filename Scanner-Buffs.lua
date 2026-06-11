@@ -44,11 +44,8 @@ function ns.HasScrollBuff(scrollType, scrollAmount)
 
     local data = ns.ScrollData[scrollType]
 
-    -- Build a set of all scroll buff IDs for this type
-    local scrollBuffIDs = {}
-    for _, entry in ipairs(data.items) do
-        scrollBuffIDs[entry[2]] = true
-    end
+    -- Per-type buff-ID set, precomputed once in Data/Scrolls.lua
+    local scrollBuffIDs = data.buffIDs
 
     for i = 1, 40 do
         local name, _, _, _, _, _, _, _, _, spellID = UnitAura("player", i, "HELPFUL")

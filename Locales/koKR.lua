@@ -33,13 +33,43 @@ L["MACRO_WATER"] = "- 물"
 L["RANK"] = "레벨"
 
 --------------------------------------------------------------------------------
+-- Pet Diets
+--------------------------------------------------------------------------------
+
+-- Diet names as returned by GetPetFoodTypes(), which is localized. These
+-- values MUST match the client's strings exactly (verify in-game with
+-- /dump GetPetFoodTypes() while a pet is out). Used to build
+-- ns.PetDietMap in Data/Pet-Foods.lua.
+
+L["DIET_BREAD"] = "빵"
+L["DIET_CHEESE"] = "치즈"
+L["DIET_FISH"] = "생선"
+L["DIET_FRUIT"] = "과일"
+L["DIET_FUNGUS"] = "버섯"
+L["DIET_MEAT"] = "고기"
+
+--------------------------------------------------------------------------------
 -- Chat Messages
 --------------------------------------------------------------------------------
 
 L["MSG_BUG_REPORT"] = "버그를 발견한 것 같습니다! %s (%s) 아이템은 %s > %s (%s)에서 사용할 수 없습니다. 수정할 수 있도록 제보해 주세요. 감사합니다! https://discord.gg/eh8hKq992Q"
 L["MSG_NO_ITEM"] = "가방에 적합한 %s(이)가 없습니다."
+L["MSG_MACRO_SLOTS_FULL"] = "매크로 슬롯이 가득 차서 일부 Connoisseur 매크로를 생성할 수 없습니다. 더 이상 사용하지 않는 매크로를 삭제하여 슬롯을 비우거나 설정 > 애드온 > Connoisseur에서 필요 없는 매크로를 끄십시오."
 
 L["CHAT_LOADED"] = "버전 %s. 설정(이 메시지 비활성화 옵션 포함)은 설정 > 애드온 > Connoisseur에서 찾을 수 있습니다. 애드온이 마음에 드시나요? 친구에게 알려주세요! (="
+
+--------------------------------------------------------------------------------
+-- ConnTip Messages
+--------------------------------------------------------------------------------
+
+-- Printed in chat by macro bodies via /run ConnTip("key"). See Core.lua.
+
+L["TIP_PET_NO_FOOD"] = "현재 소환수에게 줄 수 있는 적절한 먹이가 없습니다."
+L["TIP_PET_NO_SKILLS"] = "현재 야수 먹이 주기, 야수 치료 또는 야수 되살리기를 배우지 않았습니다."
+L["TIP_PET_NO_MEND"] = "현재 야수 치료를 배우지 않았습니다."
+
+-- %s is the localized spell name, resolved at print time.
+L["TIP_DONT_KNOW_SPELL"] = "현재 %s 기술을 배우지 않았습니다."
 
 --------------------------------------------------------------------------------
 -- Minimap Tooltip
@@ -63,15 +93,23 @@ L["TIP_HUNTER_FEED_PET"] = "야수 먹이 주기는 올인원 야수 버튼입�
 L["TIP_MAGE_CONJURE"] = "음식 또는 물 매크로를 우클릭하면 음식 또는 물을 창조합니다."
 L["TIP_MAGE_GEM"] = "마나 보석 매크로를 우클릭하여 새 보석을 창조합니다. 다시 우클릭하면 낮은 등급의 보조 보석을 창조합니다."
 L["TIP_MAGE_TABLE"] = "마우스 휠(가운데) 클릭 시 재충전의 의식을 시전합니다."
-L["TIP_WARLOCK_CONJURE"] = "생명석 또는 영혼석 매크로를 우클릭하면 생명석 또는 영혼석을 창조합니다."
+L["TIP_WARLOCK_CONJURE"] = "생명석 또는 영혼석 매크로를 우클릭하면 생명석 또는 영혼석을 창조합니다. 생명석 매크로를 다시 우클릭하면 낮은 등급의 보조 생명석을 창조합니다."
 L["TIP_WARLOCK_SOUL"] = "마우스 휠(가운데) 클릭 시 영혼의 의식을 시전합니다."
 
 L["UI_BEST_FOOD"] = "현재 음식"
 L["UI_BEST_PET_FOOD"] = "현재 최고 먹이"
 
 -- Labels that get plugged into MSG_NO_ITEM ("No suitable %s found...").
+-- One per macro type (resolved via ns.Config in ConnNoItem), plus Pet Food.
+L["LABEL_BANDAGE"] = "붕대"
 L["LABEL_FOOD"] = "음식"
+L["LABEL_HEALTH_POTION"] = "치유 물약"
+L["LABEL_HEALTHSTONE"] = "생명석"
+L["LABEL_MANA_GEM"] = "마나 보석"
+L["LABEL_MANA_POTION"] = "마나 물약"
 L["LABEL_PET_FOOD"] = "야수 먹이"
+L["LABEL_SOULSTONE"] = "영혼석"
+L["LABEL_WATER"] = "물"
 L["UI_DISABLED"] = "비활성화됨"
 L["UI_ENABLED"] = "활성화됨"
 L["UI_IGNORE_LIST"] = "차단 목록"
@@ -98,6 +136,10 @@ L["OPTIONS_DESCRIPTION"] = "최고의 음식, 버프 음식, 물, 두루마리, 
 -- Welcome Message
 L["OPTIONS_WELCOME_MESSAGE"] = "환영 메시지 활성화"
 L["OPTIONS_WELCOME_MESSAGE_DESCRIPTION"] = "로그인 시 채팅창에 환영 메시지를 출력합니다."
+
+-- Potions & Healthstones
+L["OPTIONS_POTIONS_HEADER"] = "물약 및 생명석"
+L["OPTIONS_POTIONS_DESCRIPTION"] = "전투 중에는 매크로를 변경할 수 없으므로(블리자드 제한 사항), 각 물약 및 생명석 매크로는 최고 아이템과 최대 2개의 예비 아이템으로 사전 구성됩니다. 긴 전투에서는 아이콘과 툴팁이 갱신되지 않아 잘못된 아이템을 표시할 수 있지만, 매크로를 클릭하면 항상 가방에 있는 실제 최고 아이템이 사용됩니다."
 
 -- Buff Food
 L["OPTIONS_BUFF_FOOD"] = "버프 음식 우선"

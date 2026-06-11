@@ -42,15 +42,18 @@ ns.RawData.ManaGem = {
 }
 
 --[[
-    Conjure-spell ID → conjured-item ID. Mana Gems are unique-equipped, so
-    GetSmartSpell consults this to skip a rank whose item the mage already
-    holds — a second press conjures the next rank down instead of failing
-    on a duplicate.
+    Conjure-spell ID → conjured-item IDs, shared across data files (see
+    also Healthstones.lua). Conjured stones are unique in bags, so
+    GetSmartSpell consults this when called with checkUnique to skip a
+    rank whose item the player already holds — the macro then conjures
+    the next rank down instead of failing on a duplicate. Values are
+    lists; each Mana Gem spell produces exactly one item.
 ]]
-ns.ConjuredManaGemItemIDBySpell = {
-    [27101] = 22044, -- Conjure Mana Emerald
-    [10054] = 8008, -- Conjure Mana Ruby
-    [10053] = 8007, -- Conjure Mana Citrine
-    [3552] = 5513, -- Conjure Mana Jade
-    [759] = 5514, -- Conjure Mana Agate
-}
+ns.ConjuredItemIDsBySpell = ns.ConjuredItemIDsBySpell or {}
+
+ns.ConjuredItemIDsBySpell[42985] = {33312} -- Conjure Mana Sapphire
+ns.ConjuredItemIDsBySpell[27101] = {22044} -- Conjure Mana Emerald
+ns.ConjuredItemIDsBySpell[10054] = {8008} -- Conjure Mana Ruby
+ns.ConjuredItemIDsBySpell[10053] = {8007} -- Conjure Mana Citrine
+ns.ConjuredItemIDsBySpell[3552] = {5513} -- Conjure Mana Jade
+ns.ConjuredItemIDsBySpell[759] = {5514} -- Conjure Mana Agate

@@ -28,9 +28,8 @@ local COLORS = {
     MUTED = COLOR_PREFIX .. C_MUTED
 }
 
-function ns.GetColor(key)
-    return COLORS[key] or COLORS.TEXT
-end
+-- The accessor (ns.GetColor) lives in Core.lua; this file just owns the data.
+ns.COLORS = COLORS
 
 --------------------------------------------------------------------------------
 -- Class Colors
@@ -69,17 +68,42 @@ ns.QUESTION_MARK_ICON = 134400
 -- Macro Configuration
 --------------------------------------------------------------------------------
 
+-- label: localized display name plugged into MSG_NO_ITEM by ConnNoItem.
 ns.Config = {
-    ["Bandage"] = {macro = ns.L["MACRO_BANDAGE"], defaultID = 1251},
-    ["Food"] = {macro = ns.L["MACRO_FOOD"], defaultID = 5349},
-    ["Health Potion"] = {macro = ns.L["MACRO_HEALTH_POTION"], defaultID = 118},
-    ["Healthstone"] = {macro = ns.L["MACRO_HEALTHSTONE"], defaultID = 5512},
-    ["Mana Gem"] = {macro = ns.L["MACRO_MANA_GEM"], defaultID = 5514},
-    ["Mana Potion"] = {macro = ns.L["MACRO_MANA_POTION"], defaultID = 2455},
-    ["Soulstone"] = {macro = ns.L["MACRO_SOULSTONE"], defaultID = 5232},
-    ["Water"] = {macro = ns.L["MACRO_WATER"], defaultID = 5350},
-    ["Feed Pet"] = {macro = ns.L["MACRO_FEED_PET"], defaultID = 117}
+    ["Bandage"] = {macro = ns.L["MACRO_BANDAGE"], defaultID = 1251, label = ns.L["LABEL_BANDAGE"]},
+    ["Food"] = {macro = ns.L["MACRO_FOOD"], defaultID = 5349, label = ns.L["LABEL_FOOD"]},
+    ["Health Potion"] = {macro = ns.L["MACRO_HEALTH_POTION"], defaultID = 118, label = ns.L["LABEL_HEALTH_POTION"]},
+    ["Healthstone"] = {macro = ns.L["MACRO_HEALTHSTONE"], defaultID = 5512, label = ns.L["LABEL_HEALTHSTONE"]},
+    ["Mana Gem"] = {macro = ns.L["MACRO_MANA_GEM"], defaultID = 5514, label = ns.L["LABEL_MANA_GEM"]},
+    ["Mana Potion"] = {macro = ns.L["MACRO_MANA_POTION"], defaultID = 2455, label = ns.L["LABEL_MANA_POTION"]},
+    ["Soulstone"] = {macro = ns.L["MACRO_SOULSTONE"], defaultID = 5232, label = ns.L["LABEL_SOULSTONE"]},
+    ["Water"] = {macro = ns.L["MACRO_WATER"], defaultID = 5350, label = ns.L["LABEL_WATER"]},
+    ["Feed Pet"] = {macro = ns.L["MACRO_FEED_PET"], defaultID = 117, label = ns.L["LABEL_PET_FOOD"]}
 }
+
+--[[
+    Macro types whose macros stack up to MULTI_USE_MAX_ITEMS ranked /use
+    lines, best item first. Once the best item runs out mid-combat — where
+    macros cannot be rewritten — the press falls through to the next-best
+    item. Only safe for categories whose items all share an item cooldown,
+    so a single press still consumes exactly one item.
+]]
+ns.MULTI_USE_MAX_ITEMS = 3
+
+ns.MultiUseMacroTypes = {
+    ["Health Potion"] = true,
+    ["Healthstone"] = true,
+    ["Mana Potion"] = true
+}
+
+--[[
+    Connoisseur never creates a macro that would dip into the player's
+    last N free General macro slots — those stay reserved for the player.
+    Creation pauses (with a once-per-session chat message) and resumes
+    automatically once slots free up. See ns.TryCreateMacro in
+    Macro-Builder-General.lua.
+]]
+ns.MACRO_SLOT_CUSHION = 0
 
 --------------------------------------------------------------------------------
 -- Shadowmeld
@@ -98,8 +122,8 @@ ns.DRUID_CAT_FORM_SPELL_ID = 768
 -- Which macro types are eligible for DMH wrapping when the druid toggle is on.
 ns.DMHMacroTypes = {
     ["Health Potion"] = true,
-    ["Mana Potion"]   = true,
-    ["Healthstone"]   = true,
+    ["Mana Potion"] = true,
+    ["Healthstone"] = true
 }
 
 --[[
@@ -110,9 +134,9 @@ ns.DMHMacroTypes = {
                  whole point of a mana pot is that the druid is OOM)
 ]]
 ns.DMHGuards = {
-    ["Health Potion"] = { "/dmh start", "/dmh cd pot" },
-    ["Healthstone"]   = { "/dmh start", "/dmh cd hs" },
-    ["Mana Potion"]   = { "/dmh stun gcd cd pot" },
+    ["Health Potion"] = {"/dmh start", "/dmh cd pot"},
+    ["Healthstone"] = {"/dmh start", "/dmh cd hs"},
+    ["Mana Potion"] = {"/dmh stun gcd cd pot"}
 }
 
 --------------------------------------------------------------------------------
@@ -130,11 +154,10 @@ ns.DMHGuards = {
     Table in Era 1.15) returns nil from GetSpellInfo, so ConnTip silently
     skips the print rather than naming a spell the player will never see.
 ]]
-
 ns.MessageStrings = {
-    nofood   = "You don't currently have any food that is useful for your pet.",
-    noskills = "You don't currently know Feed Pet, Mend Pet, or Revive Pet.",
-    nomend   = "You don't currently know Mend Pet.",
+    nofood = ns.L["TIP_PET_NO_FOOD"],
+    noskills = ns.L["TIP_PET_NO_SKILLS"],
+    nomend = ns.L["TIP_PET_NO_MEND"]
 }
 
 --[[
@@ -143,29 +166,30 @@ ns.MessageStrings = {
 ]]
 ns.MissingSpellMessageIDs = {
     -- Mage conjures
-    ncwater = 5504,  -- Conjure Water (rank 1)
-    ncfood  = 587,   -- Conjure Food (rank 1)
-    ncgem   = 759,   -- Conjure Mana Agate
-    nctable = 43987, -- Refreshment Table (TBC+)
+    ncwater = 5504, -- Conjure Water (rank 1)
+    ncfood = 587, -- Conjure Food (rank 1)
+    ncgem = 759, -- Conjure Mana Agate
+    nctable = 43987, -- Ritual of Refreshment (TBC+)
     -- Warlock conjures
-    nchs = 6201,  -- Create Healthstone (Minor)
-    ncss = 693,   -- Create Soulstone (Minor)
-    ncsw = 29893, -- Ritual of Souls (TBC+)
+    nchs = 6201, -- Create Healthstone (Minor)
+    ncss = 693, -- Create Soulstone (Minor)
+    ncsw = 29893 -- Ritual of Souls (TBC+)
 }
 
 --------------------------------------------------------------------------------
 -- Hunter Pet Spells
 --------------------------------------------------------------------------------
 
-ns.FEED_PET_SPELL_ID = 6991
-ns.REVIVE_PET_SPELL_ID = 982
-ns.MEND_PET_SPELL_ID = 136
 ns.CALL_PET_SPELL_ID = 883
 ns.DISMISS_PET_SPELL_ID = 2641
+ns.FEED_PET_SPELL_ID = 6991
+ns.MEND_PET_SPELL_ID = 136
+ns.REVIVE_PET_SPELL_ID = 982
 
 --------------------------------------------------------------------------------
 -- Pet Buff Food
 --------------------------------------------------------------------------------
+-- These are Hunter & Lock, just to be clear. 
 
 ns.KIBLERS_BITS_ITEM_ID = 33874
 ns.SPORELING_SNACKS_ITEM_ID = 27656
@@ -238,25 +262,61 @@ ns.MODE_ORDER = {"always", "party", "raid"}
 --------------------------------------------------------------------------------
 -- Mage and Warlock Spells
 --------------------------------------------------------------------------------
+--[[
+    Conjure spell lists, best rank first. Each entry is:
 
--- { spellID, requiredLevel[, rankNumber] }
+        { spellID, requiredLevel[, rankNumber][, maxTargetLevel] }
+
+    spellID        The conjure spell the macro /casts.
+    requiredLevel  The level needed to USE the conjured item — not the
+                   level the spell is learned (Create Healthstone (Minor)
+                   is learned at 6, but its stone is usable at level 1).
+                   GetSmartSpell compares this against the player's level
+                   — or a friendly target's level — so the macro downranks
+                   to conjure an item the recipient can actually use. For
+                   lists that never downrank by target (Mana Gems,
+                   Soulstones) and the ritual utilities (Refreshment
+                   Table, Ritual of Souls), it is simply the spell's
+                   learn level.
+    rankNumber     Optional. When present, the /cast line is written as
+                   "Spell Name(Rank N)" to pin that exact rank. Omitted
+                   where every entry already has a unique spell name
+                   (each Mana Gem tier is its own spell).
+    maxTargetLevel Optional, documentation only (Soulstones) — every
+                   consumer (GetSmartSpell, KnowsAny, the Core spell
+                   cache) reads only the first three fields.
+]]
 ns.ConjureSpells = {
     MageCreateTable = {
-        {43987, 70}
+        -- {Spell ID, Spell Learn Level}
+        {58659, 80}, -- Ritual of Refreshment, Rank 2
+        {43987, 70}, -- Ritual of Refreshment, Rank 1
     },
     MageCreateWater = {
+        -- {Spell ID, Conjured Item Usage Level, Spell Rank}, -- Conjured Item
+        -- Conjure Refreshment (Wrath) makes items that are food AND water,
+        -- so its two ranks lead both lists. The rank column is the spell's
+        -- own rank, not its position here.
+        {42956, 80, 2}, -- Conjured Mana Strudel (Conjure Refreshment, Rank 2)
+        {42955, 74, 1}, -- Conjured Mana Pie (Conjure Refreshment, Rank 1)
         {27090, 65, 9}, -- Conjured Glacier Water
         {37420, 60, 8}, -- Conjured Mountain Spring Water
         {10140, 55, 7}, -- Conjured Crystal Water
         {10139, 45, 6}, -- Conjured Sparkling Water
         {10138, 35, 5}, -- Conjured Mineral Water
         {6127, 25, 4}, -- Conjured Spring Water
-        {5506, 15, 3}, -- Conjured Fresh Water
-        {5505, 5, 2}, -- Conjured Purified Water
-        {5504, 1, 1} -- Conjured Fresh Water
+        {5506, 15, 3}, -- Conjured Purified Water
+        {5505, 5, 2}, -- Conjured Fresh Water
+        {5504, 1, 1} -- Conjured Water
     },
     MageCreateFood = {
-        {33717, 65, 8}, -- Magical Croissant
+        -- {Spell ID, Conjured Item Usage Level, Spell Rank}, -- Conjured Item
+        -- Conjure Refreshment (Wrath) makes items that are food AND water,
+        -- so its two ranks lead both lists. The rank column is the spell's
+        -- own rank, not its position here.
+        {42956, 80, 2}, -- Conjured Mana Strudel (Conjure Refreshment, Rank 2)
+        {42955, 74, 1}, -- Conjured Mana Pie (Conjure Refreshment, Rank 1)
+        {33717, 65, 8}, -- Conjured Croissant
         {28612, 55, 7}, -- Conjured Cinnamon Roll
         {10145, 45, 6}, -- Conjured Sweet Roll
         {10144, 35, 5}, -- Conjured Sourdough
@@ -266,6 +326,8 @@ ns.ConjureSpells = {
         {587, 1, 1} -- Conjured Muffin
     },
     MageCreateManaGem = {
+        -- {Spell ID, Spell Learn Level}, -- Spell Name
+        {42985, 77}, -- Conjure Mana Sapphire
         {27101, 68}, -- Conjure Mana Emerald
         {10054, 58}, -- Conjure Mana Ruby
         {10053, 48}, -- Conjure Mana Citrine
@@ -273,9 +335,14 @@ ns.ConjureSpells = {
         {759, 28} -- Conjure Mana Agate
     },
     WarlockCreateSoulwell = {
-        {29893, 68}
+        -- {Spell ID, Spell Learn Level}
+        {58887, 80}, -- Ritual of Souls, Rank 2
+        {29893, 68}, -- Ritual of Souls, Rank 1
     },
     WarlockCreateHealthstone = {
+        -- {Spell ID, Conjured Item Usage Level, Spell Rank}, -- Conjured Item
+        {47878, 69, 8}, -- Fel Healthstone
+        {47871, 63, 7}, -- Demonic Healthstone
         {27230, 60, 6}, -- Master Healthstone
         {11730, 48, 5}, -- Major Healthstone
         {11729, 36, 4}, -- Greater Healthstone
@@ -284,11 +351,20 @@ ns.ConjureSpells = {
         {6201, 1, 1} -- Minor Healthstone
     },
     WarlockCreateSoulstone = {
-        {27238, 70, 6}, -- Master Soulstone
-        {20757, 60, 5}, -- Major Soulstone
-        {20756, 50, 4}, -- Greater Soulstone
-        {20755, 40, 3}, -- Soulstone
-        {20752, 30, 2}, -- Lesser Soulstone
-        {693, 18, 1} -- Minor Soulstone
+        --[[
+            Max Target Level: a soulstone cannot be used on players ABOVE
+            that level. It needs no selection logic — the caps rise with
+            rank, so casting the best known rank always satisfies the cap.
+            The resolver passes ignoreTarget=true, which is why the second
+            column is the learn level rather than an item usage level.
+        ]]
+        -- {Spell ID, Spell Learn Level, Spell Rank, Max Target Level}, -- Conjured Item
+        {47884, 76, 7, 80}, -- Demonic Soulstone (Wrath)
+        {27238, 70, 6, 80}, -- Master Soulstone (TBC)
+        {20757, 60, 5, 70}, -- Major Soulstone
+        {20756, 50, 4, 60}, -- Greater Soulstone
+        {20755, 40, 3, 50}, -- Soulstone
+        {20752, 30, 2, 40}, -- Lesser Soulstone
+        {693, 18, 1, 30} -- Minor Soulstone
     }
 }

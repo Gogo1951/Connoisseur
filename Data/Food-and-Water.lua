@@ -10,6 +10,7 @@ ns.RawData = ns.RawData or {}
     by item_template.spellid_1; Allowed Zones from Map/Area restrictions.
 ]]
 ns.RawData.FoodAndWater = {
+    -- TODO: Add Wrath Data
     -- [ID] = {Buff Food, Food %, Food Amount, Water %, Water Amount, {Allowed Zones}}, -- Name
 
     [19301] = {0, 0, 4410, 0, 4410}, -- Alterac Manna Biscuit

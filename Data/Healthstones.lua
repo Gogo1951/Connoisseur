@@ -58,3 +58,22 @@ ns.RawData.Healthstone = {
     [19004] = {110, 1}, -- Minor Healthstone
     [5512] = {100, 1}, -- Minor Healthstone
 }
+
+--[[
+    Conjure-spell ID → conjured-item IDs, shared across data files (see
+    also Mana-Gems.lua). Each Create Healthstone rank produces one of
+    three items depending on the warlock's Improved Healthstone talent
+    (0/1/2 points), and each tier is unique in bags. GetSmartSpell treats
+    a tier as held when any variant is present, so the macro conjures the
+    next rank down instead of failing on a duplicate.
+]]
+ns.ConjuredItemIDsBySpell = ns.ConjuredItemIDsBySpell or {}
+
+ns.ConjuredItemIDsBySpell[47878] = {36892, 36893, 36894} -- Fel Healthstone
+ns.ConjuredItemIDsBySpell[47871] = {36889, 36890, 36891} -- Demonic Healthstone
+ns.ConjuredItemIDsBySpell[27230] = {22103, 22104, 22105} -- Master Healthstone
+ns.ConjuredItemIDsBySpell[11730] = {9421, 19012, 19013} -- Major Healthstone
+ns.ConjuredItemIDsBySpell[11729] = {5510, 19010, 19011} -- Greater Healthstone
+ns.ConjuredItemIDsBySpell[5699] = {5509, 19008, 19009} -- Healthstone
+ns.ConjuredItemIDsBySpell[6202] = {5511, 19006, 19007} -- Lesser Healthstone
+ns.ConjuredItemIDsBySpell[6201] = {5512, 19004, 19005} -- Minor Healthstone

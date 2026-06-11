@@ -33,13 +33,43 @@ L["MACRO_WATER"] = "- 水"
 L["RANK"] = "等級"
 
 --------------------------------------------------------------------------------
+-- Pet Diets
+--------------------------------------------------------------------------------
+
+-- Diet names as returned by GetPetFoodTypes(), which is localized. These
+-- values MUST match the client's strings exactly (verify in-game with
+-- /dump GetPetFoodTypes() while a pet is out). Used to build
+-- ns.PetDietMap in Data/Pet-Foods.lua.
+
+L["DIET_BREAD"] = "麵包"
+L["DIET_CHEESE"] = "乳酪"
+L["DIET_FISH"] = "魚"
+L["DIET_FRUIT"] = "水果"
+L["DIET_FUNGUS"] = "蘑菇"
+L["DIET_MEAT"] = "肉"
+
+--------------------------------------------------------------------------------
 -- Chat Messages
 --------------------------------------------------------------------------------
 
 L["MSG_BUG_REPORT"] = "看來你發現了一個BUG！%s (%s) 無法在 %s > %s (%s) 使用。請報告給我們以便修復。謝謝！ https://discord.gg/eh8hKq992Q"
 L["MSG_NO_ITEM"] = "背包中未找到合適的 %s。"
+L["MSG_MACRO_SLOTS_FULL"] = "由於你的巨集空位已滿，部分 Connoisseur 巨集無法創建。請刪除不再使用的巨集以釋放空位，或在 選項 > 插件 > Connoisseur 中關閉不需要的巨集。"
 
 L["CHAT_LOADED"] = "版本 %s。設定（包括停用此訊息的選項）可以在 選項 > 插件 > Connoisseur 中找到。喜歡這個插件嗎？告訴朋友吧！(="
+
+--------------------------------------------------------------------------------
+-- ConnTip Messages
+--------------------------------------------------------------------------------
+
+-- Printed in chat by macro bodies via /run ConnTip("key"). See Core.lua.
+
+L["TIP_PET_NO_FOOD"] = "你目前沒有任何對寵物有用的食物。"
+L["TIP_PET_NO_SKILLS"] = "你目前還沒有學會餵養寵物、治療寵物或復活寵物。"
+L["TIP_PET_NO_MEND"] = "你目前還沒有學會治療寵物。"
+
+-- %s is the localized spell name, resolved at print time.
+L["TIP_DONT_KNOW_SPELL"] = "你目前還沒有學會%s。"
 
 --------------------------------------------------------------------------------
 -- Minimap Tooltip
@@ -63,15 +93,23 @@ L["TIP_HUNTER_FEED_PET"] = "餵養寵物是一個多合一的寵物按鈕！點�
 L["TIP_MAGE_CONJURE"] = "右鍵點擊你的食物或水巨集以製造食物或水。"
 L["TIP_MAGE_GEM"] = "右鍵點擊你的法力寶石巨集以製造一顆新的寶石。再次右鍵點擊以製造一顆低等級備用寶石。"
 L["TIP_MAGE_TABLE"] = "中鍵點擊以施放召喚餐桌。"
-L["TIP_WARLOCK_CONJURE"] = "右鍵點擊你的治療石或靈魂石巨集以製造治療石或靈魂石。"
+L["TIP_WARLOCK_CONJURE"] = "右鍵點擊你的治療石或靈魂石巨集以製造治療石或靈魂石。再次右鍵點擊你的治療石巨集以製造一顆低等級備用治療石。"
 L["TIP_WARLOCK_SOUL"] = "中鍵點擊以施放靈魂儀式。"
 
 L["UI_BEST_FOOD"] = "當前食物"
 L["UI_BEST_PET_FOOD"] = "當前寵物食物"
 
 -- Labels that get plugged into MSG_NO_ITEM ("No suitable %s found...").
+-- One per macro type (resolved via ns.Config in ConnNoItem), plus Pet Food.
+L["LABEL_BANDAGE"] = "繃帶"
 L["LABEL_FOOD"] = "食物"
+L["LABEL_HEALTH_POTION"] = "治療藥水"
+L["LABEL_HEALTHSTONE"] = "治療石"
+L["LABEL_MANA_GEM"] = "法力寶石"
+L["LABEL_MANA_POTION"] = "法力藥水"
 L["LABEL_PET_FOOD"] = "寵物食物"
+L["LABEL_SOULSTONE"] = "靈魂石"
+L["LABEL_WATER"] = "水"
 L["UI_DISABLED"] = "已停用"
 L["UI_ENABLED"] = "已啟用"
 L["UI_IGNORE_LIST"] = "忽略列表"
@@ -98,6 +136,10 @@ L["OPTIONS_DESCRIPTION"] = "為你最好的食物、增益食物、水、卷軸�
 -- Welcome Message
 L["OPTIONS_WELCOME_MESSAGE"] = "啟用歡迎訊息"
 L["OPTIONS_WELCOME_MESSAGE_DESCRIPTION"] = "登入時在聊天框列印歡迎訊息。"
+
+-- Potions & Healthstones
+L["OPTIONS_POTIONS_HEADER"] = "藥水與治療石"
+L["OPTIONS_POTIONS_DESCRIPTION"] = "巨集在戰鬥中無法更改（這是暴雪的限制），因此每個藥水和治療石巨集都預先包含你最好的物品以及最多兩個備用物品。在較長的戰鬥中，圖示和提示可能會過時並顯示錯誤的物品，但點擊該巨集將始終使用你背包中實際擁有的最佳物品。"
 
 -- Buff Food
 L["OPTIONS_BUFF_FOOD"] = "優先增益食物"
