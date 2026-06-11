@@ -33,13 +33,43 @@ L["MACRO_WATER"] = "- 水"
 L["RANK"] = "等级"
 
 --------------------------------------------------------------------------------
+-- Pet Diets
+--------------------------------------------------------------------------------
+
+-- Diet names as returned by GetPetFoodTypes(), which is localized. These
+-- values MUST match the client's strings exactly (verify in-game with
+-- /dump GetPetFoodTypes() while a pet is out). Used to build
+-- ns.PetDietMap in Data/Pet-Foods.lua.
+
+L["DIET_BREAD"] = "面包"
+L["DIET_CHEESE"] = "奶酪"
+L["DIET_FISH"] = "鱼"
+L["DIET_FRUIT"] = "水果"
+L["DIET_FUNGUS"] = "蘑菇"
+L["DIET_MEAT"] = "肉"
+
+--------------------------------------------------------------------------------
 -- Chat Messages
 --------------------------------------------------------------------------------
 
 L["MSG_BUG_REPORT"] = "看来你发现了一个BUG！%s (%s) 无法在 %s > %s (%s) 使用。请报告给我们以便修复。谢谢！ https://discord.gg/eh8hKq992Q"
 L["MSG_NO_ITEM"] = "背包中未找到合适的 %s。"
+L["MSG_MACRO_SLOTS_FULL"] = "由于你的宏空位已满，部分 Connoisseur 宏无法创建。请删除不再使用的宏以释放空位，或在 选项 > 插件 > Connoisseur 中关闭不需要的宏。"
 
 L["CHAT_LOADED"] = "版本 %s。设置（包括禁用此消息的选项）可以在 选项 > 插件 > Connoisseur 中找到。喜欢这个插件吗？告诉朋友吧！(="
+
+--------------------------------------------------------------------------------
+-- ConnTip Messages
+--------------------------------------------------------------------------------
+
+-- Printed in chat by macro bodies via /run ConnTip("key"). See Core.lua.
+
+L["TIP_PET_NO_FOOD"] = "你目前没有任何对宠物有用的食物。"
+L["TIP_PET_NO_SKILLS"] = "你目前还没有学会喂养宠物、治疗宠物或复活宠物。"
+L["TIP_PET_NO_MEND"] = "你目前还没有学会治疗宠物。"
+
+-- %s is the localized spell name, resolved at print time.
+L["TIP_DONT_KNOW_SPELL"] = "你目前还没有学会%s。"
 
 --------------------------------------------------------------------------------
 -- Minimap Tooltip
@@ -63,15 +93,23 @@ L["TIP_HUNTER_FEED_PET"] = "喂养宠物是一个多合一的宠物按钮！点�
 L["TIP_MAGE_CONJURE"] = "右键点击你的食物或水宏以制造食物或水。"
 L["TIP_MAGE_GEM"] = "右键点击你的法力宝石宏以制造一颗新的宝石。再次右键点击以制造一颗低等级备用宝石。"
 L["TIP_MAGE_TABLE"] = "中键点击以施放召唤餐桌。"
-L["TIP_WARLOCK_CONJURE"] = "右键点击你的治疗石或灵魂石宏以制造治疗石或灵魂石。"
+L["TIP_WARLOCK_CONJURE"] = "右键点击你的治疗石或灵魂石宏以制造治疗石或灵魂石。再次右键点击你的治疗石宏以制造一颗低等级备用治疗石。"
 L["TIP_WARLOCK_SOUL"] = "中键点击以施放灵魂仪式。"
 
 L["UI_BEST_FOOD"] = "当前食物"
 L["UI_BEST_PET_FOOD"] = "当前宠物食物"
 
 -- Labels that get plugged into MSG_NO_ITEM ("No suitable %s found...").
+-- One per macro type (resolved via ns.Config in ConnNoItem), plus Pet Food.
+L["LABEL_BANDAGE"] = "绷带"
 L["LABEL_FOOD"] = "食物"
+L["LABEL_HEALTH_POTION"] = "治疗药水"
+L["LABEL_HEALTHSTONE"] = "治疗石"
+L["LABEL_MANA_GEM"] = "法力宝石"
+L["LABEL_MANA_POTION"] = "法力药水"
 L["LABEL_PET_FOOD"] = "宠物食物"
+L["LABEL_SOULSTONE"] = "灵魂石"
+L["LABEL_WATER"] = "水"
 L["UI_DISABLED"] = "已禁用"
 L["UI_ENABLED"] = "已启用"
 L["UI_IGNORE_LIST"] = "忽略列表"
@@ -98,6 +136,10 @@ L["OPTIONS_DESCRIPTION"] = "为你最好的食物、增益食物、水、卷轴�
 -- Welcome Message
 L["OPTIONS_WELCOME_MESSAGE"] = "启用欢迎消息"
 L["OPTIONS_WELCOME_MESSAGE_DESCRIPTION"] = "登录时在聊天框打印欢迎消息。"
+
+-- Potions & Healthstones
+L["OPTIONS_POTIONS_HEADER"] = "药水与治疗石"
+L["OPTIONS_POTIONS_DESCRIPTION"] = "宏在战斗中无法更改（这是暴雪的限制），因此每个药水和治疗石宏都预先包含你最好的物品以及最多两个备用物品。在较长的战斗中，图标和提示可能会过时并显示错误的物品，但点击该宏将始终使用你背包中实际拥有的最佳物品。"
 
 -- Buff Food
 L["OPTIONS_BUFF_FOOD"] = "优先增益食物"

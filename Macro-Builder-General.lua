@@ -1,6 +1,5 @@
 local _, ns = ...
 local L = ns.L
-local GetColor = ns.GetColor
 local Config = ns.Config
 
 --------------------------------------------------------------------------------
@@ -89,10 +88,14 @@ function ns.GetSmartSpell(spellList, ignoreTarget, checkUnique)
         if known and requiredLevel <= levelCap then
             local shouldSkip = false
 
-            if checkUnique and ns.ConjuredManaGemItemIDBySpell
-                and ns.ConjuredManaGemItemIDBySpell[spellID] then
-                if ns.GetItemCount(ns.ConjuredManaGemItemIDBySpell[spellID]) > 0 then
-                    shouldSkip = true
+            local conjuredItems = checkUnique and ns.ConjuredItemIDsBySpell
+                and ns.ConjuredItemIDsBySpell[spellID]
+            if conjuredItems then
+                for _, conjuredItemID in ipairs(conjuredItems) do
+                    if ns.GetItemCount(conjuredItemID) > 0 then
+                        shouldSkip = true
+                        break
+                    end
                 end
             end
 
@@ -109,19 +112,33 @@ function ns.GetSmartSpell(spellList, ignoreTarget, checkUnique)
     end
 
     --[[
-        Fallback only when the player knows at least one spell in the list
-        but none matched the level cap (targeting a low-level friend).
+        Fallback when no rank matched the level cap (targeting a low-level
+        friend): walk the list bottom-up and use the lowest rank the player
+        actually KNOWS. Players can skip training low ranks, so the list's
+        last entry may be untrained — and /cast of an untrained spell is a
+        silent no-op that would make the conjure click look broken. Knows
+        nothing at all → nil, 0, same as an empty list.
     ]]
-    if not ns.KnowsAny(spellList) then
-        return nil, 0
+    for i = #spellList, 1, -1 do
+        local spellID, rankNumber = spellList[i][1], spellList[i][3]
+
+        local known = IsSpellKnown(spellID)
+        if not known and IsPlayerSpell then
+            known = IsPlayerSpell(spellID)
+        end
+
+        if known then
+            local fallbackName = GetSpellInfo(spellID)
+            if fallbackName then
+                if rankNumber then
+                    return fallbackName .. "(" .. L["RANK"] .. " " .. rankNumber .. ")", spellID
+                end
+                return fallbackName, spellID
+            end
+        end
     end
 
-    local lowestRank = spellList[#spellList]
-    local fallbackName = GetSpellInfo(lowestRank[1])
-    if lowestRank[3] then
-        return fallbackName .. "(" .. L["RANK"] .. " " .. lowestRank[3] .. ")", lowestRank[1]
-    end
-    return fallbackName, lowestRank[1]
+    return nil, 0
 end
 
 --------------------------------------------------------------------------------
@@ -167,10 +184,68 @@ end
 -- Macro Writing
 --------------------------------------------------------------------------------
 
+--[[
+    CreateMacro wrapper, shared with the Hunter builder. The perCharacter
+    argument is deliberately omitted: Connoisseur macros always live in
+    the General (account-wide) tab. All characters share the same nine
+    slots, and each character's first update pass after login rewrites
+    the shared bodies to its own best items, so the macros self-heal on
+    every character switch.
+
+    Do NOT pass a numeric 1 here to "mean" General — this client
+    boolean-checks the argument (verified in-game: true lands in the
+    character-specific tab, 1 lands in General), so a number only
+    produces a General macro by accident and would silently flip tabs if
+    a future build starts accepting numbers as true. Omitting the
+    argument is the unambiguous spelling of "General tab" on every
+    client.
+
+    Creation is skipped entirely when it would dip into the player's last
+    ns.MACRO_SLOT_CUSHION free General slots — those stay reserved for
+    the player's own macros. pcall plus the nil-check still covers both
+    failure modes of a truly full macro book (some client builds raise an
+    error, others return nil), in case another addon races us past the
+    cushion. Either way the warning prints once per session, and callers
+    leave their state key unset on failure so creation retries — and
+    resumes automatically — once slots free up.
+]]
+local macroSlotsWarned = false
+
+local function WarnMacroSlots()
+    if not macroSlotsWarned then
+        macroSlotsWarned = true
+        ns.PrintMessage(L["MSG_MACRO_SLOTS_FULL"])
+    end
+end
+
+function ns.TryCreateMacro(macroName, icon, body)
+    local numGeneral = GetNumMacros()
+    local cap = MAX_ACCOUNT_MACROS or 120
+    if (cap - numGeneral) <= ns.MACRO_SLOT_CUSHION then
+        WarnMacroSlots()
+        return false
+    end
+
+    local ok, newIndex = pcall(CreateMacro, macroName, icon, body)
+    if ok and newIndex then
+        return true
+    end
+    WarnMacroSlots()
+    return false
+end
+
 local function WriteMacro(macroName, icon, body, stateKey, typeName)
     local index = GetMacroIndexByName(macroName)
     if index == 0 then
-        CreateMacro(macroName, icon, body, 1)
+        --[[
+            On a failed create, leave the state key unset so the next
+            update cycle retries — the macro then appears automatically
+            once the player frees a slot, no /reload needed.
+        ]]
+        if not ns.TryCreateMacro(macroName, icon, body) then
+            currentMacroState[typeName] = nil
+            return
+        end
     else
         local existingBody = GetMacroBody(macroName)
         if existingBody ~= body then
@@ -194,6 +269,25 @@ end
 ]]
 local function StateWriteLine(itemID)
     return "/run ConnFire(" .. itemID .. ")\n"
+end
+
+--[[
+    Builds the stacked /use block for a multi-use macro type
+    (ns.MultiUseMacroTypes): one line per ranked item, best first. Items
+    within each such category share an item cooldown, so a press consumes
+    exactly one item — the first /use whose item is in bags fires and its
+    cooldown blocks the rest. The extra lines exist for combat, where
+    macros cannot be rewritten: once the best item is depleted its line
+    becomes a silent no-op and the press falls through to the next-best
+    item. On presses where the first line fires, the blocked lines emit a
+    harmless "Item is not ready yet" UI error.
+]]
+local function BuildUseBlock(useIDs)
+    local lines = {}
+    for _, id in ipairs(useIDs) do
+        lines[#lines + 1] = "/use item:" .. id
+    end
+    return table.concat(lines, "\n")
 end
 
 --------------------------------------------------------------------------------
@@ -242,8 +336,7 @@ end
 local function BuildConjureBlock(info)
     if not info then return "", 0 end
 
-    local rightName, rightID   = info.rightName,  info.rightID
-    local middleName, middleID = info.middleName, info.middleID
+    local rightName, middleName = info.rightName, info.middleName
     local rightMiss, middleMiss = info.rightMiss, info.middleMiss
 
     if not (rightName or middleName or rightMiss or middleMiss) then
@@ -328,7 +421,8 @@ function ns.UpdateMacros(forced)
         elseif not ns.IsMacroEnabled(typeName) then
             DeleteMacroIfExists(config.macro, typeName)
         else
-            local itemID = best[typeName] and best[typeName].id
+            local bestEntry = best[typeName]
+            local itemID = bestEntry and bestEntry.id
 
             --[[
                 Pet buff override: replaces the Food slot item with pet food.
@@ -340,6 +434,16 @@ function ns.UpdateMacros(forced)
             if typeName == "Food" and ns.PetBuffOverrideID then
                 itemID = ns.PetBuffOverrideID
                 petBuffOverride = true
+            end
+
+            --[[
+                Ranked /use list for multi-use types; topIDs[1] is itemID
+                itself, so the list only adds fallback lines below it.
+            ]]
+            local useIDs
+            if itemID and ns.MultiUseMacroTypes[typeName]
+                and bestEntry.topIDs and #bestEntry.topIDs > 0 then
+                useIDs = bestEntry.topIDs
             end
 
             --[[
@@ -359,7 +463,7 @@ function ns.UpdateMacros(forced)
             ]]
             local classBody, classStateID
             if itemID and ns.BuildDruidMacroOverride then
-                classBody, classStateID = ns.BuildDruidMacroOverride(typeName, itemID)
+                classBody, classStateID = ns.BuildDruidMacroOverride(typeName, itemID, useIDs)
             end
 
             if scrollMode then
@@ -393,105 +497,124 @@ function ns.UpdateMacros(forced)
                 end
             else
 
-            --[[
-                Class-specific conjure spells (or "spell not yet learned"
-                print tips). Resolver may return nil for macro types this
-                player's class doesn't engage with.
-            ]]
-            local resolver = ns.ConjureResolvers[typeName]
-            local conjureInfo = resolver and resolver() or nil
-
-            local appendShadowmeld = ShouldAppendShadowmeld(typeName)
-
-            -- Standard macro body: tooltip + conjure + action [+ shadowmeld]
-
-            local tooltipLine, actionBlock, icon
-
-            if itemID then
-                tooltipLine = "#showtooltip item:" .. itemID .. "\n"
-
-                if petBuffOverride then
-                    -- Pet food buffs target the pet
-                    actionBlock = StateWriteLine(itemID) .. "/use [@pet] item:" .. itemID
-                else
-                    actionBlock = StateWriteLine(itemID) .. "/use item:" .. itemID
-                end
-
-                icon = ns.QUESTION_MARK_ICON
-            elseif conjureInfo and conjureInfo.noItemMiss then
                 --[[
-                    The player's class can conjure this category but hasn't
-                    learned the spell yet. Replace the generic "no item in
-                    bags" message with the more useful "you don't know X"
-                    message so the player understands the macro will gain
-                    functionality at the right level.
+                    Class-specific conjure spells (or "spell not yet learned"
+                    print tips). Resolver may return nil for macro types this
+                    player's class doesn't engage with.
                 ]]
-                tooltipLine = "#showtooltip item:" .. config.defaultID .. "\n"
-                actionBlock = '/run ConnTip("' .. conjureInfo.noItemMiss .. '")'
-                icon = ns.QUESTION_MARK_ICON
-            else
-                local message = string.format(L["MSG_NO_ITEM"], typeName)
-                tooltipLine = "#showtooltip item:" .. config.defaultID .. "\n"
-                actionBlock = string.format(
-                    "/run print('%s%s%s // %s%s')",
-                    GetColor("INFO"),
-                    L["BRAND"],
-                    GetColor("MUTED"),
-                    GetColor("TEXT"),
-                    message
-                )
-                icon = ns.QUESTION_MARK_ICON
-            end
+                local resolver = ns.ConjureResolvers[typeName]
+                local conjureInfo = resolver and resolver() or nil
 
-            local conjureBlock = ""
-            if conjureInfo then
-                conjureBlock = (BuildConjureBlock(conjureInfo))
-            end
+                local appendShadowmeld = ShouldAppendShadowmeld(typeName)
 
-            local shadowmeldBlock = ""
-            if appendShadowmeld and ns.ShadowmeldSpellName then
-                shadowmeldBlock = "\n/cast [nostealth] " .. ns.ShadowmeldSpellName
-            end
+                -- Standard macro body: tooltip + conjure + action [+ shadowmeld]
 
-            --[[
-                State encoding — captures every input that affects the
-                written body. Format:
-                  ITEMID(_C(_M:mid)?(_R:rid)?(_MR:key)?(_MM:key)?(_NI:key)?)?(_SM)?
-                Scroll mode uses a "SCROLLS:..." prefix instead, so the
-                two key spaces never collide and a transition between
-                modes always triggers a rewrite.
-            ]]
+                local tooltipLine, actionBlock
 
-            local stateParts = { itemID and tostring(itemID) or "none" }
-            if conjureInfo and (conjureInfo.rightName or conjureInfo.middleName
-                                or conjureInfo.rightMiss or conjureInfo.middleMiss
-                                or conjureInfo.noItemMiss) then
-                stateParts[#stateParts + 1] = "C"
-                if conjureInfo.middleName then
-                    stateParts[#stateParts + 1] = "M:" .. tostring(conjureInfo.middleID)
-                end
-                if conjureInfo.rightName then
-                    stateParts[#stateParts + 1] = "R:" .. tostring(conjureInfo.rightID)
-                end
-                if conjureInfo.rightMiss then
-                    stateParts[#stateParts + 1] = "MR:" .. conjureInfo.rightMiss
-                end
-                if conjureInfo.middleMiss then
-                    stateParts[#stateParts + 1] = "MM:" .. conjureInfo.middleMiss
-                end
-                if conjureInfo.noItemMiss then
-                    stateParts[#stateParts + 1] = "NI:" .. conjureInfo.noItemMiss
-                end
-            end
-            if appendShadowmeld then
-                stateParts[#stateParts + 1] = "SM"
-            end
-            local stateID = table.concat(stateParts, "_")
+                if itemID then
+                    tooltipLine = "#showtooltip item:" .. itemID .. "\n"
 
-            if currentMacroState[typeName] ~= stateID or forced then
-                local body = tooltipLine .. conjureBlock .. actionBlock .. shadowmeldBlock
-                WriteMacro(config.macro, ns.QUESTION_MARK_ICON, body, stateID, typeName)
-            end
+                    if petBuffOverride then
+                        -- Pet food buffs target the pet
+                        actionBlock = StateWriteLine(itemID) .. "/use [@pet] item:" .. itemID
+                    elseif useIDs then
+                        actionBlock = StateWriteLine(itemID) .. BuildUseBlock(useIDs)
+                    else
+                        actionBlock = StateWriteLine(itemID) .. "/use item:" .. itemID
+                    end
+                elseif conjureInfo and conjureInfo.noItemMiss then
+                    --[[
+                        The player's class can conjure this category but hasn't
+                        learned the spell yet. Replace the generic "no item in
+                        bags" message with the more useful "you don't know X"
+                        message so the player understands the macro will gain
+                        functionality at the right level.
+                    ]]
+                    tooltipLine = "#showtooltip item:" .. config.defaultID .. "\n"
+                    actionBlock = '/run ConnTip("' .. conjureInfo.noItemMiss .. '")'
+                else
+                    tooltipLine = "#showtooltip item:" .. config.defaultID .. "\n"
+                    actionBlock = '/run ConnNoItem("' .. typeName .. '")'
+                end
+
+                local conjureBlock = ""
+                if conjureInfo then
+                    conjureBlock = (BuildConjureBlock(conjureInfo))
+                end
+
+                local shadowmeldBlock = ""
+                if appendShadowmeld and ns.ShadowmeldSpellName then
+                    shadowmeldBlock = "\n/cast [nostealth] " .. ns.ShadowmeldSpellName
+                end
+
+                --[[
+                    State encoding — captures every input that affects the
+                    written body. Format:
+                      ITEMIDS(_C(_M:mid)?(_R:rid)?(_MR:key)?(_MM:key)?(_NI:key)?)?(_SM)?
+                    where ITEMIDS is the single itemID, or a comma-joined
+                    ranked list for multi-use types so a change in any
+                    fallback rank also triggers a rewrite. Scroll mode uses
+                    a "SCROLLS:..." prefix instead, so the two key spaces
+                    never collide and a transition between modes always
+                    triggers a rewrite.
+                ]]
+
+                local itemKey = itemID and tostring(itemID) or "none"
+                if useIDs then
+                    itemKey = table.concat(useIDs, ",")
+                end
+                local stateParts = { itemKey }
+                if conjureInfo and (conjureInfo.rightName or conjureInfo.middleName
+                                    or conjureInfo.rightMiss or conjureInfo.middleMiss
+                                    or conjureInfo.noItemMiss) then
+                    stateParts[#stateParts + 1] = "C"
+                    if conjureInfo.middleName then
+                        stateParts[#stateParts + 1] = "M:" .. tostring(conjureInfo.middleID)
+                    end
+                    if conjureInfo.rightName then
+                        stateParts[#stateParts + 1] = "R:" .. tostring(conjureInfo.rightID)
+                    end
+                    if conjureInfo.rightMiss then
+                        stateParts[#stateParts + 1] = "MR:" .. conjureInfo.rightMiss
+                    end
+                    if conjureInfo.middleMiss then
+                        stateParts[#stateParts + 1] = "MM:" .. conjureInfo.middleMiss
+                    end
+                    if conjureInfo.noItemMiss then
+                        stateParts[#stateParts + 1] = "NI:" .. conjureInfo.noItemMiss
+                    end
+                end
+                if appendShadowmeld then
+                    stateParts[#stateParts + 1] = "SM"
+                end
+                local stateID = table.concat(stateParts, "_")
+
+                if currentMacroState[typeName] ~= stateID or forced then
+                    local body = tooltipLine .. conjureBlock .. actionBlock .. shadowmeldBlock
+
+                    --[[
+                        The client truncates macro bodies at 255 bytes, which
+                        would corrupt the last /use line — the warlock
+                        Healthstone conjure block plus three /use lines can
+                        overflow in multibyte locales (e.g. ruRU spell names).
+                        Drop stacked /use lines from the bottom until the body
+                        fits; the rank-1 line is never dropped.
+                    ]]
+                    if useIDs then
+                        local keep = #useIDs
+                        while #body > 255 and keep > 1 do
+                            keep = keep - 1
+                            local trimmed = {}
+                            for rank = 1, keep do
+                                trimmed[rank] = useIDs[rank]
+                            end
+                            actionBlock = StateWriteLine(itemID) .. BuildUseBlock(trimmed)
+                            body = tooltipLine .. conjureBlock .. actionBlock .. shadowmeldBlock
+                        end
+                    end
+
+                    WriteMacro(config.macro, ns.QUESTION_MARK_ICON, body, stateID, typeName)
+                end
 
             end -- if scrollMode / class override / standard
         end

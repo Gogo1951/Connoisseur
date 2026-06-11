@@ -8,8 +8,13 @@ local _, ns = ...
     Pet food data for Hunter Feed Pet support.
     Diet IDs: 1 = Meat, 2 = Fish, 3 = Bread, 4 = Cheese, 5 = Fruit, 6 = Fungus
 
-    Maps localized diet names from GetPetFoodTypes() to internal diet IDs.
-    For non-English clients, add overrides in the appropriate locale file.
+    Maps diet names from GetPetFoodTypes() to internal diet IDs. The API
+    returns LOCALIZED names ("Fleisch" on deDE), so the localized names from
+    the L["DIET_*"] locale keys are layered on top of the English baseline.
+    (ns.L is available here: Data-General.lua loads first.) The English keys
+    stay in as a fallback for locales whose DIET_* translations haven't
+    landed yet — AceLocale falls back to the enUS value, so the overlay is
+    a harmless overwrite of the same key on English clients.
 ]]
 ns.PetDietMap = {
     ["Meat"] = 1,
@@ -19,6 +24,14 @@ ns.PetDietMap = {
     ["Fruit"] = 5,
     ["Fungus"] = 6
 }
+
+local L = ns.L
+ns.PetDietMap[L["DIET_MEAT"]] = 1
+ns.PetDietMap[L["DIET_FISH"]] = 2
+ns.PetDietMap[L["DIET_BREAD"]] = 3
+ns.PetDietMap[L["DIET_CHEESE"]] = 4
+ns.PetDietMap[L["DIET_FRUIT"]] = 5
+ns.PetDietMap[L["DIET_FUNGUS"]] = 6
 
 --[[
     SELECT entry, name, ItemLevel, FoodType, SellPrice
@@ -34,6 +47,7 @@ ns.PetDietMap = {
     or nil when the item is not a quest objective.
 ]]
 ns.PetFoodData = {
+    -- 8950, Homemade Cherry Pie... this is often incorrectly categorized as Fruit and has to be manually adjusted
     -- Meat
     [4739] = {1, 1, 0, {747}}, -- Plainstrider Meat
     [5051] = {1, 1, 1, {862}}, -- Dig Rat

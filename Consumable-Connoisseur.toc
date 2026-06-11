@@ -51,9 +51,9 @@ Data/Pet-Foods.lua
 
 # Connoisseur
 Core.lua
-Scanner/Item-Data.lua
-Scanner/Buffs.lua
-Scanner/Inventory.lua
+Scanner-Item-Data.lua
+Scanner-Buffs.lua
+Scanner-Inventory.lua
 Macro-Builder-General.lua
 Macro-Builder-Druids.lua
 Macro-Builder-Hunters.lua

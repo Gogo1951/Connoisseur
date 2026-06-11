@@ -10,7 +10,7 @@ ns.RawData = ns.RawData or {}
     effects; Allowed Zones from Map/Area restrictions where present.
 ]]
 ns.RawData.Potions = {
-    -- [ID] = {Healing Potion Amount, Mana Potion Amount, {Allowed Zones}}, -- Name
+    -- [ID] = {Healing Amount, Mana Amount, {Allowed Zones} or nil, requiredAlchemy or nil}, -- Name
 
     [32947] = {1500, 0}, -- Auchenai Healing Potion
     [32948] = {0, 1800}, -- Auchenai Mana Potion

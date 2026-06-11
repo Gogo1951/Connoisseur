@@ -22,7 +22,8 @@ end
     under the 255 character limit even in highly localized clients (German, etc).
 
     The macro adapts to which pet spells the hunter actually knows:
-      Tier A (pre-10, no Feed Pet)       → print-only stub explaining the gap
+      Tier A (pre-10; any of Feed/Revive/
+              Call/Dismiss Pet missing)  → print-only stub explaining the gap
       Tier B (10-11, no Mend Pet)        → full cascade minus Mend Pet, plus a
                                            click-time print on [btn:2][combat]
       Tier C (12+, every pet spell known) → full cascade as documented below
@@ -128,13 +129,19 @@ function ns.UpdateFeedPetMacro(forced)
     local icon = ns.QUESTION_MARK_ICON
 
     --[[
-        Knowledge tier drives the macro shape. Feed Pet is the namesake of
-        this macro, so its absence collapses everything to a print-only stub
-        (Tier A). Mend Pet absence is the common transient state for a
-        level-10/11 hunter who hasn't trained the level-12 spell yet.
+        Knowledge tier drives the macro shape. The Tier B/C cast line
+        concatenates Feed, Revive, Call, AND Dismiss Pet, so a missing name
+        for any of them — not just Feed Pet — collapses to the print-only
+        stub (Tier A). The four spells normally arrive together with the
+        level-10 pet quests, but this also covers a hunter mid-quest-chain
+        and any transient SPELLS_CHANGED timing where IsSpellKnown hasn't
+        caught up; the next SPELLS_CHANGED rebuild promotes the tier. Mend
+        Pet absence is the common transient state for a level-10/11 hunter
+        who hasn't trained the level-12 spell yet.
     ]]
     local tier
-    if not ns.FeedPetSpellName then
+    if not (ns.FeedPetSpellName and ns.RevivePetSpellName
+        and ns.CallPetSpellName and ns.DismissPetSpellName) then
         tier = "A"
     elseif not ns.MendPetSpellName then
         tier = "B"
@@ -161,7 +168,11 @@ function ns.UpdateFeedPetMacro(forced)
 
     local index = GetMacroIndexByName(macroName)
     if index == 0 then
-        CreateMacro(macroName, icon, body, 1)
+        -- On a failed create, leave the state unset so the next update retries.
+        if not ns.TryCreateMacro(macroName, icon, body) then
+            currentPetFoodState = nil
+            return
+        end
     else
         local existingBody = GetMacroBody(macroName)
         if existingBody ~= body then

@@ -33,13 +33,43 @@ L["MACRO_WATER"] = "- Água"
 L["RANK"] = "Grau"
 
 --------------------------------------------------------------------------------
+-- Pet Diets
+--------------------------------------------------------------------------------
+
+-- Diet names as returned by GetPetFoodTypes(), which is localized. These
+-- values MUST match the client's strings exactly (verify in-game with
+-- /dump GetPetFoodTypes() while a pet is out). Used to build
+-- ns.PetDietMap in Data/Pet-Foods.lua.
+
+L["DIET_BREAD"] = "Pão"
+L["DIET_CHEESE"] = "Queijo"
+L["DIET_FISH"] = "Peixe"
+L["DIET_FRUIT"] = "Fruta"
+L["DIET_FUNGUS"] = "Fungo"
+L["DIET_MEAT"] = "Carne"
+
+--------------------------------------------------------------------------------
 -- Chat Messages
 --------------------------------------------------------------------------------
 
 L["MSG_BUG_REPORT"] = "Parece que você encontrou um bug! %s (%s) não pode ser usado em %s > %s (%s). Por favor, reporte isso para que possamos consertar. Obrigado! https://discord.gg/eh8hKq992Q"
 L["MSG_NO_ITEM"] = "Nenhum %s adequado encontrado em suas bolsas."
+L["MSG_MACRO_SLOTS_FULL"] = "Algumas macros do Connoisseur não puderam ser criadas porque seus espaços para macros estão cheios. Libere um espaço excluindo macros que você não usa mais ou desative as macros do Connoisseur de que você não precisa em Opções > AddOns > Connoisseur."
 
 L["CHAT_LOADED"] = "Versão %s. As configurações (incluindo a opção de desativar esta mensagem) podem ser encontradas em Opções > AddOns > Connoisseur. Gostando do addon? Conte para um amigo! (="
+
+--------------------------------------------------------------------------------
+-- ConnTip Messages
+--------------------------------------------------------------------------------
+
+-- Printed in chat by macro bodies via /run ConnTip("key"). See Core.lua.
+
+L["TIP_PET_NO_FOOD"] = "Atualmente você não tem nenhuma comida útil para o seu ajudante."
+L["TIP_PET_NO_SKILLS"] = "Atualmente você não sabe Alimentar Ajudante, Curar Ajudante ou Reviver Ajudante."
+L["TIP_PET_NO_MEND"] = "Atualmente você não sabe Curar Ajudante."
+
+-- %s is the localized spell name, resolved at print time.
+L["TIP_DONT_KNOW_SPELL"] = "Atualmente você não sabe %s."
 
 --------------------------------------------------------------------------------
 -- Minimap Tooltip
@@ -63,15 +93,23 @@ L["TIP_HUNTER_FEED_PET"] = "Alimentar Ajudante é um botão tudo-em-um! Clique p
 L["TIP_MAGE_CONJURE"] = "Clique com o botão direito nas suas macros de Comida ou Água para Criar Comida ou Água."
 L["TIP_MAGE_GEM"] = "Clique com o botão direito na sua macro de Gema de Mana para conjurar uma nova gema. Clique com o botão direito novamente para conjurar uma reserva de grau inferior."
 L["TIP_MAGE_TABLE"] = "Clique com o botão do meio para lançar Ritual do Refresco."
-L["TIP_WARLOCK_CONJURE"] = "Clique com o botão direito nas suas macros de Pedra de Vida ou Pedra de Alma para criar uma Pedra de Vida ou Pedra de Alma."
+L["TIP_WARLOCK_CONJURE"] = "Clique com o botão direito nas suas macros de Pedra de Vida ou Pedra de Alma para criar uma Pedra de Vida ou Pedra de Alma. Clique com o botão direito na sua macro de Pedra de Vida novamente para conjurar uma reserva de grau inferior."
 L["TIP_WARLOCK_SOUL"] = "Clique com o botão do meio para lançar Ritual das Almas."
 
 L["UI_BEST_FOOD"] = "Comida Atual"
 L["UI_BEST_PET_FOOD"] = "Comida de Ajudante"
 
 -- Labels that get plugged into MSG_NO_ITEM ("No suitable %s found...").
+-- One per macro type (resolved via ns.Config in ConnNoItem), plus Pet Food.
+L["LABEL_BANDAGE"] = "Bandagem"
 L["LABEL_FOOD"] = "Comida"
+L["LABEL_HEALTH_POTION"] = "Poção de Cura"
+L["LABEL_HEALTHSTONE"] = "Pedra de Vida"
+L["LABEL_MANA_GEM"] = "Gema de Mana"
+L["LABEL_MANA_POTION"] = "Poção de Mana"
 L["LABEL_PET_FOOD"] = "Comida de Ajudante"
+L["LABEL_SOULSTONE"] = "Pedra de Alma"
+L["LABEL_WATER"] = "Água"
 L["UI_DISABLED"] = "Desativado"
 L["UI_ENABLED"] = "Ativado"
 L["UI_IGNORE_LIST"] = "Lista de Ignorados"
@@ -98,6 +136,10 @@ L["OPTIONS_DESCRIPTION"] = "Macros de atualização automática para sua melhor 
 -- Welcome Message
 L["OPTIONS_WELCOME_MESSAGE"] = "Ativar Mensagem de Boas-vindas"
 L["OPTIONS_WELCOME_MESSAGE_DESCRIPTION"] = "Imprime uma mensagem de boas-vindas no chat ao entrar."
+
+-- Potions & Healthstones
+L["OPTIONS_POTIONS_HEADER"] = "Poções e Pedras de Vida"
+L["OPTIONS_POTIONS_DESCRIPTION"] = "As macros não podem ser alteradas durante o combate (isso é uma restrição da Blizzard), então cada macro de Poção e Pedra de Vida é pré-construída com seu melhor item mais até duas alternativas. Em lutas mais longas, o ícone e a dica de interface podem ficar desatualizados e mostrar o item errado, mas clicar na macro sempre usará o melhor item que você realmente tem nas suas bolsas."
 
 -- Buff Food
 L["OPTIONS_BUFF_FOOD"] = "Priorizar Comida com Buff"

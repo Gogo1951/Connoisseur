@@ -132,17 +132,22 @@ local function GetOptions()
                 8
             ),
 
+            -- Potions & Healthstones
+            spacePotions0 = Spacer(9),
+            headerPotions = Header(L["OPTIONS_POTIONS_HEADER"], 10),
+            descPotions = Desc(GetColor("DESC") .. L["OPTIONS_POTIONS_DESCRIPTION"] .. "|r", 11),
+
             -- Buff Food
-            spaceBuff0 = Spacer(10),
-            headerBuff = Header(L["MENU_BUFF_FOOD"], 11),
-            descBuff = Desc(GetColor("DESC") .. L["OPTIONS_BUFF_FOOD_DESCRIPTION"] .. "|r", 12),
-            spaceBuff1 = Spacer(13),
+            spaceBuff0 = Spacer(12),
+            headerBuff = Header(L["MENU_BUFF_FOOD"], 13),
+            descBuff = Desc(GetColor("DESC") .. L["OPTIONS_BUFF_FOOD_DESCRIPTION"] .. "|r", 14),
+            spaceBuff1 = Spacer(15),
             toggleBuffFood = {
                 type = "toggle",
                 name = L["OPTIONS_BUFF_FOOD"],
                 desc = L["OPTIONS_BUFF_FOOD_DESCRIPTION"],
-                order = 14,
-                width = 1.5,
+                order = 16,
+                width = "full",
                 get = function()
                     return BuffFoodActive()
                 end,
@@ -155,7 +160,7 @@ local function GetOptions()
             buffFoodMode = {
                 type = "select",
                 name = "",
-                order = 15,
+                order = 17,
                 width = "normal",
                 values = MODE_VALUES,
                 sorting = ns.MODE_ORDER,
@@ -173,8 +178,8 @@ local function GetOptions()
                     ns.RequestUpdate()
                 end,
             },
-            spaceBuff2 = Spacer(16),
-            detailBuff = Desc(GetColor("DESC") .. L["OPTIONS_BUFF_FOOD_DETAIL"] .. "|r", 17),
+            spaceBuff2 = Spacer(18),
+            detailBuff = Desc(GetColor("DESC") .. L["OPTIONS_BUFF_FOOD_DETAIL"] .. "|r", 19),
 
             -- Scroll Buffs
             spaceScroll0 = Spacer(20),
@@ -186,7 +191,7 @@ local function GetOptions()
                 name = L["OPTIONS_USE_SCROLLS"],
                 desc = L["OPTIONS_USE_SCROLLS_DESCRIPTION"],
                 order = 24,
-                width = 1.5,
+                width = "full",
                 get = function()
                     return ScrollsActive()
                 end,
@@ -336,7 +341,7 @@ local function GetOptions()
                 name = L["OPTIONS_USE_PET_BUFFS"],
                 desc = L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"],
                 order = 39,
-                width = 1.5,
+                width = "full",
                 get = function()
                     return PetBuffActive()
                 end,
@@ -521,7 +526,7 @@ local function GetOptions()
             descEnableMacros = Desc(GetColor("DESC") .. L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] .. "|r", 62),
             spaceEnableMacros1 = Spacer(63),
             enableBandage      = MacroToggle(L["MACRO_BANDAGE"],  "Bandage",       64),
-            enableFeedPet      = MacroToggle(L["MACRO_FEED_PET"], "Feed Pet",      65),
+            enableFeedPet      = MacroToggle(L["MACRO_FEED_PET"], "Feed Pet",      65, function() return not ns.IsHunter end),
             enableFood         = MacroToggle(L["MACRO_FOOD"],     "Food",          66),
             enableHealthPotion = MacroToggle(L["MACRO_HEALTH_POTION"],     "Health Potion", 67),
             enableHealthstone  = MacroToggle(L["MACRO_HEALTHSTONE"],       "Healthstone",   68),

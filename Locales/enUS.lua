@@ -32,13 +32,43 @@ L["MACRO_WATER"] = "- Water"
 L["RANK"] = "Rank"
 
 --------------------------------------------------------------------------------
+-- Pet Diets
+--------------------------------------------------------------------------------
+
+-- Diet names as returned by GetPetFoodTypes(), which is localized. These
+-- values MUST match the client's strings exactly (verify in-game with
+-- /dump GetPetFoodTypes() while a pet is out). Used to build
+-- ns.PetDietMap in Data/Pet-Foods.lua.
+
+L["DIET_BREAD"] = "Bread"
+L["DIET_CHEESE"] = "Cheese"
+L["DIET_FISH"] = "Fish"
+L["DIET_FRUIT"] = "Fruit"
+L["DIET_FUNGUS"] = "Fungus"
+L["DIET_MEAT"] = "Meat"
+
+--------------------------------------------------------------------------------
 -- Chat Messages
 --------------------------------------------------------------------------------
 
 L["MSG_BUG_REPORT"] = "Looks like you found a bug! %s (%s) can't be used in %s > %s (%s). Please report this so we can get it fixed. Thanks! https://discord.gg/eh8hKq992Q"
 L["MSG_NO_ITEM"] = "No suitable %s found in your bags."
+L["MSG_MACRO_SLOTS_FULL"] = "Some Connoisseur macros couldn't be created because your macro slots are full. Free up a slot by deleting macros you no longer use, or turn off any Connoisseur macros you don't need under Options > AddOns > Connoisseur."
 
 L["CHAT_LOADED"] = "Version %s. Settings (including the option to disable this message) can be found under Options > AddOns > Connoisseur. Enjoying the add-on? Tell a friend about it! (="
+
+--------------------------------------------------------------------------------
+-- ConnTip Messages
+--------------------------------------------------------------------------------
+
+-- Printed in chat by macro bodies via /run ConnTip("key"). See Core.lua.
+
+L["TIP_PET_NO_FOOD"] = "You don't currently have any food that is useful for your pet."
+L["TIP_PET_NO_SKILLS"] = "You don't currently know Feed Pet, Mend Pet, or Revive Pet."
+L["TIP_PET_NO_MEND"] = "You don't currently know Mend Pet."
+
+-- %s is the localized spell name, resolved at print time.
+L["TIP_DONT_KNOW_SPELL"] = "You don't currently know %s."
 
 --------------------------------------------------------------------------------
 -- Minimap Tooltip
@@ -62,15 +92,23 @@ L["TIP_HUNTER_FEED_PET"] = "Feed Pet is an All-in-One Pet Button! Click to autom
 L["TIP_MAGE_CONJURE"] = "Right-Click on your Food or Water macros to Create Food or Water."
 L["TIP_MAGE_GEM"] = "Right-Click on your Mana Gem macro to conjure a new gem. Right-Click again to conjure a lower-rank backup."
 L["TIP_MAGE_TABLE"] = "Middle-click to cast Ritual of Refreshment."
-L["TIP_WARLOCK_CONJURE"] = "Right-Click on your Healthstone or Soulstone macros to create a Healthstone or Soulstone."
+L["TIP_WARLOCK_CONJURE"] = "Right-Click on your Healthstone or Soulstone macros to create a Healthstone or Soulstone. Right-Click your Healthstone macro again to conjure a lower-rank backup."
 L["TIP_WARLOCK_SOUL"] = "Middle-click to cast Ritual of Souls."
 
 L["UI_BEST_FOOD"] = "Current Food"
 L["UI_BEST_PET_FOOD"] = "Current Pet Food"
 
 -- Labels that get plugged into MSG_NO_ITEM ("No suitable %s found...").
+-- One per macro type (resolved via ns.Config in ConnNoItem), plus Pet Food.
+L["LABEL_BANDAGE"] = "Bandage"
 L["LABEL_FOOD"] = "Food"
+L["LABEL_HEALTH_POTION"] = "Health Potion"
+L["LABEL_HEALTHSTONE"] = "Healthstone"
+L["LABEL_MANA_GEM"] = "Mana Gem"
+L["LABEL_MANA_POTION"] = "Mana Potion"
 L["LABEL_PET_FOOD"] = "Pet Food"
+L["LABEL_SOULSTONE"] = "Soulstone"
+L["LABEL_WATER"] = "Water"
 L["UI_DISABLED"] = "Disabled"
 L["UI_ENABLED"] = "Enabled"
 L["UI_IGNORE_LIST"] = "Ignore List"
@@ -98,6 +136,10 @@ L["OPTIONS_DESCRIPTION"] = "Auto-updating macros for your best food, buff food, 
 L["OPTIONS_WELCOME_MESSAGE"] = "Enable Welcome Message"
 L["OPTIONS_WELCOME_MESSAGE_DESCRIPTION"] = "Print a welcome message in chat on login."
 
+-- Potions & Healthstones
+L["OPTIONS_POTIONS_HEADER"] = "Potions & Healthstones"
+L["OPTIONS_POTIONS_DESCRIPTION"] = "Macros cannot change during combat (this is a Blizzard restriction), so each Potion & Healthstone macro is pre-built with your best item plus up to two fallbacks. On longer fights the icon and tooltip can go stale and show the wrong item, but clicking the macro will always use the best item you actually have in your bags."
+
 -- Buff Food
 L["OPTIONS_BUFF_FOOD"] = "Prioritize Buff Food"
 L["OPTIONS_BUFF_FOOD_DESCRIPTION"] = 'Prioritizes food that grants the "Well Fed" buff, when the buff is missing.'
@@ -116,7 +158,7 @@ L["OPTIONS_SCROLL_STAMINA"] = "Stamina"
 L["OPTIONS_SCROLL_STRENGTH"] = "Strength"
 
 -- Pet Food Buffs
-L["OPTIONS_PET_HEADER"] = "Pets Food Buffs"
+L["OPTIONS_PET_HEADER"] = "Pet Food Buffs"
 L["OPTIONS_USE_PET_BUFFS"] = "Use Pet Food Buffs"
 L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] = 'Uses Pet Food, as part of your Food macro, when the "Well Fed" buff is missing from your pet.'
 L["OPTIONS_PET_BUFF_TYPES"] = "Include Pet Food Types in Check"

@@ -1,5 +1,16 @@
 local addonName, ns = ...
 local L = ns.L
+
+--[[
+    Color accessor over the ns.COLORS palette, which is defined as data in
+    Data/Data-General.lua. The accessor lives here in Core so the data file
+    stays declarative (the style guide asks Data files to hold no logic beyond
+    GetLocale). ns.COLORS is read at call time, so it is always populated by
+    the time any color is requested.
+]]
+function ns.GetColor(key)
+    return ns.COLORS[key] or ns.COLORS.TEXT
+end
 local GetColor = ns.GetColor
 
 --[[
@@ -46,7 +57,7 @@ local function ResolveConnTip(key)
     if ns.MissingSpellMessageIDs and ns.MissingSpellMessageIDs[key] then
         local name = GetSpellInfo(ns.MissingSpellMessageIDs[key])
         if not name then return nil end
-        return "You don't currently know " .. name .. "."
+        return string.format(L["TIP_DONT_KNOW_SPELL"], name)
     end
     return nil
 end
@@ -71,6 +82,25 @@ function ConnIf(cond, key)
     if SecureCmdOptionParse(cond .. " 1") then
         ConnTip(key)
     end
+end
+
+--[[
+    Prints the standardized "no suitable <type> found" chat line. Macro bodies
+    call this with the internal type key (`/run ConnNoItem("Food")`) instead
+    of embedding a colorized /run print(...) snippet. The inline form broke on
+    any message containing an apostrophe and hand-rolled the brand/separator
+    colors; routing through ns.PrintMessage keeps the format identical to
+    every other chat message.
+
+    The key stays English inside the macro body (keeps bodies and state keys
+    locale-independent) and resolves to the localized LABEL_* string via
+    ns.Config at print time. Unknown keys fall back to the raw key so a stale
+    macro body from an older version still prints something sensible.
+]]
+function ConnNoItem(typeName)
+    local config = ns.Config and ns.Config[typeName]
+    local label = config and config.label or typeName
+    ns.PrintMessage(string.format(L["MSG_NO_ITEM"], label))
 end
 
 --------------------------------------------------------------------------------
@@ -194,10 +224,10 @@ end
 
 function ns.ResolveHunterSpells()
     if not ns.IsHunter then return end
-    ns.FeedPetSpellName    = ResolveIfKnown(ns.FEED_PET_SPELL_ID)
-    ns.RevivePetSpellName  = ResolveIfKnown(ns.REVIVE_PET_SPELL_ID)
-    ns.MendPetSpellName    = ResolveIfKnown(ns.MEND_PET_SPELL_ID)
-    ns.CallPetSpellName    = ResolveIfKnown(ns.CALL_PET_SPELL_ID)
+    ns.FeedPetSpellName = ResolveIfKnown(ns.FEED_PET_SPELL_ID)
+    ns.RevivePetSpellName = ResolveIfKnown(ns.REVIVE_PET_SPELL_ID)
+    ns.MendPetSpellName = ResolveIfKnown(ns.MEND_PET_SPELL_ID)
+    ns.CallPetSpellName = ResolveIfKnown(ns.CALL_PET_SPELL_ID)
     ns.DismissPetSpellName = ResolveIfKnown(ns.DISMISS_PET_SPELL_ID)
 end
 
@@ -263,6 +293,16 @@ local function InitVars()
     if ns.IsHunter then
         ns.ResolveHunterSpells()
         ns.PetDeadDismissed = false
+        --[[
+            QUEST_LOG_UPDATE fires very frequently, and the only consumer of
+            quest data is Hunter pet-food quest-objective skipping (ScanPetFood
+            via BuildActiveQuestSet). Register it only for hunters so everyone
+            else doesn't pay for a full bag rescan + macro rebuild on every
+            quest-log churn.
+        ]]
+        frame:RegisterEvent("QUEST_LOG_UPDATE")
+    else
+        frame:UnregisterEvent("QUEST_LOG_UPDATE")
     end
 
     ns.SpellCache = {}
@@ -456,6 +496,80 @@ end
 --------------------------------------------------------------------------------
 
 frame:SetScript("OnEvent", function(self, event, ...)
+    --[[
+        Initialization must run regardless of combat state, so it is handled
+        ahead of the lockdown guard below. PLAYER_LOGIN is the earliest safe
+        point (SavedVariables are loaded) and fires before the first
+        PLAYER_ENTERING_WORLD. InitVars touches no protected functions and is
+        idempotent, so running it here guarantees the DB exists even when the
+        player enters the world already in combat (e.g. zoning into an
+        in-progress battleground) — a case the guard would otherwise swallow,
+        leaving ConnoisseurDB/ConnoisseurCharDB nil until the next out-of-combat
+        PLAYER_ENTERING_WORLD.
+    ]]
+    if event == "PLAYER_LOGIN" then
+        InitVars()
+        return
+    end
+
+    --[[
+        UI_ERROR_MESSAGE is also handled ahead of the lockdown guard: both
+        of its consumers must work mid-combat and neither touches protected
+        functions. The wrong-zone report mostly fires when a zone-locked
+        potion is pressed mid-fight — exactly when the guard below would
+        swallow it — and the dead-pet branch only flips a flag plus
+        RequestUpdate, whose OnUpdate handler already defers macro writes
+        until combat drops.
+    ]]
+    if event == "UI_ERROR_MESSAGE" then
+        local _, msg = ...
+
+        --[[
+            Hunter: detect dead-but-dismissed pet.
+            When Call Pet fails because the pet is dead, the client fires
+            SPELL_FAILED_TARGETS_DEAD. We catch it here and flip the flag
+            so the macro rebuilds with Revive Pet on the next cycle.
+            If the error ID changes in a future build, update this check.
+        ]]
+        if ns.IsHunter and not UnitExists("pet") and msg then
+            local deadMsg = SPELL_FAILED_TARGETS_DEAD
+            if deadMsg and msg == deadMsg then
+                ns.PetDeadDismissed = true
+                ns.RequestUpdate()
+            end
+        end
+
+        --[[
+            Zone-restriction reporting. The macro's /run snippet writes
+            lastID and lastTime via ConnFire(). If we see
+            ERR_ITEM_WRONG_ZONE within one second of a macro firing, we
+            know which item to blame.
+        ]]
+        if ConnoisseurState.lastTime and (GetTime() - ConnoisseurState.lastTime) < 1.0 then
+            if msg == ERR_ITEM_WRONG_ZONE then
+                local mapID = C_Map.GetBestMapForUnit("player") or "0"
+                local zone = GetZoneText() or "?"
+                local subzone = GetSubZoneText() or ""
+                if subzone == "" then
+                    subzone = zone
+                end
+
+                local itemID = ConnoisseurState.lastID or 0
+                local link = "Item #" .. itemID
+                if itemID ~= 0 then
+                    local _, itemLink = GetItemInfo(itemID)
+                    if itemLink then
+                        link = itemLink
+                    end
+                end
+
+                ns.PrintMessage(string.format(L["MSG_BUG_REPORT"], link, itemID, zone, subzone, mapID))
+                ConnoisseurState.lastTime = 0
+            end
+        end
+        return
+    end
+
     if InCombatLockdown() then
         isUpdatePending = true
         return
@@ -556,52 +670,6 @@ frame:SetScript("OnEvent", function(self, event, ...)
             end
             ns.RequestUpdate()
         end
-    elseif event == "UI_ERROR_MESSAGE" then
-        local _, msg = ...
-
-        --[[
-            Hunter: detect dead-but-dismissed pet.
-            When Call Pet fails because the pet is dead, the client fires
-            SPELL_FAILED_TARGETS_DEAD. We catch it here and flip the flag
-            so the macro rebuilds with Revive Pet on the next cycle.
-            If the error ID changes in a future build, update this check.
-        ]]
-        if ns.IsHunter and not UnitExists("pet") and msg then
-            local deadMsg = SPELL_FAILED_TARGETS_DEAD
-            if deadMsg and msg == deadMsg then
-                ns.PetDeadDismissed = true
-                ns.RequestUpdate()
-            end
-        end
-
-        --[[
-            Zone-restriction reporting. The macro's /run snippet writes
-            lastID and lastTime via ConnFire(). If we see
-            ERR_ITEM_WRONG_ZONE within one second of a macro firing, we
-            know which item to blame.
-        ]]
-        if ConnoisseurState.lastTime and (GetTime() - ConnoisseurState.lastTime) < 1.0 then
-            if msg == ERR_ITEM_WRONG_ZONE then
-                local mapID = C_Map.GetBestMapForUnit("player") or "0"
-                local zone = GetZoneText() or "?"
-                local subzone = GetSubZoneText() or ""
-                if subzone == "" then
-                    subzone = zone
-                end
-
-                local itemID = ConnoisseurState.lastID or 0
-                local link = "Item #" .. itemID
-                if itemID ~= 0 then
-                    local _, itemLink = GetItemInfo(itemID)
-                    if itemLink then
-                        link = itemLink
-                    end
-                end
-
-                ns.PrintMessage(string.format(L["MSG_BUG_REPORT"], link, itemID, zone, subzone, mapID))
-                ConnoisseurState.lastTime = 0
-            end
-        end
     elseif event == "PLAYER_LOGOUT" then
         if ns.IsKnownConsumable then
             local ignoreList = ConnoisseurCharDB and ConnoisseurCharDB.ignoreList or {}
@@ -623,6 +691,7 @@ frame:RegisterEvent("ITEM_PUSH")
 frame:RegisterEvent("PLAYER_ALIVE")
 frame:RegisterEvent("PLAYER_ENTERING_WORLD")
 frame:RegisterEvent("PLAYER_LEVEL_UP")
+frame:RegisterEvent("PLAYER_LOGIN")
 frame:RegisterEvent("PLAYER_LOGOUT")
 frame:RegisterEvent("PLAYER_REGEN_ENABLED")
 frame:RegisterEvent("PLAYER_TARGET_CHANGED")
@@ -631,7 +700,12 @@ frame:RegisterEvent("UI_ERROR_MESSAGE")
 frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 frame:RegisterEvent("SKILL_LINES_CHANGED")
 frame:RegisterEvent("SPELLS_CHANGED")
-frame:RegisterEvent("UNIT_PET")
+frame:RegisterUnitEvent("UNIT_PET", "player")
 frame:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
 frame:RegisterEvent("GROUP_ROSTER_UPDATE")
-frame:RegisterEvent("QUEST_LOG_UPDATE")
+
+--[[
+    QUEST_LOG_UPDATE is registered dynamically in InitVars — Hunters only.
+    It is the only event whose sole consumer is Hunter pet-food quest-skipping,
+    and it fires too often to justify a full rescan on non-Hunter characters.
+]]

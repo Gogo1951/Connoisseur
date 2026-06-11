@@ -86,7 +86,8 @@ local best = {
         link = nil,
         isBuffFood = false,
         isPercent = false,
-        isHybrid = false
+        isHybrid = false,
+        topIDs = {}
     },
     ["Healthstone"] = {
         id = nil,
@@ -96,7 +97,8 @@ local best = {
         link = nil,
         isBuffFood = false,
         isPercent = false,
-        isHybrid = false
+        isHybrid = false,
+        topIDs = {}
     },
     ["Mana Gem"] = {
         id = nil,
@@ -116,7 +118,8 @@ local best = {
         link = nil,
         isBuffFood = false,
         isPercent = false,
-        isHybrid = false
+        isHybrid = false,
+        topIDs = {}
     },
     ["Soulstone"] = {
         id = nil,
@@ -149,6 +152,9 @@ local function ResetBest(entry)
     entry.isBuffFood = false
     entry.isPercent = false
     entry.isHybrid = false
+    if entry.topIDs then
+        wipe(entry.topIDs)
+    end
 end
 
 --------------------------------------------------------------------------------
@@ -228,6 +234,80 @@ local function IsBetter(candidate, candidateCount, candidatePrice, currentBest, 
 end
 
 --------------------------------------------------------------------------------
+-- Ranked Candidates (Multi-Use Macros)
+--------------------------------------------------------------------------------
+
+--[[
+    The ns.MultiUseMacroTypes categories stack up to ns.MULTI_USE_MAX_ITEMS
+    /use lines per macro, so instead of tracking a single running winner
+    they collect every usable candidate during the scan and are ranked once
+    it completes. The other categories keep the single-winner IsBetter path.
+]]
+
+local rankedCandidates = {
+    ["Health Potion"] = {},
+    ["Healthstone"] = {},
+    ["Mana Potion"] = {}
+}
+
+local function AddRankedCandidate(typeName, id, data, score, count)
+    local list = rankedCandidates[typeName]
+    list[#list + 1] = {
+        id = id,
+        value = score,
+        price = data.price,
+        count = count,
+        isPercent = data.isPercent or false,
+        isHybrid = (data.healthValue > 0 and data.manaValue > 0)
+    }
+end
+
+--[[
+    Pairwise form of IsBetter's ordering for the ranked categories, where
+    allowBuffFood and preferHybrid are always false: percent heals first,
+    then higher score, lower price, non-hybrid, fewer copies in bags.
+    itemID is the final tiebreak so candidates never compare equal — keeps
+    table.sort's instability from reordering equal ranks between scans and
+    churning macro rewrites.
+]]
+local function CompareRankedCandidates(a, b)
+    if a.isPercent ~= b.isPercent then
+        return a.isPercent
+    end
+    if a.value ~= b.value then
+        return a.value > b.value
+    end
+    if a.price ~= b.price then
+        return a.price < b.price
+    end
+    if a.isHybrid ~= b.isHybrid then
+        return not a.isHybrid
+    end
+    if a.count ~= b.count then
+        return a.count < b.count
+    end
+    return a.id < b.id
+end
+
+local function RankCandidates()
+    for typeName, list in pairs(rankedCandidates) do
+        table.sort(list, CompareRankedCandidates)
+
+        local entry = best[typeName]
+        local winner = list[1]
+        if winner then
+            entry.id = winner.id
+            entry.value = winner.value
+            entry.price = winner.price
+            entry.count = winner.count
+        end
+        for rank = 1, math.min(#list, ns.MULTI_USE_MAX_ITEMS) do
+            entry.topIDs[rank] = list[rank].id
+        end
+    end
+end
+
+--------------------------------------------------------------------------------
 -- Bag Scanning
 --------------------------------------------------------------------------------
 
@@ -259,6 +339,10 @@ function ns.ScanBags()
         ResetBest(entry)
     end
 
+    for _, list in pairs(rankedCandidates) do
+        wipe(list)
+    end
+
     local dataRetry = false
     wipe(itemCounts)
     wipe(slotItems)
@@ -280,8 +364,9 @@ function ns.ScanBags()
     ns.ScrollOverrideIDs = ns.FindScrollOverrides(itemCounts)
     ns.PetBuffOverrideID = ns.FindPetBuffOverride(itemCounts)
 
+    local ignoreList = charDB.ignoreList or {}
+
     for id, hyperlink in pairs(slotItems) do
-        local ignoreList = charDB.ignoreList or {}
         if not ignoreList[id] then
             -- Skip scroll items from normal consumable processing
             if ns.ScrollItemLookup and ns.ScrollItemLookup[id] then
@@ -335,13 +420,7 @@ function ns.ScanBags()
                                 winner.count = totalCount
                             end
                         elseif itemType == "healthstone" then
-                            if IsBetter(data, totalCount, data.price, best["Healthstone"], data.healthValue, false) then
-                                local winner = best["Healthstone"]
-                                winner.id = id
-                                winner.value = data.healthValue
-                                winner.price = data.price
-                                winner.count = totalCount
-                            end
+                            AddRankedCandidate("Healthstone", id, data, data.healthValue, totalCount)
                         elseif itemType == "soulstone" then
                             if IsBetter(data, totalCount, data.price, best["Soulstone"], data.healthValue, false) then
                                 local winner = best["Soulstone"]
@@ -361,34 +440,11 @@ function ns.ScanBags()
                         elseif itemType == "potion" then
                             if data.healthValue > 0 then
                                 local adjusted = AdjustedScore(data, data.healthValue)
-                                if
-                                    IsBetter(
-                                        data,
-                                        totalCount,
-                                        data.price,
-                                        best["Health Potion"],
-                                        adjusted,
-                                        false
-                                    )
-                                 then
-                                    local winner = best["Health Potion"]
-                                    winner.id = id
-                                    winner.value = adjusted
-                                    winner.price = data.price
-                                    winner.count = totalCount
-                                end
+                                AddRankedCandidate("Health Potion", id, data, adjusted, totalCount)
                             end
                             if data.manaValue > 0 then
                                 local adjusted = AdjustedScore(data, data.manaValue)
-                                if
-                                    IsBetter(data, totalCount, data.price, best["Mana Potion"], adjusted, false)
-                                 then
-                                    local winner = best["Mana Potion"]
-                                    winner.id = id
-                                    winner.value = adjusted
-                                    winner.price = data.price
-                                    winner.count = totalCount
-                                end
+                                AddRankedCandidate("Mana Potion", id, data, adjusted, totalCount)
                             end
                         elseif itemType == "food" or itemType == "water" or itemType == "foodwater" then
                             if not (data.isBuffFood and not ns.AllowBuffFood) then
@@ -444,6 +500,8 @@ function ns.ScanBags()
             end
         end
     end
+
+    RankCandidates()
 
     ns.BestFoodID = best["Food"].id
     ns.BestFoodLink = best["Food"].link
