@@ -50,12 +50,26 @@ local function BuildDMHBody(typeName, useIDs, formName)
         the best item is depleted. See BuildUseBlock in
         Macro-Builder-General.lua for the shared-cooldown reasoning.
     ]]
+    local firstUse = #lines + 1
     for _, id in ipairs(useIDs) do
         lines[#lines + 1] = "/use item:" .. id
     end
     lines[#lines + 1] = "/cast !" .. formName
     lines[#lines + 1] = "/dmh end"
-    return table.concat(lines, "\n") .. "\n"
+    local body = table.concat(lines, "\n") .. "\n"
+
+    --[[
+        The client truncates macro bodies at 255 bytes, which here would
+        chop the trailing /dmh end line and leave DMH guards dangling.
+        Drop stacked /use lines from the bottom until the body fits; the
+        rank-1 line is never dropped. Mirrors the trim in
+        Macro-Builder-General.lua.
+    ]]
+    while #body > 255 and #lines > firstUse + 2 do
+        table.remove(lines, #lines - 2)
+        body = table.concat(lines, "\n") .. "\n"
+    end
+    return body
 end
 
 --------------------------------------------------------------------------------
