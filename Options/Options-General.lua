@@ -153,7 +153,6 @@ function ns.BuildGeneralOptions()
             },
 
             -- Minimap Button
-            spaceMinimap0 = Spacer(12),
             toggleMinimapButton = {
                 type = "toggle",
                 name = L["OPTIONS_MINIMAP_BUTTON"],
