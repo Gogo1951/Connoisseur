@@ -17,7 +17,7 @@ local _, ns = ...
       MP       → "/dmh stun gcd cd pot" (skips the mana check, since the
                  whole point of a mana pot is that the druid is OOM)
 
-    Eligible macro types and guard prefixes both live in Data-General.lua
+    Eligible macro types and guard prefixes both live in Data.lua
     (ns.DMHMacroTypes, ns.DMHGuards) so the data is shared and not buried
     here.
 ]]

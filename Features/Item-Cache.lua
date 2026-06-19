@@ -1,5 +1,14 @@
 local _, ns = ...
 
+--[[
+    Item-Cache -- derives and caches per-item consumable data in
+    ConnoisseurDB.itemCache (the stateful item-metadata layer) and answers
+    whether an item is a known consumable.
+
+    Exposes: ns.RawData, ns.ClearItemCache, ns.IsKnownConsumable,
+    ns.CacheItemData, ns.PruneIgnoreList.
+]]
+
 --------------------------------------------------------------------------------
 -- Raw Data Safety Init
 --------------------------------------------------------------------------------
@@ -8,7 +17,6 @@ local _, ns = ...
     Defensive in case a Data/*.lua file fails to load. Scanner modules read
     ns.RawData tables and must never index nil.
 ]]
-
 ns.RawData = ns.RawData or {}
 ns.RawData.Bandage = ns.RawData.Bandage or {}
 ns.RawData.FoodAndWater = ns.RawData.FoodAndWater or {}
@@ -35,12 +43,29 @@ function ns.IsKnownConsumable(itemID)
     if ns.ScrollItemLookup and ns.ScrollItemLookup[itemID] then
         return true
     end
-    return ns.RawData.FoodAndWater[itemID] ~= nil
-        or ns.RawData.Potions[itemID] ~= nil
-        or ns.RawData.Healthstone[itemID] ~= nil
-        or ns.RawData.Soulstone[itemID] ~= nil
-        or ns.RawData.Bandage[itemID] ~= nil
-        or ns.RawData.ManaGem[itemID] ~= nil
+    return ns.RawData.FoodAndWater[itemID] ~= nil or ns.RawData.Potions[itemID] ~= nil or
+        ns.RawData.Healthstone[itemID] ~= nil or
+        ns.RawData.Soulstone[itemID] ~= nil or
+        ns.RawData.Bandage[itemID] ~= nil or
+        ns.RawData.ManaGem[itemID] ~= nil
+end
+
+--------------------------------------------------------------------------------
+-- Ignore List
+--------------------------------------------------------------------------------
+
+--[[
+    On logout, drop ignore-list entries no longer recognized as consumables
+    (e.g. the data changed between versions) so the list can't accumulate stale
+    item IDs. Routed from Core's PLAYER_LOGOUT handler.
+]]
+function ns.PruneIgnoreList()
+    local ignoreList = ConnoisseurCharDB and ConnoisseurCharDB.ignoreList or {}
+    for itemID in pairs(ignoreList) do
+        if not ns.IsKnownConsumable(itemID) then
+            ignoreList[itemID] = nil
+        end
+    end
 end
 
 --------------------------------------------------------------------------------
@@ -48,7 +73,9 @@ end
 --------------------------------------------------------------------------------
 
 local function BuildZoneSet(rawZoneArray)
-    if not rawZoneArray then return nil end
+    if not rawZoneArray then
+        return nil
+    end
     local set = {}
     for _, mapID in ipairs(rawZoneArray) do
         set[mapID] = true
@@ -66,20 +93,23 @@ end
     ConnoisseurDB.itemCache. Non-consumable items are cached as "IGNORE"
     so we never look them up a second time.
 ]]
-
 function ns.CacheItemData(itemID)
     local itemCache = ConnoisseurDB and ConnoisseurDB.itemCache
-    if not itemCache then return nil end
+    if not itemCache then
+        return nil
+    end
 
     local name, _, _, _, minLevel, _, _, maxStack, _, _, vendorPrice = GetItemInfo(itemID)
-    if not name then return nil end
+    if not name then
+        return nil
+    end
 
     local rawFoodAndWater = ns.RawData.FoodAndWater[itemID]
-    local rawPotion       = ns.RawData.Potions[itemID]
-    local rawHealthstone  = ns.RawData.Healthstone[itemID]
-    local rawSoulstone    = ns.RawData.Soulstone[itemID]
-    local rawBandage      = ns.RawData.Bandage[itemID]
-    local rawManaGem      = ns.RawData.ManaGem[itemID]
+    local rawPotion = ns.RawData.Potions[itemID]
+    local rawHealthstone = ns.RawData.Healthstone[itemID]
+    local rawSoulstone = ns.RawData.Soulstone[itemID]
+    local rawBandage = ns.RawData.Bandage[itemID]
+    local rawManaGem = ns.RawData.ManaGem[itemID]
 
     if not (rawFoodAndWater or rawPotion or rawHealthstone or rawSoulstone or rawBandage or rawManaGem) then
         itemCache[itemID] = "IGNORE"
@@ -87,18 +117,18 @@ function ns.CacheItemData(itemID)
     end
 
     local data = {
-        id               = itemID,
-        itemType         = "",
-        healthValue      = 0,
-        manaValue        = 0,
-        requiredLevel    = minLevel or 0,
+        id = itemID,
+        itemType = "",
+        healthValue = 0,
+        manaValue = 0,
+        requiredLevel = minLevel or 0,
         requiredFirstAid = 0,
-        requiredAlchemy  = 0,
-        price            = vendorPrice or 0,
-        maxStack         = maxStack or 1,
-        isBuffFood       = false,
-        isPercent        = false,
-        zones            = nil,
+        requiredAlchemy = 0,
+        price = vendorPrice or 0,
+        maxStack = maxStack or 1,
+        isBuffFood = false,
+        isPercent = false,
+        zones = nil
     }
 
     if rawFoodAndWater then
@@ -147,6 +177,12 @@ function ns.CacheItemData(itemID)
     elseif rawHealthstone then
         data.itemType = "healthstone"
         data.healthValue = rawHealthstone[1]
+        --[[
+            Required level for the bag-scan usable gate comes from the curated
+            Data/Healthstones.lua column (static over API), falling back to
+            GetItemInfo's minLevel. (Conjure downranking uses a separate table.)
+        ]]
+        data.requiredLevel = rawHealthstone[2] or data.requiredLevel
     elseif rawSoulstone then
         data.itemType = "soulstone"
         data.healthValue = rawSoulstone[1]

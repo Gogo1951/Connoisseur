@@ -11,7 +11,7 @@ local _, ns = ...
     Maps diet names from GetPetFoodTypes() to internal diet IDs. The API
     returns LOCALIZED names ("Fleisch" on deDE), so the localized names from
     the L["DIET_*"] locale keys are layered on top of the English baseline.
-    (ns.L is available here: Data-General.lua loads first.) The English keys
+    (ns.L is available here: Data.lua loads first.) The English keys
     stay in as a fallback for locales whose DIET_* translations haven't
     landed yet — AceLocale falls back to the enUS value, so the overlay is
     a harmless overwrite of the same key on English clients.

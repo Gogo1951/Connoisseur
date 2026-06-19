@@ -8,7 +8,7 @@ if not L then return end
 -- Brand
 --------------------------------------------------------------------------------
 
-L["BRAND"] = "Connoisseur"
+L["ADDON_TITLE"] = "Connoisseur"
 
 --------------------------------------------------------------------------------
 -- Macro Names
@@ -136,6 +136,10 @@ L["OPTIONS_DESCRIPTION"] = "최고의 음식, 버프 음식, 물, 두루마리, 
 -- Welcome Message
 L["OPTIONS_WELCOME_MESSAGE"] = "환영 메시지 활성화"
 L["OPTIONS_WELCOME_MESSAGE_DESCRIPTION"] = "로그인 시 채팅창에 환영 메시지를 출력합니다."
+
+-- Minimap Button
+L["OPTIONS_MINIMAP_BUTTON"] = "미니맵 버튼 활성화"
+L["OPTIONS_MINIMAP_BUTTON_DESCRIPTION"] = "미니맵 버튼을 표시합니다."
 
 -- Potions & Healthstones
 L["OPTIONS_POTIONS_HEADER"] = "물약 및 생명석"

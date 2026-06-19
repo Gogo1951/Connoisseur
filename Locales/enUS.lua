@@ -7,7 +7,7 @@ if not L then return end
 -- Brand
 --------------------------------------------------------------------------------
 
-L["BRAND"] = "Connoisseur"
+L["ADDON_TITLE"] = "Connoisseur"
 
 --------------------------------------------------------------------------------
 -- Macro Names
@@ -123,7 +123,7 @@ L["UI_TOGGLE"] = "Toggle"
 --------------------------------------------------------------------------------
 
 L["MODE_ALWAYS"] = "Always"
-L["MODE_PARTY"] = "Only when in Party"
+L["MODE_PARTY"] = "Only when in a Party or Raid"
 L["MODE_RAID"] = "Only when in Raid"
 
 --------------------------------------------------------------------------------
@@ -135,6 +135,10 @@ L["OPTIONS_DESCRIPTION"] = "Auto-updating macros for your best food, buff food, 
 -- Welcome Message
 L["OPTIONS_WELCOME_MESSAGE"] = "Enable Welcome Message"
 L["OPTIONS_WELCOME_MESSAGE_DESCRIPTION"] = "Print a welcome message in chat on login."
+
+-- Minimap Button
+L["OPTIONS_MINIMAP_BUTTON"] = "Enable Minimap Button"
+L["OPTIONS_MINIMAP_BUTTON_DESCRIPTION"] = "Show the minimap button."
 
 -- Potions & Healthstones
 L["OPTIONS_POTIONS_HEADER"] = "Potions & Healthstones"

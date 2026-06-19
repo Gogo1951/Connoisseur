@@ -1,11 +1,8 @@
 local _, ns = ...
 ns.RawData = ns.RawData or {}
 
+-- TODO: Add SQL Query
 --[[
-    SELECT entry, name FROM item_template
-    WHERE class = 0 AND subclass = 1
-    ORDER BY entry;
-
     Healing/Mana amounts derived from item_template.spellid_1 spell
     effects; Allowed Zones from Map/Area restrictions where present.
 ]]

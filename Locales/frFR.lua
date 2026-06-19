@@ -8,7 +8,7 @@ if not L then return end
 -- Brand
 --------------------------------------------------------------------------------
 
-L["BRAND"] = "Connoisseur"
+L["ADDON_TITLE"] = "Connoisseur"
 
 --------------------------------------------------------------------------------
 -- Macro Names
@@ -137,6 +137,10 @@ L["OPTIONS_DESCRIPTION"] = "Des macros à mise à jour automatique pour votre me
 L["OPTIONS_WELCOME_MESSAGE"] = "Activer le message de bienvenue"
 L["OPTIONS_WELCOME_MESSAGE_DESCRIPTION"] = "Affiche un message de bienvenue dans le chat lors de la connexion."
 
+-- Minimap Button
+L["OPTIONS_MINIMAP_BUTTON"] = "Activer le bouton de la minicarte"
+L["OPTIONS_MINIMAP_BUTTON_DESCRIPTION"] = "Affiche le bouton de la minicarte."
+
 -- Potions & Healthstones
 L["OPTIONS_POTIONS_HEADER"] = "Potions et Pierres de soins"
 L["OPTIONS_POTIONS_DESCRIPTION"] = "Les macros ne peuvent pas être modifiées en combat (c'est une restriction de Blizzard), chaque macro de Potion et de Pierre de soins est donc pré-générée avec votre meilleur objet ainsi que deux options de secours. Lors de longs combats, l'icône et l'infobulle peuvent devenir obsolètes et afficher le mauvais objet, mais cliquer sur la macro utilisera toujours le meilleur objet que vous possédez réellement dans vos sacs."
@@ -148,7 +152,7 @@ L["OPTIONS_BUFF_FOOD_DETAIL"] = "Astuce de pro : Vous cibler vous-même forcera 
 
 -- Scroll Buffs
 L["OPTIONS_SCROLL_HEADER"] = "Améliorations de parchemins"
-L["OPTIONS_USE_SCROLLS"] = "Inclure les parchemins"
+L["OPTIONS_USE_SCROLLS"] = "Incluir les parchemins"
 L["OPTIONS_USE_SCROLLS_DESCRIPTION"] = "Transforme votre macro Nourriture en applicateur de parchemins dédié lorsqu'il vous manque des améliorations de parchemins. Appuyez une fois pour appliquer les parchemins ; appuyez à nouveau pour manger. Les parchemins sont hors du GCD, vous ciblent, et la macro redevient de la nourriture dès que vous ciblez un autre joueur amical."
 L["OPTIONS_SCROLL_TYPES"] = "Types de parchemins à vérifier"
 L["OPTIONS_SCROLL_AGILITY"] = "Agilité"

@@ -1,5 +1,14 @@
 local _, ns = ...
 
+--[[
+    Scanner-Inventory -- scans the player's bags and selects the single best item
+    per macro category (food, water, potions, healthstones, ...) plus the best
+    Hunter pet food, applying scoring, ranking, and usability gates.
+
+    Exposes: ns.ScanBags, ns.ScanPetFood, ns.BestFoodID, ns.BestFoodLink,
+    ns.BestPetFoodID, ns.BestPetFoodLink.
+]]
+
 --------------------------------------------------------------------------------
 -- State
 --------------------------------------------------------------------------------
@@ -9,49 +18,6 @@ ns.BestFoodLink = nil
 
 ns.BestPetFoodID = nil
 ns.BestPetFoodLink = nil
-
-local currentFirstAidSkill = 0
-local currentAlchemySkill = 0
-
---------------------------------------------------------------------------------
--- Profession Skills
---------------------------------------------------------------------------------
-
-function ns.UpdateFirstAidSkill()
-    local firstAidSpellName = GetSpellInfo(3273)
-    if not firstAidSpellName then
-        currentFirstAidSkill = 0
-        return
-    end
-
-    for i = 1, GetNumSkillLines() do
-        local skillName, isHeader, _, skillRank = GetSkillLineInfo(i)
-        if not isHeader and skillName == firstAidSpellName then
-            currentFirstAidSkill = skillRank
-            return
-        end
-    end
-
-    currentFirstAidSkill = 0
-end
-
-function ns.UpdateAlchemySkill()
-    local alchemySpellName = GetSpellInfo(2259)
-    if not alchemySpellName then
-        currentAlchemySkill = 0
-        return
-    end
-
-    for i = 1, GetNumSkillLines() do
-        local skillName, isHeader, _, skillRank = GetSkillLineInfo(i)
-        if not isHeader and skillName == alchemySpellName then
-            currentAlchemySkill = skillRank
-            return
-        end
-    end
-
-    currentAlchemySkill = 0
-end
 
 --------------------------------------------------------------------------------
 -- Best Item Tracking
@@ -315,8 +281,30 @@ local itemCounts = {}
 local slotItems = {}
 
 function ns.ScanBags()
+    --[[
+        Refresh the zone at scan time. A zone change during combat is gated out
+        by the lockdown guard in Core's dispatcher, so ZONE_CHANGED_NEW_AREA
+        never updates the cache mid-fight; reading it here keeps zone-restricted
+        item filtering from running against a stale map after combat drops.
+    ]]
+    ns.CachedMapID = C_Map.GetBestMapForUnit("player")
+
+    --[[
+        Party/raid-restricted Buff Food, Scrolls, and Pet Food go stale when
+        group composition or the mode dropdown changes — those flip whether a
+        feature is active but have no dedicated UpdateAuraTracking call, so
+        ns.WellFedState and UNIT_AURA registration would otherwise drift.
+        ScanBags is the single point every rescan passes through, so reconcile
+        aura tracking here, before AllowBuffFood reads ns.WellFedState below.
+    ]]
+    if ns.UpdateAuraTracking then
+        ns.UpdateAuraTracking()
+    end
+
     local playerLevel = ns.CachedPlayerLevel
     local currentMap = ns.CachedMapID
+    local firstAidSkill = ns.CurrentFirstAidSkill or 0
+    local alchemySkill = ns.CurrentAlchemySkill or 0
     local charDB = ConnoisseurCharDB or {}
     local settings = charDB.settings or {}
     local itemCache = ConnoisseurDB and ConnoisseurDB.itemCache or {}
@@ -348,8 +336,8 @@ function ns.ScanBags()
     wipe(slotItems)
 
     for bag = 0, NUM_BAG_SLOTS do
-        for slot = 1, C_Container.GetContainerNumSlots(bag) do
-            local info = C_Container.GetContainerItemInfo(bag, slot)
+        for slot = 1, ns.GetContainerNumSlots(bag) do
+            local info = ns.GetContainerItemInfo(bag, slot)
             if info and info.itemID then
                 local id = info.itemID
                 itemCounts[id] = (itemCounts[id] or 0) + info.stackCount
@@ -374,8 +362,8 @@ function ns.ScanBags()
             else
                 local data = itemCache[id]
                 --[[
-                    Evict stale entries that predate the maxStack schema field
-                    (and any associated buggy fields they may have cached).
+                    Cache entries without a maxStack field are from an older
+                    schema; drop them so CacheItemData re-derives them below.
                 ]]
                 if data and data ~= "IGNORE" and data.maxStack == nil then
                     data = nil
@@ -394,11 +382,11 @@ function ns.ScanBags()
                         usable = false
                     end
 
-                    if usable and data.requiredFirstAid > 0 and data.requiredFirstAid > currentFirstAidSkill then
+                    if usable and data.requiredFirstAid > 0 and data.requiredFirstAid > firstAidSkill then
                         usable = false
                     end
 
-                    if usable and (data.requiredAlchemy or 0) > 0 and (data.requiredAlchemy or 0) > currentAlchemySkill then
+                    if usable and (data.requiredAlchemy or 0) > 0 and (data.requiredAlchemy or 0) > alchemySkill then
                         usable = false
                     end
 
@@ -618,8 +606,8 @@ function ns.ScanPetFood()
     local fallbackCount = 999999
 
     for bag = 0, NUM_BAG_SLOTS do
-        for slot = 1, C_Container.GetContainerNumSlots(bag) do
-            local info = C_Container.GetContainerItemInfo(bag, slot)
+        for slot = 1, ns.GetContainerNumSlots(bag) do
+            local info = ns.GetContainerItemInfo(bag, slot)
             if info and info.itemID then
                 local id = info.itemID
                 local foodData = ns.PetFoodData[id]

@@ -1,11 +1,88 @@
 local _, ns = ...
 
+--[[
+    Scanner-Character -- reads live player/pet state and decides which buffs the
+    character still needs: profession skills, aura probes (Well Fed, scroll, and
+    pet-food buffs), and the scroll / pet-food override resolvers.
+
+    Exposes: ns.UpdateFirstAidSkill, ns.UpdateAlchemySkill,
+    ns.CurrentFirstAidSkill, ns.CurrentAlchemySkill, ns.HasWellFedBuff,
+    ns.HasScrollBuff, ns.HasPetFoodBuff, ns.FindScrollOverrides,
+    ns.FindPetBuffOverride, ns.HandleUnitAura, ns.ScrollItemLookup,
+    ns.ScrollOverrideIDs, ns.PetBuffOverrideID.
+]]
+
 --------------------------------------------------------------------------------
 -- State
 --------------------------------------------------------------------------------
 
 ns.ScrollOverrideIDs = nil
 ns.PetBuffOverrideID = nil
+ns.CurrentFirstAidSkill = 0
+ns.CurrentAlchemySkill = 0
+
+--------------------------------------------------------------------------------
+-- Derived Scroll Lookups
+--------------------------------------------------------------------------------
+
+--[[
+    Built once at load from ns.ScrollData (defined in Data/Scrolls.lua, which
+    loads before this file). ns.ScrollItemLookup maps each scroll itemID to its
+    scroll type so the bag scanners route scroll items away from normal
+    consumable processing; data.buffIDs is the per-type set of scroll buff spell
+    IDs, precomputed so HasScrollBuff doesn't rebuild it on every aura tick.
+    Every consumer reads these from inside a function (runtime), so the build
+    only needs to finish before the first scan.
+]]
+ns.ScrollItemLookup = {}
+for scrollType, data in pairs(ns.ScrollData) do
+    local buffIDs = {}
+    for _, entry in ipairs(data.items) do
+        ns.ScrollItemLookup[entry[1]] = scrollType
+        buffIDs[entry[2]] = true
+    end
+    data.buffIDs = buffIDs
+end
+
+--------------------------------------------------------------------------------
+-- Profession Skills
+--------------------------------------------------------------------------------
+
+function ns.UpdateFirstAidSkill()
+    local firstAidSpellName = GetSpellInfo(3273)
+    if not firstAidSpellName then
+        ns.CurrentFirstAidSkill = 0
+        return
+    end
+
+    for i = 1, GetNumSkillLines() do
+        local skillName, isHeader, _, skillRank = GetSkillLineInfo(i)
+        if not isHeader and skillName == firstAidSpellName then
+            ns.CurrentFirstAidSkill = skillRank
+            return
+        end
+    end
+
+    ns.CurrentFirstAidSkill = 0
+end
+
+function ns.UpdateAlchemySkill()
+    local alchemySpellName = GetSpellInfo(2259)
+    if not alchemySpellName then
+        ns.CurrentAlchemySkill = 0
+        return
+    end
+
+    for i = 1, GetNumSkillLines() do
+        local skillName, isHeader, _, skillRank = GetSkillLineInfo(i)
+        if not isHeader and skillName == alchemySpellName then
+            ns.CurrentAlchemySkill = skillRank
+            return
+        end
+    end
+
+    ns.CurrentAlchemySkill = 0
+end
 
 --------------------------------------------------------------------------------
 -- Well Fed
@@ -178,4 +255,39 @@ function ns.FindPetBuffOverride(bagItemCounts)
     end
 
     return nil
+end
+
+--------------------------------------------------------------------------------
+-- Aura Event Handler
+--------------------------------------------------------------------------------
+
+--[[
+    UNIT_AURA handler routed from Core's dispatcher. Diffs the Well Fed state so
+    a buff gain or loss triggers exactly one rebuild, and flags an update while
+    scroll (player) or pet-buff (pet) tracking is active.
+]]
+function ns.HandleUnitAura(unit)
+    local needsUpdate = false
+
+    if unit == "player" then
+        if ns.HasWellFedBuff then
+            local currentState = ns.HasWellFedBuff()
+            if currentState ~= ns.WellFedState then
+                ns.WellFedState = currentState
+                needsUpdate = true
+            end
+        end
+
+        if ConnoisseurCharDB and ConnoisseurCharDB.settings and ConnoisseurCharDB.settings.useScrolls then
+            needsUpdate = true
+        end
+    elseif unit == "pet" then
+        if ConnoisseurCharDB and ConnoisseurCharDB.settings and ConnoisseurCharDB.settings.usePetBuffFood then
+            needsUpdate = true
+        end
+    end
+
+    if needsUpdate then
+        ns.RequestUpdate()
+    end
 end

@@ -8,7 +8,7 @@ if not L then return end
 -- Brand
 --------------------------------------------------------------------------------
 
-L["BRAND"] = "Connoisseur"
+L["ADDON_TITLE"] = "Connoisseur"
 
 --------------------------------------------------------------------------------
 -- Macro Names
@@ -136,6 +136,10 @@ L["OPTIONS_DESCRIPTION"] = "Macros de atualização automática para sua melhor 
 -- Welcome Message
 L["OPTIONS_WELCOME_MESSAGE"] = "Ativar Mensagem de Boas-vindas"
 L["OPTIONS_WELCOME_MESSAGE_DESCRIPTION"] = "Imprime uma mensagem de boas-vindas no chat ao entrar."
+
+-- Minimap Button
+L["OPTIONS_MINIMAP_BUTTON"] = "Ativar Botão do Minimapa"
+L["OPTIONS_MINIMAP_BUTTON_DESCRIPTION"] = "Mostra o botão do minimapa."
 
 -- Potions & Healthstones
 L["OPTIONS_POTIONS_HEADER"] = "Poções e Pedras de Vida"

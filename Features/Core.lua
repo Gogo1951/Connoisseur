@@ -1,107 +1,4 @@
-local addonName, ns = ...
-local L = ns.L
-
---[[
-    Color accessor over the ns.COLORS palette, which is defined as data in
-    Data/Data-General.lua. The accessor lives here in Core so the data file
-    stays declarative (the style guide asks Data files to hold no logic beyond
-    GetLocale). ns.COLORS is read at call time, so it is always populated by
-    the time any color is requested.
-]]
-function ns.GetColor(key)
-    return ns.COLORS[key] or ns.COLORS.TEXT
-end
-local GetColor = ns.GetColor
-
---[[
-    Cross-client item API shims. Retail exposes these on C_Item; Classic /
-    TBC only expose the globals. Resolving once at load keeps call sites
-    branch-free and avoids "attempt to index nil" errors on Classic.
-]]
-ns.GetItemCount = (C_Item and C_Item.GetItemCount) or GetItemCount
-ns.GetItemIcon  = (C_Item and C_Item.GetItemIconByID) or GetItemIcon
-
---[[
-    Transport between the /run snippet in consumable macros and the
-    UI_ERROR_MESSAGE handler. The macro writes lastID and lastTime so
-    we can correlate a zone-restriction error back to its triggering item.
-]]
-ConnoisseurState = ConnoisseurState or {}
-
---[[
-    Tiny helper exposed as a global so macro bodies can record the firing
-    item with `/run ConnFire(itemID)` instead of inlining a longer
-    snippet. That savings matters when stacking scroll uses against the
-    255-character macro body limit.
-
-    Name choice: 8 characters, distinctive "Conn" prefix to avoid collisions
-    with two-letter or generic globals other addons might define.
-]]
-function ConnFire(itemID)
-    ConnoisseurState.lastID = itemID
-    ConnoisseurState.lastTime = GetTime()
-end
-
---[[
-    Resolves a ConnTip key to its display text. Static messages come from
-    ns.MessageStrings; "you don't know <spell>" keys come from
-    ns.MissingSpellMessageIDs and are rendered with the localized spell
-    name via GetSpellInfo at print time. A spell that doesn't exist on the
-    current client returns nil here so ConnTip silently skips rather than
-    naming a spell the player will never see.
-]]
-local function ResolveConnTip(key)
-    if ns.MessageStrings and ns.MessageStrings[key] then
-        return ns.MessageStrings[key]
-    end
-    if ns.MissingSpellMessageIDs and ns.MissingSpellMessageIDs[key] then
-        local name = GetSpellInfo(ns.MissingSpellMessageIDs[key])
-        if not name then return nil end
-        return string.format(L["TIP_DONT_KNOW_SPELL"], name)
-    end
-    return nil
-end
-
-function ConnTip(key)
-    local text = ResolveConnTip(key)
-    if text then
-        ns.PrintMessage(text)
-    end
-end
-
---[[
-    Conditional sibling of ConnTip — fires the tip only when the macro
-    conditional `cond` matches. Used by the Feed Pet macro for level-10/11
-    hunters who don't know Mend Pet yet, so right-click or in-combat clicks
-    print an explanation instead of silently doing nothing useful. We append
-    a sentinel " 1" so SecureCmdOptionParse returns "1" on match and nil on
-    miss — clean truthy/falsy semantics regardless of how the API treats an
-    empty action body.
-]]
-function ConnIf(cond, key)
-    if SecureCmdOptionParse(cond .. " 1") then
-        ConnTip(key)
-    end
-end
-
---[[
-    Prints the standardized "no suitable <type> found" chat line. Macro bodies
-    call this with the internal type key (`/run ConnNoItem("Food")`) instead
-    of embedding a colorized /run print(...) snippet. The inline form broke on
-    any message containing an apostrophe and hand-rolled the brand/separator
-    colors; routing through ns.PrintMessage keeps the format identical to
-    every other chat message.
-
-    The key stays English inside the macro body (keeps bodies and state keys
-    locale-independent) and resolves to the localized LABEL_* string via
-    ns.Config at print time. Unknown keys fall back to the raw key so a stale
-    macro body from an older version still prints something sensible.
-]]
-function ConnNoItem(typeName)
-    local config = ns.Config and ns.Config[typeName]
-    local label = config and config.label or typeName
-    ns.PrintMessage(string.format(L["MSG_NO_ITEM"], label))
-end
+local ADDON_NAME, ns = ...
 
 --------------------------------------------------------------------------------
 -- State
@@ -113,67 +10,24 @@ local updateTimer = 0
 local UPDATE_THROTTLE = 0.5
 
 --------------------------------------------------------------------------------
--- Chat Output
+-- Diagnostics State
 --------------------------------------------------------------------------------
-
-function ns.PrintMessage(text)
-    print(
-        GetColor("INFO") .. L["BRAND"] .. "|r " ..
-        GetColor("SEPARATOR") .. "//" .. "|r " ..
-        GetColor("TEXT") .. text .. "|r"
-    )
-end
 
 --[[
-    PLAYER_ENTERING_WORLD fires on instance transitions and reloads, not
-    just initial login. Guard with a flag so the welcome lands once per
-    session.
+    Runtime-only diagnostics state — never persisted to SavedVariables, so it
+    starts false every login and needs no teardown. The dispatcher reads
+    ns.diagnostics.logging first (see OnEvent) so logging-off costs one boolean
+    check. Features/Diagnostics.lua owns ns:LogEvent / ns:StopEventLog.
 ]]
-local welcomePrinted = false
-
-local function PrintWelcome()
-    if welcomePrinted then return end
-    if not (ConnoisseurDB and ConnoisseurDB.showWelcome) then return end
-    welcomePrinted = true
-    ns.PrintMessage(L["CHAT_LOADED"]:format(ns.Version))
-end
-
---------------------------------------------------------------------------------
--- Utility
---------------------------------------------------------------------------------
-
-function ns.IsModeActive(mode)
-    if mode == "always" then
-        return true
-    end
-    if mode == "party" then
-        return IsInGroup()
-    end
-    if mode == "raid" then
-        return IsInRaid()
-    end
-    return true
-end
-
-function ns.KnowsAny(spellList)
-    if not spellList then
-        return false
-    end
-    for _, data in ipairs(spellList) do
-        if IsSpellKnown(data[1]) then
-            return true
-        end
-    end
-    return false
-end
+ns.diagnostics = {enabled = false, logging = false, log = nil}
 
 --------------------------------------------------------------------------------
 -- Version
 --------------------------------------------------------------------------------
 
 local function GetVersion()
-    local version = C_AddOns and C_AddOns.GetAddOnMetadata(addonName, "Version")
-        or GetAddOnMetadata(addonName, "Version")
+    local version =
+        C_AddOns and C_AddOns.GetAddOnMetadata(ADDON_NAME, "Version") or GetAddOnMetadata(ADDON_NAME, "Version")
     if not version or version:find("@") then
         return "Dev"
     end
@@ -187,7 +41,9 @@ ns.Version = GetVersion()
 --------------------------------------------------------------------------------
 
 local function ApplyDefaults(target, defaults)
-    if not defaults then return end
+    if not defaults then
+        return
+    end
     for key, value in pairs(defaults) do
         if type(value) == "table" then
             if type(target[key]) ~= "table" then
@@ -201,68 +57,20 @@ local function ApplyDefaults(target, defaults)
 end
 
 --------------------------------------------------------------------------------
--- Hunter Pet Spell Resolution
---------------------------------------------------------------------------------
-
---[[
-    Resolves each pet spell's name only if the player actually knows the spell.
-    GetSpellInfo returns a name even for unlearned spells, so a level-8 hunter
-    without Mend Pet would otherwise get a macro referencing a spell they can't
-    cast. Re-run on PLAYER_LEVEL_UP and SPELLS_CHANGED so newly-learned spells
-    (Mend Pet at 12) start participating in the macro without a /reload.
-]]
-local function ResolveIfKnown(spellID)
-    local known = IsSpellKnown(spellID)
-    if not known and IsPlayerSpell then
-        known = IsPlayerSpell(spellID)
-    end
-    if known then
-        return GetSpellInfo(spellID)
-    end
-    return nil
-end
-
-function ns.ResolveHunterSpells()
-    if not ns.IsHunter then return end
-    ns.FeedPetSpellName = ResolveIfKnown(ns.FEED_PET_SPELL_ID)
-    ns.RevivePetSpellName = ResolveIfKnown(ns.REVIVE_PET_SPELL_ID)
-    ns.MendPetSpellName = ResolveIfKnown(ns.MEND_PET_SPELL_ID)
-    ns.CallPetSpellName = ResolveIfKnown(ns.CALL_PET_SPELL_ID)
-    ns.DismissPetSpellName = ResolveIfKnown(ns.DISMISS_PET_SPELL_ID)
-end
-
---------------------------------------------------------------------------------
 -- Initialization
 --------------------------------------------------------------------------------
 
-local function InitVars()
-    ConnoisseurDB = ConnoisseurDB or {}
-    --[[
-        Booleans need an explicit nil check; `or true` would clobber a
-        user's saved `false`. Initialize before migrations so legacy paths
-        can rely on the field existing.
-    ]]
-    if ConnoisseurDB.showWelcome == nil then ConnoisseurDB.showWelcome = true end
+local varsInitialized = false
 
-    ConnoisseurCharDB = ConnoisseurCharDB or {}
-    ConnoisseurCharDB.ignoreList = ConnoisseurCharDB.ignoreList or {}
-    ConnoisseurCharDB.settings = ConnoisseurCharDB.settings or {}
-
-    ConnoisseurDB.minimap = ConnoisseurDB.minimap or {}
-
-    ApplyDefaults(ConnoisseurCharDB.settings, ns.SETTINGS_DEFAULTS)
-
-    -- Invalidate item cache on version change
-    if ConnoisseurDB.itemCacheVersion ~= ns.Version then
-        ConnoisseurDB.itemCache = {}
-        ConnoisseurDB.itemCacheVersion = ns.Version
-    else
-        ConnoisseurDB.itemCache = ConnoisseurDB.itemCache or {}
-    end
-
-    ns.CachedPlayerLevel = UnitLevel("player") or 1
-    ns.CachedMapID = C_Map.GetBestMapForUnit("player")
-
+--[[
+    One-time, session-constant setup: race/class detection, spell-name caches,
+    the conjure-spell existence cache, profession skills, and the minimap
+    button. None of these change during a session, so they resolve once and the
+    event handlers (PLAYER_LEVEL_UP, SPELLS_CHANGED, SKILL_LINES_CHANGED) keep
+    the level-dependent pieces fresh afterward. Called by InitVars after
+    ConnoisseurDB exists, so LDBIcon gets its saved minimap position.
+]]
+local function InitSessionConstants()
     local _, raceToken = UnitRace("player")
     ns.IsNightElf = (raceToken == "NightElf")
 
@@ -278,31 +86,21 @@ local function InitVars()
         message at all (they'll never learn that spell).
     ]]
     local _, classToken = UnitClass("player")
-    ns.IsHunter  = (classToken == "HUNTER")
-    ns.IsDruid   = (classToken == "DRUID")
-    ns.IsMage    = (classToken == "MAGE")
+    ns.IsHunter = (classToken == "HUNTER")
+    ns.IsDruid = (classToken == "DRUID")
+    ns.IsMage = (classToken == "MAGE")
     ns.IsWarlock = (classToken == "WARLOCK")
 
     if ns.IsDruid then
         -- Dire Bear was merged into Bear Form in Cataclysm; resolve whichever exists.
-        ns.DruidBearFormName = GetSpellInfo(ns.DRUID_DIRE_BEAR_FORM_SPELL_ID)
-            or GetSpellInfo(ns.DRUID_BEAR_FORM_SPELL_ID)
+        ns.DruidBearFormName =
+            GetSpellInfo(ns.DRUID_DIRE_BEAR_FORM_SPELL_ID) or GetSpellInfo(ns.DRUID_BEAR_FORM_SPELL_ID)
         ns.DruidCatFormName = GetSpellInfo(ns.DRUID_CAT_FORM_SPELL_ID)
     end
 
     if ns.IsHunter then
         ns.ResolveHunterSpells()
         ns.PetDeadDismissed = false
-        --[[
-            QUEST_LOG_UPDATE fires very frequently, and the only consumer of
-            quest data is Hunter pet-food quest-objective skipping (ScanPetFood
-            via BuildActiveQuestSet). Register it only for hunters so everyone
-            else doesn't pay for a full bag rescan + macro rebuild on every
-            quest-log churn.
-        ]]
-        frame:RegisterEvent("QUEST_LOG_UPDATE")
-    else
-        frame:UnregisterEvent("QUEST_LOG_UPDATE")
     end
 
     ns.SpellCache = {}
@@ -326,8 +124,63 @@ local function InitVars()
 
     local LDBIcon = LibStub("LibDBIcon-1.0")
     if LDBIcon and ns.LDBObj and not ns.IconRegistered then
-        LDBIcon:Register("Connoisseur", ns.LDBObj, ConnoisseurDB.minimap)
+        LDBIcon:Register(ns.LOCALE_NAME, ns.LDBObj, ConnoisseurDB.minimap)
         ns.IconRegistered = true
+    end
+end
+
+local function InitVars()
+    ConnoisseurDB = ConnoisseurDB or {}
+    --[[
+        Account-wide defaults (welcome message, minimap button, macro enablement) fill through the
+        same additive ApplyDefaults merge as the per-character settings below --
+        only nil fields are filled, so saved values are preserved. They live in
+        ConnoisseurDB, not the per-character ConnoisseurCharDB.settings. The
+        minimap subtable is created explicitly first so LibDBIcon always has a
+        table to register against regardless of the defaults; the merge then
+        seeds its hide flag.
+    ]]
+    ConnoisseurDB.minimap = ConnoisseurDB.minimap or {}
+    ApplyDefaults(ConnoisseurDB, ns.DEFAULT_ACCOUNT_CONFIGURATION)
+
+    ConnoisseurCharDB = ConnoisseurCharDB or {}
+    ConnoisseurCharDB.ignoreList = ConnoisseurCharDB.ignoreList or {}
+    ConnoisseurCharDB.settings = ConnoisseurCharDB.settings or {}
+
+    ApplyDefaults(ConnoisseurCharDB.settings, ns.DEFAULT_CONFIGURATION)
+
+    -- Invalidate item cache on version change
+    if ConnoisseurDB.itemCacheVersion ~= ns.Version then
+        ConnoisseurDB.itemCache = {}
+        ConnoisseurDB.itemCacheVersion = ns.Version
+    else
+        ConnoisseurDB.itemCache = ConnoisseurDB.itemCache or {}
+    end
+
+    ns.CachedPlayerLevel = UnitLevel("player") or 1
+    ns.CachedMapID = C_Map.GetBestMapForUnit("player")
+
+    --[[
+        Session-constant work runs once. Everything above this gate refreshes
+        every call — SavedVariables existence and the cached level/zone, which
+        change between logins and as the player levels and zones.
+    ]]
+    if not varsInitialized then
+        varsInitialized = true
+        InitSessionConstants()
+    end
+
+    --[[
+        QUEST_LOG_UPDATE fires very frequently, and the only consumer of quest
+        data is Hunter pet-food quest-objective skipping (ScanPetFood via
+        BuildActiveQuestSet). Register it only for hunters so everyone else
+        doesn't pay for a full bag rescan + macro rebuild on every quest-log
+        churn. Kept per-call (idempotent) so registration follows ns.IsHunter.
+    ]]
+    if ns.IsHunter then
+        frame:RegisterEvent("QUEST_LOG_UPDATE")
+    else
+        frame:UnregisterEvent("QUEST_LOG_UPDATE")
     end
 end
 
@@ -336,7 +189,9 @@ end
 --------------------------------------------------------------------------------
 
 function ns.ResetSettings()
-    if not ConnoisseurCharDB then return end
+    if not ConnoisseurCharDB then
+        return
+    end
 
     --[[
         Wipe per-character user state in place, preserving the table
@@ -356,7 +211,18 @@ function ns.ResetSettings()
         wipe(ConnoisseurDB.itemCache)
     end
 
-    ApplyDefaults(ConnoisseurCharDB.settings, ns.SETTINGS_DEFAULTS)
+    ApplyDefaults(ConnoisseurCharDB.settings, ns.DEFAULT_CONFIGURATION)
+
+    --[[
+        enabledMacros is account-wide (see Default-Settings.lua), so reset it
+        here too -- "Reset All" should still restore macro enablement. showWelcome
+        and the minimap subtable are left untouched, like every account-wide pref.
+    ]]
+    if ConnoisseurDB then
+        ConnoisseurDB.enabledMacros = ConnoisseurDB.enabledMacros or {}
+        wipe(ConnoisseurDB.enabledMacros)
+        ApplyDefaults(ConnoisseurDB.enabledMacros, ns.DEFAULT_ACCOUNT_CONFIGURATION.enabledMacros)
+    end
 
     ns.UpdateAuraTracking()
     if ns.ResetMacroState then
@@ -376,13 +242,12 @@ end
     (minimap click path). A boolean argument sets state directly (options-panel
     path) and matches what AceConfig hands back to the set callback.
 ]]
-
 function ns.UpdateAuraTracking()
     local settings = ConnoisseurCharDB.settings
 
     local buffFoodActive = settings.useBuffFood and ns.IsModeActive(settings.buffFoodMode)
-    local scrollsActive  = settings.useScrolls and ns.IsModeActive(settings.scrollsMode)
-    local petBuffActive  = settings.usePetBuffFood and ns.IsModeActive(settings.petBuffFoodMode)
+    local scrollsActive = settings.useScrolls and ns.IsModeActive(settings.scrollsMode)
+    local petBuffActive = settings.usePetBuffFood and ns.IsModeActive(settings.petBuffFoodMode)
 
     if buffFoodActive or scrollsActive then
         ns.WellFedState = ns.HasWellFedBuff and ns.HasWellFedBuff() or false
@@ -457,9 +322,12 @@ end
 
 function ns.RegisterDataRetry()
     frame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
-    C_Timer.After(2, function()
-        ns.RequestUpdate()
-    end)
+    C_Timer.After(
+        2,
+        function()
+            ns.RequestUpdate()
+        end
+    )
 end
 
 function ns.UnregisterDataRetry()
@@ -495,8 +363,15 @@ end
 -- Event Handling
 --------------------------------------------------------------------------------
 
-frame:SetScript("OnEvent", function(self, event, ...)
-    --[[
+frame:SetScript(
+    "OnEvent",
+    function(self, event, ...)
+        -- Diagnostics event-log tap; the boolean is read first so logging-off is free.
+        if ns.diagnostics.logging then
+            ns:LogEvent(event, ...)
+        end
+
+        --[[
         Initialization must run regardless of combat state, so it is handled
         ahead of the lockdown guard below. PLAYER_LOGIN is the earliest safe
         point (SavedVariables are loaded) and fires before the first
@@ -507,12 +382,12 @@ frame:SetScript("OnEvent", function(self, event, ...)
         leaving ConnoisseurDB/ConnoisseurCharDB nil until the next out-of-combat
         PLAYER_ENTERING_WORLD.
     ]]
-    if event == "PLAYER_LOGIN" then
-        InitVars()
-        return
-    end
+        if event == "PLAYER_LOGIN" then
+            InitVars()
+            return
+        end
 
-    --[[
+        --[[
         UI_ERROR_MESSAGE is also handled ahead of the lockdown guard: both
         of its consumers must work mid-combat and neither touches protected
         functions. The wrong-zone report mostly fires when a zone-locked
@@ -521,188 +396,173 @@ frame:SetScript("OnEvent", function(self, event, ...)
         RequestUpdate, whose OnUpdate handler already defers macro writes
         until combat drops.
     ]]
-    if event == "UI_ERROR_MESSAGE" then
-        local _, msg = ...
+        if event == "UI_ERROR_MESSAGE" then
+            local _, msg = ...
+
+            if ns.HandleHunterPetError then
+                ns.HandleHunterPetError(msg)
+            end
+
+            if ns.ReportZoneRestriction then
+                ns.ReportZoneRestriction(msg)
+            end
+            return
+        end
 
         --[[
-            Hunter: detect dead-but-dismissed pet.
-            When Call Pet fails because the pet is dead, the client fires
-            SPELL_FAILED_TARGETS_DEAD. We catch it here and flip the flag
-            so the macro rebuilds with Revive Pet on the next cycle.
-            If the error ID changes in a future build, update this check.
-        ]]
-        if ns.IsHunter and not UnitExists("pet") and msg then
-            local deadMsg = SPELL_FAILED_TARGETS_DEAD
-            if deadMsg and msg == deadMsg then
-                ns.PetDeadDismissed = true
+        Leveling changes which items, scrolls, and spells qualify, so a
+        level-up forces a full rebuild of every macro. Refresh the cached level
+        and hunter spell names here, above the combat lockdown guard, because a
+        ding from a killing blow fires PLAYER_LEVEL_UP in combat, and UnitLevel
+        / GetSpellInfo are safe combat reads. Wiping the macro state forces
+        every macro to rewrite; the write itself still defers to the
+        post-combat tick via the throttled update.
+    ]]
+        if event == "PLAYER_LEVEL_UP" then
+            ns.CachedPlayerLevel = UnitLevel("player") or ns.CachedPlayerLevel or 1
+            if ns.IsHunter then
+                ns.ResolveHunterSpells()
+            end
+            if ns.ResetMacroState then
+                ns.ResetMacroState()
+            end
+            ns.RequestUpdate()
+            return
+        end
+
+        if InCombatLockdown() then
+            isUpdatePending = true
+            return
+        end
+
+        if event == "PLAYER_REGEN_ENABLED" then
+            if isUpdatePending then
+                isUpdatePending = false
                 ns.RequestUpdate()
             end
+            return
         end
 
-        --[[
-            Zone-restriction reporting. The macro's /run snippet writes
-            lastID and lastTime via ConnFire(). If we see
-            ERR_ITEM_WRONG_ZONE within one second of a macro firing, we
-            know which item to blame.
-        ]]
-        if ConnoisseurState.lastTime and (GetTime() - ConnoisseurState.lastTime) < 1.0 then
-            if msg == ERR_ITEM_WRONG_ZONE then
-                local mapID = C_Map.GetBestMapForUnit("player") or "0"
-                local zone = GetZoneText() or "?"
-                local subzone = GetSubZoneText() or ""
-                if subzone == "" then
-                    subzone = zone
-                end
-
-                local itemID = ConnoisseurState.lastID or 0
-                local link = "Item #" .. itemID
-                if itemID ~= 0 then
-                    local _, itemLink = GetItemInfo(itemID)
-                    if itemLink then
-                        link = itemLink
-                    end
-                end
-
-                ns.PrintMessage(string.format(L["MSG_BUG_REPORT"], link, itemID, zone, subzone, mapID))
-                ConnoisseurState.lastTime = 0
-            end
-        end
-        return
-    end
-
-    if InCombatLockdown() then
-        isUpdatePending = true
-        return
-    end
-
-    if event == "PLAYER_REGEN_ENABLED" then
-        if isUpdatePending then
-            isUpdatePending = false
+        if
+            event == "BAG_UPDATE_DELAYED" or event == "ITEM_PUSH" or event == "PLAYER_TARGET_CHANGED" or
+                event == "GET_ITEM_INFO_RECEIVED" or
+                event == "PLAYER_ALIVE" or
+                event == "PLAYER_UNGHOST" or
+                event == "GROUP_ROSTER_UPDATE" or
+                event == "QUEST_LOG_UPDATE"
+         then
             ns.RequestUpdate()
-        end
-        return
-    end
-
-    if event == "BAG_UPDATE_DELAYED"
-        or event == "ITEM_PUSH"
-        or event == "PLAYER_TARGET_CHANGED"
-        or event == "GET_ITEM_INFO_RECEIVED"
-        or event == "PLAYER_ALIVE"
-        or event == "PLAYER_UNGHOST"
-        or event == "GROUP_ROSTER_UPDATE"
-        or event == "QUEST_LOG_UPDATE"
-    then
-        ns.RequestUpdate()
-    elseif event == "ZONE_CHANGED_NEW_AREA" then
-        ns.CachedMapID = C_Map.GetBestMapForUnit("player")
-        ns.RequestUpdate()
-    elseif event == "PLAYER_LEVEL_UP" then
-        ns.CachedPlayerLevel = UnitLevel("player") or 1
-        if ns.IsHunter then
-            ns.ResolveHunterSpells()
-        end
-        ns.RequestUpdate()
-    elseif event == "SPELLS_CHANGED" then
-        --[[
+        elseif event == "ZONE_CHANGED_NEW_AREA" then
+            ns.CachedMapID = C_Map.GetBestMapForUnit("player")
+            ns.RequestUpdate()
+        elseif event == "SPELLS_CHANGED" then
+            --[[
             Hunter spell-name cache refreshes here so a level-up training
             visit (e.g. Mend Pet at 12) starts participating in the macro
             immediately. Mages/warlocks don't have a name cache, but their
             macro bodies still depend on KnowsAny / GetSmartSpell results,
             so we trigger a generic rebuild for everyone.
         ]]
-        if ns.IsHunter then
-            ns.ResolveHunterSpells()
-        end
-        ns.RequestUpdate()
-    elseif event == "PLAYER_ENTERING_WORLD" then
-        InitVars()
-        PrintWelcome()
-        ns.UpdateAuraTracking()
-        ns.RequestUpdate()
-        C_Timer.After(3, function()
+            if ns.IsHunter then
+                ns.ResolveHunterSpells()
+            end
             ns.RequestUpdate()
-        end)
-    elseif event == "SKILL_LINES_CHANGED" then
-        if ns.UpdateFirstAidSkill then
-            ns.UpdateFirstAidSkill()
-        end
-        if ns.UpdateAlchemySkill then
-            ns.UpdateAlchemySkill()
-        end
-        ns.RequestUpdate()
-    elseif event == "UNIT_AURA" then
-        local needsUpdate = false
-        local unit = ...
-
-        if unit == "player" then
-            if ns.HasWellFedBuff then
-                local currentState = ns.HasWellFedBuff()
-                if currentState ~= ns.WellFedState then
-                    ns.WellFedState = currentState
-                    needsUpdate = true
+        elseif event == "PLAYER_ENTERING_WORLD" then
+            InitVars()
+            ns.PrintWelcome()
+            ns.UpdateAuraTracking()
+            ns.RequestUpdate()
+            C_Timer.After(
+                3,
+                function()
+                    ns.RequestUpdate()
                 end
+            )
+        elseif event == "SKILL_LINES_CHANGED" then
+            if ns.UpdateFirstAidSkill then
+                ns.UpdateFirstAidSkill()
             end
-
-            if ConnoisseurCharDB and ConnoisseurCharDB.settings and ConnoisseurCharDB.settings.useScrolls then
-                needsUpdate = true
-            end
-        elseif unit == "pet" then
-            if ConnoisseurCharDB and ConnoisseurCharDB.settings and ConnoisseurCharDB.settings.usePetBuffFood then
-                needsUpdate = true
-            end
-        end
-
-        if needsUpdate then
-            ns.RequestUpdate()
-        end
-
-    elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
-        local _, _, spellID = ...
-        if ns.SpellCache and ns.SpellCache[spellID] then
-            ns.RequestUpdate()
-        end
-    elseif event == "UNIT_PET" then
-        local unit = ...
-        if unit == "player" then
-            -- Pet appeared or changed: clear the dead-dismissed flag
-            if ns.IsHunter and UnitExists("pet") and not UnitIsDead("pet") then
-                ns.PetDeadDismissed = false
+            if ns.UpdateAlchemySkill then
+                ns.UpdateAlchemySkill()
             end
             ns.RequestUpdate()
-        end
-    elseif event == "PLAYER_LOGOUT" then
-        if ns.IsKnownConsumable then
-            local ignoreList = ConnoisseurCharDB and ConnoisseurCharDB.ignoreList or {}
-            for itemID in pairs(ignoreList) do
-                if not ns.IsKnownConsumable(itemID) then
-                    ignoreList[itemID] = nil
-                end
+        elseif event == "UNIT_AURA" then
+            if ns.HandleUnitAura then
+                ns.HandleUnitAura(...)
+            end
+        elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
+            local _, _, spellID = ...
+            if ns.SpellCache and ns.SpellCache[spellID] then
+                ns.RequestUpdate()
+            end
+        elseif event == "UNIT_PET" then
+            if ns.HandlePetChanged then
+                ns.HandlePetChanged(...)
+            end
+        elseif event == "PLAYER_LOGOUT" then
+            if ns.PruneIgnoreList then
+                ns.PruneIgnoreList()
             end
         end
     end
-end)
+)
 
 --------------------------------------------------------------------------------
--- Event Registration
+-- Events
 --------------------------------------------------------------------------------
 
-frame:RegisterEvent("BAG_UPDATE_DELAYED")
-frame:RegisterEvent("ITEM_PUSH")
-frame:RegisterEvent("PLAYER_ALIVE")
-frame:RegisterEvent("PLAYER_ENTERING_WORLD")
-frame:RegisterEvent("PLAYER_LEVEL_UP")
-frame:RegisterEvent("PLAYER_LOGIN")
-frame:RegisterEvent("PLAYER_LOGOUT")
-frame:RegisterEvent("PLAYER_REGEN_ENABLED")
-frame:RegisterEvent("PLAYER_TARGET_CHANGED")
-frame:RegisterEvent("PLAYER_UNGHOST")
-frame:RegisterEvent("UI_ERROR_MESSAGE")
-frame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
-frame:RegisterEvent("SKILL_LINES_CHANGED")
-frame:RegisterEvent("SPELLS_CHANGED")
+--[[
+    Every event name the add-on uses, in one list. The dispatcher registers the
+    plain events from it, and Diagnostics' Event Registration check reads the
+    same list, so the two can never drift. Unit-filtered and on-demand events
+    are registered separately below but still appear here so the validity check
+    covers them too.
+]]
+ns.CORE_EVENTS = {
+    "BAG_UPDATE_DELAYED",
+    "ITEM_PUSH",
+    "PLAYER_ALIVE",
+    "PLAYER_ENTERING_WORLD",
+    "PLAYER_LEVEL_UP",
+    "PLAYER_LOGIN",
+    "PLAYER_LOGOUT",
+    "PLAYER_REGEN_ENABLED",
+    "PLAYER_TARGET_CHANGED",
+    "PLAYER_UNGHOST",
+    "UI_ERROR_MESSAGE",
+    "ZONE_CHANGED_NEW_AREA",
+    "SKILL_LINES_CHANGED",
+    "SPELLS_CHANGED",
+    "GROUP_ROSTER_UPDATE",
+    "UNIT_PET",
+    "UNIT_SPELLCAST_SUCCEEDED",
+    "UNIT_AURA",
+    "QUEST_LOG_UPDATE",
+    "GET_ITEM_INFO_RECEIVED"
+}
+
+--[[
+    Names NOT registered by the plain loop: unit-filtered events use
+    RegisterUnitEvent, and the on-demand events are registered only while needed
+    (UNIT_AURA via UpdateAuraTracking, QUEST_LOG_UPDATE for hunters in InitVars,
+    GET_ITEM_INFO_RECEIVED via RegisterDataRetry).
+]]
+local DEFERRED_EVENTS = {
+    UNIT_PET = true,
+    UNIT_SPELLCAST_SUCCEEDED = true,
+    UNIT_AURA = true,
+    QUEST_LOG_UPDATE = true,
+    GET_ITEM_INFO_RECEIVED = true
+}
+
+for _, event in ipairs(ns.CORE_EVENTS) do
+    if not DEFERRED_EVENTS[event] then
+        frame:RegisterEvent(event)
+    end
+end
+
 frame:RegisterUnitEvent("UNIT_PET", "player")
 frame:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
-frame:RegisterEvent("GROUP_ROSTER_UPDATE")
 
 --[[
     QUEST_LOG_UPDATE is registered dynamically in InitVars — Hunters only.

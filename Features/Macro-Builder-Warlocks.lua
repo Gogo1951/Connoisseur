@@ -59,7 +59,7 @@ end
     of those" error; the addon prints nothing. Target downranking stays off
     (ignoreTarget=true): the best known rank already satisfies the
     max-target-level caps (see WarlockCreateSoulstone in
-    Data-General.lua). Lowest rank unlocks at level 18, so a 1-17
+    Data.lua). Lowest rank unlocks at level 18, so a 1-17
     warlock sees the missing-spell tip on both right-click (where they
     expected the conjure) and left-click (since they almost certainly
     don't have a Soulstone item to /use).

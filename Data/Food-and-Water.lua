@@ -1,16 +1,12 @@
 local _, ns = ...
 ns.RawData = ns.RawData or {}
 
+-- TODO: Add SQL Query
 --[[
-    SELECT entry, name FROM item_template
-    WHERE class = 0 AND subclass = 5
-    ORDER BY entry;
-
     Buff Food flag and Food/Water % + amounts come from the spell taught
     by item_template.spellid_1; Allowed Zones from Map/Area restrictions.
 ]]
 ns.RawData.FoodAndWater = {
-    -- TODO: Add Wrath Data
     -- [ID] = {Buff Food, Food %, Food Amount, Water %, Water Amount, {Allowed Zones}}, -- Name
 
     [19301] = {0, 0, 4410, 0, 4410}, -- Alterac Manna Biscuit

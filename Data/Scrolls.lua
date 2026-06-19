@@ -123,24 +123,3 @@ ns.SCROLL_CHECK_ORDER = {
     "Spirit",
     "Stamina"
 }
-
---------------------------------------------------------------------------------
--- Derived Lookups
---------------------------------------------------------------------------------
-
---[[
-    ScrollItemLookup: scroll itemID → scroll type, used by the scanners to
-    route scroll items away from normal consumable processing.
-
-    data.buffIDs: per-type set of scroll buff spell IDs, precomputed once
-    here so HasScrollBuff doesn't rebuild the set on every aura tick.
-]]
-ns.ScrollItemLookup = {}
-for scrollType, data in pairs(ns.ScrollData) do
-    local buffIDs = {}
-    for _, entry in ipairs(data.items) do
-        ns.ScrollItemLookup[entry[1]] = scrollType
-        buffIDs[entry[2]] = true
-    end
-    data.buffIDs = buffIDs
-end

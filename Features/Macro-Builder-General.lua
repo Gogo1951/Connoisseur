@@ -3,6 +3,137 @@ local L = ns.L
 local Config = ns.Config
 
 --------------------------------------------------------------------------------
+-- Macro Runtime Globals
+--------------------------------------------------------------------------------
+
+--[[
+    Macro-callback globals.
+
+    These are intentionally GLOBAL — macro bodies invoke them through `/run`,
+    which executes in the global environment and cannot see the add-on
+    namespace. This is the documented exception to the rule that the only
+    globals are SavedVariables, slash commands, and named frames; each name
+    carries the distinctive "Conn" prefix to keep collision risk negligible.
+
+    They live in this file because it is the build-time half of the macro
+    system that emits them: StateWriteLine writes `/run ConnFire(...)`, and
+    BuildConjureBlock / the class builders emit `/run ConnTip / ConnIf /
+    ConnNoItem`. This file loads after Announcements (ConnTip / ConnNoItem call
+    ns.PrintMessage) and after Data (reads ns.MessageStrings,
+    ns.MissingSpellMessageIDs, ns.Config).
+]]
+--[[
+    Transport between the /run snippet in consumable macros and the
+    UI_ERROR_MESSAGE handler in Core. The macro writes lastID and lastTime so a
+    zone-restriction error can be correlated back to its triggering item.
+]]
+ConnoisseurState = ConnoisseurState or {}
+
+--[[
+    Records the firing item with `/run ConnFire(itemID)` instead of inlining a
+    longer snippet — the saved characters matter when stacking scroll uses
+    against the 255-character macro body limit.
+]]
+function ConnFire(itemID)
+    ConnoisseurState.lastID = itemID
+    ConnoisseurState.lastTime = GetTime()
+end
+
+--[[
+    Consumer half of the ConnoisseurState transport: when a consumable macro
+    fires, ConnFire() above stamps lastID/lastTime. If ERR_ITEM_WRONG_ZONE
+    arrives within one second, we know which item to blame and print a bug
+    report naming it. Core's dispatcher routes UI_ERROR_MESSAGE here ahead of
+    its combat-lockdown guard, since a zone-locked potion is usually pressed
+    mid-fight.
+]]
+function ns.ReportZoneRestriction(msg)
+    if not (ConnoisseurState.lastTime and (GetTime() - ConnoisseurState.lastTime) < 1.0) then
+        return
+    end
+    if msg ~= ERR_ITEM_WRONG_ZONE then
+        return
+    end
+
+    local mapID = C_Map.GetBestMapForUnit("player") or "0"
+    local zone = GetZoneText() or "?"
+    local subzone = GetSubZoneText() or ""
+    if subzone == "" then
+        subzone = zone
+    end
+
+    local itemID = ConnoisseurState.lastID or 0
+    local link = "Item #" .. itemID
+    if itemID ~= 0 then
+        local _, itemLink = GetItemInfo(itemID)
+        if itemLink then
+            link = itemLink
+        end
+    end
+
+    ns.PrintMessage(string.format(L["MSG_BUG_REPORT"], link, itemID, zone, subzone, mapID))
+    ConnoisseurState.lastTime = 0
+end
+
+--[[
+    Resolves a ConnTip key to its display text. Static messages come from
+    ns.MessageStrings; "you don't know <spell>" keys come from
+    ns.MissingSpellMessageIDs and are rendered with the localized spell name via
+    GetSpellInfo at print time. A spell that doesn't exist on the current client
+    returns nil here so ConnTip silently skips rather than naming a spell the
+    player will never see.
+]]
+local function ResolveConnTip(key)
+    if ns.MessageStrings and ns.MessageStrings[key] then
+        return ns.MessageStrings[key]
+    end
+    if ns.MissingSpellMessageIDs and ns.MissingSpellMessageIDs[key] then
+        local name = GetSpellInfo(ns.MissingSpellMessageIDs[key])
+        if not name then
+            return nil
+        end
+        return string.format(L["TIP_DONT_KNOW_SPELL"], name)
+    end
+    return nil
+end
+
+function ConnTip(key)
+    local text = ResolveConnTip(key)
+    if text then
+        ns.PrintMessage(text)
+    end
+end
+
+--[[
+    Conditional sibling of ConnTip — fires the tip only when the macro
+    conditional `cond` matches. Used by the Feed Pet macro for level-10/11
+    hunters who don't know Mend Pet yet, so right-click or in-combat clicks
+    print an explanation instead of silently doing nothing useful. We append a
+    sentinel " 1" so SecureCmdOptionParse returns "1" on match and nil on miss —
+    clean truthy/falsy semantics regardless of how the API treats an empty
+    action body.
+]]
+function ConnIf(cond, key)
+    if SecureCmdOptionParse(cond .. " 1") then
+        ConnTip(key)
+    end
+end
+
+--[[
+    Prints the standardized "no suitable <type> found" chat line. Macro bodies
+    call this with the internal type key (`/run ConnNoItem("Food")`). The key
+    stays English inside the macro body (keeps bodies and state keys
+    locale-independent) and resolves to the localized LABEL_* string via
+    ns.Config at print time. Unknown keys fall back to the raw key so a stale
+    macro body from an older version still prints something sensible.
+]]
+function ConnNoItem(typeName)
+    local config = ns.Config and ns.Config[typeName]
+    local label = config and config.label or typeName
+    ns.PrintMessage(string.format(L["MSG_NO_ITEM"], label))
+end
+
+--------------------------------------------------------------------------------
 -- State
 --------------------------------------------------------------------------------
 
@@ -45,11 +176,8 @@ ns.ConjureResolvers = ns.ConjureResolvers or {}
     builder (which drops scrolls so a Mage can right-click to conjure food
     for a friend without firing scrolls on themselves).
 ]]
-
 local function HasFriendlyPlayerTarget()
-    return UnitExists("target")
-        and UnitIsFriend("player", "target")
-        and UnitIsPlayer("target")
+    return UnitExists("target") and UnitIsFriend("player", "target") and UnitIsPlayer("target")
 end
 ns.HasFriendlyPlayerTarget = HasFriendlyPlayerTarget
 
@@ -62,7 +190,6 @@ ns.HasFriendlyPlayerTarget = HasFriendlyPlayerTarget
     can still receive. Targeting a friendly player of lower level drops the
     rank down so the conjured item matches their level cap.
 ]]
-
 function ns.GetSmartSpell(spellList, ignoreTarget, checkUnique)
     if not spellList then
         return nil, 0
@@ -88,8 +215,7 @@ function ns.GetSmartSpell(spellList, ignoreTarget, checkUnique)
         if known and requiredLevel <= levelCap then
             local shouldSkip = false
 
-            local conjuredItems = checkUnique and ns.ConjuredItemIDsBySpell
-                and ns.ConjuredItemIDsBySpell[spellID]
+            local conjuredItems = checkUnique and ns.ConjuredItemIDsBySpell and ns.ConjuredItemIDsBySpell[spellID]
             if conjuredItems then
                 for _, conjuredItemID in ipairs(conjuredItems) do
                     if ns.GetItemCount(conjuredItemID) > 0 then
@@ -164,8 +290,7 @@ end
 --------------------------------------------------------------------------------
 
 function ns.IsMacroEnabled(typeName)
-    local settings = ConnoisseurCharDB and ConnoisseurCharDB.settings
-    local enabled = settings and settings.enabledMacros
+    local enabled = ConnoisseurDB and ConnoisseurDB.enabledMacros
     if not enabled then
         return true
     end
@@ -309,9 +434,8 @@ end
     All scrolls fit comfortably under WoW's 255-char macro limit: 14 chars
     for the tooltip line + at most 6 scrolls × ~25 chars ≈ 164 chars.
 ]]
-
 local function BuildScrollOnlyBody(scrollList)
-    local lines = { "#showtooltip" }
+    local lines = {"#showtooltip"}
     for _, scrollID in ipairs(scrollList) do
         lines[#lines + 1] = "/use [@player] item:" .. scrollID
     end
@@ -329,18 +453,18 @@ end
     this later" tip when the user actually presses the click that would
     have used the spell.
 
-    Returns the block string (may be empty) and the count of "miss" tips
-    present (so the caller can include them in the state key).
+    Returns the block string (may be empty).
 ]]
-
 local function BuildConjureBlock(info)
-    if not info then return "", 0 end
+    if not info then
+        return ""
+    end
 
     local rightName, middleName = info.rightName, info.middleName
     local rightMiss, middleMiss = info.rightMiss, info.middleMiss
 
     if not (rightName or middleName or rightMiss or middleMiss) then
-        return "", 0
+        return ""
     end
 
     local lines = {}
@@ -358,8 +482,12 @@ local function BuildConjureBlock(info)
     end
 
     local missStop = ""
-    if rightMiss  then missStop = missStop .. "[btn:2]" end
-    if middleMiss then missStop = missStop .. "[btn:3]" end
+    if rightMiss then
+        missStop = missStop .. "[btn:2]"
+    end
+    if middleMiss then
+        missStop = missStop .. "[btn:3]"
+    end
     if missStop ~= "" then
         lines[#lines + 1] = "/stopmacro " .. missStop
     end
@@ -379,7 +507,7 @@ local function BuildConjureBlock(info)
         lines[#lines + 1] = "/stopmacro " .. stopConditions
     end
 
-    return table.concat(lines, "\n") .. "\n", (rightMiss and 1 or 0) + (middleMiss and 1 or 0)
+    return table.concat(lines, "\n") .. "\n"
 end
 
 --------------------------------------------------------------------------------
@@ -441,8 +569,7 @@ function ns.UpdateMacros(forced)
                 itself, so the list only adds fallback lines below it.
             ]]
             local useIDs
-            if itemID and ns.MultiUseMacroTypes[typeName]
-                and bestEntry.topIDs and #bestEntry.topIDs > 0 then
+            if itemID and ns.MultiUseMacroTypes[typeName] and bestEntry.topIDs and #bestEntry.topIDs > 0 then
                 useIDs = bestEntry.topIDs
             end
 
@@ -475,7 +602,6 @@ function ns.UpdateMacros(forced)
                     and out of scroll mode (target-change, scroll-applied,
                     bag scan removing the last scroll item, etc).
                 ]]
-
                 local body = BuildScrollOnlyBody(scrollIDsForThisMacro)
                 local stateID = "SCROLLS:" .. table.concat(scrollIDsForThisMacro, ",")
 
@@ -491,12 +617,10 @@ function ns.UpdateMacros(forced)
                     standard or scroll-mode keys — a transition into or out
                     of override mode always triggers a rewrite.
                 ]]
-
                 if currentMacroState[typeName] ~= classStateID or forced then
                     WriteMacro(config.macro, ns.QUESTION_MARK_ICON, classBody, classStateID, typeName)
                 end
             else
-
                 --[[
                     Class-specific conjure spells (or "spell not yet learned"
                     print tips). Resolver may return nil for macro types this
@@ -539,7 +663,7 @@ function ns.UpdateMacros(forced)
 
                 local conjureBlock = ""
                 if conjureInfo then
-                    conjureBlock = (BuildConjureBlock(conjureInfo))
+                    conjureBlock = BuildConjureBlock(conjureInfo)
                 end
 
                 local shadowmeldBlock = ""
@@ -558,15 +682,17 @@ function ns.UpdateMacros(forced)
                     never collide and a transition between modes always
                     triggers a rewrite.
                 ]]
-
                 local itemKey = itemID and tostring(itemID) or "none"
                 if useIDs then
                     itemKey = table.concat(useIDs, ",")
                 end
-                local stateParts = { itemKey }
-                if conjureInfo and (conjureInfo.rightName or conjureInfo.middleName
-                                    or conjureInfo.rightMiss or conjureInfo.middleMiss
-                                    or conjureInfo.noItemMiss) then
+                local stateParts = {itemKey}
+                if
+                    conjureInfo and
+                        (conjureInfo.rightName or conjureInfo.middleName or conjureInfo.rightMiss or
+                            conjureInfo.middleMiss or
+                            conjureInfo.noItemMiss)
+                 then
                     stateParts[#stateParts + 1] = "C"
                     if conjureInfo.middleName then
                         stateParts[#stateParts + 1] = "M:" .. tostring(conjureInfo.middleID)
@@ -615,15 +741,14 @@ function ns.UpdateMacros(forced)
 
                     WriteMacro(config.macro, ns.QUESTION_MARK_ICON, body, stateID, typeName)
                 end
-
             end -- if scrollMode / class override / standard
         end
     end
 
     --[[
-        Feed Pet (Hunter only). Note: we no longer require FeedPetSpellName
-        here — Macro-Builder-Hunters owns the knowledge-tier logic and is
-        responsible for emitting a print-only stub for pre-10 hunters.
+        Feed Pet is Hunter-only. Macro-Builder-Hunters owns the knowledge-tier
+        logic and emits a print-only stub for pre-10 hunters, so this block
+        only routes to UpdateFeedPetMacro or removes the macro when disabled.
     ]]
     if ns.IsHunter then
         if ns.IsMacroEnabled("Feed Pet") then
