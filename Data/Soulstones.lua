@@ -1,11 +1,8 @@
 local _, ns = ...
 ns.RawData = ns.RawData or {}
 
+-- TODO: Add SQL Query
 --[[
-    SELECT entry, name FROM item_template
-    WHERE name LIKE '%Soulstone%'
-    ORDER BY entry;
-
     Rank Value: the stone's resurrection health, used as a sortable
     preference score (Minor < Lesser < Soulstone < Greater < Major <
     Master < Demonic).

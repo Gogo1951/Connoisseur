@@ -8,7 +8,7 @@ if not L then return end
 -- Brand
 --------------------------------------------------------------------------------
 
-L["BRAND"] = "Connoisseur"
+L["ADDON_TITLE"] = "Connoisseur"
 
 --------------------------------------------------------------------------------
 -- Macro Names
@@ -136,6 +136,10 @@ L["OPTIONS_DESCRIPTION"] = "為你最好的食物、增益食物、水、卷軸�
 -- Welcome Message
 L["OPTIONS_WELCOME_MESSAGE"] = "啟用歡迎訊息"
 L["OPTIONS_WELCOME_MESSAGE_DESCRIPTION"] = "登入時在聊天框列印歡迎訊息。"
+
+-- Minimap Button
+L["OPTIONS_MINIMAP_BUTTON"] = "啟用小地圖按鈕"
+L["OPTIONS_MINIMAP_BUTTON_DESCRIPTION"] = "顯示小地圖按鈕。"
 
 -- Potions & Healthstones
 L["OPTIONS_POTIONS_HEADER"] = "藥水與治療石"

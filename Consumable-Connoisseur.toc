@@ -2,7 +2,7 @@
 ## Notes: Auto-updating macros for your best food, buff food, water, scrolls, healing and mana potions, healthstones, soulstones, mana gems, and bandages. One-click conjuring for Mages and Warlocks, smart Feed Pet for Hunters. Optimal nutrition, peak performance.
 ## Author: Gogo1951
 
-## IconTexture: Interface/AddOns/Consumable-Connoisseur/Consumable-Connoisseur.tga
+## IconTexture: Interface/AddOns/Consumable-Connoisseur/Includes/Images/Connoisseur.tga
 ## Category-enUS: Consumables
 ## X-License: MIT
 
@@ -14,16 +14,16 @@
 ## SavedVariablesPerCharacter: ConnoisseurCharDB
 
 # Includes
-Includes/LibStub/LibStub.lua
-Includes/CallbackHandler-1.0/CallbackHandler-1.0.lua
-Includes/AceLocale-3.0/AceLocale-3.0.lua
-Includes/AceGUI-3.0/AceGUI-3.0.xml
-Includes/AceConfig-3.0/AceConfigRegistry-3.0/AceConfigRegistry-3.0.lua
-Includes/AceConfig-3.0/AceConfigCmd-3.0/AceConfigCmd-3.0.lua
-Includes/AceConfig-3.0/AceConfigDialog-3.0/AceConfigDialog-3.0.lua
-Includes/AceConfig-3.0/AceConfig-3.0.lua
-Includes/LibDataBroker-1.1/LibDataBroker-1.1.lua
-Includes/LibDBIcon-1.0/LibDBIcon-1.0.lua
+Includes/Libraries/LibStub/LibStub.lua
+Includes/Libraries/CallbackHandler-1.0/CallbackHandler-1.0.lua
+Includes/Libraries/AceLocale-3.0/AceLocale-3.0.lua
+Includes/Libraries/AceGUI-3.0/AceGUI-3.0.xml
+Includes/Libraries/AceConfig-3.0/AceConfigRegistry-3.0/AceConfigRegistry-3.0.lua
+Includes/Libraries/AceConfig-3.0/AceConfigCmd-3.0/AceConfigCmd-3.0.lua
+Includes/Libraries/AceConfig-3.0/AceConfigDialog-3.0/AceConfigDialog-3.0.lua
+Includes/Libraries/AceConfig-3.0/AceConfig-3.0.lua
+Includes/Libraries/LibDataBroker-1.1/LibDataBroker-1.1.lua
+Includes/Libraries/LibDBIcon-1.0/LibDBIcon-1.0.lua
 
 # Localization
 Locales/enUS.lua
@@ -39,7 +39,8 @@ Locales/zhCN.lua
 Locales/zhTW.lua
 
 # Data
-Data/Data-General.lua
+Data/Data.lua
+Data/Default-Settings.lua
 Data/Scrolls.lua
 Data/Bandages.lua
 Data/Food-and-Water.lua
@@ -50,17 +51,23 @@ Data/Potions.lua
 Data/Pet-Foods.lua
 
 # Connoisseur
-Core.lua
-Scanner-Item-Data.lua
-Scanner-Buffs.lua
-Scanner-Inventory.lua
-Macro-Builder-General.lua
-Macro-Builder-Druids.lua
-Macro-Builder-Hunters.lua
-Macro-Builder-Mages.lua
-Macro-Builder-Warlocks.lua
-Minimap-Button.lua
-Options.lua
+Features/Core.lua
+Features/Utilities.lua
+Features/Announcements.lua
+Features/Item-Cache.lua
+Features/Scanner-Character.lua
+Features/Scanner-Inventory.lua
+Features/Macro-Builder-General.lua
+Features/Macro-Builder-Druids.lua
+Features/Macro-Builder-Hunters.lua
+Features/Macro-Builder-Mages.lua
+Features/Macro-Builder-Warlocks.lua
+Features/Diagnostics.lua
+Features/Minimap-Button.lua
+Options/Options-Utilities.lua
+Options/Options-General.lua
+Options/Options-Diagnostics.lua
+Options/Options.lua
 
 # Feedback Welcome! (=
 # Connoisseur on CurseForge // https://www.curseforge.com/wow/addons/consumable-connoisseur
