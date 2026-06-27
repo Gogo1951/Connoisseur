@@ -109,6 +109,15 @@ local best = {
     }
 }
 
+--[[
+    Expose the scanner's live best table for diagnostics. ScanBags resets and
+    repopulates these entries in place every pass, so the reference always
+    reflects the last scan. Read-only for consumers (Diagnostics' context
+    report); the scanner itself owns all writes. This is what lets the context
+    report show the per-category winner for every type, not just BestFoodID.
+]]
+ns.BestSelection = best
+
 local function ResetBest(entry)
     entry.id = nil
     entry.value = 0
@@ -163,7 +172,16 @@ end
 --[[
     Candidate wins if, in order: it's a buff food when we want one, it's a
     percent-heal, it has a higher score, a lower price, the correct hybrid
-    preference, or fewer copies in bags.
+    preference, fewer copies in bags, or — as a final, never-equal tiebreak —
+    a lower itemID.
+
+    The itemID tiebreak mirrors CompareRankedCandidates: without it, two items
+    that match on every other field compare equal, so the winner is whichever
+    the pairs() scan over slotItems happened to reach first. That order is not
+    stable between an in-session rescan (a wiped-and-rebuilt table) and a fresh
+    table after /reload, so the selection could flip for identical bags — the
+    item would only "update" after a reload. Comparing itemID last makes the
+    pick deterministic, so a buy-triggered rescan and a reload always agree.
 ]]
 
 local function IsBetter(candidate, candidateCount, candidatePrice, currentBest, score, allowBuffFood, preferHybrid)
@@ -196,7 +214,11 @@ local function IsBetter(candidate, candidateCount, candidatePrice, currentBest, 
         end
     end
 
-    return candidateCount < currentBest.count
+    if candidateCount ~= currentBest.count then
+        return candidateCount < currentBest.count
+    end
+
+    return candidate.id < currentBest.id
 end
 
 --------------------------------------------------------------------------------

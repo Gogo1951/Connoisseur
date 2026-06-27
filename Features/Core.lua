@@ -5,7 +5,18 @@ local ADDON_NAME, ns = ...
 --------------------------------------------------------------------------------
 
 local frame = CreateFrame("Frame")
+
+--[[
+    Two-flag throttle. isUpdatePending means "a rescan/rebuild is wanted but
+    hasn't been applied yet"; isTickScheduled means "the OnUpdate throttle is
+    currently armed." Keeping them separate is what makes the throttle
+    self-healing: RequestUpdate re-arms whenever the tick is disarmed, so a
+    pending update can never get stranded with no OnUpdate attached — even if a
+    combat-exit (PLAYER_REGEN_ENABLED) clear is ever missed, the next
+    out-of-combat request re-arms the tick instead of being swallowed.
+]]
 local isUpdatePending = false
+local isTickScheduled = false
 local updateTimer = 0
 local UPDATE_THROTTLE = 0.5
 
@@ -336,14 +347,20 @@ end
 
 local function OnUpdateHandler(self, elapsed)
     if InCombatLockdown() then
+        --[[
+            Macros can't be written in combat. Disarm the tick but leave the
+            work pending (isUpdatePending stays true); PLAYER_REGEN_ENABLED, or
+            any later out-of-combat request, re-arms it.
+        ]]
         frame:SetScript("OnUpdate", nil)
-        isUpdatePending = true
+        isTickScheduled = false
         return
     end
 
     updateTimer = updateTimer + elapsed
     if updateTimer > UPDATE_THROTTLE then
         frame:SetScript("OnUpdate", nil)
+        isTickScheduled = false
         isUpdatePending = false
         if ns.UpdateMacros then
             ns.UpdateMacros()
@@ -352,8 +369,27 @@ local function OnUpdateHandler(self, elapsed)
 end
 
 function ns.RequestUpdate()
-    if not isUpdatePending then
-        isUpdatePending = true
+    isUpdatePending = true
+
+    --[[
+        In combat, leave the work pending without arming the tick — macro
+        writes are blocked until combat drops, and PLAYER_REGEN_ENABLED
+        re-requests then.
+    ]]
+    if InCombatLockdown() then
+        return
+    end
+
+    --[[
+        Out of combat, ensure the throttled tick is armed. Gating on
+        isTickScheduled (not isUpdatePending) means a request always re-arms a
+        disarmed tick, so a stranded isUpdatePending can never swallow updates
+        until a /reload. updateTimer is reset only when arming a fresh tick, so
+        the throttle still fires ~UPDATE_THROTTLE after the first request in a
+        burst rather than debouncing to the last.
+    ]]
+    if not isTickScheduled then
+        isTickScheduled = true
         updateTimer = 0
         frame:SetScript("OnUpdate", OnUpdateHandler)
     end
@@ -437,7 +473,6 @@ frame:SetScript(
 
         if event == "PLAYER_REGEN_ENABLED" then
             if isUpdatePending then
-                isUpdatePending = false
                 ns.RequestUpdate()
             end
             return
