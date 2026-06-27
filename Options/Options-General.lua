@@ -181,18 +181,20 @@ function ns.BuildGeneralOptions()
             -- Potions & Healthstones
             spacePotions0 = Spacer(30),
             headerPotions = Header(L["OPTIONS_POTIONS_HEADER"], 31),
-            descPotions = Desc(GetColor("BODY") .. L["OPTIONS_POTIONS_DESCRIPTION"] .. "|r", 32),
+            spacePotions1 = Spacer(32),
+            descPotions = Desc(GetColor("BODY") .. L["OPTIONS_POTIONS_DESCRIPTION"] .. "|r", 33),
 
             -- Buff Food
             spaceBuff0 = Spacer(100),
             headerBuff = Header(L["MENU_BUFF_FOOD"], 101),
-            descBuff = Desc(GetColor("BODY") .. L["OPTIONS_BUFF_FOOD_DESCRIPTION"] .. "|r", 102),
-            spaceBuff1 = Spacer(103),
+            spaceBuff1 = Spacer(102),
+            descBuff = Desc(GetColor("BODY") .. L["OPTIONS_BUFF_FOOD_DESCRIPTION"] .. "|r", 103),
+            spaceBuff2 = Spacer(104),
             toggleBuffFood = {
                 type = "toggle",
                 name = L["OPTIONS_BUFF_FOOD"],
                 desc = L["OPTIONS_BUFF_FOOD_DESCRIPTION"],
-                order = 104,
+                order = 105,
                 width = "full",
                 get = function()
                     return BuffFoodActive()
@@ -203,20 +205,21 @@ function ns.BuildGeneralOptions()
                     end
                 end,
             },
-            buffFoodMode = FeatureMode("buffFoodMode", BuffFoodActive, 105),
-            spaceBuff2 = Spacer(106),
-            detailBuff = Desc(GetColor("BODY") .. L["OPTIONS_BUFF_FOOD_DETAIL"] .. "|r", 107),
+            buffFoodMode = FeatureMode("buffFoodMode", BuffFoodActive, 106),
+            spaceBuff3 = Spacer(107),
+            detailBuff = Desc(GetColor("BODY") .. L["OPTIONS_BUFF_FOOD_DETAIL"] .. "|r", 108),
 
             -- Scroll Buffs
             spaceScroll0 = Spacer(200),
             headerScroll = Header(L["OPTIONS_SCROLL_HEADER"], 201),
-            descScroll = Desc(GetColor("BODY") .. L["OPTIONS_USE_SCROLLS_DESCRIPTION"] .. "|r", 202),
-            spaceScroll1 = Spacer(203),
+            spaceScroll1 = Spacer(202),
+            descScroll = Desc(GetColor("BODY") .. L["OPTIONS_USE_SCROLLS_DESCRIPTION"] .. "|r", 203),
+            spaceScroll2 = Spacer(204),
             toggleScrolls = {
                 type = "toggle",
                 name = L["OPTIONS_USE_SCROLLS"],
                 desc = L["OPTIONS_USE_SCROLLS_DESCRIPTION"],
-                order = 204,
+                order = 205,
                 width = "full",
                 get = function()
                     return ScrollsActive()
@@ -227,12 +230,12 @@ function ns.BuildGeneralOptions()
                     end
                 end,
             },
-            scrollsMode = FeatureMode("scrollsMode", ScrollsActive, 205),
-            spaceScrollTypes0 = Spacer(206),
+            scrollsMode = FeatureMode("scrollsMode", ScrollsActive, 206),
+            spaceScrollTypes0 = Spacer(207),
             scrollTypesGroup = {
                 type = "group",
                 name = L["OPTIONS_SCROLL_TYPES"],
-                order = 207,
+                order = 208,
                 inline = true,
                 hidden = function()
                     return not ScrollsActive()
@@ -250,13 +253,14 @@ function ns.BuildGeneralOptions()
             -- Pet Food Buffs
             spacePet0 = Spacer(300),
             headerPet = Header(L["OPTIONS_PET_HEADER"], 301),
-            descPet = Desc(GetColor("BODY") .. L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] .. "|r", 302),
-            spacePet1 = Spacer(303),
+            spacePet1 = Spacer(302),
+            descPet = Desc(GetColor("BODY") .. L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] .. "|r", 303),
+            spacePet2 = Spacer(304),
             togglePetBuffs = {
                 type = "toggle",
                 name = L["OPTIONS_USE_PET_BUFFS"],
                 desc = L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"],
-                order = 304,
+                order = 305,
                 width = "full",
                 get = function()
                     return PetBuffActive()
@@ -272,12 +276,12 @@ function ns.BuildGeneralOptions()
                     ns.RequestUpdate()
                 end,
             },
-            petBuffFoodMode = FeatureMode("petBuffFoodMode", PetBuffActive, 305),
-            spacePetTypes0 = Spacer(306),
+            petBuffFoodMode = FeatureMode("petBuffFoodMode", PetBuffActive, 306),
+            spacePetTypes0 = Spacer(307),
             petTypesGroup = {
                 type = "group",
                 name = L["OPTIONS_PET_BUFF_TYPES"],
-                order = 307,
+                order = 308,
                 inline = true,
                 hidden = function()
                     return not PetBuffActive()
@@ -291,17 +295,18 @@ function ns.BuildGeneralOptions()
             -- Enable Macros
             spaceEnable0 = Spacer(400),
             headerEnableMacros = Header(L["OPTIONS_ENABLE_MACROS_HEADER"], 401),
-            descEnableMacros = Desc(GetColor("BODY") .. L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] .. "|r", 402),
-            spaceEnableMacros1 = Spacer(403),
-            enableBandage = MacroToggle(L["MACRO_BANDAGE"], "Bandage", 404),
-            enableFeedPet = MacroToggle(L["MACRO_FEED_PET"], "Feed Pet", 405, function() return not ns.IsHunter end),
-            enableFood = MacroToggle(L["MACRO_FOOD"], "Food", 406),
-            enableHealthPotion = MacroToggle(L["MACRO_HEALTH_POTION"], "Health Potion", 407),
-            enableHealthstone = MacroToggle(L["MACRO_HEALTHSTONE"], "Healthstone", 408),
-            enableManaGem = MacroToggle(L["MACRO_MANA_GEM"], "Mana Gem", 409),
-            enableManaPotion = MacroToggle(L["MACRO_MANA_POTION"], "Mana Potion", 410),
-            enableSoulstone = MacroToggle(L["MACRO_SOULSTONE"], "Soulstone", 411),
-            enableWater = MacroToggle(L["MACRO_WATER"], "Water", 412),
+            spaceEnable1 = Spacer(402),
+            descEnableMacros = Desc(GetColor("BODY") .. L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] .. "|r", 403),
+            spaceEnable2 = Spacer(404),
+            enableBandage = MacroToggle(L["MACRO_BANDAGE"], "Bandage", 405),
+            enableFeedPet = MacroToggle(L["MACRO_FEED_PET"], "Feed Pet", 406, function() return not ns.IsHunter end),
+            enableFood = MacroToggle(L["MACRO_FOOD"], "Food", 407),
+            enableHealthPotion = MacroToggle(L["MACRO_HEALTH_POTION"], "Health Potion", 408),
+            enableHealthstone = MacroToggle(L["MACRO_HEALTHSTONE"], "Healthstone", 409),
+            enableManaGem = MacroToggle(L["MACRO_MANA_GEM"], "Mana Gem", 410),
+            enableManaPotion = MacroToggle(L["MACRO_MANA_POTION"], "Mana Potion", 411),
+            enableSoulstone = MacroToggle(L["MACRO_SOULSTONE"], "Soulstone", 412),
+            enableWater = MacroToggle(L["MACRO_WATER"], "Water", 413),
 
             -- Druids
             spaceDruid0 = {

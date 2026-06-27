@@ -330,6 +330,37 @@ function ns:BuildContextReport()
     end
     lines[#lines + 1] = string.format("PetBuffOverrideID: %s", tostring(ns.PetBuffOverrideID))
 
+    --[[
+        Per-category winners from the last ScanBags pass (ns.BestSelection is
+        the scanner's live best table). The read-out for "category X didn't
+        update" reports: it shows exactly what the scanner picked plus the
+        tiebreak inputs (value/price/count) the comparison ladder ordered on,
+        and the ranked topIDs for multi-use types — none of which BestFoodID
+        alone can reveal.
+    ]]
+    local selection = ns.BestSelection
+    if selection then
+        lines[#lines + 1] = ""
+        lines[#lines + 1] = "-- Best by category (last scan) --"
+        local categories = {}
+        for typeName in pairs(selection) do
+            categories[#categories + 1] = typeName
+        end
+        table.sort(categories)
+        for _, typeName in ipairs(categories) do
+            local entry = selection[typeName]
+            local detail = string.format(
+                "id=%s value=%s price=%s count=%s",
+                tostring(entry.id), tostring(entry.value),
+                tostring(entry.price), tostring(entry.count)
+            )
+            if entry.topIDs and #entry.topIDs > 0 then
+                detail = detail .. " topIDs=" .. table.concat(entry.topIDs, ",")
+            end
+            lines[#lines + 1] = string.format("%s: %s", typeName, detail)
+        end
+    end
+
     lines[#lines + 1] = ""
     lines[#lines + 1] = "-- Spell knowledge --"
     for _, entry in ipairs(ns.DIAGNOSTIC_SPELLS) do
