@@ -144,6 +144,8 @@ L["OPTIONS_MINIMAP_BUTTON_DESCRIPTION"] = "Mostra il pulsante della minimappa."
 -- Potions & Healthstones
 L["OPTIONS_POTIONS_HEADER"] = "Pozioni e Pietre della Salute"
 L["OPTIONS_POTIONS_DESCRIPTION"] = "Le macro non possono cambiare durante il combattimento (questa è una restrizione della Blizzard), quindi ogni macro per Pozioni e Pietre della Salute è pre-costruita con il tuo miglior oggetto più fino a due alternative. Nei combattimenti più lunghi, l'icona e il tooltip possono diventare obsoleti e mostrare l'oggetto sbagliato, ma cliccando sulla macro verrà sempre utilizzato il miglior oggetto che hai effettivamente nelle borse."
+L["OPTIONS_COMBINE_HEALTHSTONES"] = "Combina le Pietre della Salute nella macro della Pozione di Salute"
+L["OPTIONS_COMBINE_HEALTHSTONES_DESCRIPTION"] = "Aggiunge la tua migliore Pietra della Salute in fondo alla macro della Pozione di Salute, così una singola pressione usa una pozione e una Pietra della Salute."
 
 -- Buff Food
 L["OPTIONS_BUFF_FOOD"] = "Priorità Cibo con Buff"

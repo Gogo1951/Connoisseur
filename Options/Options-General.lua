@@ -183,6 +183,25 @@ function ns.BuildGeneralOptions()
             headerPotions = Header(L["OPTIONS_POTIONS_HEADER"], 31),
             spacePotions1 = Spacer(32),
             descPotions = Desc(GetColor("BODY") .. L["OPTIONS_POTIONS_DESCRIPTION"] .. "|r", 33),
+            spacePotions2 = Spacer(34),
+            toggleCombineHealthstones = {
+                type = "toggle",
+                name = L["OPTIONS_COMBINE_HEALTHSTONES"],
+                desc = L["OPTIONS_COMBINE_HEALTHSTONES_DESCRIPTION"],
+                order = 35,
+                width = "full",
+                get = function()
+                    local s = GetCharSettings()
+                    return s and s.combineHealthstones
+                end,
+                set = function(_, value)
+                    ConnoisseurCharDB.settings.combineHealthstones = value
+                    if ns.ResetMacroState then
+                        ns.ResetMacroState()
+                    end
+                    ns.RequestUpdate()
+                end,
+            },
 
             -- Buff Food
             spaceBuff0 = Spacer(100),

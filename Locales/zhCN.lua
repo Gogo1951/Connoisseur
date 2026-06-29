@@ -144,6 +144,8 @@ L["OPTIONS_MINIMAP_BUTTON_DESCRIPTION"] = "显示小地图按钮。"
 -- Potions & Healthstones
 L["OPTIONS_POTIONS_HEADER"] = "药水与治疗石"
 L["OPTIONS_POTIONS_DESCRIPTION"] = "宏在战斗中无法更改（这是暴雪的限制），因此每个药水和治疗石宏都预先包含你最好的物品以及最多两个备用物品。在较长的战斗中，图标和提示可能会过时并显示错误的物品，但点击该宏将始终使用你背包中实际拥有的最佳物品。"
+L["OPTIONS_COMBINE_HEALTHSTONES"] = "将治疗石合并到治疗药水宏中"
+L["OPTIONS_COMBINE_HEALTHSTONES_DESCRIPTION"] = "将你最好的治疗石添加到治疗药水宏的底部，这样按一次即可同时使用药水和治疗石。"
 
 -- Buff Food
 L["OPTIONS_BUFF_FOOD"] = "优先增益食物"

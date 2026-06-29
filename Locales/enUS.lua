@@ -143,6 +143,8 @@ L["OPTIONS_MINIMAP_BUTTON_DESCRIPTION"] = "Show the minimap button."
 -- Potions & Healthstones
 L["OPTIONS_POTIONS_HEADER"] = "Potions & Healthstones"
 L["OPTIONS_POTIONS_DESCRIPTION"] = "Macros cannot change during combat (this is a Blizzard restriction), so each Potion & Healthstone macro is pre-built with your best item plus up to two fallbacks. On longer fights the icon and tooltip can go stale and show the wrong item, but clicking the macro will always use the best item you actually have in your bags."
+L["OPTIONS_COMBINE_HEALTHSTONES"] = "Combine Healthstones into Health Potion Macro"
+L["OPTIONS_COMBINE_HEALTHSTONES_DESCRIPTION"] = "Adds your best Healthstone to the bottom of the Health Potion macro, so one press uses a potion and a Healthstone."
 
 -- Buff Food
 L["OPTIONS_BUFF_FOOD"] = "Prioritize Buff Food"
