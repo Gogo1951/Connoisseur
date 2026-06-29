@@ -285,6 +285,17 @@ local function ShouldAppendShadowmeld(typeName)
     return ns.ShadowmeldSpellName ~= nil
 end
 
+--[[
+    Healthstone stacking opt-in. When on, the Health Potion macro gets the
+    best Healthstone's ranked /use lines appended below the potion lines —
+    potions and healthstones live in separate cooldown categories, so one
+    press fires one of each.
+]]
+local function ShouldStackHealthstones()
+    local settings = ConnoisseurCharDB and ConnoisseurCharDB.settings
+    return settings and settings.combineHealthstones and true or false
+end
+
 --------------------------------------------------------------------------------
 -- Macro Enablement
 --------------------------------------------------------------------------------
@@ -574,6 +585,24 @@ function ns.UpdateMacros(forced)
             end
 
             --[[
+                Healthstone stacking: when the player opts in, the Health Potion
+                macro gets the best Healthstone's ranked /use lines appended
+                below the potion lines (see ShouldStackHealthstones). The
+                Healthstone topIDs come straight from the scan and are populated
+                regardless of whether the standalone Healthstone macro is
+                enabled. Gated on itemID so we only stack when there is actually
+                a potion to stack onto — no potion means the macro stays its
+                plain "no health potion" form. nil for every other macro type.
+            ]]
+            local stackIDs
+            if itemID and typeName == "Health Potion" and ShouldStackHealthstones() then
+                local hsEntry = best["Healthstone"]
+                if hsEntry and hsEntry.topIDs and #hsEntry.topIDs > 0 then
+                    stackIDs = hsEntry.topIDs
+                end
+            end
+
+            --[[
                 Scrolls only apply to the Food macro. When active and not
                 targeting a friendly player, the Food macro becomes a
                 dedicated scroll-fire macro — no food, no conjure block —
@@ -590,7 +619,7 @@ function ns.UpdateMacros(forced)
             ]]
             local classBody, classStateID
             if itemID and ns.BuildDruidMacroOverride then
-                classBody, classStateID = ns.BuildDruidMacroOverride(typeName, itemID, useIDs)
+                classBody, classStateID = ns.BuildDruidMacroOverride(typeName, itemID, useIDs, stackIDs)
             end
 
             if scrollMode then
@@ -646,6 +675,11 @@ function ns.UpdateMacros(forced)
                     else
                         actionBlock = StateWriteLine(itemID) .. "/use item:" .. itemID
                     end
+
+                    -- Append the stacked Healthstone /use lines (Health Potion only).
+                    if stackIDs then
+                        actionBlock = actionBlock .. "\n" .. BuildUseBlock(stackIDs)
+                    end
                 elseif conjureInfo and conjureInfo.noItemMiss then
                     --[[
                         The player's class can conjure this category but hasn't
@@ -686,6 +720,9 @@ function ns.UpdateMacros(forced)
                 if useIDs then
                     itemKey = table.concat(useIDs, ",")
                 end
+                if stackIDs then
+                    itemKey = itemKey .. "+HS:" .. table.concat(stackIDs, ",")
+                end
                 local stateParts = {itemKey}
                 if
                     conjureInfo and
@@ -722,19 +759,33 @@ function ns.UpdateMacros(forced)
                         The client truncates macro bodies at 255 bytes, which
                         would corrupt the last /use line — the warlock
                         Healthstone conjure block plus three /use lines can
-                        overflow in multibyte locales (e.g. ruRU spell names).
-                        Drop stacked /use lines from the bottom until the body
-                        fits; the rank-1 line is never dropped.
+                        overflow in multibyte locales (e.g. ruRU spell names),
+                        and Health Potion stacking adds the Healthstone lines on
+                        top. Shed the stacked Healthstone lines from the bottom
+                        first, then potion fallback lines; the rank-1 potion line
+                        is never dropped.
                     ]]
                     if useIDs then
-                        local keep = #useIDs
-                        while #body > 255 and keep > 1 do
-                            keep = keep - 1
+                        local keepUse = #useIDs
+                        local keepStack = stackIDs and #stackIDs or 0
+                        while #body > 255 and (keepStack > 0 or keepUse > 1) do
+                            if keepStack > 0 then
+                                keepStack = keepStack - 1
+                            else
+                                keepUse = keepUse - 1
+                            end
                             local trimmed = {}
-                            for rank = 1, keep do
+                            for rank = 1, keepUse do
                                 trimmed[rank] = useIDs[rank]
                             end
                             actionBlock = StateWriteLine(itemID) .. BuildUseBlock(trimmed)
+                            if keepStack > 0 then
+                                local stackTrimmed = {}
+                                for rank = 1, keepStack do
+                                    stackTrimmed[rank] = stackIDs[rank]
+                                end
+                                actionBlock = actionBlock .. "\n" .. BuildUseBlock(stackTrimmed)
+                            end
                             body = tooltipLine .. conjureBlock .. actionBlock .. shadowmeldBlock
                         end
                     end

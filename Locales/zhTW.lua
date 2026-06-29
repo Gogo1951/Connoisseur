@@ -144,6 +144,8 @@ L["OPTIONS_MINIMAP_BUTTON_DESCRIPTION"] = "顯示小地圖按鈕。"
 -- Potions & Healthstones
 L["OPTIONS_POTIONS_HEADER"] = "藥水與治療石"
 L["OPTIONS_POTIONS_DESCRIPTION"] = "巨集在戰鬥中無法更改（這是暴雪的限制），因此每個藥水和治療石巨集都預先包含你最好的物品以及最多兩個備用物品。在較長的戰鬥中，圖示和提示可能會過時並顯示錯誤的物品，但點擊該巨集將始終使用你背包中實際擁有的最佳物品。"
+L["OPTIONS_COMBINE_HEALTHSTONES"] = "將治療石合併到治療藥水巨集中"
+L["OPTIONS_COMBINE_HEALTHSTONES_DESCRIPTION"] = "將你最好的治療石添加到治療藥水巨集的底部，這樣按一次即可同時使用藥水和治療石。"
 
 -- Buff Food
 L["OPTIONS_BUFF_FOOD"] = "優先增益食物"

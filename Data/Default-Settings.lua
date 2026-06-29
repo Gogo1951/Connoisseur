@@ -23,6 +23,7 @@ ns.DEFAULT_CONFIGURATION = {
         Strength = true
     },
     enableShadowmeldDrinking = false,
+    combineHealthstones = false,
     enableDruidMacroHelper = false,
     druidReturnForm = "bear",
     usePetBuffFood = false,

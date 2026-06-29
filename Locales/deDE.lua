@@ -144,6 +144,8 @@ L["OPTIONS_MINIMAP_BUTTON_DESCRIPTION"] = "Zeigt den Minikarten-Button an."
 -- Potions & Healthstones
 L["OPTIONS_POTIONS_HEADER"] = "Tränke & Gesundheitssteine"
 L["OPTIONS_POTIONS_DESCRIPTION"] = "Makros können während des Kampfes nicht geändert werden (dies ist eine Blizzard-Einschränkung). Daher wird jedes Trank- und Gesundheitsstein-Makro im Voraus mit deinem besten Gegenstand und bis zu zwei Ersatzgegenständen erstellt. Bei längeren Kämpfen können das Symbol und der Tooltip veralten und den falschen Gegenstand anzeigen, aber ein Klick auf das Makro verwendet immer den besten Gegenstand, den du tatsächlich in deinen Taschen hast."
+L["OPTIONS_COMBINE_HEALTHSTONES"] = "Gesundheitssteine mit Heiltrank-Makro kombinieren"
+L["OPTIONS_COMBINE_HEALTHSTONES_DESCRIPTION"] = "Fügt deinen besten Gesundheitsstein unten an das Heiltrank-Makro an, sodass ein Tastendruck einen Trank und einen Gesundheitsstein verwendet."
 
 -- Buff Food
 L["OPTIONS_BUFF_FOOD"] = "Buff-Essen bevorzugen"
