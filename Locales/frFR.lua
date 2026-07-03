@@ -62,7 +62,7 @@ L["CHAT_LOADED"] = "Version %s. Les paramètres (y compris l'option pour désact
 -- ConnTip Messages
 --------------------------------------------------------------------------------
 
--- Printed in chat by macro bodies via /run ConnTip("key"). See Core.lua.
+-- Printed in chat by macro bodies via /run ConnTip("key"). See Features/Macro-Builder-General.lua.
 
 L["TIP_PET_NO_FOOD"] = "Vous n'avez actuellement aucune nourriture utile pour votre familier."
 L["TIP_PET_NO_SKILLS"] = "Vous ne connaissez actuellement pas Nourrir le familier, Guérison du familier ou Ressusciter le familier."
@@ -164,7 +164,7 @@ L["OPTIONS_SCROLL_SPIRIT"] = "Esprit"
 L["OPTIONS_SCROLL_STAMINA"] = "Endurance"
 L["OPTIONS_SCROLL_STRENGTH"] = "Force"
 
--- Pets Food Buffs
+-- Pet Food Buffs
 L["OPTIONS_PET_HEADER"] = "Améliorations de nourriture pour familier"
 L["OPTIONS_USE_PET_BUFFS"] = "Utiliser les améliorations de nourriture pour familier"
 L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] = "Utilise de la nourriture pour familier dans votre macro Nourriture lorsque votre familier n'a pas l'amélioration \"Bien nourri\"."

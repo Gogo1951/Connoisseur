@@ -5,9 +5,16 @@ ns.RawData = ns.RawData or {}
 --[[
     Buff Food flag and Food/Water % + amounts come from the spell taught
     by item_template.spellid_1; Allowed Zones from Map/Area restrictions.
+
+    Arena (column 7) marks arena usability, a fixed per-item property:
+      1 = usable ONLY inside a PvP Arena (Star's Tears, Star's Lament)
+      2 = a conjured item, so it ALSO works inside an arena
+    Whether the item is actually offered is gated live on IsInInstance() at
+    scan time -- no arena zone/map IDs are maintained -- see ns.CacheItemData
+    and ns.ScanBags.
 ]]
 ns.RawData.FoodAndWater = {
-    -- [ID] = {Buff Food, Food %, Food Amount, Water %, Water Amount, {Allowed Zones}}, -- Name
+    -- [ID] = {Buff Food, Food %, Food Amount, Water %, Water Amount, {Allowed Zones} or nil, Arena or nil}, -- Name
 
     [19301] = {0, 0, 4410, 0, 4410}, -- Alterac Manna Biscuit
     [8932] = {0, 0, 2148, 0, 0}, -- Alterac Swiss
@@ -66,24 +73,24 @@ ns.RawData.FoodAndWater = {
     [33004] = {1, 0, 1392, 0, 0}, -- Clamlette Surprise
     [8683] = {0, 0, 30, 0, 0}, -- Clara's Fresh Apple
     [29451] = {0, 0, 7500, 0, 0}, -- Clefthoof Ribs
-    [1113] = {0, 0, 243, 0, 0}, -- Conjured Bread
-    [22895] = {0, 0, 4320, 0, 0}, -- Conjured Cinnamon Roll
-    [22019] = {0, 0, 7500, 0, 0}, -- Conjured Croissant
-    [8079] = {0, 0, 0, 0, 4200}, -- Conjured Crystal Water
-    [2288] = {0, 0, 0, 0, 437}, -- Conjured Fresh Water
-    [22018] = {0, 0, 0, 0, 7200}, -- Conjured Glacier Water
-    [34062] = {0, 0, 7500, 0, 7200}, -- Conjured Manna Biscuit
-    [8077] = {0, 0, 0, 0, 1992}, -- Conjured Mineral Water
-    [30703] = {0, 0, 0, 0, 5100}, -- Conjured Mountain Spring Water
-    [5349] = {0, 0, 61, 0, 0}, -- Conjured Muffin
-    [1487] = {0, 0, 874, 0, 0}, -- Conjured Pumpernickel
-    [2136] = {0, 0, 0, 0, 835}, -- Conjured Purified Water
-    [1114] = {0, 0, 552, 0, 0}, -- Conjured Rye
-    [8075] = {0, 0, 1392, 0, 0}, -- Conjured Sourdough
-    [8078] = {0, 0, 0, 0, 2934}, -- Conjured Sparkling Water
-    [3772] = {0, 0, 0, 0, 1344}, -- Conjured Spring Water
-    [8076] = {0, 0, 2148, 0, 0}, -- Conjured Sweet Roll
-    [5350] = {0, 0, 0, 0, 151}, -- Conjured Water
+    [1113] = {0, 0, 243, 0, 0, nil, 2}, -- Conjured Bread
+    [22895] = {0, 0, 4320, 0, 0, nil, 2}, -- Conjured Cinnamon Roll
+    [22019] = {0, 0, 7500, 0, 0, nil, 2}, -- Conjured Croissant
+    [8079] = {0, 0, 0, 0, 4200, nil, 2}, -- Conjured Crystal Water
+    [2288] = {0, 0, 0, 0, 437, nil, 2}, -- Conjured Fresh Water
+    [22018] = {0, 0, 0, 0, 7200, nil, 2}, -- Conjured Glacier Water
+    [34062] = {0, 0, 7500, 0, 7200, nil, 2}, -- Conjured Manna Biscuit
+    [8077] = {0, 0, 0, 0, 1992, nil, 2}, -- Conjured Mineral Water
+    [30703] = {0, 0, 0, 0, 5100, nil, 2}, -- Conjured Mountain Spring Water
+    [5349] = {0, 0, 61, 0, 0, nil, 2}, -- Conjured Muffin
+    [1487] = {0, 0, 874, 0, 0, nil, 2}, -- Conjured Pumpernickel
+    [2136] = {0, 0, 0, 0, 835, nil, 2}, -- Conjured Purified Water
+    [1114] = {0, 0, 552, 0, 0, nil, 2}, -- Conjured Rye
+    [8075] = {0, 0, 1392, 0, 0, nil, 2}, -- Conjured Sourdough
+    [8078] = {0, 0, 0, 0, 2934, nil, 2}, -- Conjured Sparkling Water
+    [3772] = {0, 0, 0, 0, 1344, nil, 2}, -- Conjured Spring Water
+    [8076] = {0, 0, 2148, 0, 0, nil, 2}, -- Conjured Sweet Roll
+    [5350] = {0, 0, 0, 0, 151, nil, 2}, -- Conjured Water
     [2682] = {0, 0, 294, 0, 294}, -- Cooked Crab Claw
     [13927] = {1, 0, 874, 0, 0}, -- Cooked Glossy Mightfish
     [23756] = {1, 0, 61, 0, 0}, -- Cookie's Jumbo Gumbo
@@ -334,8 +341,8 @@ ns.RawData.FoodAndWater = {
     [29453] = {0, 0, 7500, 0, 0}, -- Sporeggar Mushroom
     [6887] = {0, 0, 1392, 0, 0}, -- Spotted Yellowtail
     [23495] = {0, 0, 61, 0, 0}, -- Springpaw Appetizer
-    [32455] = {0, 0, 0, 0, 4200}, -- Star's Lament
-    [32453] = {0, 0, 0, 0, 7200}, -- Star's Tears
+    [32455] = {0, 0, 0, 0, 4200, nil, 1}, -- Star's Lament
+    [32453] = {0, 0, 0, 0, 7200, nil, 1}, -- Star's Tears
     [16170] = {0, 0, 552, 0, 0}, -- Steamed Mandu
     [33048] = {0, 0, 7500, 0, 0}, -- Stewed Trout
     [1707] = {0, 0, 874, 0, 0}, -- Stormwind Brie

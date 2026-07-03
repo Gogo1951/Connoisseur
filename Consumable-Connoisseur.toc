@@ -54,6 +54,7 @@ Data/Pet-Foods.lua
 Features/Core.lua
 Features/Utilities.lua
 Features/Announcements.lua
+Features/Macro-Runtime.lua
 Features/Item-Cache.lua
 Features/Scanner-Character.lua
 Features/Scanner-Inventory.lua

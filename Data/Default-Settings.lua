@@ -9,7 +9,7 @@ local _, ns = ...
     InitVars / ResetSettings in Features/Core.lua (nil fields filled, explicit
     user values never overwritten).
 ]]
-ns.DEFAULT_CONFIGURATION = {
+ns.CHAR_DEFAULTS = {
     useBuffFood = false,
     buffFoodMode = "always",
     useScrolls = false,
@@ -41,11 +41,11 @@ ns.DEFAULT_CONFIGURATION = {
 --[[
     Account-wide defaults (shared across every character), applied to
     ConnoisseurDB on init by the same additive ApplyDefaults merge (nil fields
-    only, saved values preserved) that fills ns.DEFAULT_CONFIGURATION into the
+    only, saved values preserved) that fills ns.CHAR_DEFAULTS into the
     per-character ConnoisseurCharDB.settings. Separate table because these live
     in the account-scope SavedVariable.
 ]]
-ns.DEFAULT_ACCOUNT_CONFIGURATION = {
+ns.GLOBAL_DEFAULTS = {
     showWelcome = true,
     --[[
         Minimap button visibility. LibDBIcon reads `hide` from this subtable, so

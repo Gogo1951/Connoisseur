@@ -246,6 +246,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
     {"C_Container.GetContainerNumSlots", function() return type(C_Container) == "table" and type(C_Container.GetContainerNumSlots) == "function" end},
     {"C_Container.GetContainerItemInfo", function() return type(C_Container) == "table" and type(C_Container.GetContainerItemInfo) == "function" end},
     {"C_Map.GetBestMapForUnit", function() return type(C_Map) == "table" and type(C_Map.GetBestMapForUnit) == "function" end},
+    {"IsInInstance", function() return type(IsInInstance) == "function" end},
     {"C_Item.GetItemCount", function() return type(C_Item) == "table" and type(C_Item.GetItemCount) == "function" end},
     {"GetItemCount (legacy)", function() return type(GetItemCount) == "function" end},
     {"C_Item.GetItemIconByID", function() return type(C_Item) == "table" and type(C_Item.GetItemIconByID) == "function" end},

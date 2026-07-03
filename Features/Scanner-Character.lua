@@ -121,7 +121,7 @@ function ns.HasScrollBuff(scrollType, scrollAmount)
 
     local data = ns.ScrollData[scrollType]
 
-    -- Per-type buff-ID set, precomputed once in Data/Scrolls.lua
+    -- Per-type buff-ID set, precomputed once in this file's Derived Scroll Lookups block
     local scrollBuffIDs = data.buffIDs
 
     for i = 1, 40 do

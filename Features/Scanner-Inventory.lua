@@ -325,6 +325,14 @@ function ns.ScanBags()
 
     local playerLevel = ns.CachedPlayerLevel
     local currentMap = ns.CachedMapID
+    --[[
+        Arena-only consumables (e.g. Star's Tears) are gated on the live
+        instance type instead of a zone-ID list, so every arena is covered with
+        no map IDs to maintain. IsInInstance is safe on Era (returns "none").
+        ScanBags re-runs on PLAYER_ENTERING_WORLD and ZONE_CHANGED_NEW_AREA, so
+        this refreshes on every arena entry and exit.
+    ]]
+    local inArena = select(2, IsInInstance()) == "arena"
     local firstAidSkill = ns.CurrentFirstAidSkill or 0
     local alchemySkill = ns.CurrentAlchemySkill or 0
     local charDB = ConnoisseurCharDB or {}
@@ -340,10 +348,17 @@ function ns.ScanBags()
     ]]
     local targetingSelf = UnitExists("target") and UnitIsUnit("target", "player")
 
+    --[[
+        Arena rule: scrolls, pet buff food, and buff food cannot be consumed in
+        a PvP Arena, so the Food macro must stay in plain (non-buff) food mode
+        there. Buff-food preference is gated here; the scroll and pet-buff
+        override resolvers are gated below.
+    ]]
     ns.AllowBuffFood = settings.useBuffFood
         and ns.IsModeActive(settings.buffFoodMode)
         and not ns.WellFedState
         and not targetingSelf
+        and not inArena
 
     for _, entry in pairs(best) do
         ResetBest(entry)
@@ -370,9 +385,19 @@ function ns.ScanBags()
         end
     end
 
-    -- Overrides check happens before standard consumable scan
-    ns.ScrollOverrideIDs = ns.FindScrollOverrides(itemCounts)
-    ns.PetBuffOverrideID = ns.FindPetBuffOverride(itemCounts)
+    --[[
+        Overrides check happens before standard consumable scan. Skipped
+        entirely in a PvP Arena (see the arena rule above): scroll mode and pet
+        buff food can't be used there, so both stay nil and the Food macro keeps
+        its plain food/conjure form.
+    ]]
+    if inArena then
+        ns.ScrollOverrideIDs = nil
+        ns.PetBuffOverrideID = nil
+    else
+        ns.ScrollOverrideIDs = ns.FindScrollOverrides(itemCounts)
+        ns.PetBuffOverrideID = ns.FindPetBuffOverride(itemCounts)
+    end
 
     local ignoreList = charDB.ignoreList or {}
 
@@ -384,10 +409,16 @@ function ns.ScanBags()
             else
                 local data = itemCache[id]
                 --[[
-                    Cache entries without a maxStack field are from an older
-                    schema; drop them so CacheItemData re-derives them below.
+                    Drop cache entries from an older schema so CacheItemData
+                    re-derives them below. Test the NEWEST cached field, not an
+                    old one: version-stamp invalidation only fires on a release
+                    bump, so a same-version update (dev edit) that adds a field
+                    would otherwise keep stale entries missing it. The newest
+                    field is arenaUsable (CacheItemData always writes it
+                    true/false); maxStack is kept in the test to also catch the
+                    oldest pre-maxStack entries.
                 ]]
-                if data and data ~= "IGNORE" and data.maxStack == nil then
+                if data and data ~= "IGNORE" and (data.maxStack == nil or data.arenaUsable == nil) then
                     data = nil
                     itemCache[id] = nil
                 end
@@ -414,6 +445,26 @@ function ns.ScanBags()
 
                     if usable and data.zones then
                         usable = (currentMap ~= nil) and (data.zones[currentMap] == true)
+                    end
+
+                    if usable and data.arenaOnly and not inArena then
+                        usable = false
+                    end
+
+                    --[[
+                        In a PvP Arena only conjured food/water and the arena-only
+                        drinks (Star's Tears/Lament) can be consumed -- regular
+                        food and drink are blocked. Gate the rest out so the macro
+                        never selects a drink that fails on press in the arena.
+                        Ranking within what survives is unchanged (highest value,
+                        then price, then count).
+                    ]]
+                    if usable and inArena then
+                        local t = data.itemType
+                        local isFoodOrWater = (t == "food" or t == "water" or t == "foodwater")
+                        if isFoodOrWater and not data.arenaUsable then
+                            usable = false
+                        end
                     end
 
                     if usable then

@@ -62,7 +62,7 @@ L["CHAT_LOADED"] = "버전 %s. 설정(이 메시지 비활성화 옵션 포함)�
 -- ConnTip Messages
 --------------------------------------------------------------------------------
 
--- Printed in chat by macro bodies via /run ConnTip("key"). See Core.lua.
+-- Printed in chat by macro bodies via /run ConnTip("key"). See Features/Macro-Builder-General.lua.
 
 L["TIP_PET_NO_FOOD"] = "현재 소환수에게 줄 수 있는 적절한 먹이가 없습니다."
 L["TIP_PET_NO_SKILLS"] = "현재 야수 먹이 주기, 야수 치료 또는 야수 되살리기를 배우지 않았습니다."
@@ -89,7 +89,7 @@ L["PREFIX_MAGE"] = "마법사 주의"
 L["PREFIX_WARLOCK"] = "흑마법사 주의"
 
 L["TIP_DOWNRANK"] = "자신보다 레벨이 낮은 플레이어를 대상으로 하면 해당 레벨에 맞는 아이템을 창조합니다."
-L["TIP_HUNTER_FEED_PET"] = "야수 먹이 주기는 올인원 야수 버튼입니다! 클릭하여 자동으로 야수를 부르거나, 먹이를 주거나, 되살립니다. 전투 중에 사용하거나 우클릭하면 야수 치료를 시전합니다. Shift 키를 누른 채 클릭하면 강제로 되살리기를 시전하며, Ctrl 키를 누르면 소환을 해제합니다."
+L["TIP_HUNTER_FEED_PET"] = "야수 먹이 주기는 올인원 야수 버튼입니다! 클릭하여 자동으로 야수를 부르거나, 먹이를 주거나, 되살립니다. 우클릭하거나 전투를 기다리면 야수 치료를 시전합니다. Shift 키를 누른 채 클릭하면 강제로 되살리기를 시전하며, Ctrl 키를 누르면 소환을 해제합니다."
 L["TIP_MAGE_CONJURE"] = "음식 또는 물 매크로를 우클릭하면 음식 또는 물을 창조합니다."
 L["TIP_MAGE_GEM"] = "마나 보석 매크로를 우클릭하여 새 보석을 창조합니다. 다시 우클릭하면 낮은 등급의 보조 보석을 창조합니다."
 L["TIP_MAGE_TABLE"] = "마우스 휠(가운데) 클릭 시 재충전의 의식을 시전합니다."
@@ -164,7 +164,7 @@ L["OPTIONS_SCROLL_SPIRIT"] = "정신력"
 L["OPTIONS_SCROLL_STAMINA"] = "체력"
 L["OPTIONS_SCROLL_STRENGTH"] = "힘"
 
--- Pets Food Buffs
+-- Pet Food Buffs
 L["OPTIONS_PET_HEADER"] = "소환수 음식 버프"
 L["OPTIONS_USE_PET_BUFFS"] = "소환수 음식 버프 사용"
 L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] = "소환수에게 \"포만감\" 버프가 없을 때 음식 매크로의 일부로 소환수 음식을 사용합니다."

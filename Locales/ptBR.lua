@@ -62,7 +62,7 @@ L["CHAT_LOADED"] = "Versão %s. As configurações (incluindo a opção de desat
 -- ConnTip Messages
 --------------------------------------------------------------------------------
 
--- Printed in chat by macro bodies via /run ConnTip("key"). See Core.lua.
+-- Printed in chat by macro bodies via /run ConnTip("key"). See Features/Macro-Builder-General.lua.
 
 L["TIP_PET_NO_FOOD"] = "Atualmente você não tem nenhuma comida útil para o seu ajudante."
 L["TIP_PET_NO_SKILLS"] = "Atualmente você não sabe Alimentar Ajudante, Curar Ajudante ou Reviver Ajudante."
@@ -89,7 +89,7 @@ L["PREFIX_MAGE"] = "Atenção Magos"
 L["PREFIX_WARLOCK"] = "Atenção Bruxos"
 
 L["TIP_DOWNRANK"] = "Selecionar um jogador de nível mais baixo fará com que a macro conjure itens apropriados para o nível dele."
-L["TIP_HUNTER_FEED_PET"] = "Alimentar Ajudante é um botão tudo-em-um! Clique para Chamar, Alimentar ou Reviver automaticamente seu ajudante. Clique com o botão direito ou use em combate para lançar Curar Ajudante. Segure Shift para forçar Reviver, ou Ctrl para Dispensar."
+L["TIP_HUNTER_FEED_PET"] = "Alimentar Ajudante é um botão tudo-em-um! Clique para Chamar, Alimentar ou Reviver automaticamente seu ajudante. Clique com o botão direito ou aguarde o combate para lançar Curar Ajudante. Segure Shift para forçar Reviver, ou Ctrl para Dispensar."
 L["TIP_MAGE_CONJURE"] = "Clique com o botão direito nas suas macros de Comida ou Água para Criar Comida ou Água."
 L["TIP_MAGE_GEM"] = "Clique com o botão direito na sua macro de Gema de Mana para conjurar uma nova gema. Clique com o botão direito novamente para conjurar uma reserva de grau inferior."
 L["TIP_MAGE_TABLE"] = "Clique com o botão do meio para lançar Ritual do Refresco."
@@ -164,7 +164,7 @@ L["OPTIONS_SCROLL_SPIRIT"] = "Espírito"
 L["OPTIONS_SCROLL_STAMINA"] = "Vigor"
 L["OPTIONS_SCROLL_STRENGTH"] = "Força"
 
--- Pets Food Buffs
+-- Pet Food Buffs
 L["OPTIONS_PET_HEADER"] = "Buffs de Comida de Ajudante"
 L["OPTIONS_USE_PET_BUFFS"] = "Usar Buffs de Comida de Ajudante"
 L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] = "Usa Comida de Ajudante, como parte da sua macro de Comida, quando o buff \"Bem Alimentado\" estiver faltando no seu ajudante."

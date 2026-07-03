@@ -37,8 +37,8 @@ ns.diagnostics = {enabled = false, logging = false, log = nil}
 --------------------------------------------------------------------------------
 
 local function GetVersion()
-    local version =
-        C_AddOns and C_AddOns.GetAddOnMetadata(ADDON_NAME, "Version") or GetAddOnMetadata(ADDON_NAME, "Version")
+    local GetAddOnMetadata = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
+    local version = GetAddOnMetadata(ADDON_NAME, "Version")
     if not version or version:find("@") then
         return "Dev"
     end
@@ -152,13 +152,13 @@ local function InitVars()
         seeds its hide flag.
     ]]
     ConnoisseurDB.minimap = ConnoisseurDB.minimap or {}
-    ApplyDefaults(ConnoisseurDB, ns.DEFAULT_ACCOUNT_CONFIGURATION)
+    ApplyDefaults(ConnoisseurDB, ns.GLOBAL_DEFAULTS)
 
     ConnoisseurCharDB = ConnoisseurCharDB or {}
     ConnoisseurCharDB.ignoreList = ConnoisseurCharDB.ignoreList or {}
     ConnoisseurCharDB.settings = ConnoisseurCharDB.settings or {}
 
-    ApplyDefaults(ConnoisseurCharDB.settings, ns.DEFAULT_CONFIGURATION)
+    ApplyDefaults(ConnoisseurCharDB.settings, ns.CHAR_DEFAULTS)
 
     -- Invalidate item cache on version change
     if ConnoisseurDB.itemCacheVersion ~= ns.Version then
@@ -222,7 +222,7 @@ function ns.ResetSettings()
         wipe(ConnoisseurDB.itemCache)
     end
 
-    ApplyDefaults(ConnoisseurCharDB.settings, ns.DEFAULT_CONFIGURATION)
+    ApplyDefaults(ConnoisseurCharDB.settings, ns.CHAR_DEFAULTS)
 
     --[[
         enabledMacros is account-wide (see Default-Settings.lua), so reset it
@@ -232,7 +232,7 @@ function ns.ResetSettings()
     if ConnoisseurDB then
         ConnoisseurDB.enabledMacros = ConnoisseurDB.enabledMacros or {}
         wipe(ConnoisseurDB.enabledMacros)
-        ApplyDefaults(ConnoisseurDB.enabledMacros, ns.DEFAULT_ACCOUNT_CONFIGURATION.enabledMacros)
+        ApplyDefaults(ConnoisseurDB.enabledMacros, ns.GLOBAL_DEFAULTS.enabledMacros)
     end
 
     ns.UpdateAuraTracking()

@@ -62,7 +62,7 @@ L["CHAT_LOADED"] = "版本 %s。設定（包括停用此訊息的選項）可以
 -- ConnTip Messages
 --------------------------------------------------------------------------------
 
--- Printed in chat by macro bodies via /run ConnTip("key"). See Core.lua.
+-- Printed in chat by macro bodies via /run ConnTip("key"). See Features/Macro-Builder-General.lua.
 
 L["TIP_PET_NO_FOOD"] = "你目前沒有任何對寵物有用的食物。"
 L["TIP_PET_NO_SKILLS"] = "你目前還沒有學會餵養寵物、治療寵物或復活寵物。"
@@ -89,7 +89,7 @@ L["PREFIX_MAGE"] = "法師請注意"
 L["PREFIX_WARLOCK"] = "術士請注意"
 
 L["TIP_DOWNRANK"] = "選中低等級玩家為目標時，巨集將製造適合其等級的物品。"
-L["TIP_HUNTER_FEED_PET"] = "餵養寵物是一個多合一的寵物按鈕！點擊可自動召喚、餵養或復活你的寵物。右鍵點擊或在戰鬥中使用會施放治療寵物。按住Shift強制復活，按住Ctrl解散。"
+L["TIP_HUNTER_FEED_PET"] = "餵養寵物是一個多合一的寵物按鈕！點擊可自動召喚、餵養或復活你的寵物。右鍵點擊或等待戰鬥來施放治療寵物。按住Shift強制復活，按住Ctrl解散。"
 L["TIP_MAGE_CONJURE"] = "右鍵點擊你的食物或水巨集以製造食物或水。"
 L["TIP_MAGE_GEM"] = "右鍵點擊你的法力寶石巨集以製造一顆新的寶石。再次右鍵點擊以製造一顆低等級備用寶石。"
 L["TIP_MAGE_TABLE"] = "中鍵點擊以施放召喚餐桌。"
@@ -164,7 +164,7 @@ L["OPTIONS_SCROLL_SPIRIT"] = "精神"
 L["OPTIONS_SCROLL_STAMINA"] = "耐力"
 L["OPTIONS_SCROLL_STRENGTH"] = "力量"
 
--- Pets Food Buffs
+-- Pet Food Buffs
 L["OPTIONS_PET_HEADER"] = "寵物食物增益"
 L["OPTIONS_USE_PET_BUFFS"] = "使用寵物食物增益"
 L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] = "當你的寵物缺少 \"進食充分\" BUFF時，在你的食物巨集中使用寵物食物。"
