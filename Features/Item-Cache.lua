@@ -128,13 +128,26 @@ function ns.CacheItemData(itemID)
         maxStack = maxStack or 1,
         isBuffFood = false,
         isPercent = false,
-        zones = nil
+        zones = nil,
+        arenaOnly = false,
+        arenaUsable = false
     }
 
     if rawFoodAndWater then
         local isBuffFoodType = (rawFoodAndWater[1] == 1)
         data.isBuffFood = isBuffFoodType
         data.zones = BuildZoneSet(rawFoodAndWater[6])
+
+        --[[
+            Arena usability (column 7), a static per-item property so it caches
+            like the other fields. 1 = usable ONLY inside a PvP Arena (Star's
+            Tears/Lament); 2 = conjured, so ALSO usable inside an arena. The
+            scanner gates on the live instance type (IsInInstance) rather than a
+            zone-ID list, so every arena is covered with no map IDs to maintain.
+        ]]
+        local arenaFlag = rawFoodAndWater[7]
+        data.arenaOnly = (arenaFlag == 1)
+        data.arenaUsable = (arenaFlag ~= nil)
 
         local hasFood = false
         local hasWater = false

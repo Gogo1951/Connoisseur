@@ -62,7 +62,7 @@ L["CHAT_LOADED"] = "Versión %s. Los ajustes (incluida la opción de desactivar 
 -- ConnTip Messages
 --------------------------------------------------------------------------------
 
--- Printed in chat by macro bodies via /run ConnTip("key"). See Core.lua.
+-- Printed in chat by macro bodies via /run ConnTip("key"). See Features/Macro-Builder-General.lua.
 
 L["TIP_PET_NO_FOOD"] = "Actualmente no tienes ninguna comida útil para tu mascota."
 L["TIP_PET_NO_SKILLS"] = "Actualmente no conoces Alimentar mascota, Aliviar mascota o Revivir mascota."
@@ -164,7 +164,7 @@ L["OPTIONS_SCROLL_SPIRIT"] = "Espíritu"
 L["OPTIONS_SCROLL_STAMINA"] = "Aguante"
 L["OPTIONS_SCROLL_STRENGTH"] = "Fuerza"
 
--- Pets Food Buffs
+-- Pet Food Buffs
 L["OPTIONS_PET_HEADER"] = "Beneficios de comida de mascota"
 L["OPTIONS_USE_PET_BUFFS"] = "Usar beneficios de comida de mascota"
 L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] = "Usa comida de mascota, como parte de tu macro de Comida, cuando a tu mascota le falta el beneficio \"Bien alimentado\"."

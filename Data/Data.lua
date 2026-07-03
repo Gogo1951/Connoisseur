@@ -184,8 +184,8 @@ ns.MessageStrings = {
 }
 
 --[[
-    Mage and Warlock conjure spell IDs — keyed match the conjure tables
-    above. The IDs here are the rank-1 entries from ns.ConjureSpells.
+    Mage and Warlock conjure spell IDs — keys match the conjure tables in
+    ns.ConjureSpells below. The IDs here are the rank-1 entries from those tables.
 ]]
 ns.MissingSpellMessageIDs = {
     -- Mage conjures
@@ -212,7 +212,7 @@ ns.REVIVE_PET_SPELL_ID = 982
 --------------------------------------------------------------------------------
 -- Pet Buff Food
 --------------------------------------------------------------------------------
--- These are Hunter & Lock, just to be clear. 
+-- Hunter and Warlock pet buff foods.
 
 ns.KIBLERS_BITS_ITEM_ID = 33874
 ns.SPORELING_SNACKS_ITEM_ID = 27656

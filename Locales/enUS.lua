@@ -61,7 +61,7 @@ L["CHAT_LOADED"] = "Version %s. Settings (including the option to disable this m
 -- ConnTip Messages
 --------------------------------------------------------------------------------
 
--- Printed in chat by macro bodies via /run ConnTip("key"). See Core.lua.
+-- Printed in chat by macro bodies via /run ConnTip("key"). See Features/Macro-Builder-General.lua.
 
 L["TIP_PET_NO_FOOD"] = "You don't currently have any food that is useful for your pet."
 L["TIP_PET_NO_SKILLS"] = "You don't currently know Feed Pet, Mend Pet, or Revive Pet."
@@ -148,13 +148,13 @@ L["OPTIONS_COMBINE_HEALTHSTONES_DESCRIPTION"] = "Adds your best Healthstone to t
 
 -- Buff Food
 L["OPTIONS_BUFF_FOOD"] = "Prioritize Buff Food"
-L["OPTIONS_BUFF_FOOD_DESCRIPTION"] = 'Prioritizes food that grants the "Well Fed" buff, when the buff is missing.'
+L["OPTIONS_BUFF_FOOD_DESCRIPTION"] = 'Prioritizes food that grants "Well Fed" whenever the buff is missing. Disabled in Arenas.'
 L["OPTIONS_BUFF_FOOD_DETAIL"] = "Pro Tip: Targeting yourself always makes the Food macro skip buff food and scrolls."
 
 -- Scroll Buffs
 L["OPTIONS_SCROLL_HEADER"] = "Scroll Buffs"
 L["OPTIONS_USE_SCROLLS"] = "Include Scroll Buffs"
-L["OPTIONS_USE_SCROLLS_DESCRIPTION"] = "Turns your Food macro into a dedicated scroll-applier whenever you're missing scroll buffs. Tap once to apply scrolls; tap again to eat. Scrolls are off the GCD, target you, and the macro reverts to food the moment you target another friendly player."
+L["OPTIONS_USE_SCROLLS_DESCRIPTION"] = "Tap once to apply missing scrolls, again to eat. Scrolls are off the GCD and self-cast; targeting a friendly player skips them. Disabled in Arenas."
 L["OPTIONS_SCROLL_TYPES"] = "Include Scroll Types in Check"
 L["OPTIONS_SCROLL_AGILITY"] = "Agility"
 L["OPTIONS_SCROLL_INTELLECT"] = "Intellect"
@@ -166,7 +166,7 @@ L["OPTIONS_SCROLL_STRENGTH"] = "Strength"
 -- Pet Food Buffs
 L["OPTIONS_PET_HEADER"] = "Pet Food Buffs"
 L["OPTIONS_USE_PET_BUFFS"] = "Use Pet Food Buffs"
-L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] = 'Uses Pet Food, as part of your Food macro, when the "Well Fed" buff is missing from your pet.'
+L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] = 'Adds Pet Food to your Food macro when your pet is missing "Well Fed." Disabled in Arenas.'
 L["OPTIONS_PET_BUFF_TYPES"] = "Include Pet Food Types in Check"
 L["OPTIONS_PET_BUFF_KIBLERS"] = "Kibler's Bits"
 L["OPTIONS_PET_BUFF_SPORELING"] = "Sporeling Snacks"

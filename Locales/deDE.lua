@@ -62,7 +62,7 @@ L["CHAT_LOADED"] = "Version %s. Einstellungen (einschließlich der Option, diese
 -- ConnTip Messages
 --------------------------------------------------------------------------------
 
--- Printed in chat by macro bodies via /run ConnTip("key"). See Core.lua.
+-- Printed in chat by macro bodies via /run ConnTip("key"). See Features/Macro-Builder-General.lua.
 
 L["TIP_PET_NO_FOOD"] = "Du hast derzeit kein nützliches Futter für dein Tier."
 L["TIP_PET_NO_SKILLS"] = "Du kennst derzeit nicht Tier füttern, Tier heilen oder Tier wiederbeleben."
@@ -164,7 +164,7 @@ L["OPTIONS_SCROLL_SPIRIT"] = "Willenskraft"
 L["OPTIONS_SCROLL_STAMINA"] = "Ausdauer"
 L["OPTIONS_SCROLL_STRENGTH"] = "Stärke"
 
--- Pets Food Buffs
+-- Pet Food Buffs
 L["OPTIONS_PET_HEADER"] = "Tierfutter-Buffs"
 L["OPTIONS_USE_PET_BUFFS"] = "Tierfutter-Buffs verwenden"
 L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] = "Verwendet Tierfutter als Teil deines Essen-Makros, wenn deinem Tier der \"Satt\"-Buff fehlt."

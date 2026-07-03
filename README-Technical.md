@@ -8,12 +8,12 @@ This document combines architecture notes and contribution guidance for develope
 
 ```text
 Consumable-Connoisseur/
-├── Consumable-Connoisseur.toc      Load order, metadata, SavedVariables (Interface 11508 / 20505)
+├── Consumable-Connoisseur.toc      Load order, metadata, SavedVariables (Interface 11508 / 20506)
 ├── README.md                       End-user documentation
 ├── README-Technical.md             This file
 ├── Data/
 │   ├── Data.lua                    Brand identity, palette, class colors, URLs, OPTIONS_REGISTRY, Config, ConjureSpells, spell/item IDs
-│   ├── Default-Settings.lua        ns.DEFAULT_CONFIGURATION (per-character) + ns.DEFAULT_ACCOUNT_CONFIGURATION (account)
+│   ├── Default-Settings.lua        ns.CHAR_DEFAULTS (per-character) + ns.GLOBAL_DEFAULTS (account)
 │   ├── Bandages.lua                Bandage item table
 │   ├── Food-and-Water.lua          Food / water / buff-food table
 │   ├── Healthstones.lua            Healthstone table + conjure→item map
@@ -26,10 +26,11 @@ Consumable-Connoisseur/
 │   ├── Core.lua                    SavedVariable lifecycle, ApplyDefaults merge, central event dispatcher, throttle, version
 │   ├── Utilities.lua               Color accessor, cross-client API shims, mode/spell predicates
 │   ├── Announcements.lua           PrintMessage + login welcome message (player-only prints)
+│   ├── Macro-Runtime.lua           Macro-callback globals (ConnFire / ConnTip / ConnIf / ConnNoItem) + ConnoisseurState transport
 │   ├── Item-Cache.lua              Derives/caches per-item consumable metadata; ignore-list pruning
 │   ├── Scanner-Character.lua       Aura inspection (Well Fed, scrolls, pet buffs), profession skills, scroll/pet overrides
 │   ├── Scanner-Inventory.lua       Bag scan + best-item selection (single-winner, ranked multi-use, pet food)
-│   ├── Macro-Builder-General.lua   Macro composition / write-back, conjure-block assembly, macro-callback globals
+│   ├── Macro-Builder-General.lua   Macro composition / write-back, conjure-block assembly
 │   ├── Macro-Builder-Druids.lua    DruidMacroHelper override (HP / MP / HS)
 │   ├── Macro-Builder-Hunters.lua   Feed Pet macro, knowledge tiers, 255-byte trim
 │   ├── Macro-Builder-Mages.lua     Mage conjure resolvers (Water, Food, Mana Gem)
@@ -49,7 +50,7 @@ Consumable-Connoisseur/
     └── Libraries/                  Vendored: LibStub, CallbackHandler-1.0, AceLocale/GUI/Config-3.0, LibDataBroker-1.1, LibDBIcon-1.0
 ```
 
-Load order (`.toc`): Includes → Locales → Data → Features (Core first, then Utilities, Announcements, Item-Cache, scanners, macro builders, Diagnostics, Minimap-Button) → Options (Utilities, General, Diagnostics, then `Options.lua` last).
+Load order (`.toc`): Includes → Locales → Data → Features (Core first, then Utilities, Announcements, Macro-Runtime, Item-Cache, scanners, macro builders, Diagnostics, Minimap-Button) → Options (Utilities, General, Diagnostics, then `Options.lua` last).
 
 ---
 
@@ -131,7 +132,7 @@ The conjure block uses `/stopmacro` to short-circuit: a right-click conjures and
 
 ### Macro-Callback Globals
 
-Macro bodies invoke helpers through `/run`, which executes in the global environment and cannot see the addon namespace. `Macro-Builder-General.lua` therefore defines a small set of **intentional globals** — `ConnFire`, `ConnTip`, `ConnIf`, `ConnNoItem`, and the `ConnoisseurState` transport table. This is the documented exception to "the only globals are SavedVariables, slash commands, and named frames"; the distinctive `Conn…` prefix keeps collision risk negligible. `ConnFire(itemID)` stamps the firing item into `ConnoisseurState` so Core's `UI_ERROR_MESSAGE` handler can name the culprit on an `ERR_ITEM_WRONG_ZONE`. Using the short global instead of an inlined snippet saves bytes against the 255-byte limit — which matters most in long locales.
+Macro bodies invoke helpers through `/run`, which executes in the global environment and cannot see the addon namespace. `Macro-Runtime.lua` therefore defines a small set of **intentional globals** — `ConnFire`, `ConnTip`, `ConnIf`, `ConnNoItem`, and the `ConnoisseurState` transport table. It loads after `Announcements.lua` (the tips print through `ns.PrintMessage`) and before the macro builders that emit the `/run Conn…` lines invoking them. This is the documented exception to "the only globals are SavedVariables, slash commands, and named frames"; the distinctive `Conn…` prefix keeps collision risk negligible. `ConnFire(itemID)` stamps the firing item into `ConnoisseurState` so Core's `UI_ERROR_MESSAGE` handler can name the culprit on an `ERR_ITEM_WRONG_ZONE`. Using the short global instead of an inlined snippet saves bytes against the 255-byte limit — which matters most in long locales.
 
 ### The 255-Byte Limit
 
@@ -206,7 +207,7 @@ Two scopes, two defaults tables.
   - `ignoreList` — set of item IDs to skip during best-item selection.
   - `settings` — per-character feature preferences: buff food (`useBuffFood`, `buffFoodMode`), scrolls (`useScrolls`, `scrollsMode`, `scrollTypes`), pet buff food (`usePetBuffFood`, `petBuffFoodMode`, `petBuffTypes`), Night Elf `enableShadowmeldDrinking`, Druid `enableDruidMacroHelper` + `druidReturnForm`. Druid/Night-Elf fields exist on every character but are only consulted when `ns.IsDruid` / `ns.IsNightElf`.
 
-Defaults live in `Data/Default-Settings.lua`: `ns.DEFAULT_CONFIGURATION` seeds `ConnoisseurCharDB.settings`, and `ns.DEFAULT_ACCOUNT_CONFIGURATION` seeds `ConnoisseurDB` (welcome message, minimap `hide`, `enabledMacros`). `InitVars()` (`Features/Core.lua`) applies both with the recursive `ApplyDefaults` merge. "Reset All" (`ns.ResetSettings`) wipes the per-character `settings` + `ignoreList` and re-resets the account-wide `enabledMacros`, but deliberately leaves `showWelcome` and the minimap subtable (and its saved position) untouched.
+Defaults live in `Data/Default-Settings.lua`: `ns.CHAR_DEFAULTS` seeds `ConnoisseurCharDB.settings`, and `ns.GLOBAL_DEFAULTS` seeds `ConnoisseurDB` (welcome message, minimap `hide`, `enabledMacros`). `InitVars()` (`Features/Core.lua`) applies both with the recursive `ApplyDefaults` merge. "Reset All" (`ns.ResetSettings`) wipes the per-character `settings` + `ignoreList` and re-resets the account-wide `enabledMacros`, but deliberately leaves `showWelcome` and the minimap subtable (and its saved position) untouched.
 
 When changing the schema, never silently rewrite user data. Add a one-shot migration in `InitVars()` gated on the legacy field so it runs once and then becomes a no-op, and remove it after the upgrade window. If a new table name is involved, keep both the old and new `SavedVariables` lines in the `.toc` until the migration has run.
 
@@ -221,7 +222,7 @@ When changing the schema, never silently rewrite user data. Add a one-shot migra
 3. Add a `ns.Config` entry in `Data/Data.lua` (macro name from a `MACRO_*` locale key, a `defaultID` for the placeholder tooltip, and a `label` from a `LABEL_*` key). If it stacks ranked fallbacks, add it to `ns.MultiUseMacroTypes`.
 4. In `Features/Item-Cache.lua`: add `ns.RawData.Elixirs = ns.RawData.Elixirs or {}` to the safety-init block, a membership check in `ns.IsKnownConsumable`, and an `itemType` branch in `ns.CacheItemData`.
 5. In `Features/Scanner-Inventory.lua`: add a `best[]` entry (and `ResetBest` handles it generically) plus a branch in the `itemType` dispatch — single-winner via `IsBetter`, or `AddRankedCandidate` for a multi-use type.
-6. Add the macro key to `enabledMacros` in `ns.DEFAULT_ACCOUNT_CONFIGURATION` (`Data/Default-Settings.lua`) and a `MacroToggle` row in `Options/Options-General.lua`.
+6. Add the macro key to `enabledMacros` in `ns.GLOBAL_DEFAULTS` (`Data/Default-Settings.lua`) and a `MacroToggle` row in `Options/Options-General.lua`.
 7. Add the `MACRO_*` and `LABEL_*` keys to `Locales/enUS.lua` (full words — `MACRO_HEALTH_POTION`, not `MACRO_HPOT`).
 8. If the category has conjure semantics, add a resolver in the relevant `Macro-Builder-{Class}.lua`.
 

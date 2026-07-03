@@ -62,7 +62,7 @@ L["CHAT_LOADED"] = "Versione %s. Le impostazioni (inclusa l'opzione per disabili
 -- ConnTip Messages
 --------------------------------------------------------------------------------
 
--- Printed in chat by macro bodies via /run ConnTip("key"). See Core.lua.
+-- Printed in chat by macro bodies via /run ConnTip("key"). See Features/Macro-Builder-General.lua.
 
 L["TIP_PET_NO_FOOD"] = "Al momento non hai alcun cibo utile per il tuo famiglio."
 L["TIP_PET_NO_SKILLS"] = "Al momento non conosci Nutri Famiglio, Cura Famiglio o Rianima Famiglio."
@@ -164,7 +164,7 @@ L["OPTIONS_SCROLL_SPIRIT"] = "Spirito"
 L["OPTIONS_SCROLL_STAMINA"] = "Tempra"
 L["OPTIONS_SCROLL_STRENGTH"] = "Forza"
 
--- Pets Food Buffs
+-- Pet Food Buffs
 L["OPTIONS_PET_HEADER"] = "Buff Cibo Famiglio"
 L["OPTIONS_USE_PET_BUFFS"] = "Usa Buff Cibo Famiglio"
 L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] = "Usa Cibo per Famigli come parte della tua macro Cibo quando manca il buff \"Ben Nutrito\" sul tuo famiglio."
