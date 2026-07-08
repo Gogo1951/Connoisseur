@@ -17,6 +17,7 @@ L["ADDON_TITLE"] = "Connoisseur"
 -- Macro names cannot exceed 16 total characters.
 
 L["MACRO_BANDAGE"] = "- 붕대"
+L["MACRO_EXPLOSIVES"] = "- 폭발물"
 L["MACRO_FEED_PET"] = "- 먹이 주기"
 L["MACRO_FOOD"] = "- 음식"
 L["MACRO_HEALTH_POTION"] = "- 치유 물약"
@@ -75,14 +76,29 @@ L["TIP_DONT_KNOW_SPELL"] = "현재 %s 기술을 배우지 않았습니다."
 -- Minimap Tooltip
 --------------------------------------------------------------------------------
 
+-- Feature toggles shown in the minimap tooltip, each with a description line.
 L["MENU_BUFF_FOOD"] = "버프 음식 우선"
 L["MENU_BUFF_FOOD_DESCRIPTION"] = "\"포만감\" 버프가 없을 때 해당 버프를 주는 음식을 우선 사용합니다."
-L["MENU_CLEAR_IGNORE"] = "차단 목록 초기화"
-L["MENU_IGNORE"] = "차단"
-
 L["MENU_SCROLL_BUFFS"] = "두루마리 버프"
 L["MENU_SCROLL_BUFFS_DESCRIPTION"] = "두루마리 버프가 없을 때 음식 매크로를 두루마리 적용기로 전환합니다."
-L["MENU_OPTIONS_HINT"] = "설정 > 애드온 > Connoisseur에서 추가 옵션을 사용할 수 있습니다."
+
+-- Section titles and ignore-list actions in the minimap tooltip.
+L["UI_BEST_FOOD"] = "현재 음식"
+L["UI_BEST_PET_FOOD"] = "현재 최고 먹이"
+L["UI_IGNORE_LIST"] = "차단 목록"
+L["MENU_IGNORE"] = "차단"
+L["MENU_CLEAR_IGNORE"] = "차단 목록 초기화"
+
+-- Options entry at the bottom of the minimap tooltip.
+L["MENU_OPTIONS"] = "Connoisseur 설정"
+L["MENU_OPTIONS_KEYBIND"] = "Shift + 휠클릭"
+
+--------------------------------------------------------------------------------
+-- Class Announcements
+--------------------------------------------------------------------------------
+
+-- Class-colored headers and conjure/pet tips shown in the minimap tooltip for
+-- the player's class.
 
 L["PREFIX_HUNTER"] = "사냥꾼 주의"
 L["PREFIX_MAGE"] = "마법사 주의"
@@ -96,12 +112,15 @@ L["TIP_MAGE_TABLE"] = "마우스 휠(가운데) 클릭 시 재충전의 의식�
 L["TIP_WARLOCK_CONJURE"] = "생명석 또는 영혼석 매크로를 우클릭하면 생명석 또는 영혼석을 창조합니다. 생명석 매크로를 다시 우클릭하면 낮은 등급의 보조 생명석을 창조합니다."
 L["TIP_WARLOCK_SOUL"] = "마우스 휠(가운데) 클릭 시 영혼의 의식을 시전합니다."
 
-L["UI_BEST_FOOD"] = "현재 음식"
-L["UI_BEST_PET_FOOD"] = "현재 최고 먹이"
+--------------------------------------------------------------------------------
+-- Item Labels
+--------------------------------------------------------------------------------
 
 -- Labels that get plugged into MSG_NO_ITEM ("No suitable %s found...").
 -- One per macro type (resolved via ns.Config in ConnNoItem), plus Pet Food.
+
 L["LABEL_BANDAGE"] = "붕대"
+L["LABEL_EXPLOSIVE"] = "폭발물"
 L["LABEL_FOOD"] = "음식"
 L["LABEL_HEALTH_POTION"] = "치유 물약"
 L["LABEL_HEALTHSTONE"] = "생명석"
@@ -110,14 +129,20 @@ L["LABEL_MANA_POTION"] = "마나 물약"
 L["LABEL_PET_FOOD"] = "야수 먹이"
 L["LABEL_SOULSTONE"] = "영혼석"
 L["LABEL_WATER"] = "물"
-L["UI_DISABLED"] = "비활성화됨"
+
+--------------------------------------------------------------------------------
+-- UI Labels
+--------------------------------------------------------------------------------
+
+-- Generic labels reused across the minimap tooltip and options panel.
+
 L["UI_ENABLED"] = "활성화됨"
-L["UI_IGNORE_LIST"] = "차단 목록"
-L["UI_LEFT_CLICK"] = "좌클릭"
-L["UI_MIDDLE_CLICK"] = "휠클릭"
-L["UI_RIGHT_CLICK"] = "우클릭"
-L["UI_SHIFT_LEFT"] = "Shift + 좌클릭"
+L["UI_DISABLED"] = "비활성화됨"
 L["UI_TOGGLE"] = "토글"
+L["UI_LEFT_CLICK"] = "좌클릭"
+L["UI_RIGHT_CLICK"] = "우클릭"
+L["UI_MIDDLE_CLICK"] = "휠클릭"
+L["UI_SHIFT_LEFT"] = "Shift + 좌클릭"
 
 --------------------------------------------------------------------------------
 -- Mode Values
@@ -148,6 +173,7 @@ L["OPTIONS_COMBINE_HEALTHSTONES"] = "생명석을 치유 물약 매크로에 결
 L["OPTIONS_COMBINE_HEALTHSTONES_DESCRIPTION"] = "가장 좋은 생명석을 치유 물약 매크로의 하단에 추가하여, 한 번 누르면 물약과 생명석을 모두 사용합니다."
 
 -- Buff Food
+L["OPTIONS_BUFF_FOOD_HEADER"] = "버프 음식"
 L["OPTIONS_BUFF_FOOD"] = "버프 음식 우선"
 L["OPTIONS_BUFF_FOOD_DESCRIPTION"] = "\"포만감\" 버프가 없을 때 해당 버프를 주는 음식을 우선 사용합니다."
 L["OPTIONS_BUFF_FOOD_DETAIL"] = "프로 팁: 자신을 대상으로 지정하면 음식 매크로가 항상 버프 음식과 두루마리를 건너뜁니다."
@@ -163,6 +189,12 @@ L["OPTIONS_SCROLL_PROTECTION"] = "보호"
 L["OPTIONS_SCROLL_SPIRIT"] = "정신력"
 L["OPTIONS_SCROLL_STAMINA"] = "체력"
 L["OPTIONS_SCROLL_STRENGTH"] = "힘"
+
+-- Explosives
+L["OPTIONS_EXPLOSIVES_HEADER"] = "폭발물"
+L["OPTIONS_EXPLOSIVES_DESCRIPTION"] = "@player 옵션은 조준 원 없이 폭발물을 발밑에서 바로 터뜨립니다. 대상이 근접 거리일 때 이상적입니다."
+L["EXPLOSIVES_MODE_ATPLAYER"] = "좌클릭 @Player, 우클릭 던지기"
+L["EXPLOSIVES_MODE_TOSS"] = "좌클릭 던지기, 우클릭 @Player"
 
 -- Pet Food Buffs
 L["OPTIONS_PET_HEADER"] = "소환수 음식 버프"
@@ -194,13 +226,14 @@ L["OPTIONS_COMMANDS_DETAIL"] = "Connoisseur 설정 인터페이스를 엽니다.
 L["OPTIONS_ENABLE_MACROS_HEADER"] = "매크로 활성화"
 L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] = "Connoisseur가 생성하고 관리할 매크로를 선택합니다. 매크로를 비활성화하면 해당 매크로도 삭제됩니다."
 
--- Reset
-L["OPTIONS_RESET_HEADER"] = "초기화"
+-- Ignore List
 L["OPTIONS_RESET_IGNORE_DESCRIPTION"] = "차단 목록에서 모든 아이템을 제거합니다."
 L["OPTIONS_RESET_IGNORE_CONFIRM"] = "차단 목록을 지우시겠습니까?"
-L["OPTIONS_RESET_ALL"] = "모든 Connoisseur 설정 초기화"
-L["OPTIONS_RESET_ALL_DESCRIPTION"] = "모든 설정 및 차단 목록을 기본값으로 되돌립니다."
-L["OPTIONS_RESET_ALL_CONFIRM"] = "모든 Connoisseur 설정을 기본값으로 초기화하시겠습니까?"
+
+-- Profiles (Reset All Profiles -- the stock AceDBOptions widgets are not localized here)
+L["OPTIONS_RESET_ALL_PROFILES"] = "모든 프로필 초기화"
+L["OPTIONS_RESET_ALL_PROFILES_DESCRIPTION"] = "이 계정의 모든 프로필을 기본 설정으로 초기화합니다."
+L["OPTIONS_RESET_ALL_PROFILES_CONFIRM"] = "이 계정의 모든 캐릭터 프로필을 기본 설정으로 초기화합니다. 되돌릴 수 없습니다. 계속하시겠습니까?"
 
 -- Feedback & Support
 L["OPTIONS_COMMUNITY_HEADER"] = "피드백 및 지원"

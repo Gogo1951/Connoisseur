@@ -65,6 +65,7 @@ ns.CLASS_COLORS = {
 ns.CURSEFORGE_URL = "https://www.curseforge.com/wow/addons/consumable-connoisseur"
 ns.GITHUB_URL = "https://github.com/Gogo1951/Connoisseur"
 ns.DISCORD_URL = "https://discord.gg/eh8hKq992Q"
+ns.WAGO_URL = "https://addons.wago.io/addons/connoisseur"
 
 --------------------------------------------------------------------------------
 -- AceConfig Registry Names
@@ -77,6 +78,7 @@ ns.DISCORD_URL = "https://discord.gg/eh8hKq992Q"
 ]]
 ns.OPTIONS_REGISTRY = {
     General = ADDON_NAME .. "_General",
+    Profiles = ADDON_NAME .. "_Profiles",
     Diagnostics = ADDON_NAME .. "_Diagnostics"
 }
 
@@ -94,6 +96,7 @@ ns.QUESTION_MARK_ICON = 134400
 -- label: localized display name plugged into MSG_NO_ITEM by ConnNoItem.
 ns.Config = {
     ["Bandage"] = {macro = ns.L["MACRO_BANDAGE"], defaultID = 1251, label = ns.L["LABEL_BANDAGE"]},
+    ["Explosive"] = {macro = ns.L["MACRO_EXPLOSIVES"], defaultID = 4358, label = ns.L["LABEL_EXPLOSIVE"]},
     ["Food"] = {macro = ns.L["MACRO_FOOD"], defaultID = 5349, label = ns.L["LABEL_FOOD"]},
     ["Health Potion"] = {macro = ns.L["MACRO_HEALTH_POTION"], defaultID = 118, label = ns.L["LABEL_HEALTH_POTION"]},
     ["Healthstone"] = {macro = ns.L["MACRO_HEALTHSTONE"], defaultID = 5512, label = ns.L["LABEL_HEALTHSTONE"]},

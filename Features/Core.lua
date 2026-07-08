@@ -48,26 +48,6 @@ end
 ns.Version = GetVersion()
 
 --------------------------------------------------------------------------------
--- Defaults
---------------------------------------------------------------------------------
-
-local function ApplyDefaults(target, defaults)
-    if not defaults then
-        return
-    end
-    for key, value in pairs(defaults) do
-        if type(value) == "table" then
-            if type(target[key]) ~= "table" then
-                target[key] = {}
-            end
-            ApplyDefaults(target[key], value)
-        elseif target[key] == nil then
-            target[key] = value
-        end
-    end
-end
-
---------------------------------------------------------------------------------
 -- Initialization
 --------------------------------------------------------------------------------
 
@@ -79,7 +59,7 @@ local varsInitialized = false
     button. None of these change during a session, so they resolve once and the
     event handlers (PLAYER_LEVEL_UP, SPELLS_CHANGED, SKILL_LINES_CHANGED) keep
     the level-dependent pieces fresh afterward. Called by InitVars after
-    ConnoisseurDB exists, so LDBIcon gets its saved minimap position.
+    ns.db exists, so LDBIcon gets its saved minimap position.
 ]]
 local function InitSessionConstants()
     local _, raceToken = UnitRace("player")
@@ -132,40 +112,106 @@ local function InitSessionConstants()
     if ns.UpdateAlchemySkill then
         ns.UpdateAlchemySkill()
     end
+    if ns.UpdateEngineeringSkill then
+        ns.UpdateEngineeringSkill()
+    end
 
     local LDBIcon = LibStub("LibDBIcon-1.0")
     if LDBIcon and ns.LDBObj and not ns.IconRegistered then
-        LDBIcon:Register(ns.LOCALE_NAME, ns.LDBObj, ConnoisseurDB.minimap)
+        LDBIcon:Register(ns.LOCALE_NAME, ns.LDBObj, ns.db.global.minimap)
         ns.IconRegistered = true
     end
 end
 
 local function InitVars()
-    ConnoisseurDB = ConnoisseurDB or {}
+    if not ns.db then
+        --[[
+            One account-wide SavedVariable managed by AceDB-3.0. The third
+            argument (defaultProfile = true) lands every character on the shared
+            "Default" profile out of the box, so settings behave account-wide
+            until a character opts into its own profile from the Profiles panel.
+            AceDB applies ns.DATABASE_DEFAULTS via metatables -- no hand-merge.
+        ]]
+        ns.db = LibStub("AceDB-3.0"):New("ConnoisseurDB", ns.DATABASE_DEFAULTS, true)
+
+        --[[
+            MIGRATION (remove after 2026-10-06): move pre-AceDB saved data into
+            the AceDB profile/global. Two sources:
+              (a) the old per-character ConnoisseurCharDB (settings + ignoreList),
+              (b) legacy root keys left on the ConnoisseurDB SavedVariable from
+                  before AceDB managed it (showWelcome, enabledMacros, minimap,
+                  itemCache, itemCacheVersion).
+            Only non-nil saved values are copied, so AceDB's defaults fill the
+            rest; each source is cleared after copying so this runs once. A user
+            who hasn't logged in within the window simply starts from defaults.
+        ]]
+        if ConnoisseurCharDB then
+            if type(ConnoisseurCharDB.settings) == "table" then
+                for key, value in pairs(ConnoisseurCharDB.settings) do
+                    ns.db.profile[key] = value
+                end
+            end
+            if type(ConnoisseurCharDB.ignoreList) == "table" then
+                ns.db.profile.ignoreList = ConnoisseurCharDB.ignoreList
+            end
+            ConnoisseurCharDB = nil
+        end
+        if ConnoisseurDB.showWelcome ~= nil then
+            ns.db.profile.showWelcome = ConnoisseurDB.showWelcome
+            ConnoisseurDB.showWelcome = nil
+        end
+        if ConnoisseurDB.enabledMacros ~= nil then
+            ns.db.profile.enabledMacros = ConnoisseurDB.enabledMacros
+            ConnoisseurDB.enabledMacros = nil
+        end
+        if ConnoisseurDB.itemCache ~= nil then
+            ns.db.profile.itemCache = ConnoisseurDB.itemCache
+            ConnoisseurDB.itemCache = nil
+        end
+        if ConnoisseurDB.itemCacheVersion ~= nil then
+            ns.db.profile.itemCacheVersion = ConnoisseurDB.itemCacheVersion
+            ConnoisseurDB.itemCacheVersion = nil
+        end
+        if ConnoisseurDB.minimap ~= nil then
+            ns.db.global.minimap = ConnoisseurDB.minimap
+            ConnoisseurDB.minimap = nil
+        end
+
+        --[[
+            Switching, copying, or resetting a profile swaps every user setting
+            at once, so the macros and aura tracking must rebuild to match the
+            newly active profile.
+        ]]
+        local function OnProfileChange()
+            ns.ResetMacroState()
+            ns.UpdateAuraTracking()
+            ns.RequestUpdate()
+        end
+        ns.db.RegisterCallback(ns, "OnProfileChanged", OnProfileChange)
+        ns.db.RegisterCallback(ns, "OnProfileCopied", OnProfileChange)
+        ns.db.RegisterCallback(ns, "OnProfileReset", OnProfileChange)
+
+        --[[
+            Options registration is deferred to here (rather than at Options.lua
+            load) because the Profiles panel reads its display name from the
+            stock AceDBOptions table, which needs ns.db. Runs once, inside this
+            same not-yet-initialized guard.
+        ]]
+        if ns.InitializeOptions then
+            ns.InitializeOptions()
+        end
+    end
+
     --[[
-        Account-wide defaults (welcome message, minimap button, macro enablement) fill through the
-        same additive ApplyDefaults merge as the per-character settings below --
-        only nil fields are filled, so saved values are preserved. They live in
-        ConnoisseurDB, not the per-character ConnoisseurCharDB.settings. The
-        minimap subtable is created explicitly first so LibDBIcon always has a
-        table to register against regardless of the defaults; the merge then
-        seeds its hide flag.
+        Derived item cache is lazy-inited on the profile (never declared in
+        defaults). Invalidate on a version change; the scanner's stale-schema
+        nil-test catches same-version (dev) field additions.
     ]]
-    ConnoisseurDB.minimap = ConnoisseurDB.minimap or {}
-    ApplyDefaults(ConnoisseurDB, ns.GLOBAL_DEFAULTS)
-
-    ConnoisseurCharDB = ConnoisseurCharDB or {}
-    ConnoisseurCharDB.ignoreList = ConnoisseurCharDB.ignoreList or {}
-    ConnoisseurCharDB.settings = ConnoisseurCharDB.settings or {}
-
-    ApplyDefaults(ConnoisseurCharDB.settings, ns.CHAR_DEFAULTS)
-
-    -- Invalidate item cache on version change
-    if ConnoisseurDB.itemCacheVersion ~= ns.Version then
-        ConnoisseurDB.itemCache = {}
-        ConnoisseurDB.itemCacheVersion = ns.Version
+    if ns.db.profile.itemCacheVersion ~= ns.Version then
+        ns.db.profile.itemCache = {}
+        ns.db.profile.itemCacheVersion = ns.Version
     else
-        ConnoisseurDB.itemCache = ConnoisseurDB.itemCache or {}
+        ns.db.profile.itemCache = ns.db.profile.itemCache or {}
     end
 
     ns.CachedPlayerLevel = UnitLevel("player") or 1
@@ -199,49 +245,21 @@ end
 -- Reset
 --------------------------------------------------------------------------------
 
-function ns.ResetSettings()
-    if not ConnoisseurCharDB then
-        return
-    end
-
-    --[[
-        Wipe per-character user state in place, preserving the table
-        references held by other modules.
-    ]]
-    if ConnoisseurCharDB.ignoreList then
-        wipe(ConnoisseurCharDB.ignoreList)
-    end
-    if ConnoisseurCharDB.settings then
-        wipe(ConnoisseurCharDB.settings)
-    else
-        ConnoisseurCharDB.settings = {}
-    end
-
-    -- Rebuild the item cache from scratch on next scan
-    if ConnoisseurDB and ConnoisseurDB.itemCache then
-        wipe(ConnoisseurDB.itemCache)
-    end
-
-    ApplyDefaults(ConnoisseurCharDB.settings, ns.CHAR_DEFAULTS)
-
-    --[[
-        enabledMacros is account-wide (see Default-Settings.lua), so reset it
-        here too -- "Reset All" should still restore macro enablement. showWelcome
-        and the minimap subtable are left untouched, like every account-wide pref.
-    ]]
-    if ConnoisseurDB then
-        ConnoisseurDB.enabledMacros = ConnoisseurDB.enabledMacros or {}
-        wipe(ConnoisseurDB.enabledMacros)
-        ApplyDefaults(ConnoisseurDB.enabledMacros, ns.GLOBAL_DEFAULTS.enabledMacros)
-    end
-
+--[[
+    Reset All Profiles -- the one custom control on the Profiles panel. Wipes
+    every profile on the account back to defaults via AceDB's ResetDB, but
+    snapshots and restores ns.db.global.minimap first so the reset never moves
+    the user's minimap button (the minimap subtable is account-level and
+    profile-independent). The rebuild afterward repaints macros and aura
+    tracking for the freshly reset active profile.
+]]
+function ns:ResetAllProfiles()
+    local savedMinimap = ns.db.global.minimap
+    ns.db:ResetDB()
+    ns.db.global.minimap = savedMinimap
+    ns.ResetMacroState()
     ns.UpdateAuraTracking()
-    if ns.ResetMacroState then
-        ns.ResetMacroState()
-    end
-    if ns.UpdateMacros then
-        ns.UpdateMacros(true)
-    end
+    ns.RequestUpdate()
 end
 
 --------------------------------------------------------------------------------
@@ -254,7 +272,7 @@ end
     path) and matches what AceConfig hands back to the set callback.
 ]]
 function ns.UpdateAuraTracking()
-    local settings = ConnoisseurCharDB.settings
+    local settings = ns.db.profile
 
     local buffFoodActive = settings.useBuffFood and ns.IsModeActive(settings.buffFoodMode)
     local scrollsActive = settings.useScrolls and ns.IsModeActive(settings.scrollsMode)
@@ -274,7 +292,7 @@ function ns.UpdateAuraTracking()
 end
 
 function ns.ToggleBuffFood(value)
-    local settings = ConnoisseurCharDB.settings
+    local settings = ns.db.profile
     if value == nil then
         settings.useBuffFood = not settings.useBuffFood
     else
@@ -288,7 +306,7 @@ function ns.ToggleBuffFood(value)
 end
 
 function ns.ToggleScrollBuffs(value)
-    local settings = ConnoisseurCharDB.settings
+    local settings = ns.db.profile
     if value == nil then
         settings.useScrolls = not settings.useScrolls
     else
@@ -302,7 +320,7 @@ function ns.ToggleScrollBuffs(value)
 end
 
 function ns.ToggleShadowmeldDrinking(value)
-    local settings = ConnoisseurCharDB.settings
+    local settings = ns.db.profile
     if value == nil then
         settings.enableShadowmeldDrinking = not settings.enableShadowmeldDrinking
     else
@@ -315,7 +333,7 @@ function ns.ToggleShadowmeldDrinking(value)
 end
 
 function ns.ToggleDruidMacroHelper(value)
-    local settings = ConnoisseurCharDB.settings
+    local settings = ns.db.profile
     if value == nil then
         settings.enableDruidMacroHelper = not settings.enableDruidMacroHelper
     else
@@ -415,7 +433,7 @@ frame:SetScript(
         idempotent, so running it here guarantees the DB exists even when the
         player enters the world already in combat (e.g. zoning into an
         in-progress battleground) — a case the guard would otherwise swallow,
-        leaving ConnoisseurDB/ConnoisseurCharDB nil until the next out-of-combat
+        leaving ns.db nil until the next out-of-combat
         PLAYER_ENTERING_WORLD.
     ]]
         if event == "PLAYER_LOGIN" then
@@ -520,6 +538,9 @@ frame:SetScript(
             if ns.UpdateAlchemySkill then
                 ns.UpdateAlchemySkill()
             end
+            if ns.UpdateEngineeringSkill then
+                ns.UpdateEngineeringSkill()
+            end
             ns.RequestUpdate()
         elseif event == "UNIT_AURA" then
             if ns.HandleUnitAura then
@@ -553,7 +574,7 @@ frame:SetScript(
     are registered separately below but still appear here so the validity check
     covers them too.
 ]]
-ns.CORE_EVENTS = {
+ns.EVENT_NAMES = {
     "BAG_UPDATE_DELAYED",
     "ITEM_PUSH",
     "PLAYER_ALIVE",
@@ -590,7 +611,7 @@ local DEFERRED_EVENTS = {
     GET_ITEM_INFO_RECEIVED = true
 }
 
-for _, event in ipairs(ns.CORE_EVENTS) do
+for _, event in ipairs(ns.EVENT_NAMES) do
     if not DEFERRED_EVENTS[event] then
         frame:RegisterEvent(event)
     end

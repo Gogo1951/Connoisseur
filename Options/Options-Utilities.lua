@@ -37,11 +37,18 @@ function ns.OptionsDesc(text, order)
     }
 end
 
-function ns.OptionsSpacer(order)
+--[[
+    hiddenFn is optional — for a spacer that separates conditionally shown
+    controls, pass the same hidden predicate as those controls so the blank
+    line disappears with them instead of stacking onto the next section's
+    leading spacer.
+]]
+function ns.OptionsSpacer(order, hiddenFn)
     return {
         type = "description",
         name = " ",
         order = order,
+        hidden = hiddenFn,
     }
 end
 

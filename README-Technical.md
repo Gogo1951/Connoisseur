@@ -13,8 +13,9 @@ Consumable-Connoisseur/
 ├── README-Technical.md             This file
 ├── Data/
 │   ├── Data.lua                    Brand identity, palette, class colors, URLs, OPTIONS_REGISTRY, Config, ConjureSpells, spell/item IDs
-│   ├── Default-Settings.lua        ns.CHAR_DEFAULTS (per-character) + ns.GLOBAL_DEFAULTS (account)
+│   ├── Default-Settings.lua        ns.DATABASE_DEFAULTS (single AceDB table: profile + global.minimap)
 │   ├── Bandages.lua                Bandage item table
+│   ├── Explosives.lua              Engineering explosive table (damage, skill, specialization)
 │   ├── Food-and-Water.lua          Food / water / buff-food table
 │   ├── Healthstones.lua            Healthstone table + conjure→item map
 │   ├── Mana-Gems.lua               Mana gem table + conjure→item map
@@ -23,7 +24,7 @@ Consumable-Connoisseur/
 │   ├── Scrolls.lua                 Scroll item / buff / conflict-spell data + scan priority
 │   └── Soulstones.lua              Soulstone table
 ├── Features/
-│   ├── Core.lua                    SavedVariable lifecycle, ApplyDefaults merge, central event dispatcher, throttle, version
+│   ├── Core.lua                    AceDB lifecycle, profile callbacks, legacy migration, central event dispatcher, throttle, version
 │   ├── Utilities.lua               Color accessor, cross-client API shims, mode/spell predicates
 │   ├── Announcements.lua           PrintMessage + login welcome message (player-only prints)
 │   ├── Macro-Runtime.lua           Macro-callback globals (ConnFire / ConnTip / ConnIf / ConnNoItem) + ConnoisseurState transport
@@ -40,8 +41,9 @@ Consumable-Connoisseur/
 ├── Options/
 │   ├── Options-Utilities.lua       Shared option-widget constructors + mode labels
 │   ├── Options-General.lua         The single settings panel (all feature options live here)
+│   ├── Options-Profiles.lua        Stock AceDBOptions profiles panel + Reset All Profiles
 │   ├── Options-Diagnostics.lua     Diagnostic Tools panel
-│   └── Options.lua                 AceConfig registration, panel navigation, /foodie slash command
+│   └── Options.lua                 Deferred AceConfig registration, panel navigation, /foodie slash command
 ├── Locales/
 │   ├── enUS.lua                    English strings (source of truth)
 │   └── …                           deDE, esES, esMX, frFR, itIT, koKR, ptBR, ruRU, zhCN, zhTW (loaded by .toc)
@@ -50,7 +52,7 @@ Consumable-Connoisseur/
     └── Libraries/                  Vendored: LibStub, CallbackHandler-1.0, AceLocale/GUI/Config-3.0, LibDataBroker-1.1, LibDBIcon-1.0
 ```
 
-Load order (`.toc`): Includes → Locales → Data → Features (Core first, then Utilities, Announcements, Macro-Runtime, Item-Cache, scanners, macro builders, Diagnostics, Minimap-Button) → Options (Utilities, General, Diagnostics, then `Options.lua` last).
+Load order (`.toc`): Includes → Locales → Data → Features (Core first, then Utilities, Announcements, Macro-Runtime, Item-Cache, scanners, macro builders, Diagnostics, Minimap-Button) → Options (Utilities, General, Profiles, Diagnostics, then `Options.lua` last).
 
 ---
 
@@ -58,7 +60,7 @@ Load order (`.toc`): Includes → Locales → Data → Features (Core first, the
 
 ### Event Loop
 
-`Features/Core.lua` owns a single hidden frame and a central dispatcher. Every event the addon uses is listed once in `ns.CORE_EVENTS` (the dispatcher registers the plain events from it, and the diagnostics Event-Registration check reads the same list, so the two can never drift). The rescan-triggering events — `BAG_UPDATE_DELAYED`, `ITEM_PUSH`, `PLAYER_LEVEL_UP`, `ZONE_CHANGED_NEW_AREA`, `PLAYER_TARGET_CHANGED`, `GROUP_ROSTER_UPDATE`, `SPELLS_CHANGED`, `SKILL_LINES_CHANGED`, `UNIT_PET`, `UNIT_AURA`, `UNIT_SPELLCAST_SUCCEEDED`, `GET_ITEM_INFO_RECEIVED`, `QUEST_LOG_UPDATE`, etc. — route through `RequestUpdate()`, which sets a dirty flag and a 0.5-second throttle (`UPDATE_THROTTLE`). The rescan and macro rewrite happen on the next `OnUpdate` tick once the throttle elapses.
+`Features/Core.lua` owns a single hidden frame and a central dispatcher. Every event the addon uses is listed once in `ns.EVENT_NAMES` (the dispatcher registers the plain events from it, and the diagnostics Event-Registration check reads the same list, so the two can never drift). The rescan-triggering events — `BAG_UPDATE_DELAYED`, `ITEM_PUSH`, `PLAYER_LEVEL_UP`, `ZONE_CHANGED_NEW_AREA`, `PLAYER_TARGET_CHANGED`, `GROUP_ROSTER_UPDATE`, `SPELLS_CHANGED`, `SKILL_LINES_CHANGED`, `UNIT_PET`, `UNIT_AURA`, `UNIT_SPELLCAST_SUCCEEDED`, `GET_ITEM_INFO_RECEIVED`, `QUEST_LOG_UPDATE`, etc. — route through `RequestUpdate()`, which sets a dirty flag and a 0.5-second throttle (`UPDATE_THROTTLE`). The rescan and macro rewrite happen on the next `OnUpdate` tick once the throttle elapses.
 
 This coalescing prevents macro thrashing — looting a 30-stack of bandages fires `BAG_UPDATE_DELAYED` once, but a vendor sweep can fire it dozens of times in a few frames. Routing everything through one dispatcher is also what makes the diagnostics event log complete: a feature file that registered its own frame would bypass the tap.
 
@@ -80,7 +82,7 @@ A few events are registered conditionally to avoid paying for them when unused: 
 
 ### Item Data Caching
 
-`Features/Item-Cache.lua` derives a canonical per-item shape (itemType, heal/mana values, required level, required First Aid / Alchemy skill, vendor price, max stack, zone restrictions, buff-food/percent flags) from the static `ns.RawData.*` tables plus a one-time `GetItemInfo` read, and stores it in `ConnoisseurDB.itemCache`. Non-consumables are cached as the sentinel `"IGNORE"` so they are never re-derived. `GetItemInfo` returns `nil` on a cold client; when that happens the scan sets a retry flag, `RegisterDataRetry()` registers `GET_ITEM_INFO_RECEIVED` and a 2-second `C_Timer` fallback, and the scan re-runs once data arrives. The cache is keyed by addon version (`itemCacheVersion`): a version bump wipes it on load to pick up corrected data or new fields without stale entries.
+`Features/Item-Cache.lua` derives a canonical per-item shape (itemType, heal/mana/damage values, required level, required First Aid / Alchemy / Engineering skill, required specialization spell, vendor price, max stack, zone restrictions, buff-food/percent flags) from the static `ns.RawData.*` tables plus a one-time `GetItemInfo` read, and stores it in `ConnoisseurDB.itemCache`. Non-consumables are cached as the sentinel `"IGNORE"` so they are never re-derived. `GetItemInfo` returns `nil` on a cold client; when that happens the scan sets a retry flag, `RegisterDataRetry()` registers `GET_ITEM_INFO_RECEIVED` and a 2-second `C_Timer` fallback, and the scan re-runs once data arrives. The cache is keyed by addon version (`itemCacheVersion`): a version bump wipes it on load to pick up corrected data or new fields without stale entries.
 
 ### State Encoding
 
@@ -89,11 +91,12 @@ Every macro write is preceded by a state key capturing every input that affects 
 **Standard / food mode:**
 
 ```text
-ITEMIDS(_C(_M:mid)?(_R:rid)?(_MR:key)?(_MM:key)?(_NI:key)?)?(_SM)?
+ITEMIDS(_C(_M:mid)?(_R:rid)?(_MR:key)?(_MM:key)?(_NI:key)?)?(_EX:mode)?(_SM)?
 ```
 
 - `ITEMIDS` — the slotted item ID, or `none`; for multi-use types (Health Potion, Healthstone, Mana Potion) it is the comma-joined ranked list so a change in any fallback rank also rewrites.
 - `_C` — conjure block present. `_M:mid` / `_R:rid` — middle/right-click spell IDs. `_MR` / `_MM` / `_NI` — "spell not yet learned" miss-tip keys (right / middle / no-item).
+- `_EX:mode` — Explosive click layout (`atplayer` or `toss`), so flipping the dropdown rewrites the macro.
 - `_SM` — Shadowmeld suffix appended (Night Elf Water macro).
 
 **Scroll mode** (`SCROLLS:s1,s2,…`) and **DMH mode** (`DMH:formKey:id1,id2,…`, where `formKey` is `bear`/`cat`) use distinct stems. Numeric item IDs carry no colon, so they can't collide with the `SCROLLS:` / `DMH:` prefixes. If the key matches `currentMacroState[typeName]`, the body is byte-for-byte identical to what's written and the `EditMacro` call is skipped — this is what makes `BAG_UPDATE_DELAYED` storms cheap.
@@ -195,23 +198,22 @@ The return form comes from `settings.druidReturnForm` (`"bear"`/`"cat"`).
 
 ## Saved Variables
 
-Two scopes, two defaults tables.
+One account-wide SavedVariable, `ConnoisseurDB`, managed by **AceDB-3.0**. Every character starts on the shared **Default** profile (`AceDB:New("ConnoisseurDB", ns.DATABASE_DEFAULTS, true)` — the `true` is the shared-default flag), so settings behave account-wide until a character opts into its own profile from the Profiles panel. Keeping several profiles (e.g. *Raid* vs *Solo*) and switching between them is stock AceDBOptions.
 
-- **`ConnoisseurDB`** (account-wide, `SavedVariables`):
-  - `showWelcome` — boolean; the on-login welcome message (default `true`).
-  - `minimap` — LibDBIcon subtable. Its `hide` flag is the single source of truth for button visibility (the "Enable Minimap Button" toggle is its inverse: `hide = false` means shown). LibDBIcon owns position and the rest of the subtable.
-  - `enabledMacros` — per-macro-type on/off (`["Water"] = true`, …). **Account-wide**: the macros live in the shared General macro tab, so which ones Connoisseur maintains is an account-level choice. Class-gated macros (Feed Pet, conjures) still build only for the right class regardless of the toggle.
-  - `itemCache` — derived per-item metadata keyed by item ID (see Item Data Caching).
-  - `itemCacheVersion` — addon version stamp; a mismatch wipes `itemCache` on load.
-- **`ConnoisseurCharDB`** (per-character, `SavedVariablesPerCharacter`):
+- **`ns.db.profile`** — every user setting, so it follows the active profile:
+  - `showWelcome` — the on-login welcome message (default `true`).
+  - `enabledMacros` — per-macro-type on/off (`["Water"] = true`, …). The macros live in the shared General macro tab, so which ones Connoisseur maintains is a per-profile choice; class-gated macros (Feed Pet, conjures) still build only for the right class regardless of the toggle.
   - `ignoreList` — set of item IDs to skip during best-item selection.
-  - `settings` — per-character feature preferences: buff food (`useBuffFood`, `buffFoodMode`), scrolls (`useScrolls`, `scrollsMode`, `scrollTypes`), pet buff food (`usePetBuffFood`, `petBuffFoodMode`, `petBuffTypes`), Night Elf `enableShadowmeldDrinking`, Druid `enableDruidMacroHelper` + `druidReturnForm`. Druid/Night-Elf fields exist on every character but are only consulted when `ns.IsDruid` / `ns.IsNightElf`.
+  - feature preferences: buff food (`useBuffFood`, `buffFoodMode`), scrolls (`useScrolls`, `scrollsMode`, `scrollTypes`), pet buff food (`usePetBuffFood`, `petBuffFoodMode`, `petBuffTypes`), `combineHealthstones`, `explosivesClickMode` (Explosive macro click layout, `atplayer`/`toss`), Night Elf `enableShadowmeldDrinking`, Druid `enableDruidMacroHelper` + `druidReturnForm`. Druid/Night-Elf fields exist in every profile but are only consulted when `ns.IsDruid` / `ns.IsNightElf`.
+  - `itemCache` / `itemCacheVersion` — derived per-item metadata keyed by item ID (see Item Data Caching) plus its addon-version stamp; a mismatch wipes `itemCache` on load. Lazy-inited by `InitVars`, never declared in defaults.
+- **`ns.db.global`** — profile-independent, account-level:
+  - `minimap` — LibDBIcon subtable. Its `hide` flag is the single source of truth for button visibility (the "Enable Minimap Button" toggle is its inverse: `hide = false` means shown). LibDBIcon owns position and the rest of the subtable. Kept in `global` so switching, resetting, or deleting profiles never moves the button.
 
-Defaults live in `Data/Default-Settings.lua`: `ns.CHAR_DEFAULTS` seeds `ConnoisseurCharDB.settings`, and `ns.GLOBAL_DEFAULTS` seeds `ConnoisseurDB` (welcome message, minimap `hide`, `enabledMacros`). `InitVars()` (`Features/Core.lua`) applies both with the recursive `ApplyDefaults` merge. "Reset All" (`ns.ResetSettings`) wipes the per-character `settings` + `ignoreList` and re-resets the account-wide `enabledMacros`, but deliberately leaves `showWelcome` and the minimap subtable (and its saved position) untouched.
+Defaults live in `Data/Default-Settings.lua` as the single `ns.DATABASE_DEFAULTS` table (a `profile` subtable plus `global.minimap`); AceDB applies them via metatables — there is no hand-rolled merge. **Reset** lives on the Profiles panel: stock **Reset Profile** (active profile only) and the one custom **Reset All Profiles** (`ns:ResetAllProfiles` in `Features/Core.lua`), which snapshots `ns.db.global.minimap`, calls `ns.db:ResetDB()`, then restores the minimap so a reset never moves the button. The General panel carries no settings reset — only the feature action Clear Ignore List. A profile switch/copy/reset rebuilds macros and aura tracking via AceDB's `OnProfileChanged` / `OnProfileCopied` / `OnProfileReset` callbacks (registered in `InitVars`).
 
-When changing the schema, never silently rewrite user data. Add a one-shot migration in `InitVars()` gated on the legacy field so it runs once and then becomes a no-op, and remove it after the upgrade window. If a new table name is involved, keep both the old and new `SavedVariables` lines in the `.toc` until the migration has run.
+**Legacy migration (window closes 2026-10-06).** The pre-AceDB build hand-rolled two tables — account-wide `ConnoisseurDB` (root keys `showWelcome`, `enabledMacros`, `minimap`, `itemCache`, `itemCacheVersion`) and per-character `ConnoisseurCharDB` (`settings` + `ignoreList`). A one-shot migration in `InitVars()` folds both into the AceDB profile/global on first login (copying only non-nil values, then clearing each source) and is tagged `-- MIGRATION (remove after 2026-10-06)`. The `## SavedVariablesPerCharacter: ConnoisseurCharDB` TOC line is kept (tagged the same) until the window closes so the old per-character table still loads to be migrated. When the date passes, delete the migration blocks in `Core.lua` and `Diagnostics.lua` and the tagged TOC line. Because settings were account-wide before, every character's old per-character settings collapse into the shared Default profile (last writer wins); a player who wants per-character settings afterward opts into a profile.
 
-> `ApplyDefaults` runs after any migration; it fills only nil fields and never overrides explicit user values.
+When changing the schema, never silently rewrite user data: add a one-shot migration in `InitVars()` gated on the legacy field, tag it with a dated `MIGRATION` comment (90 days out), and delete it after the window.
 
 ---
 
@@ -222,7 +224,7 @@ When changing the schema, never silently rewrite user data. Add a one-shot migra
 3. Add a `ns.Config` entry in `Data/Data.lua` (macro name from a `MACRO_*` locale key, a `defaultID` for the placeholder tooltip, and a `label` from a `LABEL_*` key). If it stacks ranked fallbacks, add it to `ns.MultiUseMacroTypes`.
 4. In `Features/Item-Cache.lua`: add `ns.RawData.Elixirs = ns.RawData.Elixirs or {}` to the safety-init block, a membership check in `ns.IsKnownConsumable`, and an `itemType` branch in `ns.CacheItemData`.
 5. In `Features/Scanner-Inventory.lua`: add a `best[]` entry (and `ResetBest` handles it generically) plus a branch in the `itemType` dispatch — single-winner via `IsBetter`, or `AddRankedCandidate` for a multi-use type.
-6. Add the macro key to `enabledMacros` in `ns.GLOBAL_DEFAULTS` (`Data/Default-Settings.lua`) and a `MacroToggle` row in `Options/Options-General.lua`.
+6. Add the macro key to `enabledMacros` in `ns.DATABASE_DEFAULTS.profile` (`Data/Default-Settings.lua`) and a `MacroToggle` row in `Options/Options-General.lua`.
 7. Add the `MACRO_*` and `LABEL_*` keys to `Locales/enUS.lua` (full words — `MACRO_HEALTH_POTION`, not `MACRO_HPOT`).
 8. If the category has conjure semantics, add a resolver in the relevant `Macro-Builder-{Class}.lua`.
 
@@ -245,7 +247,7 @@ Copy `Locales/enUS.lua` to `Locales/<locale>.lua`. Drop the `true` argument from
 - **Forgetting state encoding**: if you add an input that affects the body, add it to the state key, or the macro won't rewrite when that input changes.
 - **Hardcoding spell names**: always resolve via `GetSpellInfo(spellID)` — names vary by locale and patch.
 - **Counting characters, not bytes**: the limit is 255 *bytes*. Multibyte locales (ruRU/koKR/zhCN) overflow sooner; the Feed Pet builder trims modifier branches to compensate (see its deep-dive), and the consumable/DMH builders drop stacked `/use` lines.
-- **Putting account-wide state in the per-character table (or vice versa)**: `enabledMacros`, `showWelcome`, and the minimap live in `ConnoisseurDB`; feature toggles and the ignore list live in `ConnoisseurCharDB`. Seed new defaults into the matching table.
+- **Putting a setting in the wrong AceDB scope**: every user setting lives in `ns.db.profile` (so it follows the active profile); only the minimap subtable lives in `ns.db.global`. Seed new profile defaults into `ns.DATABASE_DEFAULTS.profile`.
 - **Auto-tracking druid form**: don't. `EditMacro` is gated by combat lockdown, so an `UPDATE_SHAPESHIFT_FORM` auto-tracker produces stale macros mid-combat. Use the hard-coded `druidReturnForm` setting.
 
 ---

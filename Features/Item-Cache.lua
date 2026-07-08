@@ -2,7 +2,7 @@ local _, ns = ...
 
 --[[
     Item-Cache -- derives and caches per-item consumable data in
-    ConnoisseurDB.itemCache (the stateful item-metadata layer) and answers
+    ns.db.profile.itemCache (the stateful item-metadata layer) and answers
     whether an item is a known consumable.
 
     Exposes: ns.RawData, ns.ClearItemCache, ns.IsKnownConsumable,
@@ -24,19 +24,20 @@ ns.RawData.Healthstone = ns.RawData.Healthstone or {}
 ns.RawData.Soulstone = ns.RawData.Soulstone or {}
 ns.RawData.ManaGem = ns.RawData.ManaGem or {}
 ns.RawData.Potions = ns.RawData.Potions or {}
+ns.RawData.Explosives = ns.RawData.Explosives or {}
 
 --------------------------------------------------------------------------------
 -- Item Cache
 --------------------------------------------------------------------------------
 
 function ns.ClearItemCache()
-    if ConnoisseurDB and ConnoisseurDB.itemCache then
-        wipe(ConnoisseurDB.itemCache)
+    if ns.db and ns.db.profile.itemCache then
+        wipe(ns.db.profile.itemCache)
     end
 end
 
 function ns.IsKnownConsumable(itemID)
-    local cache = ConnoisseurDB and ConnoisseurDB.itemCache
+    local cache = ns.db and ns.db.profile.itemCache
     if cache and cache[itemID] and cache[itemID] ~= "IGNORE" then
         return true
     end
@@ -47,7 +48,8 @@ function ns.IsKnownConsumable(itemID)
         ns.RawData.Healthstone[itemID] ~= nil or
         ns.RawData.Soulstone[itemID] ~= nil or
         ns.RawData.Bandage[itemID] ~= nil or
-        ns.RawData.ManaGem[itemID] ~= nil
+        ns.RawData.ManaGem[itemID] ~= nil or
+        ns.RawData.Explosives[itemID] ~= nil
 end
 
 --------------------------------------------------------------------------------
@@ -60,7 +62,7 @@ end
     item IDs. Routed from Core's PLAYER_LOGOUT handler.
 ]]
 function ns.PruneIgnoreList()
-    local ignoreList = ConnoisseurCharDB and ConnoisseurCharDB.ignoreList or {}
+    local ignoreList = (ns.db and ns.db.profile.ignoreList) or {}
     for itemID in pairs(ignoreList) do
         if not ns.IsKnownConsumable(itemID) then
             ignoreList[itemID] = nil
@@ -90,11 +92,11 @@ end
 --[[
     Looks up an item in the RawData tables, derives a canonical shape
     (type, health/mana values, requirements, zones), and caches it under
-    ConnoisseurDB.itemCache. Non-consumable items are cached as "IGNORE"
+    ns.db.profile.itemCache. Non-consumable items are cached as "IGNORE"
     so we never look them up a second time.
 ]]
 function ns.CacheItemData(itemID)
-    local itemCache = ConnoisseurDB and ConnoisseurDB.itemCache
+    local itemCache = ns.db and ns.db.profile.itemCache
     if not itemCache then
         return nil
     end
@@ -110,8 +112,9 @@ function ns.CacheItemData(itemID)
     local rawSoulstone = ns.RawData.Soulstone[itemID]
     local rawBandage = ns.RawData.Bandage[itemID]
     local rawManaGem = ns.RawData.ManaGem[itemID]
+    local rawExplosive = ns.RawData.Explosives[itemID]
 
-    if not (rawFoodAndWater or rawPotion or rawHealthstone or rawSoulstone or rawBandage or rawManaGem) then
+    if not (rawFoodAndWater or rawPotion or rawHealthstone or rawSoulstone or rawBandage or rawManaGem or rawExplosive) then
         itemCache[itemID] = "IGNORE"
         return "IGNORE"
     end
@@ -121,16 +124,20 @@ function ns.CacheItemData(itemID)
         itemType = "",
         healthValue = 0,
         manaValue = 0,
+        damageValue = 0,
         requiredLevel = minLevel or 0,
         requiredFirstAid = 0,
         requiredAlchemy = 0,
+        requiredEngineering = 0,
+        requiredSpellID = nil,
         price = vendorPrice or 0,
         maxStack = maxStack or 1,
         isBuffFood = false,
         isPercent = false,
         zones = nil,
         arenaOnly = false,
-        arenaUsable = false
+        arenaUsable = false,
+        isConjured = false
     }
 
     if rawFoodAndWater then
@@ -148,6 +155,15 @@ function ns.CacheItemData(itemID)
         local arenaFlag = rawFoodAndWater[7]
         data.arenaOnly = (arenaFlag == 1)
         data.arenaUsable = (arenaFlag ~= nil)
+        --[[
+            Conjured (flag 2) is a distinct selection axis from arena usability:
+            arenaUsable is true for BOTH the arena-only drinks (flag 1) and
+            conjured items (flag 2), so it can't tell them apart. isConjured
+            records the conjured status on its own so the scanner can prefer a
+            free, infinite conjured ration over an equal-value purchased,
+            quested, or arena-only item (see IsBetter in Scanner-Inventory).
+        ]]
+        data.isConjured = (arenaFlag == 2)
 
         local hasFood = false
         local hasWater = false
@@ -208,6 +224,17 @@ function ns.CacheItemData(itemID)
     elseif rawManaGem then
         data.itemType = "managem"
         data.manaValue = rawManaGem[1]
+    elseif rawExplosive then
+        -- Explosive row shape: {minDamage, maxDamage, requiredSkill, requiredSpellID}
+        data.itemType = "explosive"
+        data.damageValue = rawExplosive[1]
+        data.requiredEngineering = rawExplosive[3] or 0
+        --[[
+            Engineering specialization gate (e.g. 20222 = Goblin Engineer for
+            the Global Thermal Sapper Charge). The scanner treats the item as
+            unusable until the player knows this spell.
+        ]]
+        data.requiredSpellID = rawExplosive[4]
     end
 
     itemCache[itemID] = data

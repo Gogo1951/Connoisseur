@@ -153,7 +153,7 @@ local function ShouldAppendShadowmeld(typeName)
     if not ns.IsNightElf then
         return false
     end
-    local settings = ConnoisseurCharDB and ConnoisseurCharDB.settings
+    local settings = ns.db and ns.db.profile
     if not settings or not settings.enableShadowmeldDrinking then
         return false
     end
@@ -167,8 +167,35 @@ end
     press fires one of each.
 ]]
 local function ShouldStackHealthstones()
-    local settings = ConnoisseurCharDB and ConnoisseurCharDB.settings
+    local settings = ns.db and ns.db.profile
     return settings and settings.combineHealthstones and true or false
+end
+
+--------------------------------------------------------------------------------
+-- Explosive Click Layout
+--------------------------------------------------------------------------------
+
+--[[
+    The Explosive macro fires in one of two click layouts (the
+    explosivesClickMode setting): one button self-targets via [@player],
+    setting the charge off at the player's feet with no targeting reticle
+    (the melee case), and the other performs the standard toss with the
+    normal reticle. Keybind presses register as left-click, so "atplayer"
+    also makes keybinds drop at the player's feet.
+]]
+local function GetExplosiveClickMode()
+    local settings = ns.db and ns.db.profile
+    if settings and settings.explosivesClickMode == "toss" then
+        return "toss"
+    end
+    return "atplayer"
+end
+
+local function BuildExplosiveUseLine(itemID)
+    if GetExplosiveClickMode() == "toss" then
+        return "/use [btn:2,@player] item:" .. itemID .. "; item:" .. itemID
+    end
+    return "/use [btn:2] item:" .. itemID .. "; [@player] item:" .. itemID
 end
 
 --------------------------------------------------------------------------------
@@ -176,7 +203,7 @@ end
 --------------------------------------------------------------------------------
 
 function ns.IsMacroEnabled(typeName)
-    local enabled = ConnoisseurDB and ConnoisseurDB.enabledMacros
+    local enabled = ns.db and ns.db.profile.enabledMacros
     if not enabled then
         return true
     end
@@ -545,6 +572,8 @@ function ns.UpdateMacros(forced)
                     if petBuffOverride then
                         -- Pet food buffs target the pet
                         actionBlock = StateWriteLine(itemID) .. "/use [@pet] item:" .. itemID
+                    elseif typeName == "Explosive" then
+                        actionBlock = StateWriteLine(itemID) .. BuildExplosiveUseLine(itemID)
                     elseif useIDs then
                         actionBlock = StateWriteLine(itemID) .. BuildUseBlock(useIDs)
                     else
@@ -583,11 +612,13 @@ function ns.UpdateMacros(forced)
                 --[[
                     State encoding — captures every input that affects the
                     written body. Format:
-                      ITEMIDS(_C(_M:mid)?(_R:rid)?(_MR:key)?(_MM:key)?(_NI:key)?)?(_SM)?
+                      ITEMIDS(_C(_M:mid)?(_R:rid)?(_MR:key)?(_MM:key)?(_NI:key)?)?(_EX:mode)?(_SM)?
                     where ITEMIDS is the single itemID, or a comma-joined
                     ranked list for multi-use types so a change in any
-                    fallback rank also triggers a rewrite. Scroll mode uses
-                    a "SCROLLS:..." prefix instead, so the two key spaces
+                    fallback rank also triggers a rewrite. _EX:mode is the
+                    Explosive click layout (atplayer/toss), so flipping the
+                    dropdown rewrites the macro. Scroll mode uses a
+                    "SCROLLS:..." prefix instead, so the two key spaces
                     never collide and a transition between modes always
                     triggers a rewrite.
                 ]]
@@ -621,6 +652,9 @@ function ns.UpdateMacros(forced)
                     if conjureInfo.noItemMiss then
                         stateParts[#stateParts + 1] = "NI:" .. conjureInfo.noItemMiss
                     end
+                end
+                if itemID and typeName == "Explosive" then
+                    stateParts[#stateParts + 1] = "EX:" .. GetExplosiveClickMode()
                 end
                 if appendShadowmeld then
                     stateParts[#stateParts + 1] = "SM"

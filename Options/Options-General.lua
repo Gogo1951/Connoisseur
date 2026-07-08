@@ -17,7 +17,7 @@ local Spacer = ns.OptionsSpacer
 ]]
 
 local function GetCharSettings()
-    return ConnoisseurCharDB and ConnoisseurCharDB.settings
+    return ns.db and ns.db.profile
 end
 
 local function BuffFoodActive()
@@ -56,10 +56,10 @@ local function FeatureMode(settingKey, activeFn, order)
             return not activeFn()
         end,
         get = function()
-            return ConnoisseurCharDB.settings[settingKey] or "always"
+            return ns.db.profile[settingKey] or "always"
         end,
         set = function(_, value)
-            ConnoisseurCharDB.settings[settingKey] = value
+            ns.db.profile[settingKey] = value
             if ns.ResetMacroState then
                 ns.ResetMacroState()
             end
@@ -75,11 +75,11 @@ local function SubsetToggle(subtable, key, label, order)
         name = label,
         order = order,
         get = function()
-            local t = ConnoisseurCharDB.settings[subtable]
+            local t = ns.db.profile[subtable]
             return t and t[key]
         end,
         set = function(_, value)
-            ConnoisseurCharDB.settings[subtable][key] = value
+            ns.db.profile[subtable][key] = value
             if ns.ResetMacroState then
                 ns.ResetMacroState()
             end
@@ -89,7 +89,7 @@ local function SubsetToggle(subtable, key, label, order)
 end
 
 --[[
-    One factory for the nine Enable Macros toggles. hiddenFn is optional —
+    One factory for the ten Enable Macros toggles. hiddenFn is optional —
     Feed Pet uses it to stay hidden on non-Hunter characters.
 ]]
 local function MacroToggle(label, key, order, hiddenFn)
@@ -100,10 +100,10 @@ local function MacroToggle(label, key, order, hiddenFn)
         width = "normal",
         hidden = hiddenFn,
         get = function()
-            return ConnoisseurDB.enabledMacros[key]
+            return ns.db.profile.enabledMacros[key]
         end,
         set = function(_, value)
-            ConnoisseurDB.enabledMacros[key] = value
+            ns.db.profile.enabledMacros[key] = value
             if ns.ResetMacroState then
                 ns.ResetMacroState()
             end
@@ -119,9 +119,10 @@ end
 --[[
     The single settings page. Per the guide's Main Page Layout, all
     feature-specific settings live here rather than as separate Blizzard
-    sub-panels: general settings, the Buff Food / Scroll / Pet Food tuning
-    sections, Enable Macros, the class/race-gated Druid and Night Elf sections
-    (hidden for other characters), reset, feedback links, and version. Only
+    sub-panels: general settings, the Buff Food / Scroll / Explosives / Pet
+    Food tuning sections, Enable Macros, the class/race-gated Druid and Night
+    Elf sections (hidden for other characters), reset, feedback links, and
+    version. Only
     Diagnostic Tools is a separate panel. Order values are grouped in blocks
     (100s per section) so sections can be reordered or extended without
     renumbering their neighbors.
@@ -143,11 +144,11 @@ function ns.BuildGeneralOptions()
                 order = 11,
                 width = "full",
                 get = function()
-                    return ConnoisseurDB and ConnoisseurDB.showWelcome
+                    return ns.db and ns.db.profile.showWelcome
                 end,
                 set = function(_, value)
-                    if ConnoisseurDB then
-                        ConnoisseurDB.showWelcome = value
+                    if ns.db then
+                        ns.db.profile.showWelcome = value
                     end
                 end,
             },
@@ -160,7 +161,7 @@ function ns.BuildGeneralOptions()
                 order = 13,
                 width = "full",
                 get = function()
-                    return not (ConnoisseurDB and ConnoisseurDB.minimap and ConnoisseurDB.minimap.hide)
+                    return not (ns.db and ns.db.global.minimap and ns.db.global.minimap.hide)
                 end,
                 set = function(_, value)
                     if ns.ToggleMinimapButton then
@@ -195,7 +196,7 @@ function ns.BuildGeneralOptions()
                     return s and s.combineHealthstones
                 end,
                 set = function(_, value)
-                    ConnoisseurCharDB.settings.combineHealthstones = value
+                    ns.db.profile.combineHealthstones = value
                     if ns.ResetMacroState then
                         ns.ResetMacroState()
                     end
@@ -205,7 +206,7 @@ function ns.BuildGeneralOptions()
 
             -- Buff Food
             spaceBuff0 = Spacer(100),
-            headerBuff = Header(L["MENU_BUFF_FOOD"], 101),
+            headerBuff = Header(L["OPTIONS_BUFF_FOOD_HEADER"], 101),
             spaceBuff1 = Spacer(102),
             descBuff = Desc(GetColor("BODY") .. L["OPTIONS_BUFF_FOOD_DESCRIPTION"] .. "|r", 103),
             spaceBuff2 = Spacer(104),
@@ -250,7 +251,9 @@ function ns.BuildGeneralOptions()
                 end,
             },
             scrollsMode = FeatureMode("scrollsMode", ScrollsActive, 206),
-            spaceScrollTypes0 = Spacer(207),
+            spaceScrollTypes0 = Spacer(207, function()
+                return not ScrollsActive()
+            end),
             scrollTypesGroup = {
                 type = "group",
                 name = L["OPTIONS_SCROLL_TYPES"],
@@ -269,6 +272,34 @@ function ns.BuildGeneralOptions()
                 },
             },
 
+            -- Explosives
+            spaceExplosives0 = Spacer(250),
+            headerExplosives = Header(L["OPTIONS_EXPLOSIVES_HEADER"], 251),
+            spaceExplosives1 = Spacer(252),
+            descExplosives = Desc(GetColor("BODY") .. L["OPTIONS_EXPLOSIVES_DESCRIPTION"] .. "|r", 253),
+            spaceExplosives2 = Spacer(254),
+            explosivesClickMode = {
+                type = "select",
+                name = "",
+                order = 255,
+                width = "double",
+                values = {
+                    atplayer = L["EXPLOSIVES_MODE_ATPLAYER"],
+                    toss = L["EXPLOSIVES_MODE_TOSS"],
+                },
+                sorting = {"atplayer", "toss"},
+                get = function()
+                    return ns.db.profile.explosivesClickMode or "atplayer"
+                end,
+                set = function(_, value)
+                    ns.db.profile.explosivesClickMode = value
+                    if ns.ResetMacroState then
+                        ns.ResetMacroState()
+                    end
+                    ns.RequestUpdate()
+                end,
+            },
+
             -- Pet Food Buffs
             spacePet0 = Spacer(300),
             headerPet = Header(L["OPTIONS_PET_HEADER"], 301),
@@ -285,7 +316,7 @@ function ns.BuildGeneralOptions()
                     return PetBuffActive()
                 end,
                 set = function(_, value)
-                    ConnoisseurCharDB.settings.usePetBuffFood = value
+                    ns.db.profile.usePetBuffFood = value
                     if ns.UpdateAuraTracking then
                         ns.UpdateAuraTracking()
                     end
@@ -296,7 +327,9 @@ function ns.BuildGeneralOptions()
                 end,
             },
             petBuffFoodMode = FeatureMode("petBuffFoodMode", PetBuffActive, 306),
-            spacePetTypes0 = Spacer(307),
+            spacePetTypes0 = Spacer(307, function()
+                return not PetBuffActive()
+            end),
             petTypesGroup = {
                 type = "group",
                 name = L["OPTIONS_PET_BUFF_TYPES"],
@@ -318,14 +351,15 @@ function ns.BuildGeneralOptions()
             descEnableMacros = Desc(GetColor("BODY") .. L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] .. "|r", 403),
             spaceEnable2 = Spacer(404),
             enableBandage = MacroToggle(L["MACRO_BANDAGE"], "Bandage", 405),
-            enableFeedPet = MacroToggle(L["MACRO_FEED_PET"], "Feed Pet", 406, function() return not ns.IsHunter end),
-            enableFood = MacroToggle(L["MACRO_FOOD"], "Food", 407),
-            enableHealthPotion = MacroToggle(L["MACRO_HEALTH_POTION"], "Health Potion", 408),
-            enableHealthstone = MacroToggle(L["MACRO_HEALTHSTONE"], "Healthstone", 409),
-            enableManaGem = MacroToggle(L["MACRO_MANA_GEM"], "Mana Gem", 410),
-            enableManaPotion = MacroToggle(L["MACRO_MANA_POTION"], "Mana Potion", 411),
-            enableSoulstone = MacroToggle(L["MACRO_SOULSTONE"], "Soulstone", 412),
-            enableWater = MacroToggle(L["MACRO_WATER"], "Water", 413),
+            enableExplosive = MacroToggle(L["MACRO_EXPLOSIVES"], "Explosive", 406),
+            enableFeedPet = MacroToggle(L["MACRO_FEED_PET"], "Feed Pet", 407, function() return not ns.IsHunter end),
+            enableFood = MacroToggle(L["MACRO_FOOD"], "Food", 408),
+            enableHealthPotion = MacroToggle(L["MACRO_HEALTH_POTION"], "Health Potion", 409),
+            enableHealthstone = MacroToggle(L["MACRO_HEALTHSTONE"], "Healthstone", 410),
+            enableManaGem = MacroToggle(L["MACRO_MANA_GEM"], "Mana Gem", 411),
+            enableManaPotion = MacroToggle(L["MACRO_MANA_POTION"], "Mana Potion", 412),
+            enableSoulstone = MacroToggle(L["MACRO_SOULSTONE"], "Soulstone", 413),
+            enableWater = MacroToggle(L["MACRO_WATER"], "Water", 414),
 
             -- Druids
             spaceDruid0 = {
@@ -354,8 +388,8 @@ function ns.BuildGeneralOptions()
                 width = "full",
                 hidden = function() return not ns.IsDruid end,
                 get = function()
-                    return ConnoisseurCharDB and ConnoisseurCharDB.settings
-                        and ConnoisseurCharDB.settings.enableDruidMacroHelper
+                    return ns.db and ns.db.profile
+                        and ns.db.profile.enableDruidMacroHelper
                 end,
                 set = function(_, value)
                     if ns.ToggleDruidMacroHelper then
@@ -375,14 +409,14 @@ function ns.BuildGeneralOptions()
                 sorting = {"bear", "cat"},
                 hidden = function()
                     if not ns.IsDruid then return true end
-                    local settings = ConnoisseurCharDB and ConnoisseurCharDB.settings
+                    local settings = ns.db and ns.db.profile
                     return not (settings and settings.enableDruidMacroHelper)
                 end,
                 get = function()
-                    return ConnoisseurCharDB.settings.druidReturnForm or "bear"
+                    return ns.db.profile.druidReturnForm or "bear"
                 end,
                 set = function(_, value)
-                    ConnoisseurCharDB.settings.druidReturnForm = value
+                    ns.db.profile.druidReturnForm = value
                     if ns.ResetMacroState then
                         ns.ResetMacroState()
                     end
@@ -417,8 +451,8 @@ function ns.BuildGeneralOptions()
                 width = "full",
                 hidden = function() return not ns.IsNightElf end,
                 get = function()
-                    return ConnoisseurCharDB and ConnoisseurCharDB.settings
-                        and ConnoisseurCharDB.settings.enableShadowmeldDrinking
+                    return ns.db and ns.db.profile
+                        and ns.db.profile.enableShadowmeldDrinking
                 end,
                 set = function(_, value)
                     if ns.ToggleShadowmeldDrinking then
@@ -427,10 +461,15 @@ function ns.BuildGeneralOptions()
                 end,
             },
 
-            -- Reset
-            spaceReset0 = Spacer(800),
-            headerReset = Header(L["OPTIONS_RESET_HEADER"], 801),
-            spaceReset1 = Spacer(802),
+            --[[
+                Ignore List -- clearing it is a feature action, not a settings
+                reset, so it stays on the General panel. Both grades of settings
+                reset (Reset Profile, Reset All Profiles) live on the Profiles
+                panel per the guide.
+            ]]
+            spaceIgnore0 = Spacer(800),
+            headerIgnore = Header(L["UI_IGNORE_LIST"], 801),
+            spaceIgnore1 = Spacer(802),
             resetIgnore = {
                 type = "execute",
                 name = L["MENU_CLEAR_IGNORE"],
@@ -440,25 +479,11 @@ function ns.BuildGeneralOptions()
                 confirm = true,
                 confirmText = L["OPTIONS_RESET_IGNORE_CONFIRM"],
                 func = function()
-                    if ConnoisseurCharDB and ConnoisseurCharDB.ignoreList then
-                        wipe(ConnoisseurCharDB.ignoreList)
+                    if ns.db and ns.db.profile.ignoreList then
+                        wipe(ns.db.profile.ignoreList)
                     end
                     if ns.UpdateMacros then
                         ns.UpdateMacros(true)
-                    end
-                end,
-            },
-            resetAll = {
-                type = "execute",
-                name = L["OPTIONS_RESET_ALL"],
-                desc = L["OPTIONS_RESET_ALL_DESCRIPTION"],
-                order = 804,
-                width = "double",
-                confirm = true,
-                confirmText = L["OPTIONS_RESET_ALL_CONFIRM"],
-                func = function()
-                    if ns.ResetSettings then
-                        ns.ResetSettings()
                     end
                 end,
             },
@@ -467,13 +492,13 @@ function ns.BuildGeneralOptions()
             spaceCommunity0 = Spacer(900),
             headerCommunity = Header(L["OPTIONS_COMMUNITY_HEADER"], 901),
             spaceCommunity1 = Spacer(902),
-            curseforgeLabel = Desc(GetColor("TITLE") .. "CurseForge" .. "|r", 903),
-            curseforgeURL = {
+            discordLabel = Desc(GetColor("TITLE") .. "Discord" .. "|r", 903),
+            discordURL = {
                 type = "input",
                 name = "",
                 order = 904,
                 width = "double",
-                get = function() return ns.CURSEFORGE_URL end,
+                get = function() return ns.DISCORD_URL end,
                 set = function() end,
             },
             spaceCommunity2 = Spacer(905),
@@ -487,13 +512,23 @@ function ns.BuildGeneralOptions()
                 set = function() end,
             },
             spaceCommunity3 = Spacer(908),
-            discordLabel = Desc(GetColor("TITLE") .. "Discord" .. "|r", 909),
-            discordURL = {
+            curseforgeLabel = Desc(GetColor("TITLE") .. "CurseForge" .. "|r", 909),
+            curseforgeURL = {
                 type = "input",
                 name = "",
                 order = 910,
                 width = "double",
-                get = function() return ns.DISCORD_URL end,
+                get = function() return ns.CURSEFORGE_URL end,
+                set = function() end,
+            },
+            spaceCommunity4 = Spacer(911),
+            wagoLabel = Desc(GetColor("TITLE") .. "Wago" .. "|r", 912),
+            wagoURL = {
+                type = "input",
+                name = "",
+                order = 913,
+                width = "double",
+                get = function() return ns.WAGO_URL end,
                 set = function() end,
             },
 
