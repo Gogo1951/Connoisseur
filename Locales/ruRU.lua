@@ -17,6 +17,7 @@ L["ADDON_TITLE"] = "Connoisseur"
 -- Macro names cannot exceed 16 total characters.
 
 L["MACRO_BANDAGE"] = "- Бинты"
+L["MACRO_EXPLOSIVES"] = "- Взрывчатка"
 L["MACRO_FEED_PET"] = "- Корм. питомца"
 L["MACRO_FOOD"] = "- Еда"
 L["MACRO_HEALTH_POTION"] = "- Леч. зелье"
@@ -75,14 +76,29 @@ L["TIP_DONT_KNOW_SPELL"] = "В данный момент вы не знаете 
 -- Minimap Tooltip
 --------------------------------------------------------------------------------
 
+-- Feature toggles shown in the minimap tooltip, each with a description line.
 L["MENU_BUFF_FOOD"] = "Еда с баффами"
 L["MENU_BUFF_FOOD_DESCRIPTION"] = "Приоритет еды, дающей эффект \"Сытость\", если он отсутствует."
-L["MENU_CLEAR_IGNORE"] = "Очистить игнор-лист"
-L["MENU_IGNORE"] = "Игнорировать"
-
 L["MENU_SCROLL_BUFFS"] = "Баффы от свитков"
 L["MENU_SCROLL_BUFFS_DESCRIPTION"] = "Превращает ваш макрос Еды в аппликатор свитков, когда вам не хватает баффов от свитков."
-L["MENU_OPTIONS_HINT"] = "Дополнительные настройки доступны в Настройки > Модификации > Connoisseur."
+
+-- Section titles and ignore-list actions in the minimap tooltip.
+L["UI_BEST_FOOD"] = "Еда"
+L["UI_BEST_PET_FOOD"] = "Еда для питомца"
+L["UI_IGNORE_LIST"] = "Список игнорирования"
+L["MENU_IGNORE"] = "Игнорировать"
+L["MENU_CLEAR_IGNORE"] = "Очистить игнор-лист"
+
+-- Options entry at the bottom of the minimap tooltip.
+L["MENU_OPTIONS"] = "Настройки Connoisseur"
+L["MENU_OPTIONS_KEYBIND"] = "Shift + СКМ"
+
+--------------------------------------------------------------------------------
+-- Class Announcements
+--------------------------------------------------------------------------------
+
+-- Class-colored headers and conjure/pet tips shown in the minimap tooltip for
+-- the player's class.
 
 L["PREFIX_HUNTER"] = "Внимание Охотники"
 L["PREFIX_MAGE"] = "Внимание Маги"
@@ -96,12 +112,15 @@ L["TIP_MAGE_TABLE"] = "Средний клик для сотворения Ри�
 L["TIP_WARLOCK_CONJURE"] = "Правый клик по макросу Камня здоровья или Камня души для сотворения. Повторный правый клик по макросу Камня здоровья для сотворения камня низшего ранга в качестве запасного."
 L["TIP_WARLOCK_SOUL"] = "Средний клик для сотворения Ритуала душ."
 
-L["UI_BEST_FOOD"] = "Еда"
-L["UI_BEST_PET_FOOD"] = "Еда для питомца"
+--------------------------------------------------------------------------------
+-- Item Labels
+--------------------------------------------------------------------------------
 
 -- Labels that get plugged into MSG_NO_ITEM ("No suitable %s found...").
 -- One per macro type (resolved via ns.Config in ConnNoItem), plus Pet Food.
+
 L["LABEL_BANDAGE"] = "Бинты"
+L["LABEL_EXPLOSIVE"] = "Взрывчатка"
 L["LABEL_FOOD"] = "Еда"
 L["LABEL_HEALTH_POTION"] = "Лечебное зелье"
 L["LABEL_HEALTHSTONE"] = "Камень здоровья"
@@ -110,14 +129,20 @@ L["LABEL_MANA_POTION"] = "Зелье маны"
 L["LABEL_PET_FOOD"] = "Еда для питомца"
 L["LABEL_SOULSTONE"] = "Камень души"
 L["LABEL_WATER"] = "Вода"
-L["UI_DISABLED"] = "Отключено"
+
+--------------------------------------------------------------------------------
+-- UI Labels
+--------------------------------------------------------------------------------
+
+-- Generic labels reused across the minimap tooltip and options panel.
+
 L["UI_ENABLED"] = "Включено"
-L["UI_IGNORE_LIST"] = "Список игнорирования"
-L["UI_LEFT_CLICK"] = "ЛКМ"
-L["UI_MIDDLE_CLICK"] = "СКМ"
-L["UI_RIGHT_CLICK"] = "ПКМ"
-L["UI_SHIFT_LEFT"] = "Shift + ЛКМ"
+L["UI_DISABLED"] = "Отключено"
 L["UI_TOGGLE"] = "Переключить"
+L["UI_LEFT_CLICK"] = "ЛКМ"
+L["UI_RIGHT_CLICK"] = "ПКМ"
+L["UI_MIDDLE_CLICK"] = "СКМ"
+L["UI_SHIFT_LEFT"] = "Shift + ЛКМ"
 
 --------------------------------------------------------------------------------
 -- Mode Values
@@ -148,6 +173,7 @@ L["OPTIONS_COMBINE_HEALTHSTONES"] = "Объединить Камни здоро�
 L["OPTIONS_COMBINE_HEALTHSTONES_DESCRIPTION"] = "Добавляет ваш лучший Камень здоровья в конец макроса Лечебного зелья, поэтому одно нажатие использует и зелье, и Камень здоровья."
 
 -- Buff Food
+L["OPTIONS_BUFF_FOOD_HEADER"] = "Еда с эффектом"
 L["OPTIONS_BUFF_FOOD"] = "Еда с баффами"
 L["OPTIONS_BUFF_FOOD_DESCRIPTION"] = "Приоритет еды, дающей эффект \"Сытость\", если он отсутствует."
 L["OPTIONS_BUFF_FOOD_DETAIL"] = "Совет профи: Выбор себя в качестве цели всегда заставляет макрос еды пропускать еду с баффами и свитки."
@@ -163,6 +189,12 @@ L["OPTIONS_SCROLL_PROTECTION"] = "Защита"
 L["OPTIONS_SCROLL_SPIRIT"] = "Дух"
 L["OPTIONS_SCROLL_STAMINA"] = "Выносливость"
 L["OPTIONS_SCROLL_STRENGTH"] = "Сила"
+
+-- Explosives
+L["OPTIONS_EXPLOSIVES_HEADER"] = "Взрывчатка"
+L["OPTIONS_EXPLOSIVES_DESCRIPTION"] = "Вариант @player пропускает прицельный круг и подрывает взрывчатку прямо у ваших ног — идеально, когда цель в ближнем бою."
+L["EXPLOSIVES_MODE_ATPLAYER"] = "ЛКМ @Player, ПКМ Бросок"
+L["EXPLOSIVES_MODE_TOSS"] = "ЛКМ Бросок, ПКМ @Player"
 
 -- Pet Food Buffs
 L["OPTIONS_PET_HEADER"] = "Баффы от еды для питомцев"
@@ -194,13 +226,14 @@ L["OPTIONS_COMMANDS_DETAIL"] = "Открывает интерфейс настр
 L["OPTIONS_ENABLE_MACROS_HEADER"] = "Включить макросы"
 L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] = "Выбор макросов, которые Connoisseur создает и поддерживает. Отключение макроса также удалит его."
 
--- Reset
-L["OPTIONS_RESET_HEADER"] = "Сброс"
+-- Ignore List
 L["OPTIONS_RESET_IGNORE_DESCRIPTION"] = "Удалить все предметы из списка игнорирования."
 L["OPTIONS_RESET_IGNORE_CONFIRM"] = "Вы уверены, что хотите очистить список игнорирования?"
-L["OPTIONS_RESET_ALL"] = "Сбросить все настройки Connoisseur"
-L["OPTIONS_RESET_ALL_DESCRIPTION"] = "Сбросить все настройки и список игнорирования по умолчанию."
-L["OPTIONS_RESET_ALL_CONFIRM"] = "Сбросить все настройки Connoisseur по умолчанию?"
+
+-- Profiles (Reset All Profiles -- the stock AceDBOptions widgets are not localized here)
+L["OPTIONS_RESET_ALL_PROFILES"] = "Сбросить все профили"
+L["OPTIONS_RESET_ALL_PROFILES_DESCRIPTION"] = "Сбрасывает все профили этой учётной записи к настройкам по умолчанию."
+L["OPTIONS_RESET_ALL_PROFILES_CONFIRM"] = "Это сбросит ВСЕ профили вашей учётной записи к настройкам по умолчанию — каждого персонажа. Отменить будет нельзя. Продолжить?"
 
 -- Feedback & Support
 L["OPTIONS_COMMUNITY_HEADER"] = "Обратная связь и поддержка"

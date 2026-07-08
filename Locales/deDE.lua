@@ -17,6 +17,7 @@ L["ADDON_TITLE"] = "Connoisseur"
 -- Macro names cannot exceed 16 total characters.
 
 L["MACRO_BANDAGE"] = "- Verband"
+L["MACRO_EXPLOSIVES"] = "- Sprengstoff"
 L["MACRO_FEED_PET"] = "- Tier füttern"
 L["MACRO_FOOD"] = "- Essen"
 L["MACRO_HEALTH_POTION"] = "- Heiltrank"
@@ -75,14 +76,29 @@ L["TIP_DONT_KNOW_SPELL"] = "Du kennst derzeit nicht %s."
 -- Minimap Tooltip
 --------------------------------------------------------------------------------
 
+-- Feature toggles shown in the minimap tooltip, each with a description line.
 L["MENU_BUFF_FOOD"] = "Buff-Essen bevorzugen"
 L["MENU_BUFF_FOOD_DESCRIPTION"] = "Bevorzugt Essen, das den \"Satt\"-Buff gewährt, wenn der Buff fehlt."
-L["MENU_CLEAR_IGNORE"] = "Ignorierliste löschen"
-L["MENU_IGNORE"] = "Ignorieren"
-
 L["MENU_SCROLL_BUFFS"] = "Schriftrollen-Buffs"
 L["MENU_SCROLL_BUFFS_DESCRIPTION"] = "Verwandelt dein Essen-Makro in einen Schriftrollen-Anwender, wenn dir Schriftrollen-Buffs fehlen."
-L["MENU_OPTIONS_HINT"] = "Weitere Optionen verfügbar unter Optionen > AddOns > Connoisseur."
+
+-- Section titles and ignore-list actions in the minimap tooltip.
+L["UI_BEST_FOOD"] = "Aktuelles Essen"
+L["UI_BEST_PET_FOOD"] = "Aktuelles Tierfutter"
+L["UI_IGNORE_LIST"] = "Ignorierliste"
+L["MENU_IGNORE"] = "Ignorieren"
+L["MENU_CLEAR_IGNORE"] = "Ignorierliste löschen"
+
+-- Options entry at the bottom of the minimap tooltip.
+L["MENU_OPTIONS"] = "Connoisseur-Optionen"
+L["MENU_OPTIONS_KEYBIND"] = "Shift + Mittelklick"
+
+--------------------------------------------------------------------------------
+-- Class Announcements
+--------------------------------------------------------------------------------
+
+-- Class-colored headers and conjure/pet tips shown in the minimap tooltip for
+-- the player's class.
 
 L["PREFIX_HUNTER"] = "Achtung Jäger"
 L["PREFIX_MAGE"] = "Achtung Magier"
@@ -96,12 +112,15 @@ L["TIP_MAGE_TABLE"] = "Mittelklick, um Ritual der Erfrischung zu wirken."
 L["TIP_WARLOCK_CONJURE"] = "Rechtsklick auf dein Gesundheitsstein- oder Seelenstein-Makro, um einen Gesundheitsstein oder Seelenstein herzustellen. Erneuter Rechtsklick auf dein Gesundheitsstein-Makro, um einen Ersatzstein niedrigerer Stufe herbeizuzaubern."
 L["TIP_WARLOCK_SOUL"] = "Mittelklick, um Ritual der Seelen zu wirken."
 
-L["UI_BEST_FOOD"] = "Aktuelles Essen"
-L["UI_BEST_PET_FOOD"] = "Aktuelles Tierfutter"
+--------------------------------------------------------------------------------
+-- Item Labels
+--------------------------------------------------------------------------------
 
 -- Labels that get plugged into MSG_NO_ITEM ("No suitable %s found...").
 -- One per macro type (resolved via ns.Config in ConnNoItem), plus Pet Food.
+
 L["LABEL_BANDAGE"] = "Verband"
+L["LABEL_EXPLOSIVE"] = "Sprengstoff"
 L["LABEL_FOOD"] = "Essen"
 L["LABEL_HEALTH_POTION"] = "Heiltrank"
 L["LABEL_HEALTHSTONE"] = "Gesundheitsstein"
@@ -110,14 +129,20 @@ L["LABEL_MANA_POTION"] = "Manatrank"
 L["LABEL_PET_FOOD"] = "Tierfutter"
 L["LABEL_SOULSTONE"] = "Seelenstein"
 L["LABEL_WATER"] = "Wasser"
-L["UI_DISABLED"] = "Deaktiviert"
+
+--------------------------------------------------------------------------------
+-- UI Labels
+--------------------------------------------------------------------------------
+
+-- Generic labels reused across the minimap tooltip and options panel.
+
 L["UI_ENABLED"] = "Aktiviert"
-L["UI_IGNORE_LIST"] = "Ignorierliste"
-L["UI_LEFT_CLICK"] = "Linksklick"
-L["UI_MIDDLE_CLICK"] = "Mittelklick"
-L["UI_RIGHT_CLICK"] = "Rechtsklick"
-L["UI_SHIFT_LEFT"] = "Shift + Linksklick"
+L["UI_DISABLED"] = "Deaktiviert"
 L["UI_TOGGLE"] = "Umschalten"
+L["UI_LEFT_CLICK"] = "Linksklick"
+L["UI_RIGHT_CLICK"] = "Rechtsklick"
+L["UI_MIDDLE_CLICK"] = "Mittelklick"
+L["UI_SHIFT_LEFT"] = "Shift + Linksklick"
 
 --------------------------------------------------------------------------------
 -- Mode Values
@@ -148,6 +173,7 @@ L["OPTIONS_COMBINE_HEALTHSTONES"] = "Gesundheitssteine mit Heiltrank-Makro kombi
 L["OPTIONS_COMBINE_HEALTHSTONES_DESCRIPTION"] = "Fügt deinen besten Gesundheitsstein unten an das Heiltrank-Makro an, sodass ein Tastendruck einen Trank und einen Gesundheitsstein verwendet."
 
 -- Buff Food
+L["OPTIONS_BUFF_FOOD_HEADER"] = "Buff-Essen"
 L["OPTIONS_BUFF_FOOD"] = "Buff-Essen bevorzugen"
 L["OPTIONS_BUFF_FOOD_DESCRIPTION"] = "Bevorzugt Essen, das den \"Satt\"-Buff gewährt, wenn der Buff fehlt."
 L["OPTIONS_BUFF_FOOD_DETAIL"] = "Profi-Tipp: Wenn du dich selbst anvisierst, lässt das Essen-Makro Buff-Essen und Schriftrollen immer aus."
@@ -163,6 +189,12 @@ L["OPTIONS_SCROLL_PROTECTION"] = "Schutz"
 L["OPTIONS_SCROLL_SPIRIT"] = "Willenskraft"
 L["OPTIONS_SCROLL_STAMINA"] = "Ausdauer"
 L["OPTIONS_SCROLL_STRENGTH"] = "Stärke"
+
+-- Explosives
+L["OPTIONS_EXPLOSIVES_HEADER"] = "Sprengstoff"
+L["OPTIONS_EXPLOSIVES_DESCRIPTION"] = "Die @player-Option überspringt den Zielkreis und zündet den Sprengstoff direkt zu deinen Füßen — ideal, wenn dein Ziel in Nahkampfreichweite ist."
+L["EXPLOSIVES_MODE_ATPLAYER"] = "Linksklick @Player, Rechtsklick Werfen"
+L["EXPLOSIVES_MODE_TOSS"] = "Linksklick Werfen, Rechtsklick @Player"
 
 -- Pet Food Buffs
 L["OPTIONS_PET_HEADER"] = "Tierfutter-Buffs"
@@ -194,13 +226,14 @@ L["OPTIONS_COMMANDS_DETAIL"] = "Öffnet das Connoisseur-Optionsmenü."
 L["OPTIONS_ENABLE_MACROS_HEADER"] = "Makros aktivieren"
 L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] = "Schaltet um, welche Makros Connoisseur erstellt und pflegt. Wenn du ein Makro deaktivierst, wird es auch entfernt."
 
--- Reset
-L["OPTIONS_RESET_HEADER"] = "Zurücksetzen"
+-- Ignore List
 L["OPTIONS_RESET_IGNORE_DESCRIPTION"] = "Alle Gegenstände von der Ignorierliste entfernen."
 L["OPTIONS_RESET_IGNORE_CONFIRM"] = "Bist du sicher, dass du die Ignorierliste löschen möchtest?"
-L["OPTIONS_RESET_ALL"] = "Alle Connoisseur-Optionen zurücksetzen"
-L["OPTIONS_RESET_ALL_DESCRIPTION"] = "Alle Einstellungen und die Ignorierliste auf die Standardwerte zurücksetzen."
-L["OPTIONS_RESET_ALL_CONFIRM"] = "Alle Connoisseur-Optionen auf Standardwerte zurücksetzen?"
+
+-- Profiles (Reset All Profiles -- the stock AceDBOptions widgets are not localized here)
+L["OPTIONS_RESET_ALL_PROFILES"] = "Alle Profile zurücksetzen"
+L["OPTIONS_RESET_ALL_PROFILES_DESCRIPTION"] = "Setzt jedes Profil dieses Accounts auf die Standardeinstellungen zurück."
+L["OPTIONS_RESET_ALL_PROFILES_CONFIRM"] = "Dies setzt ALLE Profile deines Accounts auf die Standardeinstellungen zurück — jeden Charakter. Dies kann nicht rückgängig gemacht werden. Fortfahren?"
 
 -- Feedback & Support
 L["OPTIONS_COMMUNITY_HEADER"] = "Feedback & Support"

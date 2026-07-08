@@ -6,7 +6,8 @@ local _, ns = ...
     pet-food buffs), and the scroll / pet-food override resolvers.
 
     Exposes: ns.UpdateFirstAidSkill, ns.UpdateAlchemySkill,
-    ns.CurrentFirstAidSkill, ns.CurrentAlchemySkill, ns.HasWellFedBuff,
+    ns.UpdateEngineeringSkill, ns.CurrentFirstAidSkill,
+    ns.CurrentAlchemySkill, ns.CurrentEngineeringSkill, ns.HasWellFedBuff,
     ns.HasScrollBuff, ns.HasPetFoodBuff, ns.FindScrollOverrides,
     ns.FindPetBuffOverride, ns.HandleUnitAura, ns.ScrollItemLookup,
     ns.ScrollOverrideIDs, ns.PetBuffOverrideID.
@@ -20,6 +21,7 @@ ns.ScrollOverrideIDs = nil
 ns.PetBuffOverrideID = nil
 ns.CurrentFirstAidSkill = 0
 ns.CurrentAlchemySkill = 0
+ns.CurrentEngineeringSkill = 0
 
 --------------------------------------------------------------------------------
 -- Derived Scroll Lookups
@@ -82,6 +84,24 @@ function ns.UpdateAlchemySkill()
     end
 
     ns.CurrentAlchemySkill = 0
+end
+
+function ns.UpdateEngineeringSkill()
+    local engineeringSpellName = GetSpellInfo(4036)
+    if not engineeringSpellName then
+        ns.CurrentEngineeringSkill = 0
+        return
+    end
+
+    for i = 1, GetNumSkillLines() do
+        local skillName, isHeader, _, skillRank = GetSkillLineInfo(i)
+        if not isHeader and skillName == engineeringSpellName then
+            ns.CurrentEngineeringSkill = skillRank
+            return
+        end
+    end
+
+    ns.CurrentEngineeringSkill = 0
 end
 
 --------------------------------------------------------------------------------
@@ -175,15 +195,15 @@ end
     can use that priority when truncating to fit the 255-char macro limit.
 ]]
 function ns.FindScrollOverrides(bagItemCounts)
-    local charDB = ConnoisseurCharDB
-    if not charDB or not charDB.settings or not charDB.settings.useScrolls then
+    local settings = ns.db and ns.db.profile
+    if not settings or not settings.useScrolls then
         return nil
     end
-    if not ns.IsModeActive(charDB.settings.scrollsMode) then
+    if not ns.IsModeActive(settings.scrollsMode) then
         return nil
     end
 
-    local scrollTypes = charDB.settings.scrollTypes
+    local scrollTypes = settings.scrollTypes
     if not scrollTypes then return nil end
 
     local results
@@ -219,11 +239,11 @@ end
 
 -- Returns the item ID of the pet food buff that should be used, or nil.
 function ns.FindPetBuffOverride(bagItemCounts)
-    local charDB = ConnoisseurCharDB
-    if not charDB or not charDB.settings or not charDB.settings.usePetBuffFood then
+    local settings = ns.db and ns.db.profile
+    if not settings or not settings.usePetBuffFood then
         return nil
     end
-    if not ns.IsModeActive(charDB.settings.petBuffFoodMode) then
+    if not ns.IsModeActive(settings.petBuffFoodMode) then
         return nil
     end
 
@@ -238,7 +258,7 @@ function ns.FindPetBuffOverride(bagItemCounts)
         return nil
     end
 
-    local petTypes = charDB.settings.petBuffTypes
+    local petTypes = settings.petBuffTypes
 
     if petTypes.KiblersBits
         and bagItemCounts[ns.KIBLERS_BITS_ITEM_ID]
@@ -278,11 +298,11 @@ function ns.HandleUnitAura(unit)
             end
         end
 
-        if ConnoisseurCharDB and ConnoisseurCharDB.settings and ConnoisseurCharDB.settings.useScrolls then
+        if ns.db and ns.db.profile and ns.db.profile.useScrolls then
             needsUpdate = true
         end
     elseif unit == "pet" then
-        if ConnoisseurCharDB and ConnoisseurCharDB.settings and ConnoisseurCharDB.settings.usePetBuffFood then
+        if ns.db and ns.db.profile and ns.db.profile.usePetBuffFood then
             needsUpdate = true
         end
     end

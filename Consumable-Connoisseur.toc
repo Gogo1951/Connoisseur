@@ -1,27 +1,42 @@
 ## Title: Connoisseur
-## Notes: Auto-updating macros for your best food, buff food, water, scrolls, healing and mana potions, healthstones, soulstones, mana gems, and bandages. One-click conjuring for Mages and Warlocks, smart Feed Pet for Hunters. Optimal nutrition, peak performance.
+## Notes: Auto-updating macros for your best food, buff food, water, healing and mana potions, healthstones, scrolls, soulstones, mana gems, bandages, and explosives. One-click conjuring for Mages and Warlocks, smart Feed Pet for Hunters. Optimal nutrition, peak performance.
 ## Author: Gogo1951
 
 ## IconTexture: Interface/AddOns/Consumable-Connoisseur/Includes/Images/Connoisseur.tga
-## Category-enUS: Consumables
 ## X-License: MIT
+
+## Category-enUS: Buffs & Debuffs
+## Category-deDE: Buffs & Debuffs
+## Category-esES: Beneficios y Perjuicios
+## Category-esMX: Beneficios y Perjuicios
+## Category-frFR: Améliorations et Affaiblissements
+## Category-itIT: Benefici e penalità
+## Category-koKR: 버프 및 디버프
+## Category-ptBR: Bônus e Penalidades
+## Category-ruRU: Баффы и дебаффы
+## Category-zhCN: 增益和减益
+## Category-zhTW: 增益與減益
 
 ## Interface: 11508, 20506
 ## Version: @project-version@
 ## X-Curse-Project-ID: 1416865
+## X-Wago-ID: aN0XyQNj
 
 ## SavedVariables: ConnoisseurDB
+# MIGRATION (remove after 2026-10-06): drop ConnoisseurCharDB once window closes
 ## SavedVariablesPerCharacter: ConnoisseurCharDB
 
 # Includes
 Includes/Libraries/LibStub/LibStub.lua
 Includes/Libraries/CallbackHandler-1.0/CallbackHandler-1.0.lua
 Includes/Libraries/AceLocale-3.0/AceLocale-3.0.lua
+Includes/Libraries/AceDB-3.0/AceDB-3.0.lua
 Includes/Libraries/AceGUI-3.0/AceGUI-3.0.xml
 Includes/Libraries/AceConfig-3.0/AceConfigRegistry-3.0/AceConfigRegistry-3.0.lua
 Includes/Libraries/AceConfig-3.0/AceConfigCmd-3.0/AceConfigCmd-3.0.lua
 Includes/Libraries/AceConfig-3.0/AceConfigDialog-3.0/AceConfigDialog-3.0.lua
 Includes/Libraries/AceConfig-3.0/AceConfig-3.0.lua
+Includes/Libraries/AceDBOptions-3.0/AceDBOptions-3.0.lua
 Includes/Libraries/LibDataBroker-1.1/LibDataBroker-1.1.lua
 Includes/Libraries/LibDBIcon-1.0/LibDBIcon-1.0.lua
 
@@ -49,6 +64,7 @@ Data/Soulstones.lua
 Data/Mana-Gems.lua
 Data/Potions.lua
 Data/Pet-Foods.lua
+Data/Explosives.lua
 
 # Connoisseur
 Features/Core.lua
@@ -67,10 +83,10 @@ Features/Diagnostics.lua
 Features/Minimap-Button.lua
 Options/Options-Utilities.lua
 Options/Options-General.lua
+Options/Options-Profiles.lua
 Options/Options-Diagnostics.lua
 Options/Options.lua
 
 # Feedback Welcome! (=
-# Connoisseur on CurseForge // https://www.curseforge.com/wow/addons/consumable-connoisseur
 # Connoisseur on GitHub // https://github.com/Gogo1951/Connoisseur
 # Connoisseur on Discord // https://discord.gg/eh8hKq992Q

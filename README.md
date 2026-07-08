@@ -1,6 +1,6 @@
 # Connoisseur
 
-Auto-updating macros for your best food, buff food, water, healing and mana potions, healthstones, scrolls, soulstones, mana gems, and bandages. One-click conjuring for Mages and Warlocks, smart Feed Pet for Hunters. Optimal nutrition, peak performance.
+Auto-updating macros for your best food, buff food, water, healing and mana potions, healthstones, scrolls, soulstones, mana gems, bandages, and explosives. One-click conjuring for Mages and Warlocks, smart Feed Pet for Hunters. Optimal nutrition, peak performance.
 
 ![Consumable-Connoisseur](https://github.com/user-attachments/assets/326eb93f-329f-4967-b750-909011a05b01)
 
@@ -18,7 +18,7 @@ Auto-updating macros for your best food, buff food, water, healing and mana poti
 
 ## Setup
 
-1.  Install the add-on, ideally using [CurseForge](https://www.curseforge.com/wow/addons/consumable-connoisseur).
+1.  Install the add-on, ideally using [CurseForge](https://www.curseforge.com/wow/addons/consumable-connoisseur) or [Wago](https://addons.wago.io/addons/connoisseur).
 2.  Log in. Connoisseur scans your bags and creates macros in your General macro tab.
 3.  Drag the dash-prefixed macros (`- Food`, `- Water`, `- Health Potion`, etc.) onto your action bars.
 4.  Optional: type `/foodie` to fine-tune scroll buffs, buff food, pet food, and class options.
@@ -38,6 +38,7 @@ Auto-updating macros for your best food, buff food, water, healing and mana poti
 | <code>- Soulstone</code> |Best Soulstone (Warlock)                                                |
 | <code>- Mana Gem</code> |Best Mana Gem (Mage)                                                    |
 | <code>- Bandage</code> |Best bandage (requires First Aid skill)                                 |
+| <code>- Explosives</code> |Highest-damage bomb, grenade, or sapper (requires Engineering skill; Ez-Thro usable by anyone) |
 | <code>- Feed Pet</code> |All-in-one pet button (Hunter only)                                     |
 
 ### Minimap Button
@@ -50,6 +51,7 @@ Hover for a tooltip showing the current state of every feature, your best food, 
 | Shift + Left-click |Toggle Scroll Buffs       |
 | Right-click        |Ignore current best food  |
 | Middle-click       |Clear ignore list         |
+| Shift + Middle-click |Open Connoisseur options |
 
 <img src="https://github.com/user-attachments/assets/c57060c0-4eee-44ab-af88-48e077d886cc" width="260">
 
@@ -64,7 +66,7 @@ For each consumable category, Connoisseur compares every usable item in your bag
 5.  Hybrid food+water items preferred or avoided depending on the slot
 6.  Fewest total in bags breaks the final tie
 
-Items are filtered out if you don't meet the level requirement, lack the required profession skill (First Aid for bandages, Alchemy for certain potions), or are in the wrong zone.
+Items are filtered out if you don't meet the level requirement, lack the required profession skill (First Aid for bandages, Alchemy for certain potions, Engineering for explosives), require an engineering specialization you haven't learned (Goblin Engineer), or are in the wrong zone. Explosives are ranked by their minimum damage.
 
 ### Class Features
 
@@ -90,6 +92,8 @@ Type `/foodie` or open **Options > AddOns > Connoisseur** to configure the add-o
 
 **Scroll Buffs** // Your `- Food` macro doubles as a scroll-buff button. When you're missing scroll buffs, the macro turns into a dedicated scroll-applier — one tap fires every missing scroll on you, off the global cooldown, then flips back to food on the next press. Scrolls always target you, are skipped when a class buff already covers the same stat at equal or greater value, and the macro reverts to food mode immediately when you target a friendly player so it stays safe for Mages conjuring for friends. Firing order: Agility, Strength, Protection, Intellect, Spirit, Stamina.
 
+**Explosives** // Choose the click layout for the `- Explosives` macro. The `@player` option skips the targeting reticle and sets the explosive off right at your feet — ideal when your target is in melee range — while Toss uses the normal targeting reticle. Default: Left-Click @Player, Right-Click Toss. (Keybind presses count as left-click.)
+
 **Pet Food Buffs** // Uses Kibler's Bits or Sporeling Snacks on your pet when its Well Fed buff is missing. Requires level 55+. Can be restricted to party or raid. Pet food only fires in food mode — if you're missing scroll buffs, scrolls go first.
 
 **Ignore List** // Tell Connoisseur to skip an item it's currently picking. Right-click the minimap button to add the current best food. Middle-click to clear the list. Also clearable from the settings panel.
@@ -110,7 +114,6 @@ Please reach out if you would like to be involved!
 
 ## Links
 
-*   [CurseForge](https://www.curseforge.com/wow/addons/consumable-connoisseur)
 *   [GitHub](https://github.com/Gogo1951/Connoisseur)
 *   [Discord](https://discord.gg/eh8hKq992Q)
 

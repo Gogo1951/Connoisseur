@@ -17,6 +17,7 @@ L["ADDON_TITLE"] = "Connoisseur"
 -- Macro names cannot exceed 16 total characters.
 
 L["MACRO_BANDAGE"] = "- Bandage"
+L["MACRO_EXPLOSIVES"] = "- Explosifs"
 L["MACRO_FEED_PET"] = "- Nourrir fam."
 L["MACRO_FOOD"] = "- Manger"
 L["MACRO_HEALTH_POTION"] = "- Pot. Soins"
@@ -75,14 +76,29 @@ L["TIP_DONT_KNOW_SPELL"] = "Vous ne connaissez actuellement pas %s."
 -- Minimap Tooltip
 --------------------------------------------------------------------------------
 
+-- Feature toggles shown in the minimap tooltip, each with a description line.
 L["MENU_BUFF_FOOD"] = "Priorité : Bien nourri"
 L["MENU_BUFF_FOOD_DESCRIPTION"] = "Priorise la nourriture conférant l'amélioration \"Bien nourri\" si elle est absente."
-L["MENU_CLEAR_IGNORE"] = "Vider la liste d'exclusion"
-L["MENU_IGNORE"] = "Ignorer"
-
 L["MENU_SCROLL_BUFFS"] = "Améliorations de parchemins"
 L["MENU_SCROLL_BUFFS_DESCRIPTION"] = "Transforme votre macro Nourriture en applicateur de parchemins lorsqu'il vous manque des améliorations de parchemins."
-L["MENU_OPTIONS_HINT"] = "Options supplémentaires disponibles dans Options > AddOns > Connoisseur."
+
+-- Section titles and ignore-list actions in the minimap tooltip.
+L["UI_BEST_FOOD"] = "Nourriture"
+L["UI_BEST_PET_FOOD"] = "Nourriture pour familier"
+L["UI_IGNORE_LIST"] = "Liste d'exclusion"
+L["MENU_IGNORE"] = "Ignorer"
+L["MENU_CLEAR_IGNORE"] = "Vider la liste d'exclusion"
+
+-- Options entry at the bottom of the minimap tooltip.
+L["MENU_OPTIONS"] = "Options de Connoisseur"
+L["MENU_OPTIONS_KEYBIND"] = "Maj + Clic Milieu"
+
+--------------------------------------------------------------------------------
+-- Class Announcements
+--------------------------------------------------------------------------------
+
+-- Class-colored headers and conjure/pet tips shown in the minimap tooltip for
+-- the player's class.
 
 L["PREFIX_HUNTER"] = "Attention Chasseurs"
 L["PREFIX_MAGE"] = "Attention Mages"
@@ -96,12 +112,15 @@ L["TIP_MAGE_TABLE"] = "Clic milieu pour lancer Rituel de rafraîchissement."
 L["TIP_WARLOCK_CONJURE"] = "Clic droit sur vos macros Pierre de soins ou Pierre d'âme pour en créer une. Cliquez à nouveau avec le bouton droit sur votre macro Pierre de soins pour créer une pierre de rang inférieur en secours."
 L["TIP_WARLOCK_SOUL"] = "Clic milieu pour lancer Rituel des âmes."
 
-L["UI_BEST_FOOD"] = "Nourriture"
-L["UI_BEST_PET_FOOD"] = "Nourriture pour familier"
+--------------------------------------------------------------------------------
+-- Item Labels
+--------------------------------------------------------------------------------
 
 -- Labels that get plugged into MSG_NO_ITEM ("No suitable %s found...").
 -- One per macro type (resolved via ns.Config in ConnNoItem), plus Pet Food.
+
 L["LABEL_BANDAGE"] = "Bandage"
+L["LABEL_EXPLOSIVE"] = "Explosif"
 L["LABEL_FOOD"] = "Nourriture"
 L["LABEL_HEALTH_POTION"] = "Potion de soins"
 L["LABEL_HEALTHSTONE"] = "Pierre de soins"
@@ -110,14 +129,20 @@ L["LABEL_MANA_POTION"] = "Potion de mana"
 L["LABEL_PET_FOOD"] = "Nourriture pour familier"
 L["LABEL_SOULSTONE"] = "Pierre d'âme"
 L["LABEL_WATER"] = "Eau"
-L["UI_DISABLED"] = "Désactivé"
+
+--------------------------------------------------------------------------------
+-- UI Labels
+--------------------------------------------------------------------------------
+
+-- Generic labels reused across the minimap tooltip and options panel.
+
 L["UI_ENABLED"] = "Activé"
-L["UI_IGNORE_LIST"] = "Liste d'exclusion"
-L["UI_LEFT_CLICK"] = "Clic Gauche"
-L["UI_MIDDLE_CLICK"] = "Clic Milieu"
-L["UI_RIGHT_CLICK"] = "Clic Droit"
-L["UI_SHIFT_LEFT"] = "Maj + Clic Gauche"
+L["UI_DISABLED"] = "Désactivé"
 L["UI_TOGGLE"] = "Basculer"
+L["UI_LEFT_CLICK"] = "Clic Gauche"
+L["UI_RIGHT_CLICK"] = "Clic Droit"
+L["UI_MIDDLE_CLICK"] = "Clic Milieu"
+L["UI_SHIFT_LEFT"] = "Maj + Clic Gauche"
 
 --------------------------------------------------------------------------------
 -- Mode Values
@@ -148,6 +173,7 @@ L["OPTIONS_COMBINE_HEALTHSTONES"] = "Combiner les Pierres de soins dans la macro
 L["OPTIONS_COMBINE_HEALTHSTONES_DESCRIPTION"] = "Ajoute votre meilleure Pierre de soins à la fin de la macro de Potion de soins, de sorte qu'une seule pression utilise une potion et une Pierre de soins."
 
 -- Buff Food
+L["OPTIONS_BUFF_FOOD_HEADER"] = "Nourriture à amélioration"
 L["OPTIONS_BUFF_FOOD"] = "Priorité : Bien nourri"
 L["OPTIONS_BUFF_FOOD_DESCRIPTION"] = "Priorise la nourriture conférant l'amélioration \"Bien nourri\" si elle est absente."
 L["OPTIONS_BUFF_FOOD_DETAIL"] = "Astuce de pro : Vous cibler vous-même forcera toujours la macro Nourriture à ignorer la nourriture avec amélioration et les parchemins."
@@ -163,6 +189,12 @@ L["OPTIONS_SCROLL_PROTECTION"] = "Protection"
 L["OPTIONS_SCROLL_SPIRIT"] = "Esprit"
 L["OPTIONS_SCROLL_STAMINA"] = "Endurance"
 L["OPTIONS_SCROLL_STRENGTH"] = "Force"
+
+-- Explosives
+L["OPTIONS_EXPLOSIVES_HEADER"] = "Explosifs"
+L["OPTIONS_EXPLOSIVES_DESCRIPTION"] = "L'option @player ignore le réticule de ciblage et déclenche l'explosif à vos pieds — idéal quand votre cible est au corps à corps."
+L["EXPLOSIVES_MODE_ATPLAYER"] = "Clic Gauche @Player, Clic Droit Lancer"
+L["EXPLOSIVES_MODE_TOSS"] = "Clic Gauche Lancer, Clic Droit @Player"
 
 -- Pet Food Buffs
 L["OPTIONS_PET_HEADER"] = "Améliorations de nourriture pour familier"
@@ -194,13 +226,14 @@ L["OPTIONS_COMMANDS_DETAIL"] = "Ouvre l'interface des options de Connoisseur."
 L["OPTIONS_ENABLE_MACROS_HEADER"] = "Activer les macros"
 L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] = "Permet d'activer ou de désactiver les macros créées et gérées par Connoisseur. La désactivation d'une macro la supprimera également."
 
--- Reset
-L["OPTIONS_RESET_HEADER"] = "Réinitialiser"
+-- Ignore List
 L["OPTIONS_RESET_IGNORE_DESCRIPTION"] = "Retire tous les objets de la liste d'exclusion."
 L["OPTIONS_RESET_IGNORE_CONFIRM"] = "Voulez-vous vraiment vider la liste d'exclusion ?"
-L["OPTIONS_RESET_ALL"] = "Réinitialiser toutes les options de Connoisseur"
-L["OPTIONS_RESET_ALL_DESCRIPTION"] = "Réinitialiser tous les paramètres et la liste d'exclusion à leurs valeurs par défaut."
-L["OPTIONS_RESET_ALL_CONFIRM"] = "Réinitialiser toutes les options de Connoisseur par défaut ?"
+
+-- Profiles (Reset All Profiles -- the stock AceDBOptions widgets are not localized here)
+L["OPTIONS_RESET_ALL_PROFILES"] = "Réinitialiser tous les profils"
+L["OPTIONS_RESET_ALL_PROFILES_DESCRIPTION"] = "Réinitialise tous les profils de ce compte aux réglages par défaut."
+L["OPTIONS_RESET_ALL_PROFILES_CONFIRM"] = "Cela réinitialisera TOUS les profils de votre compte aux réglages par défaut — chaque personnage. Cette action est irréversible. Continuer ?"
 
 -- Feedback & Support
 L["OPTIONS_COMMUNITY_HEADER"] = "Commentaires et Assistance"

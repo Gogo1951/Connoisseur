@@ -16,6 +16,7 @@ L["ADDON_TITLE"] = "Connoisseur"
 -- Macro names cannot exceed 16 total characters.
 
 L["MACRO_BANDAGE"] = "- Bandage"
+L["MACRO_EXPLOSIVES"] = "- Explosives"
 L["MACRO_FEED_PET"] = "- Feed Pet"
 L["MACRO_FOOD"] = "- Food"
 L["MACRO_HEALTH_POTION"] = "- Health Potion"
@@ -74,14 +75,29 @@ L["TIP_DONT_KNOW_SPELL"] = "You don't currently know %s."
 -- Minimap Tooltip
 --------------------------------------------------------------------------------
 
+-- Feature toggles shown in the minimap tooltip, each with a description line.
 L["MENU_BUFF_FOOD"] = "Prioritize Buff Food"
-L["MENU_BUFF_FOOD_DESCRIPTION"] = 'Prioritizes food that grants the "Well Fed" buff, when the buff is missing.'
-L["MENU_CLEAR_IGNORE"] = "Clear Ignore List"
-L["MENU_IGNORE"] = "Ignore"
-
+L["MENU_BUFF_FOOD_DESCRIPTION"] = 'Prioritizes food that grants "Well Fed" whenever the buff is missing.'
 L["MENU_SCROLL_BUFFS"] = "Scroll Buffs"
 L["MENU_SCROLL_BUFFS_DESCRIPTION"] = "Turns your Food macro into a scroll-applier when you're missing scroll buffs."
-L["MENU_OPTIONS_HINT"] = "Additional settings can be found under Options > AddOns > Connoisseur."
+
+-- Section titles and ignore-list actions in the minimap tooltip.
+L["UI_BEST_FOOD"] = "Current Food"
+L["UI_BEST_PET_FOOD"] = "Current Pet Food"
+L["UI_IGNORE_LIST"] = "Ignore List"
+L["MENU_IGNORE"] = "Ignore"
+L["MENU_CLEAR_IGNORE"] = "Clear Ignore List"
+
+-- Options entry at the bottom of the minimap tooltip.
+L["MENU_OPTIONS"] = "Connoisseur Options"
+L["MENU_OPTIONS_KEYBIND"] = "Shift + Middle-Click"
+
+--------------------------------------------------------------------------------
+-- Class Announcements
+--------------------------------------------------------------------------------
+
+-- Class-colored headers and conjure/pet tips shown in the minimap tooltip for
+-- the player's class.
 
 L["PREFIX_HUNTER"] = "Attention Hunters"
 L["PREFIX_MAGE"] = "Attention Mages"
@@ -91,16 +107,19 @@ L["TIP_DOWNRANK"] = "Targeting a lower-level player will cause the macro to conj
 L["TIP_HUNTER_FEED_PET"] = "Feed Pet is an All-in-One Pet Button! Click to automatically Call, Feed, or Revive your pet. Right-Click or wait for combat to cast Mend Pet. Hold Shift to force Revive, or Ctrl to Dismiss."
 L["TIP_MAGE_CONJURE"] = "Right-Click on your Food or Water macros to Create Food or Water."
 L["TIP_MAGE_GEM"] = "Right-Click on your Mana Gem macro to conjure a new gem. Right-Click again to conjure a lower-rank backup."
-L["TIP_MAGE_TABLE"] = "Middle-click to cast Ritual of Refreshment."
+L["TIP_MAGE_TABLE"] = "Middle-Click to cast Ritual of Refreshment."
 L["TIP_WARLOCK_CONJURE"] = "Right-Click on your Healthstone or Soulstone macros to create a Healthstone or Soulstone. Right-Click your Healthstone macro again to conjure a lower-rank backup."
-L["TIP_WARLOCK_SOUL"] = "Middle-click to cast Ritual of Souls."
+L["TIP_WARLOCK_SOUL"] = "Middle-Click to cast Ritual of Souls."
 
-L["UI_BEST_FOOD"] = "Current Food"
-L["UI_BEST_PET_FOOD"] = "Current Pet Food"
+--------------------------------------------------------------------------------
+-- Item Labels
+--------------------------------------------------------------------------------
 
 -- Labels that get plugged into MSG_NO_ITEM ("No suitable %s found...").
 -- One per macro type (resolved via ns.Config in ConnNoItem), plus Pet Food.
+
 L["LABEL_BANDAGE"] = "Bandage"
+L["LABEL_EXPLOSIVE"] = "Explosive"
 L["LABEL_FOOD"] = "Food"
 L["LABEL_HEALTH_POTION"] = "Health Potion"
 L["LABEL_HEALTHSTONE"] = "Healthstone"
@@ -109,14 +128,20 @@ L["LABEL_MANA_POTION"] = "Mana Potion"
 L["LABEL_PET_FOOD"] = "Pet Food"
 L["LABEL_SOULSTONE"] = "Soulstone"
 L["LABEL_WATER"] = "Water"
-L["UI_DISABLED"] = "Disabled"
+
+--------------------------------------------------------------------------------
+-- UI Labels
+--------------------------------------------------------------------------------
+
+-- Generic labels reused across the minimap tooltip and options panel.
+
 L["UI_ENABLED"] = "Enabled"
-L["UI_IGNORE_LIST"] = "Ignore List"
-L["UI_LEFT_CLICK"] = "Left-Click"
-L["UI_MIDDLE_CLICK"] = "Middle-Click"
-L["UI_RIGHT_CLICK"] = "Right-Click"
-L["UI_SHIFT_LEFT"] = "Shift + Left-Click"
+L["UI_DISABLED"] = "Disabled"
 L["UI_TOGGLE"] = "Toggle"
+L["UI_LEFT_CLICK"] = "Left-Click"
+L["UI_RIGHT_CLICK"] = "Right-Click"
+L["UI_MIDDLE_CLICK"] = "Middle-Click"
+L["UI_SHIFT_LEFT"] = "Shift + Left-Click"
 
 --------------------------------------------------------------------------------
 -- Mode Values
@@ -124,13 +149,13 @@ L["UI_TOGGLE"] = "Toggle"
 
 L["MODE_ALWAYS"] = "Always"
 L["MODE_PARTY"] = "Only when in a Party or Raid"
-L["MODE_RAID"] = "Only when in Raid"
+L["MODE_RAID"] = "Only when in a Raid"
 
 --------------------------------------------------------------------------------
 -- Options Panel
 --------------------------------------------------------------------------------
 
-L["OPTIONS_DESCRIPTION"] = "Auto-updating macros for your best food, buff food, water, healing and mana potions, healthstones, scrolls, soulstones, mana gems, and bandages. One-click conjuring for Mages and Warlocks, smart Feed Pet for Hunters. Optimal nutrition, peak performance."
+L["OPTIONS_DESCRIPTION"] = "Auto-updating macros for your best food, buff food, water, healing and mana potions, healthstones, scrolls, soulstones, mana gems, bandages, and explosives. One-click conjuring for Mages and Warlocks, smart Feed Pet for Hunters. Optimal nutrition, peak performance."
 
 -- Welcome Message
 L["OPTIONS_WELCOME_MESSAGE"] = "Enable Welcome Message"
@@ -147,6 +172,7 @@ L["OPTIONS_COMBINE_HEALTHSTONES"] = "Combine Healthstones into Health Potion Mac
 L["OPTIONS_COMBINE_HEALTHSTONES_DESCRIPTION"] = "Adds your best Healthstone to the bottom of the Health Potion macro, so one press uses a potion and a Healthstone."
 
 -- Buff Food
+L["OPTIONS_BUFF_FOOD_HEADER"] = "Buff Food"
 L["OPTIONS_BUFF_FOOD"] = "Prioritize Buff Food"
 L["OPTIONS_BUFF_FOOD_DESCRIPTION"] = 'Prioritizes food that grants "Well Fed" whenever the buff is missing. Disabled in Arenas.'
 L["OPTIONS_BUFF_FOOD_DETAIL"] = "Pro Tip: Targeting yourself always makes the Food macro skip buff food and scrolls."
@@ -162,6 +188,12 @@ L["OPTIONS_SCROLL_PROTECTION"] = "Protection"
 L["OPTIONS_SCROLL_SPIRIT"] = "Spirit"
 L["OPTIONS_SCROLL_STAMINA"] = "Stamina"
 L["OPTIONS_SCROLL_STRENGTH"] = "Strength"
+
+-- Explosives
+L["OPTIONS_EXPLOSIVES_HEADER"] = "Explosives"
+L["OPTIONS_EXPLOSIVES_DESCRIPTION"] = "The @player option skips the targeting reticle and sets the explosive off right at your feet — ideal when your target is in melee range."
+L["EXPLOSIVES_MODE_ATPLAYER"] = "Left-Click @Player, Right-Click Toss"
+L["EXPLOSIVES_MODE_TOSS"] = "Left-Click Toss, Right-Click @Player"
 
 -- Pet Food Buffs
 L["OPTIONS_PET_HEADER"] = "Pet Food Buffs"
@@ -193,13 +225,14 @@ L["OPTIONS_COMMANDS_DETAIL"] = "Opens the Connoisseur options interface."
 L["OPTIONS_ENABLE_MACROS_HEADER"] = "Enable Macros"
 L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] = "Toggle which macros Connoisseur creates and maintains. Disabling a macro will also remove it."
 
--- Reset
-L["OPTIONS_RESET_HEADER"] = "Reset"
+-- Ignore List
 L["OPTIONS_RESET_IGNORE_DESCRIPTION"] = "Remove all items from the ignore list."
 L["OPTIONS_RESET_IGNORE_CONFIRM"] = "Are you sure you want to clear the ignore list?"
-L["OPTIONS_RESET_ALL"] = "Reset All Connoisseur Options"
-L["OPTIONS_RESET_ALL_DESCRIPTION"] = "Reset all settings and the ignore list back to defaults."
-L["OPTIONS_RESET_ALL_CONFIRM"] = "Reset all Connoisseur options to defaults?"
+
+-- Profiles (Reset All Profiles -- the stock AceDBOptions widgets are not localized here)
+L["OPTIONS_RESET_ALL_PROFILES"] = "Reset All Profiles"
+L["OPTIONS_RESET_ALL_PROFILES_DESCRIPTION"] = "Reset every profile on this account back to default settings."
+L["OPTIONS_RESET_ALL_PROFILES_CONFIRM"] = "This will reset ALL profiles on your account back to default settings — every character. There is no undo. Continue?"
 
 -- Feedback & Support
 L["OPTIONS_COMMUNITY_HEADER"] = "Feedback & Support"

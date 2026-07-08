@@ -17,6 +17,7 @@ L["ADDON_TITLE"] = "Connoisseur"
 -- Macro names cannot exceed 16 total characters.
 
 L["MACRO_BANDAGE"] = "- 繃帶"
+L["MACRO_EXPLOSIVES"] = "- 爆炸物"
 L["MACRO_FEED_PET"] = "- 餵養寵物"
 L["MACRO_FOOD"] = "- 食物"
 L["MACRO_HEALTH_POTION"] = "- 治療藥水"
@@ -75,14 +76,29 @@ L["TIP_DONT_KNOW_SPELL"] = "你目前還沒有學會%s。"
 -- Minimap Tooltip
 --------------------------------------------------------------------------------
 
+-- Feature toggles shown in the minimap tooltip, each with a description line.
 L["MENU_BUFF_FOOD"] = "優先增益食物"
 L["MENU_BUFF_FOOD_DESCRIPTION"] = "當缺少 \"進食充分\" BUFF時，優先使用提供該BUFF的食物。"
-L["MENU_CLEAR_IGNORE"] = "清除忽略列表"
-L["MENU_IGNORE"] = "忽略"
-
 L["MENU_SCROLL_BUFFS"] = "卷軸增益"
 L["MENU_SCROLL_BUFFS_DESCRIPTION"] = "當你缺少卷軸增益時，將你的食物巨集轉變為卷軸施放器。"
-L["MENU_OPTIONS_HINT"] = "在 選項 > 插件 > Connoisseur 中有更多選項可用。"
+
+-- Section titles and ignore-list actions in the minimap tooltip.
+L["UI_BEST_FOOD"] = "當前食物"
+L["UI_BEST_PET_FOOD"] = "當前寵物食物"
+L["UI_IGNORE_LIST"] = "忽略列表"
+L["MENU_IGNORE"] = "忽略"
+L["MENU_CLEAR_IGNORE"] = "清除忽略列表"
+
+-- Options entry at the bottom of the minimap tooltip.
+L["MENU_OPTIONS"] = "Connoisseur 選項"
+L["MENU_OPTIONS_KEYBIND"] = "Shift + 中鍵點擊"
+
+--------------------------------------------------------------------------------
+-- Class Announcements
+--------------------------------------------------------------------------------
+
+-- Class-colored headers and conjure/pet tips shown in the minimap tooltip for
+-- the player's class.
 
 L["PREFIX_HUNTER"] = "獵人請注意"
 L["PREFIX_MAGE"] = "法師請注意"
@@ -96,12 +112,15 @@ L["TIP_MAGE_TABLE"] = "中鍵點擊以施放召喚餐桌。"
 L["TIP_WARLOCK_CONJURE"] = "右鍵點擊你的治療石或靈魂石巨集以製造治療石或靈魂石。再次右鍵點擊你的治療石巨集以製造一顆低等級備用治療石。"
 L["TIP_WARLOCK_SOUL"] = "中鍵點擊以施放靈魂儀式。"
 
-L["UI_BEST_FOOD"] = "當前食物"
-L["UI_BEST_PET_FOOD"] = "當前寵物食物"
+--------------------------------------------------------------------------------
+-- Item Labels
+--------------------------------------------------------------------------------
 
 -- Labels that get plugged into MSG_NO_ITEM ("No suitable %s found...").
 -- One per macro type (resolved via ns.Config in ConnNoItem), plus Pet Food.
+
 L["LABEL_BANDAGE"] = "繃帶"
+L["LABEL_EXPLOSIVE"] = "爆炸物"
 L["LABEL_FOOD"] = "食物"
 L["LABEL_HEALTH_POTION"] = "治療藥水"
 L["LABEL_HEALTHSTONE"] = "治療石"
@@ -110,14 +129,20 @@ L["LABEL_MANA_POTION"] = "法力藥水"
 L["LABEL_PET_FOOD"] = "寵物食物"
 L["LABEL_SOULSTONE"] = "靈魂石"
 L["LABEL_WATER"] = "水"
-L["UI_DISABLED"] = "已停用"
+
+--------------------------------------------------------------------------------
+-- UI Labels
+--------------------------------------------------------------------------------
+
+-- Generic labels reused across the minimap tooltip and options panel.
+
 L["UI_ENABLED"] = "已啟用"
-L["UI_IGNORE_LIST"] = "忽略列表"
-L["UI_LEFT_CLICK"] = "左鍵點擊"
-L["UI_MIDDLE_CLICK"] = "中鍵點擊"
-L["UI_RIGHT_CLICK"] = "右鍵點擊"
-L["UI_SHIFT_LEFT"] = "Shift + 左鍵點擊"
+L["UI_DISABLED"] = "已停用"
 L["UI_TOGGLE"] = "切換"
+L["UI_LEFT_CLICK"] = "左鍵點擊"
+L["UI_RIGHT_CLICK"] = "右鍵點擊"
+L["UI_MIDDLE_CLICK"] = "中鍵點擊"
+L["UI_SHIFT_LEFT"] = "Shift + 左鍵點擊"
 
 --------------------------------------------------------------------------------
 -- Mode Values
@@ -148,6 +173,7 @@ L["OPTIONS_COMBINE_HEALTHSTONES"] = "將治療石合併到治療藥水巨集中"
 L["OPTIONS_COMBINE_HEALTHSTONES_DESCRIPTION"] = "將你最好的治療石添加到治療藥水巨集的底部，這樣按一次即可同時使用藥水和治療石。"
 
 -- Buff Food
+L["OPTIONS_BUFF_FOOD_HEADER"] = "增益食物"
 L["OPTIONS_BUFF_FOOD"] = "優先增益食物"
 L["OPTIONS_BUFF_FOOD_DESCRIPTION"] = "當缺少 \"進食充分\" BUFF時，優先使用提供該BUFF的食物。"
 L["OPTIONS_BUFF_FOOD_DETAIL"] = "專業提示：以自己為目標總會讓食物巨集跳過增益食物和卷軸。"
@@ -163,6 +189,12 @@ L["OPTIONS_SCROLL_PROTECTION"] = "防護"
 L["OPTIONS_SCROLL_SPIRIT"] = "精神"
 L["OPTIONS_SCROLL_STAMINA"] = "耐力"
 L["OPTIONS_SCROLL_STRENGTH"] = "力量"
+
+-- Explosives
+L["OPTIONS_EXPLOSIVES_HEADER"] = "爆炸物"
+L["OPTIONS_EXPLOSIVES_DESCRIPTION"] = "@player 選項會跳過目標指示圈，直接在你腳下引爆炸彈——非常適合目標處於近戰距離時使用。"
+L["EXPLOSIVES_MODE_ATPLAYER"] = "左鍵點擊 @Player，右鍵點擊投擲"
+L["EXPLOSIVES_MODE_TOSS"] = "左鍵點擊投擲，右鍵點擊 @Player"
 
 -- Pet Food Buffs
 L["OPTIONS_PET_HEADER"] = "寵物食物增益"
@@ -194,13 +226,14 @@ L["OPTIONS_COMMANDS_DETAIL"] = "打開 Connoisseur 選項介面。"
 L["OPTIONS_ENABLE_MACROS_HEADER"] = "啟用巨集"
 L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] = "切換 Connoisseur 創建和維護哪些巨集。停用一個巨集也會將其移除。"
 
--- Reset
-L["OPTIONS_RESET_HEADER"] = "重置"
+-- Ignore List
 L["OPTIONS_RESET_IGNORE_DESCRIPTION"] = "從忽略列表中移除所有物品。"
 L["OPTIONS_RESET_IGNORE_CONFIRM"] = "你確定要清除忽略列表嗎？"
-L["OPTIONS_RESET_ALL"] = "重置所有 Connoisseur 選項"
-L["OPTIONS_RESET_ALL_DESCRIPTION"] = "將所有設定和忽略列表重置為預設值。"
-L["OPTIONS_RESET_ALL_CONFIRM"] = "將所有 Connoisseur 選項重置為預設值？"
+
+-- Profiles (Reset All Profiles -- the stock AceDBOptions widgets are not localized here)
+L["OPTIONS_RESET_ALL_PROFILES"] = "重置所有設定檔"
+L["OPTIONS_RESET_ALL_PROFILES_DESCRIPTION"] = "將此帳號的所有設定檔重置為預設設定。"
+L["OPTIONS_RESET_ALL_PROFILES_CONFIRM"] = "這將把你帳號上所有角色的設定檔重置為預設設定。此操作無法復原。是否繼續？"
 
 -- Feedback & Support
 L["OPTIONS_COMMUNITY_HEADER"] = "反饋與支援"

@@ -173,7 +173,7 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-    For every event the add-on registers (ns.CORE_EVENTS, exported by Core.lua),
+    For every event the add-on registers (ns.EVENT_NAMES, exported by Core.lua),
     report whether it is valid on this client (C_EventUtils.IsEventValid) and
     whether RegisterEvent succeeds. The probe frame registers then immediately
     unregisters each event with no handler attached, so nothing is ever
@@ -195,7 +195,7 @@ function ns:RunEventChecks()
     local hasIsEventValid = type(C_EventUtils) == "table" and type(C_EventUtils.IsEventValid) == "function"
     local probe = GetProbeFrame()
     local failures = 0
-    for _, event in ipairs(ns.CORE_EVENTS or {}) do
+    for _, event in ipairs(ns.EVENT_NAMES or {}) do
         local valid = "n/a"
         if hasIsEventValid then
             valid = C_EventUtils.IsEventValid(event) and "valid" or "INVALID"
@@ -307,7 +307,8 @@ ns.DIAGNOSTIC_SPELLS = {
     {136, "Mend Pet"},
     {982, "Revive Pet"},
     {2641, "Dismiss Pet"},
-    {20580, "Shadowmeld"}
+    {20580, "Shadowmeld"},
+    {20222, "Goblin Engineer"}
 }
 
 function ns:BuildContextReport()
@@ -318,6 +319,13 @@ function ns:BuildContextReport()
         "Class: %s // Level: %s // Cached level: %s // Cached map: %s",
         tostring(classToken), tostring(UnitLevel("player")),
         tostring(ns.CachedPlayerLevel), tostring(ns.CachedMapID)
+    )
+
+    -- The profession ranks the scanner's usability gates read (0 = unlearned).
+    lines[#lines + 1] = string.format(
+        "Skills: First Aid %s // Alchemy %s // Engineering %s",
+        tostring(ns.CurrentFirstAidSkill), tostring(ns.CurrentAlchemySkill),
+        tostring(ns.CurrentEngineeringSkill)
     )
 
     lines[#lines + 1] = ""
@@ -422,9 +430,23 @@ local function DumpTable(value, indent, depth, lines)
     for _, key in ipairs(keys) do
         local entry = value[key]
         if type(entry) == "table" then
-            lines[#lines + 1] = indent .. tostring(key) .. " = {"
-            DumpTable(entry, indent .. "    ", depth + 1, lines)
-            lines[#lines + 1] = indent .. "}"
+            --[[
+                itemCache can hold hundreds of rows; summarize its size rather
+                than dumping every entry (see DATA -- large arrays are described,
+                not reproduced). Matched by key at any depth, since under AceDB
+                it lives inside the active profile rather than at the root.
+            ]]
+            if key == "itemCache" then
+                local count = 0
+                for _ in pairs(entry) do
+                    count = count + 1
+                end
+                lines[#lines + 1] = indent .. tostring(key) .. string.format(" = <%d cached items>", count)
+            else
+                lines[#lines + 1] = indent .. tostring(key) .. " = {"
+                DumpTable(entry, indent .. "    ", depth + 1, lines)
+                lines[#lines + 1] = indent .. "}"
+            end
         else
             lines[#lines + 1] = indent .. tostring(key) .. " = " .. tostring(entry)
         end
@@ -435,30 +457,28 @@ function ns:BuildSavedVariablesReport()
     local lines = {GetClientHeader(), ""}
 
     --[[
-        itemCache can hold hundreds of rows; summarize its size rather than
-        dumping every entry (see DATA — large arrays are described, not
-        printed). Work on a shallow copy so the real saved table is never
-        mutated, keeping the report read-only.
+        Dump the single AceDB-managed SavedVariable in its real on-disk shape
+        (profiles / global / profileKeys). DumpTable summarizes any itemCache
+        table it meets -- now nested under the active profile -- as
+        "<N cached items>", so the report stays readable and read-only.
     ]]
-    local accountView = {}
-    for key, value in pairs(ConnoisseurDB or {}) do
-        accountView[key] = value
-    end
-    if type(accountView.itemCache) == "table" then
-        local count = 0
-        for _ in pairs(accountView.itemCache) do
-            count = count + 1
-        end
-        accountView.itemCache = string.format("<%d cached items>", count)
+    lines[#lines + 1] = "ConnoisseurDB = {"
+    DumpTable(ConnoisseurDB or {}, "    ", 1, lines)
+    lines[#lines + 1] = "}"
+
+    --[[
+        MIGRATION (remove after 2026-10-06): also dump the legacy per-character
+        table while the migration window is open, so a bug report from a user
+        whose ConnoisseurCharDB hasn't been folded into a profile yet still
+        carries their old configuration.
+    ]]
+    if ConnoisseurCharDB then
+        lines[#lines + 1] = ""
+        lines[#lines + 1] = "ConnoisseurCharDB = {"
+        DumpTable(ConnoisseurCharDB, "    ", 1, lines)
+        lines[#lines + 1] = "}"
     end
 
-    lines[#lines + 1] = "ConnoisseurDB = {"
-    DumpTable(accountView, "    ", 1, lines)
-    lines[#lines + 1] = "}"
-    lines[#lines + 1] = ""
-    lines[#lines + 1] = "ConnoisseurCharDB = {"
-    DumpTable(ConnoisseurCharDB or {}, "    ", 1, lines)
-    lines[#lines + 1] = "}"
     return table.concat(lines, "\n")
 end
 

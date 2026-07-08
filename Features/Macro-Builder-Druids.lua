@@ -25,12 +25,12 @@ local _, ns = ...
 local function ShouldUseDMHMacro(typeName)
     if not ns.IsDruid then return false end
     if not (ns.DMHMacroTypes and ns.DMHMacroTypes[typeName]) then return false end
-    local settings = ConnoisseurCharDB and ConnoisseurCharDB.settings
+    local settings = ns.db and ns.db.profile
     return settings and settings.enableDruidMacroHelper and true or false
 end
 
 local function GetDruidReturnForm()
-    local settings = ConnoisseurCharDB and ConnoisseurCharDB.settings
+    local settings = ns.db and ns.db.profile
     local key = settings and settings.druidReturnForm
     if key ~= "cat" then key = "bear" end
     local name = (key == "cat") and ns.DruidCatFormName or ns.DruidBearFormName

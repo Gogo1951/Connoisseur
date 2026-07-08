@@ -34,6 +34,16 @@ local best = {
         isPercent = false,
         isHybrid = false
     },
+    ["Explosive"] = {
+        id = nil,
+        value = 0,
+        price = 0,
+        count = 0,
+        link = nil,
+        isBuffFood = false,
+        isPercent = false,
+        isHybrid = false
+    },
     ["Food"] = {
         id = nil,
         value = 0,
@@ -127,6 +137,7 @@ local function ResetBest(entry)
     entry.isBuffFood = false
     entry.isPercent = false
     entry.isHybrid = false
+    entry.isConjured = false
     if entry.topIDs then
         wipe(entry.topIDs)
     end
@@ -171,7 +182,8 @@ end
 
 --[[
     Candidate wins if, in order: it's a buff food when we want one, it's a
-    percent-heal, it has a higher score, a lower price, the correct hybrid
+    percent-heal, it has a higher score, it's conjured (a conjured item beats a
+    non-conjured item of equal value), a lower price, the correct hybrid
     preference, fewer copies in bags, or — as a final, never-equal tiebreak —
     a lower itemID.
 
@@ -199,6 +211,20 @@ local function IsBetter(candidate, candidateCount, candidatePrice, currentBest, 
 
     if score ~= currentBest.value then
         return score > currentBest.value
+    end
+
+    --[[
+        Conjured food/water beats a non-conjured item of equal restore value. A
+        mage's conjured ration is free and infinite, so at equal food/mana it
+        should always be the pick rather than burning a purchased, quested, or
+        arena-only drink. Below score (a higher-value item still wins) and above
+        price so the preference is deterministic instead of falling through to
+        the incidental price/count/itemID tiebreaks. isConjured is false for
+        every non-food/water type, so this is a no-op for potions, stones, gems,
+        and bandages.
+    ]]
+    if candidate.isConjured ~= currentBest.isConjured then
+        return candidate.isConjured
     end
 
     if candidatePrice ~= currentBest.price then
@@ -335,9 +361,9 @@ function ns.ScanBags()
     local inArena = select(2, IsInInstance()) == "arena"
     local firstAidSkill = ns.CurrentFirstAidSkill or 0
     local alchemySkill = ns.CurrentAlchemySkill or 0
-    local charDB = ConnoisseurCharDB or {}
-    local settings = charDB.settings or {}
-    local itemCache = ConnoisseurDB and ConnoisseurDB.itemCache or {}
+    local engineeringSkill = ns.CurrentEngineeringSkill or 0
+    local settings = (ns.db and ns.db.profile) or {}
+    local itemCache = (ns.db and ns.db.profile.itemCache) or {}
 
     --[[
         Testing aid: targeting yourself forces the Food macro into plain-food
@@ -399,7 +425,7 @@ function ns.ScanBags()
         ns.PetBuffOverrideID = ns.FindPetBuffOverride(itemCounts)
     end
 
-    local ignoreList = charDB.ignoreList or {}
+    local ignoreList = (ns.db and ns.db.profile.ignoreList) or {}
 
     for id, hyperlink in pairs(slotItems) do
         if not ignoreList[id] then
@@ -414,11 +440,11 @@ function ns.ScanBags()
                     old one: version-stamp invalidation only fires on a release
                     bump, so a same-version update (dev edit) that adds a field
                     would otherwise keep stale entries missing it. The newest
-                    field is arenaUsable (CacheItemData always writes it
-                    true/false); maxStack is kept in the test to also catch the
-                    oldest pre-maxStack entries.
+                    field is damageValue (CacheItemData always writes it);
+                    the older fields are kept in the test to also catch
+                    pre-maxStack/-arenaUsable/-isConjured entries.
                 ]]
-                if data and data ~= "IGNORE" and (data.maxStack == nil or data.arenaUsable == nil) then
+                if data and data ~= "IGNORE" and (data.maxStack == nil or data.arenaUsable == nil or data.isConjured == nil or data.damageValue == nil) then
                     data = nil
                     itemCache[id] = nil
                 end
@@ -441,6 +467,29 @@ function ns.ScanBags()
 
                     if usable and (data.requiredAlchemy or 0) > 0 and (data.requiredAlchemy or 0) > alchemySkill then
                         usable = false
+                    end
+
+                    if usable and (data.requiredEngineering or 0) > 0 and (data.requiredEngineering or 0) > engineeringSkill then
+                        usable = false
+                    end
+
+                    --[[
+                        Engineering specialization gate (Global Thermal Sapper
+                        Charge requires Goblin Engineer). Checked live rather
+                        than cached at login because the specialization can be
+                        learned mid-session; SPELLS_CHANGED triggers the rescan.
+                        Same IsSpellKnown + IsPlayerSpell fallback as
+                        GetSmartSpell — profession passives can live on either
+                        surface depending on client.
+                    ]]
+                    if usable and data.requiredSpellID then
+                        local known = IsSpellKnown(data.requiredSpellID)
+                        if not known and IsPlayerSpell then
+                            known = IsPlayerSpell(data.requiredSpellID)
+                        end
+                        if not known then
+                            usable = false
+                        end
                     end
 
                     if usable and data.zones then
@@ -498,6 +547,15 @@ function ns.ScanBags()
                                 winner.price = data.price
                                 winner.count = totalCount
                             end
+                        elseif itemType == "explosive" then
+                            -- Ranked by minimum damage; ties fall to the standard ladder.
+                            if IsBetter(data, totalCount, data.price, best["Explosive"], data.damageValue, false) then
+                                local winner = best["Explosive"]
+                                winner.id = id
+                                winner.value = data.damageValue
+                                winner.price = data.price
+                                winner.count = totalCount
+                            end
                         elseif itemType == "potion" then
                             if data.healthValue > 0 then
                                 local adjusted = AdjustedScore(data, data.healthValue)
@@ -530,6 +588,7 @@ function ns.ScanBags()
                                         winner.isPercent = data.isPercent
                                         winner.link = hyperlink
                                         winner.isHybrid = (itemType == "foodwater")
+                                        winner.isConjured = data.isConjured
                                     end
                                 end
                                 if itemType == "water" or itemType == "foodwater" then
@@ -552,6 +611,7 @@ function ns.ScanBags()
                                         winner.isBuffFood = data.isBuffFood
                                         winner.isPercent = data.isPercent
                                         winner.isHybrid = (itemType == "foodwater")
+                                        winner.isConjured = data.isConjured
                                     end
                                 end
                             end
@@ -662,7 +722,7 @@ function ns.ScanPetFood()
     -- Snapshot the player's active quests once per scan
     BuildActiveQuestSet()
 
-    local ignoreList = ConnoisseurCharDB and ConnoisseurCharDB.ignoreList or {}
+    local ignoreList = (ns.db and ns.db.profile.ignoreList) or {}
 
     local bestID, bestLink
     local bestLevel = 999

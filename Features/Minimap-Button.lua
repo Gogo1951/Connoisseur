@@ -61,18 +61,18 @@ end
 --[[
     Show or hide the minimap button. Like the other feature toggles, no argument
     flips the current state and a boolean sets it directly (options-panel path).
-    State lives in ConnoisseurDB.minimap.hide — the same field LibDBIcon reads at
+    State lives in ns.db.global.minimap.hide — the same field LibDBIcon reads at
     registration — so the choice persists across reloads with no extra wiring.
 ]]
 function ns.ToggleMinimapButton(value)
-    ConnoisseurDB.minimap = ConnoisseurDB.minimap or {}
+    ns.db.global.minimap = ns.db.global.minimap or {}
     local show
     if value == nil then
-        show = ConnoisseurDB.minimap.hide
+        show = ns.db.global.minimap.hide
     else
         show = value
     end
-    ConnoisseurDB.minimap.hide = not show
+    ns.db.global.minimap.hide = not show
 
     if not LDBIcon then
         return
@@ -91,10 +91,10 @@ end
 local KnowsAny = ns.KnowsAny
 
 UpdateTooltip = function(anchor)
-    if not ConnoisseurCharDB then
+    if not (ns.db and ns.db.profile) then
         return
     end
-    local settings = ConnoisseurCharDB.settings or {}
+    local settings = ns.db.profile
     local tooltip = GameTooltip
 
     tooltip:SetOwner(anchor, "ANCHOR_BOTTOMLEFT")
@@ -136,7 +136,7 @@ UpdateTooltip = function(anchor)
     end
 
     -- Ignore List
-    local ignoreList = ConnoisseurCharDB.ignoreList or {}
+    local ignoreList = ns.db.profile.ignoreList or {}
     local hasIgnoredItems = next(ignoreList) ~= nil
     if hasIgnoredItems then
         tooltip:AddLine(" ")
@@ -238,9 +238,10 @@ UpdateTooltip = function(anchor)
         end
     end
 
-    -- Options hint
+    -- Options block (always the last thing in the tooltip; no hint line below it)
     tooltip:AddLine(" ")
-    tooltip:AddLine(GetColor("BODY") .. L["MENU_OPTIONS_HINT"] .. "|r", 1, 1, 1, true)
+    tooltip:AddLine(GetColor("TITLE") .. L["MENU_OPTIONS"] .. "|r")
+    tooltip:AddLine(GetColor("INFO") .. L["MENU_OPTIONS_KEYBIND"] .. "|r")
 
     tooltip:Show()
 end
@@ -258,10 +259,17 @@ if LDB then
             text = L["ADDON_TITLE"],
             icon = "Interface\\Icons\\INV_Misc_Food_02",
             OnClick = function(self, button)
+                -- Shift + Middle-Click always opens the options panel; checked first (matches every Gogo1951 add-on).
+                if button == "MiddleButton" and IsShiftKeyDown() then
+                    if ns.OpenOptionsPanel then
+                        ns:OpenOptionsPanel()
+                    end
+                    return
+                end
                 if button == "RightButton" and ns.BestFoodID then
-                    if ConnoisseurCharDB then
-                        ConnoisseurCharDB.ignoreList = ConnoisseurCharDB.ignoreList or {}
-                        ConnoisseurCharDB.ignoreList[ns.BestFoodID] = true
+                    if ns.db and ns.db.profile then
+                        ns.db.profile.ignoreList = ns.db.profile.ignoreList or {}
+                        ns.db.profile.ignoreList[ns.BestFoodID] = true
                     end
                     if ns.UpdateMacros then
                         ns.UpdateMacros(true)
@@ -275,9 +283,9 @@ if LDB then
                         ns.ToggleBuffFood()
                     end
                 elseif button == "MiddleButton" then
-                    if ConnoisseurCharDB then
-                        ConnoisseurCharDB.ignoreList = ConnoisseurCharDB.ignoreList or {}
-                        wipe(ConnoisseurCharDB.ignoreList)
+                    if ns.db and ns.db.profile then
+                        ns.db.profile.ignoreList = ns.db.profile.ignoreList or {}
+                        wipe(ns.db.profile.ignoreList)
                     end
                     if ns.UpdateMacros then
                         ns.UpdateMacros(true)
