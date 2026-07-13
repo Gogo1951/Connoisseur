@@ -166,6 +166,10 @@ L["OPTIONS_WELCOME_MESSAGE_DESCRIPTION"] = "登录时在聊天框打印欢迎消
 L["OPTIONS_MINIMAP_BUTTON"] = "启用小地图按钮"
 L["OPTIONS_MINIMAP_BUTTON_DESCRIPTION"] = "显示小地图按钮。"
 
+-- Macro Names on Buttons
+L["OPTIONS_MACRO_NAMES"] = "在按钮上显示宏名称"
+L["OPTIONS_MACRO_NAMES_DESCRIPTION"] = "在你的动作条按钮上显示宏名称文字。默认关闭，将隐藏暴雪最近重新显示的名称。"
+
 -- Potions & Healthstones
 L["OPTIONS_POTIONS_HEADER"] = "药水与治疗石"
 L["OPTIONS_POTIONS_DESCRIPTION"] = "宏在战斗中无法更改（这是暴雪的限制），因此每个药水和治疗石宏都预先包含你最好的物品以及最多两个备用物品。在较长的战斗中，图标和提示可能会过时并显示错误的物品，但点击该宏将始终使用你背包中实际拥有的最佳物品。"

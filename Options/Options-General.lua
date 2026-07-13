@@ -170,6 +170,23 @@ function ns.BuildGeneralOptions()
                 end,
             },
 
+            -- Macro Names on Buttons
+            toggleMacroNames = {
+                type = "toggle",
+                name = L["OPTIONS_MACRO_NAMES"],
+                desc = L["OPTIONS_MACRO_NAMES_DESCRIPTION"],
+                order = 14,
+                width = "full",
+                get = function()
+                    return ns.db and ns.db.profile.showMacroNames
+                end,
+                set = function(_, value)
+                    if ns.ToggleMacroNames then
+                        ns.ToggleMacroNames(value)
+                    end
+                end,
+            },
+
             -- /Commands
             spaceCommands0 = Spacer(20),
             headerCommands = Header(L["OPTIONS_COMMANDS_HEADER"], 21),

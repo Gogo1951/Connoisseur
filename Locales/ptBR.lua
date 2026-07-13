@@ -166,6 +166,10 @@ L["OPTIONS_WELCOME_MESSAGE_DESCRIPTION"] = "Imprime uma mensagem de boas-vindas 
 L["OPTIONS_MINIMAP_BUTTON"] = "Ativar Botão do Minimapa"
 L["OPTIONS_MINIMAP_BUTTON_DESCRIPTION"] = "Mostra o botão do minimapa."
 
+-- Macro Names on Buttons
+L["OPTIONS_MACRO_NAMES"] = "Ativar Nomes de Macro nos Botões"
+L["OPTIONS_MACRO_NAMES_DESCRIPTION"] = "Mostra o texto do nome da macro nos botões da sua barra de ação. Desativado por padrão, o que oculta os nomes que a Blizzard voltou a mostrar recentemente."
+
 -- Potions & Healthstones
 L["OPTIONS_POTIONS_HEADER"] = "Poções e Pedras de Vida"
 L["OPTIONS_POTIONS_DESCRIPTION"] = "As macros não podem ser alteradas durante o combate (isso é uma restrição da Blizzard), então cada macro de Poção e Pedra de Vida é pré-construída com seu melhor item mais até duas alternativas. Em lutas mais longas, o ícone e a dica de interface podem ficar desatualizados e mostrar o item errado, mas clicar na macro sempre usará o melhor item que você realmente tem nas suas bolsas."

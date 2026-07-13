@@ -166,6 +166,10 @@ L["OPTIONS_WELCOME_MESSAGE_DESCRIPTION"] = "Stampa un messaggio di benvenuto nel
 L["OPTIONS_MINIMAP_BUTTON"] = "Abilita pulsante della minimappa"
 L["OPTIONS_MINIMAP_BUTTON_DESCRIPTION"] = "Mostra il pulsante della minimappa."
 
+-- Macro Names on Buttons
+L["OPTIONS_MACRO_NAMES"] = "Abilita i nomi delle macro sui pulsanti"
+L["OPTIONS_MACRO_NAMES_DESCRIPTION"] = "Mostra il testo del nome della macro sui pulsanti della barra delle azioni. Disattivato per impostazione predefinita, il che nasconde i nomi che Blizzard ha recentemente ricominciato a mostrare."
+
 -- Potions & Healthstones
 L["OPTIONS_POTIONS_HEADER"] = "Pozioni e Pietre della Salute"
 L["OPTIONS_POTIONS_DESCRIPTION"] = "Le macro non possono cambiare durante il combattimento (questa è una restrizione della Blizzard), quindi ogni macro per Pozioni e Pietre della Salute è pre-costruita con il tuo miglior oggetto più fino a due alternative. Nei combattimenti più lunghi, l'icona e il tooltip possono diventare obsoleti e mostrare l'oggetto sbagliato, ma cliccando sulla macro verrà sempre utilizzato il miglior oggetto che hai effettivamente nelle borse."
