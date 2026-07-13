@@ -166,6 +166,10 @@ L["OPTIONS_WELCOME_MESSAGE_DESCRIPTION"] = "Affiche un message de bienvenue dans
 L["OPTIONS_MINIMAP_BUTTON"] = "Activer le bouton de la minicarte"
 L["OPTIONS_MINIMAP_BUTTON_DESCRIPTION"] = "Affiche le bouton de la minicarte."
 
+-- Macro Names on Buttons
+L["OPTIONS_MACRO_NAMES"] = "Activer les noms de macro sur les boutons"
+L["OPTIONS_MACRO_NAMES_DESCRIPTION"] = "Affiche le texte du nom de macro sur les boutons de votre barre d'action. Désactivé par défaut, ce qui masque les noms que Blizzard a récemment recommencé à afficher."
+
 -- Potions & Healthstones
 L["OPTIONS_POTIONS_HEADER"] = "Potions et Pierres de soins"
 L["OPTIONS_POTIONS_DESCRIPTION"] = "Les macros ne peuvent pas être modifiées en combat (c'est une restriction de Blizzard), chaque macro de Potion et de Pierre de soins est donc pré-générée avec votre meilleur objet ainsi que deux options de secours. Lors de longs combats, l'icône et l'infobulle peuvent devenir obsolètes et afficher le mauvais objet, mais cliquer sur la macro utilisera toujours le meilleur objet que vous possédez réellement dans vos sacs."

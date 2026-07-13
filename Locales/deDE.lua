@@ -166,6 +166,10 @@ L["OPTIONS_WELCOME_MESSAGE_DESCRIPTION"] = "Gibt beim Einloggen eine Willkommens
 L["OPTIONS_MINIMAP_BUTTON"] = "Minikarten-Button aktivieren"
 L["OPTIONS_MINIMAP_BUTTON_DESCRIPTION"] = "Zeigt den Minikarten-Button an."
 
+-- Macro Names on Buttons
+L["OPTIONS_MACRO_NAMES"] = "Makronamen auf Buttons aktivieren"
+L["OPTIONS_MACRO_NAMES_DESCRIPTION"] = "Zeigt den Makronamen-Text auf den Buttons deiner Aktionsleisten an. Standardmäßig aus, wodurch die Namen ausgeblendet werden, die Blizzard kürzlich wieder eingeblendet hat."
+
 -- Potions & Healthstones
 L["OPTIONS_POTIONS_HEADER"] = "Tränke & Gesundheitssteine"
 L["OPTIONS_POTIONS_DESCRIPTION"] = "Makros können während des Kampfes nicht geändert werden (dies ist eine Blizzard-Einschränkung). Daher wird jedes Trank- und Gesundheitsstein-Makro im Voraus mit deinem besten Gegenstand und bis zu zwei Ersatzgegenständen erstellt. Bei längeren Kämpfen können das Symbol und der Tooltip veralten und den falschen Gegenstand anzeigen, aber ein Klick auf das Makro verwendet immer den besten Gegenstand, den du tatsächlich in deinen Taschen hast."

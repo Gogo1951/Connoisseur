@@ -80,6 +80,7 @@ Features/Macro-Builder-Hunters.lua
 Features/Macro-Builder-Mages.lua
 Features/Macro-Builder-Warlocks.lua
 Features/Diagnostics.lua
+Features/Macro-Names.lua
 Features/Minimap-Button.lua
 Options/Options-Utilities.lua
 Options/Options-General.lua

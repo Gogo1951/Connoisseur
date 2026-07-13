@@ -166,6 +166,10 @@ L["OPTIONS_WELCOME_MESSAGE_DESCRIPTION"] = "登入時在聊天框列印歡迎訊
 L["OPTIONS_MINIMAP_BUTTON"] = "啟用小地圖按鈕"
 L["OPTIONS_MINIMAP_BUTTON_DESCRIPTION"] = "顯示小地圖按鈕。"
 
+-- Macro Names on Buttons
+L["OPTIONS_MACRO_NAMES"] = "在按鈕上顯示巨集名稱"
+L["OPTIONS_MACRO_NAMES_DESCRIPTION"] = "在你的動作條按鈕上顯示巨集名稱文字。預設為關閉，會隱藏暴雪最近重新顯示的名稱。"
+
 -- Potions & Healthstones
 L["OPTIONS_POTIONS_HEADER"] = "藥水與治療石"
 L["OPTIONS_POTIONS_DESCRIPTION"] = "巨集在戰鬥中無法更改（這是暴雪的限制），因此每個藥水和治療石巨集都預先包含你最好的物品以及最多兩個備用物品。在較長的戰鬥中，圖示和提示可能會過時並顯示錯誤的物品，但點擊該巨集將始終使用你背包中實際擁有的最佳物品。"

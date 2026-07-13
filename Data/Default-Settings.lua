@@ -23,6 +23,13 @@ local _, ns = ...
 ns.DATABASE_DEFAULTS = {
     profile = {
         showWelcome = true,
+        --[[
+            Macro-name text on the default action bars. Off by default so the
+            add-on hides the names Blizzard recently began showing again; the
+            "Enable Macro Names on Buttons" toggle is its inverse (see
+            Features/Macro-Names.lua).
+        ]]
+        showMacroNames = false,
         useBuffFood = false,
         buffFoodMode = "always",
         useScrolls = false,

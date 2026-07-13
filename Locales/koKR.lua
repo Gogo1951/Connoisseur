@@ -166,6 +166,10 @@ L["OPTIONS_WELCOME_MESSAGE_DESCRIPTION"] = "로그인 시 채팅창에 환영 �
 L["OPTIONS_MINIMAP_BUTTON"] = "미니맵 버튼 활성화"
 L["OPTIONS_MINIMAP_BUTTON_DESCRIPTION"] = "미니맵 버튼을 표시합니다."
 
+-- Macro Names on Buttons
+L["OPTIONS_MACRO_NAMES"] = "버튼에 매크로 이름 표시"
+L["OPTIONS_MACRO_NAMES_DESCRIPTION"] = "행동 단축바 버튼에 매크로 이름 텍스트를 표시합니다. 기본값은 꺼짐이며, 블리자드가 최근 다시 표시하기 시작한 이름을 숨깁니다."
+
 -- Potions & Healthstones
 L["OPTIONS_POTIONS_HEADER"] = "물약 및 생명석"
 L["OPTIONS_POTIONS_DESCRIPTION"] = "전투 중에는 매크로를 변경할 수 없으므로(블리자드 제한 사항), 각 물약 및 생명석 매크로는 최고 아이템과 최대 2개의 예비 아이템으로 사전 구성됩니다. 긴 전투에서는 아이콘과 툴팁이 갱신되지 않아 잘못된 아이템을 표시할 수 있지만, 매크로를 클릭하면 항상 가방에 있는 실제 최고 아이템이 사용됩니다."

@@ -185,6 +185,9 @@ local function InitVars()
         local function OnProfileChange()
             ns.ResetMacroState()
             ns.UpdateAuraTracking()
+            if ns.ApplyMacroNameVisibility then
+                ns.ApplyMacroNameVisibility()
+            end
             ns.RequestUpdate()
         end
         ns.db.RegisterCallback(ns, "OnProfileChanged", OnProfileChange)
@@ -524,6 +527,9 @@ frame:SetScript(
             InitVars()
             ns.PrintWelcome()
             ns.UpdateAuraTracking()
+            if ns.ApplyMacroNameVisibility then
+                ns.ApplyMacroNameVisibility()
+            end
             ns.RequestUpdate()
             C_Timer.After(
                 3,

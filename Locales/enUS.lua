@@ -165,6 +165,10 @@ L["OPTIONS_WELCOME_MESSAGE_DESCRIPTION"] = "Print a welcome message in chat on l
 L["OPTIONS_MINIMAP_BUTTON"] = "Enable Minimap Button"
 L["OPTIONS_MINIMAP_BUTTON_DESCRIPTION"] = "Show the minimap button."
 
+-- Macro Names on Buttons
+L["OPTIONS_MACRO_NAMES"] = "Enable Macro Names on Buttons"
+L["OPTIONS_MACRO_NAMES_DESCRIPTION"] = "Show the macro name text on your action bar buttons. Off by default, which hides the names Blizzard recently began showing again."
+
 -- Potions & Healthstones
 L["OPTIONS_POTIONS_HEADER"] = "Potions & Healthstones"
 L["OPTIONS_POTIONS_DESCRIPTION"] = "Macros cannot change during combat (this is a Blizzard restriction), so each Potion & Healthstone macro is pre-built with your best item plus up to two fallbacks. On longer fights the icon and tooltip can go stale and show the wrong item, but clicking the macro will always use the best item you actually have in your bags."
