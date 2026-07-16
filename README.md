@@ -149,20 +149,36 @@ Please reach out if you would like to be involved!
 
 ## Related Add-ons
 
-* 🟢 Pairs With // kvakvs's [Buffomat Classic](https://www.curseforge.com/wow/addons/buffomat-classic)
-* 🟢 Pairs With // Pupp3h's [Buffwatch Classic](https://www.curseforge.com/wow/addons/buffwatch-classic)
-* 🟢 Pairs With // ForsakenNGS's [DruidMacroHelper](https://www.curseforge.com/wow/addons/druidmacrohelper)
-* 🟢 Pairs With // ykiigor's [Method Raid Tools](https://www.curseforge.com/wow/addons/method-raid-tools)
-* 🟢 Pairs With // oscarucb's [RaidBuffStatus](https://www.curseforge.com/wow/addons/raidbuffstatus)
-* 🟡 Some Overlap // Galeina's [Consumable Checker](https://www.curseforge.com/wow/addons/consumable-checker)
-* 🟡 Some Overlap // terijaki's [Poisoner](https://www.curseforge.com/wow/addons/poisoner)
-* 🟡 Some Overlap // Anonomit's [RestockReady](https://www.curseforge.com/wow/addons/restockready)
-* 🟡 Some Overlap // aeldra\_'s [SmartBuff (Classic)](https://www.curseforge.com/wow/addons/smartbuff-classic)
-* 🔴 Direct Alternative // ollidiemaus's [Auto Potion](https://www.curseforge.com/wow/addons/auto-potion)
-* 🔴 Direct Alternative // Wutname1's [AutoPotionPlus](https://www.curseforge.com/wow/addons/autopotionplus)
-* 🔴 Direct Alternative // ayjaycoding's [Automated Eat Drink Macro Changer](https://www.curseforge.com/wow/addons/automated-eat-drink-macro-changer)
-* 🔴 Direct Alternative // mZHg's [Buffet](https://www.curseforge.com/wow/addons/buffet)
-* 🔴 Direct Alternative // funki's [DrinkBot](https://www.curseforge.com/wow/addons/drinkbot)
-* 🔴 Direct Alternative // FubarVS's [Eat Drink AI](https://www.curseforge.com/wow/addons/eatdrinkai)
-* 🔴 Direct Alternative // executedpoorly's [Feed Me](https://www.curseforge.com/wow/addons/feed-me)
-* 🔴 Direct Alternative // Aryax's [Well Feed](https://www.curseforge.com/wow/addons/well-feed)
+🟢 Pairs With // kvakvs's [Buffomat Classic](https://www.curseforge.com/wow/addons/buffomat-classic)
+
+🟢 Pairs With // Pupp3h's [Buffwatch Classic](https://www.curseforge.com/wow/addons/buffwatch-classic)
+
+🟢 Pairs With // ForsakenNGS's [DruidMacroHelper](https://www.curseforge.com/wow/addons/druidmacrohelper)
+
+🟢 Pairs With // ykiigor's [Method Raid Tools](https://www.curseforge.com/wow/addons/method-raid-tools)
+
+🟢 Pairs With // oscarucb's [RaidBuffStatus](https://www.curseforge.com/wow/addons/raidbuffstatus)
+
+🟡 Some Overlap // Galeina's [Consumable Checker](https://www.curseforge.com/wow/addons/consumable-checker)
+
+🟡 Some Overlap // terijaki's [Poisoner](https://www.curseforge.com/wow/addons/poisoner)
+
+🟡 Some Overlap // Anonomit's [RestockReady](https://www.curseforge.com/wow/addons/restockready)
+
+🟡 Some Overlap // aeldra\_'s [SmartBuff (Classic)](https://www.curseforge.com/wow/addons/smartbuff-classic)
+
+🔴 Direct Alternative // ollidiemaus's [Auto Potion](https://www.curseforge.com/wow/addons/auto-potion)
+
+🔴 Direct Alternative // Wutname1's [AutoPotionPlus](https://www.curseforge.com/wow/addons/autopotionplus)
+
+🔴 Direct Alternative // ayjaycoding's [Automated Eat Drink Macro Changer](https://www.curseforge.com/wow/addons/automated-eat-drink-macro-changer)
+
+🔴 Direct Alternative // mZHg's [Buffet](https://www.curseforge.com/wow/addons/buffet)
+
+🔴 Direct Alternative // funki's [DrinkBot](https://www.curseforge.com/wow/addons/drinkbot)
+
+🔴 Direct Alternative // FubarVS's [Eat Drink AI](https://www.curseforge.com/wow/addons/eatdrinkai)
+
+🔴 Direct Alternative // executedpoorly's [Feed Me](https://www.curseforge.com/wow/addons/feed-me)
+
+🔴 Direct Alternative // Aryax's [Well Feed](https://www.curseforge.com/wow/addons/well-feed)
