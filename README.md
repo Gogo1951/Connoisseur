@@ -86,6 +86,8 @@ Every character keeps its own list, and you can copy, rename, or delete profiles
 
 This feature started life as a separate add-on: Connoisseur ships an updated version with bug fixes and UX improvements that couldn't get rolled into the upstream builds — see History below.
 
+<img width="550" src="https://github.com/user-attachments/assets/c84a532b-28b2-42f3-9af7-24c3b4f371dc" />
+
 ### Class Features
 
 **Mages** can right-click Food, Water, or Mana Gem macros to conjure items. Middle-click casts Ritual of Refreshment. Targeting a lower-level friendly player auto-selects the appropriate conjure rank.
