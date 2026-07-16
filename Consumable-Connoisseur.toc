@@ -1,5 +1,5 @@
 ## Title: Connoisseur
-## Notes: Auto-updating macros for your best food, buff food, water, healing and mana potions, healthstones, scrolls, soulstones, mana gems, bandages, and explosives. One-click conjuring for Mages and Warlocks, smart Feed Pet for Hunters. Optimal nutrition, peak performance.
+## Notes: Auto-updating macros for your best food, buff food, water, potions, healthstones, scrolls, soulstones, bandages, poisons, and explosives. One-click conjuring, smart Feed Pet, automatic vendor and bank restocking. Optimal nutrition, peak performance.
 ## Author: Gogo1951
 
 ## IconTexture: Interface/AddOns/Consumable-Connoisseur/Includes/Images/Connoisseur.tga
@@ -17,12 +17,12 @@
 ## Category-zhCN: 增益和减益
 ## Category-zhTW: 增益與減益
 
-## Interface: 11508, 20506
+## Interface: 11509, 20506
 ## Version: @project-version@
 ## X-Curse-Project-ID: 1416865
 ## X-Wago-ID: aN0XyQNj
 
-## SavedVariables: ConnoisseurDB
+## SavedVariables: ConnoisseurDB, ConnoisseurRestockerDB
 # MIGRATION (remove after 2026-10-06): drop ConnoisseurCharDB once window closes
 ## SavedVariablesPerCharacter: ConnoisseurCharDB
 
@@ -64,24 +64,62 @@ Data/Soulstones.lua
 Data/Mana-Gems.lua
 Data/Potions.lua
 Data/Pet-Foods.lua
+Data/Poisons.lua
 Data/Explosives.lua
 
 # Connoisseur
 Features/Core.lua
 Features/Utilities.lua
 Features/Announcements.lua
-Features/Macro-Runtime.lua
 Features/Item-Cache.lua
 Features/Scanner-Character.lua
 Features/Scanner-Inventory.lua
-Features/Macro-Builder-General.lua
-Features/Macro-Builder-Druids.lua
-Features/Macro-Builder-Hunters.lua
-Features/Macro-Builder-Mages.lua
-Features/Macro-Builder-Warlocks.lua
+
+# Macro system: shared machinery first (Engine before the definitions that
+# call ns.RegisterMacroType; Runtime after Announcements + Data and before the
+# definitions), then class tools, then one definition per macro type, then the
+# DruidMacroHelper integration hook (consulted by Engine at update time).
+Features/Macros/Engine.lua
+Features/Macros/Runtime.lua
+Features/Macros/Tools-Mages.lua
+Features/Macros/Tools-Warlocks.lua
+Features/Macros/Tools-Rogues.lua
+Features/Macros/Tools-Hunters.lua
+Features/Macros/Bandage.lua
+Features/Macros/Explosive.lua
+Features/Macros/Food.lua
+Features/Macros/Health-Potion.lua
+Features/Macros/Healthstone.lua
+Features/Macros/Mana-Gem.lua
+Features/Macros/Mana-Potion.lua
+Features/Macros/Soulstone.lua
+Features/Macros/Water.lua
+Features/Macros/Integration-Druid-Macro-Helper.lua
+
+Features/Action-Button-Text.lua
+
+# Restocker (list-based bag/bank/vendor restocking; /crs)
+Features/Restocker/Module.lua
+Features/Restocker/KvEnv.lua
+Features/Restocker/Restocker.lua
+Features/Restocker/RestockerClass.lua
+Features/Restocker/BuyCommand.lua
+Features/Restocker/Recipe.lua
+Features/Restocker/BuyIngredients.lua
+Features/Restocker/Events.lua
+Features/Restocker/Settings.lua
+Features/Restocker/MainFrame.lua
+Features/Restocker/ListFrame.lua
+Features/Restocker/Bank.lua
+Features/Restocker/Merchant.lua
+Features/Restocker/Item.lua
+Features/Restocker/Cache.lua
+Features/Restocker/Bag.lua
+Features/Restocker/Inventory.lua
+
 Features/Diagnostics.lua
-Features/Macro-Names.lua
 Features/Minimap-Button.lua
+
 Options/Options-Utilities.lua
 Options/Options-General.lua
 Options/Options-Profiles.lua

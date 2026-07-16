@@ -23,66 +23,72 @@ local _, ns = ...
 ]]
 
 local function ShouldUseDMHMacro(typeName)
-    if not ns.IsDruid then return false end
-    if not (ns.DMHMacroTypes and ns.DMHMacroTypes[typeName]) then return false end
-    local settings = ns.db and ns.db.profile
-    return settings and settings.enableDruidMacroHelper and true or false
+	if not ns.IsDruid then
+		return false
+	end
+	if not (ns.DMHMacroTypes and ns.DMHMacroTypes[typeName]) then
+		return false
+	end
+	local settings = ns.db and ns.db.profile
+	return settings and settings.enableDruidMacroHelper and true or false
 end
 
 local function GetDruidReturnForm()
-    local settings = ns.db and ns.db.profile
-    local key = settings and settings.druidReturnForm
-    if key ~= "cat" then key = "bear" end
-    local name = (key == "cat") and ns.DruidCatFormName or ns.DruidBearFormName
-    return key, name
+	local settings = ns.db and ns.db.profile
+	local key = settings and settings.druidReturnForm
+	if key ~= "cat" then
+		key = "bear"
+	end
+	local name = (key == "cat") and ns.DruidCatFormName or ns.DruidBearFormName
+	return key, name
 end
 
 local function BuildDMHBody(typeName, useIDs, stackIDs, formName)
-    local lines = {
-        "#showtooltip item:" .. useIDs[1],
-        "/run ConnFire(" .. useIDs[1] .. ")",
-    }
-    for _, guard in ipairs(ns.DMHGuards[typeName]) do
-        lines[#lines + 1] = guard
-    end
-    --[[
+	local lines = {
+		"#showtooltip item:" .. useIDs[1],
+		"/run ConnFire(" .. useIDs[1] .. ")",
+	}
+	for _, guard in ipairs(ns.DMHGuards[typeName]) do
+		lines[#lines + 1] = guard
+	end
+	--[[
         Stacked ranked /use lines, best item first — combat fallback when
         the best item is depleted. See BuildUseBlock in
-        Macro-Builder-General.lua for the shared-cooldown reasoning.
+        Engine.lua for the shared-cooldown reasoning.
     ]]
-    local firstUse = #lines + 1
-    for _, id in ipairs(useIDs) do
-        lines[#lines + 1] = "/use item:" .. id
-    end
-    --[[
+	local firstUse = #lines + 1
+	for _, id in ipairs(useIDs) do
+		lines[#lines + 1] = "/use item:" .. id
+	end
+	--[[
         Healthstone stacking (Health Potion only): the best Healthstone's
         ranked /use lines go below the potion lines but still inside the
         powershift, before the return /cast — separate cooldown category, so
         the press fires a potion and a stone in one shift. nil for every
         other type.
     ]]
-    if stackIDs then
-        for _, id in ipairs(stackIDs) do
-            lines[#lines + 1] = "/use item:" .. id
-        end
-    end
-    lines[#lines + 1] = "/cast !" .. formName
-    lines[#lines + 1] = "/dmh end"
-    local body = table.concat(lines, "\n") .. "\n"
+	if stackIDs then
+		for _, id in ipairs(stackIDs) do
+			lines[#lines + 1] = "/use item:" .. id
+		end
+	end
+	lines[#lines + 1] = "/cast !" .. formName
+	lines[#lines + 1] = "/dmh end"
+	local body = table.concat(lines, "\n") .. "\n"
 
-    --[[
+	--[[
         The client truncates macro bodies at 255 bytes, which here would
         chop the trailing /dmh end line and leave DMH guards dangling.
         Drop /use lines from the bottom until the body fits — stacked
         Healthstone lines go first since they sit lowest, then potion
         fallbacks; the rank-1 potion line is never dropped. Mirrors the
-        trim in Macro-Builder-General.lua.
+        trim in Engine.lua.
     ]]
-    while #body > 255 and #lines > firstUse + 2 do
-        table.remove(lines, #lines - 2)
-        body = table.concat(lines, "\n") .. "\n"
-    end
-    return body
+	while #body > 255 and #lines > firstUse + 2 do
+		table.remove(lines, #lines - 2)
+		body = table.concat(lines, "\n") .. "\n"
+	end
+	return body
 end
 
 --------------------------------------------------------------------------------
@@ -102,21 +108,27 @@ end
 ]]
 
 function ns.BuildDruidMacroOverride(typeName, itemID, rankedIDs, stackIDs)
-    if not itemID then return nil end
-    if not ShouldUseDMHMacro(typeName) then return nil end
+	if not itemID then
+		return nil
+	end
+	if not ShouldUseDMHMacro(typeName) then
+		return nil
+	end
 
-    local formKey, formName = GetDruidReturnForm()
-    if not formName then return nil end
+	local formKey, formName = GetDruidReturnForm()
+	if not formName then
+		return nil
+	end
 
-    local useIDs = rankedIDs
-    if not useIDs or #useIDs == 0 then
-        useIDs = { itemID }
-    end
+	local useIDs = rankedIDs
+	if not useIDs or #useIDs == 0 then
+		useIDs = { itemID }
+	end
 
-    local body = BuildDMHBody(typeName, useIDs, stackIDs, formName)
-    local stateID = "DMH:" .. formKey .. ":" .. table.concat(useIDs, ",")
-    if stackIDs then
-        stateID = stateID .. "+HS:" .. table.concat(stackIDs, ",")
-    end
-    return body, stateID
+	local body = BuildDMHBody(typeName, useIDs, stackIDs, formName)
+	local stateID = "DMH:" .. formKey .. ":" .. table.concat(useIDs, ",")
+	if stackIDs then
+		stateID = stateID .. "+HS:" .. table.concat(stackIDs, ",")
+	end
+	return body, stateID
 end

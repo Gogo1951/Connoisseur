@@ -1,45 +1,46 @@
 local _, ns = ...
 
 --------------------------------------------------------------------------------
--- Mage Conjure Resolvers
+-- Mage Conjure Resolution
 --------------------------------------------------------------------------------
 
 --[[
-    Each resolver returns a table describing how the corresponding macro
-    should compose its right-click (/btn:2) and middle-click (/btn:3)
-    conjure slots — or, when the relevant spell isn't yet learned, which
-    ConnTip key to fire on that click so the player understands the macro
-    will gain functionality at the right level.
-
-    See Macro-Builder-General.lua's ConjureResolvers table for the full
-    protocol. Returning nil means "this macro has no conjure semantics for
-    this character" — appropriate for non-mage classes.
+    All mage conjure resolution lives here (the organizing rule: the definition
+    files in Features/Macros/<Consumable>.lua own what the macro IS; the
+    Tools-<Class> files own what the class KNOWS). Each resolver returns the
+    conjure-info table documented in Engine.lua's definition protocol, or nil
+    to mean "this macro has no conjure semantics for this character" — which is
+    how non-mage classes fall through to a plain /use body. The matching
+    definition files (Food.lua, Water.lua, Mana-Gem.lua) call these at update
+    time — never at load time — so TOC order between this file and the
+    definitions does not matter.
 ]]
-
-ns.ConjureResolvers = ns.ConjureResolvers or {}
 
 --[[
-    Water and Food share a middle-click slot (Refreshment Table) so the
-    branching is identical except for which "primary" conjure category
-    drives the right-click slot.
+    Water and Food share a middle-click slot (Refreshment Table), so their
+    resolver branching is identical except for which "primary" conjure
+    category drives the right-click slot — hence this one shared helper
+    parameterized by the right-click list and its miss key.
 ]]
-local function ResolveWaterOrFood(rightList, rightMissKey)
-    if not ns.IsMage then return nil end
+function ns.ResolveMageWaterOrFoodConjure(rightList, rightMissKey)
+	if not ns.IsMage then
+		return nil
+	end
 
-    local info = {}
+	local info = {}
 
-    if ns.KnowsAny(rightList) then
-        info.rightName, info.rightID = ns.GetSmartSpell(rightList)
-    else
-        --[[
+	if ns.KnowsAny(rightList) then
+		info.rightName, info.rightID = ns.GetSmartSpell(rightList)
+	else
+		--[[
             Mage who can theoretically learn this — print a tip on
             right-click (and also on left-click when bags are empty).
         ]]
-        info.rightMiss = rightMissKey
-        info.noItemMiss = rightMissKey
-    end
+		info.rightMiss = rightMissKey
+		info.noItemMiss = rightMissKey
+	end
 
-    --[[
+	--[[
         Middle-click: Ritual of Refreshment is a level-70 ability (Rank 2
         at 80 in Wrath). The table serves the whole raid, so ignoreTarget
         keeps a low-level friendly target from downranking it, and the
@@ -49,42 +50,36 @@ local function ResolveWaterOrFood(rightList, rightMissKey)
         clients where the spell isn't implemented (Era 1.15), the tip
         resolves to nil at print time and silently does nothing.
     ]]
-    if ns.KnowsAny(ns.ConjureSpells.MageCreateTable) then
-        info.middleName, info.middleID = ns.GetSmartSpell(ns.ConjureSpells.MageCreateTable, true)
-    else
-        info.middleMiss = "nctable"
-    end
+	if ns.KnowsAny(ns.ConjureSpells.MageCreateTable) then
+		info.middleName, info.middleID = ns.GetSmartSpell(ns.ConjureSpells.MageCreateTable, true)
+	else
+		info.middleMiss = "nctable"
+	end
 
-    return info
-end
-
-ns.ConjureResolvers["Water"] = function()
-    return ResolveWaterOrFood(ns.ConjureSpells.MageCreateWater, "ncwater")
-end
-
-ns.ConjureResolvers["Food"] = function()
-    return ResolveWaterOrFood(ns.ConjureSpells.MageCreateFood, "ncfood")
+	return info
 end
 
 --[[
-    Mana Gem: single conjure slot on right-click. Unique-equipped items
-    mean GetSmartSpell needs checkUnique=true so a second press conjures
-    the next rank down rather than failing on a duplicate.
+    Mage conjure: single conjure slot on right-click. Unique-equipped
+    items mean GetSmartSpell needs checkUnique=true so a second press
+    conjures the next rank down rather than failing on a duplicate.
 ]]
-ns.ConjureResolvers["Mana Gem"] = function()
-    if not ns.IsMage then return nil end
+function ns.ResolveMageManaGemConjure()
+	if not ns.IsMage then
+		return nil
+	end
 
-    local info = {}
-    if ns.KnowsAny(ns.ConjureSpells.MageCreateManaGem) then
-        info.rightName, info.rightID = ns.GetSmartSpell(ns.ConjureSpells.MageCreateManaGem, true, true)
-    else
-        info.rightMiss = "ncgem"
-        --[[
+	local info = {}
+	if ns.KnowsAny(ns.ConjureSpells.MageCreateManaGem) then
+		info.rightName, info.rightID = ns.GetSmartSpell(ns.ConjureSpells.MageCreateManaGem, true, true)
+	else
+		info.rightMiss = "ncgem"
+		--[[
             Mana Gems are class-exclusive; a mage without the spell almost
             certainly has no Mana Gem in bags either, so left-click should
             explain that rather than the generic "no item found" message.
         ]]
-        info.noItemMiss = "ncgem"
-    end
-    return info
+		info.noItemMiss = "ncgem"
+	end
+	return info
 end

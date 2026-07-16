@@ -12,29 +12,29 @@ local GetColor = ns.GetColor
 ]]
 
 function ns.OptionsHeader(text, order)
-    return {
-        type = "header",
-        name = GetColor("TITLE") .. text .. "|r",
-        order = order,
-    }
+	return {
+		type = "header",
+		name = GetColor("TITLE") .. text .. "|r",
+		order = order,
+	}
 end
 
 function ns.OptionsSubHeader(text, order)
-    return {
-        type = "description",
-        name = "\n" .. GetColor("TITLE") .. text .. "|r",
-        fontSize = "medium",
-        order = order,
-    }
+	return {
+		type = "description",
+		name = "\n" .. GetColor("TITLE") .. text .. "|r",
+		fontSize = "medium",
+		order = order,
+	}
 end
 
 function ns.OptionsDesc(text, order)
-    return {
-        type = "description",
-        name = text,
-        fontSize = "medium",
-        order = order,
-    }
+	return {
+		type = "description",
+		name = text,
+		fontSize = "medium",
+		order = order,
+	}
 end
 
 --[[
@@ -44,12 +44,12 @@ end
     leading spacer.
 ]]
 function ns.OptionsSpacer(order, hiddenFn)
-    return {
-        type = "description",
-        name = " ",
-        order = order,
-        hidden = hiddenFn,
-    }
+	return {
+		type = "description",
+		name = " ",
+		order = order,
+		hidden = hiddenFn,
+	}
 end
 
 --------------------------------------------------------------------------------
@@ -58,7 +58,7 @@ end
 
 -- Group-restriction mode labels shared by the Buff Food, Scroll, and Pet panels.
 ns.MODE_VALUES = {
-    always = L["MODE_ALWAYS"],
-    party = L["MODE_PARTY"],
-    raid = L["MODE_RAID"]
+	always = L["MODE_ALWAYS"],
+	party = L["MODE_PARTY"],
+	raid = L["MODE_RAID"],
 }

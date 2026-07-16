@@ -20,23 +20,23 @@ local _, ns = ...
     can't error us.
 ]]
 local ACTION_BAR_PREFIXES = {
-    "ActionButton",
-    "MultiBarBottomLeftButton",
-    "MultiBarBottomRightButton",
-    "MultiBarRightButton",
-    "MultiBarLeftButton"
+	"ActionButton",
+	"MultiBarBottomLeftButton",
+	"MultiBarBottomRightButton",
+	"MultiBarRightButton",
+	"MultiBarLeftButton",
 }
 
 function ns.ApplyMacroNameVisibility()
-    local alpha = (ns.db and ns.db.profile and ns.db.profile.showMacroNames) and 1 or 0
-    for _, prefix in ipairs(ACTION_BAR_PREFIXES) do
-        for i = 1, 12 do
-            local name = _G[prefix .. i .. "Name"]
-            if name then
-                name:SetAlpha(alpha)
-            end
-        end
-    end
+	local alpha = (ns.db and ns.db.profile and ns.db.profile.showMacroNames) and 1 or 0
+	for _, prefix in ipairs(ACTION_BAR_PREFIXES) do
+		for i = 1, 12 do
+			local name = _G[prefix .. i .. "Name"]
+			if name then
+				name:SetAlpha(alpha)
+			end
+		end
+	end
 end
 
 --[[
@@ -45,11 +45,11 @@ end
     text without waiting for a bar refresh.
 ]]
 function ns.ToggleMacroNames(value)
-    local settings = ns.db.profile
-    if value == nil then
-        settings.showMacroNames = not settings.showMacroNames
-    else
-        settings.showMacroNames = value
-    end
-    ns.ApplyMacroNameVisibility()
+	local settings = ns.db.profile
+	if value == nil then
+		settings.showMacroNames = not settings.showMacroNames
+	else
+		settings.showMacroNames = value
+	end
+	ns.ApplyMacroNameVisibility()
 end

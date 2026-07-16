@@ -34,8 +34,8 @@ ConnoisseurState = ConnoisseurState or {}
     against the 255-character macro body limit.
 ]]
 function ConnFire(itemID)
-    ConnoisseurState.lastID = itemID
-    ConnoisseurState.lastTime = GetTime()
+	ConnoisseurState.lastID = itemID
+	ConnoisseurState.lastTime = GetTime()
 end
 
 --[[
@@ -47,31 +47,31 @@ end
     mid-fight.
 ]]
 function ns.ReportZoneRestriction(msg)
-    if not (ConnoisseurState.lastTime and (GetTime() - ConnoisseurState.lastTime) < 1.0) then
-        return
-    end
-    if msg ~= ERR_ITEM_WRONG_ZONE then
-        return
-    end
+	if not (ConnoisseurState.lastTime and (GetTime() - ConnoisseurState.lastTime) < 1.0) then
+		return
+	end
+	if msg ~= ERR_ITEM_WRONG_ZONE then
+		return
+	end
 
-    local mapID = C_Map.GetBestMapForUnit("player") or "0"
-    local zone = GetZoneText() or "?"
-    local subzone = GetSubZoneText() or ""
-    if subzone == "" then
-        subzone = zone
-    end
+	local mapID = C_Map.GetBestMapForUnit("player") or "0"
+	local zone = GetZoneText() or "?"
+	local subzone = GetSubZoneText() or ""
+	if subzone == "" then
+		subzone = zone
+	end
 
-    local itemID = ConnoisseurState.lastID or 0
-    local link = "Item #" .. itemID
-    if itemID ~= 0 then
-        local _, itemLink = GetItemInfo(itemID)
-        if itemLink then
-            link = itemLink
-        end
-    end
+	local itemID = ConnoisseurState.lastID or 0
+	local link = "Item #" .. itemID
+	if itemID ~= 0 then
+		local _, itemLink = GetItemInfo(itemID)
+		if itemLink then
+			link = itemLink
+		end
+	end
 
-    ns.PrintMessage(string.format(L["MSG_BUG_REPORT"], link, itemID, zone, subzone, mapID))
-    ConnoisseurState.lastTime = 0
+	ns.PrintMessage(string.format(L["MSG_BUG_REPORT"], link, itemID, zone, subzone, mapID))
+	ConnoisseurState.lastTime = 0
 end
 
 --[[
@@ -83,24 +83,24 @@ end
     player will never see.
 ]]
 local function ResolveConnTip(key)
-    if ns.MessageStrings and ns.MessageStrings[key] then
-        return ns.MessageStrings[key]
-    end
-    if ns.MissingSpellMessageIDs and ns.MissingSpellMessageIDs[key] then
-        local name = GetSpellInfo(ns.MissingSpellMessageIDs[key])
-        if not name then
-            return nil
-        end
-        return string.format(L["TIP_DONT_KNOW_SPELL"], name)
-    end
-    return nil
+	if ns.MessageStrings and ns.MessageStrings[key] then
+		return ns.MessageStrings[key]
+	end
+	if ns.MissingSpellMessageIDs and ns.MissingSpellMessageIDs[key] then
+		local name = GetSpellInfo(ns.MissingSpellMessageIDs[key])
+		if not name then
+			return nil
+		end
+		return string.format(L["TIP_DONT_KNOW_SPELL"], name)
+	end
+	return nil
 end
 
 function ConnTip(key)
-    local text = ResolveConnTip(key)
-    if text then
-        ns.PrintMessage(text)
-    end
+	local text = ResolveConnTip(key)
+	if text then
+		ns.PrintMessage(text)
+	end
 end
 
 --[[
@@ -113,9 +113,9 @@ end
     action body.
 ]]
 function ConnIf(cond, key)
-    if SecureCmdOptionParse(cond .. " 1") then
-        ConnTip(key)
-    end
+	if SecureCmdOptionParse(cond .. " 1") then
+		ConnTip(key)
+	end
 end
 
 --[[
@@ -127,7 +127,7 @@ end
     macro body from an older version still prints something sensible.
 ]]
 function ConnNoItem(typeName)
-    local config = ns.Config and ns.Config[typeName]
-    local label = config and config.label or typeName
-    ns.PrintMessage(string.format(L["MSG_NO_ITEM"], label))
+	local config = ns.Config and ns.Config[typeName]
+	local label = config and config.label or typeName
+	ns.PrintMessage(string.format(L["MSG_NO_ITEM"], label))
 end

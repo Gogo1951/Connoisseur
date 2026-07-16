@@ -12,11 +12,17 @@ local GetColor = ns.GetColor
     announce path here.
 ]]
 function ns.PrintMessage(text)
-    print(
-        GetColor("INFO") .. L["ADDON_TITLE"] .. "|r " ..
-        GetColor("SEPARATOR") .. "//" .. "|r " ..
-        GetColor("TEXT") .. text .. "|r"
-    )
+	print(
+		GetColor("INFO")
+			.. L["ADDON_TITLE"]
+			.. "|r "
+			.. GetColor("SEPARATOR")
+			.. "//"
+			.. "|r "
+			.. GetColor("TEXT")
+			.. text
+			.. "|r"
+	)
 end
 
 --------------------------------------------------------------------------------
@@ -31,12 +37,12 @@ end
 local welcomePrinted = false
 
 function ns.PrintWelcome()
-    if welcomePrinted then
-        return
-    end
-    if not (ns.db and ns.db.profile.showWelcome) then
-        return
-    end
-    welcomePrinted = true
-    ns.PrintMessage(L["CHAT_LOADED"]:format(ns.Version))
+	if welcomePrinted then
+		return
+	end
+	if not (ns.db and ns.db.profile.showWelcome) then
+		return
+	end
+	welcomePrinted = true
+	ns.PrintMessage(L["CHAT_LOADED"]:format(ns.Version))
 end

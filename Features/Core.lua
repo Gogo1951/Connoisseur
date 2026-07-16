@@ -30,19 +30,19 @@ local UPDATE_THROTTLE = 0.5
     ns.diagnostics.logging first (see OnEvent) so logging-off costs one boolean
     check. Features/Diagnostics.lua owns ns:LogEvent / ns:StopEventLog.
 ]]
-ns.diagnostics = {enabled = false, logging = false, log = nil}
+ns.diagnostics = { enabled = false, logging = false, log = nil }
 
 --------------------------------------------------------------------------------
 -- Version
 --------------------------------------------------------------------------------
 
 local function GetVersion()
-    local GetAddOnMetadata = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
-    local version = GetAddOnMetadata(ADDON_NAME, "Version")
-    if not version or version:find("@") then
-        return "Dev"
-    end
-    return version
+	local GetAddOnMetadata = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
+	local version = GetAddOnMetadata(ADDON_NAME, "Version")
+	if not version or version:find("@") then
+		return "Dev"
+	end
+	return version
 end
 
 ns.Version = GetVersion()
@@ -62,79 +62,85 @@ local varsInitialized = false
     ns.db exists, so LDBIcon gets its saved minimap position.
 ]]
 local function InitSessionConstants()
-    local _, raceToken = UnitRace("player")
-    ns.IsNightElf = (raceToken == "NightElf")
+	local _, raceToken = UnitRace("player")
+	ns.IsNightElf = (raceToken == "NightElf")
 
-    -- Resolve the Shadowmeld spell name once for macro building
-    if ns.IsNightElf then
-        ns.ShadowmeldSpellName = GetSpellInfo(ns.SHADOWMELD_SPELL_ID)
-    end
+	-- Resolve the Shadowmeld spell name once for macro building
+	if ns.IsNightElf then
+		ns.ShadowmeldSpellName = GetSpellInfo(ns.SHADOWMELD_SPELL_ID)
+	end
 
-    --[[
+	--[[
         Class detection. Used by macro builders to decide which conjure
         branches the player could *eventually* know — so a low-level mage
         gets "You don't currently know Conjure Food." while a hunter sees no
         message at all (they'll never learn that spell).
     ]]
-    local _, classToken = UnitClass("player")
-    ns.IsHunter = (classToken == "HUNTER")
-    ns.IsDruid = (classToken == "DRUID")
-    ns.IsMage = (classToken == "MAGE")
-    ns.IsWarlock = (classToken == "WARLOCK")
+	local _, classToken = UnitClass("player")
+	ns.IsHunter = (classToken == "HUNTER")
+	ns.IsDruid = (classToken == "DRUID")
+	ns.IsMage = (classToken == "MAGE")
+	ns.IsWarlock = (classToken == "WARLOCK")
+	ns.IsRogue = (classToken == "ROGUE")
 
-    if ns.IsDruid then
-        -- Dire Bear was merged into Bear Form in Cataclysm; resolve whichever exists.
-        ns.DruidBearFormName =
-            GetSpellInfo(ns.DRUID_DIRE_BEAR_FORM_SPELL_ID) or GetSpellInfo(ns.DRUID_BEAR_FORM_SPELL_ID)
-        ns.DruidCatFormName = GetSpellInfo(ns.DRUID_CAT_FORM_SPELL_ID)
-    end
+	-- Resolve the Stealth spell name once for macro building (Stealth Eating)
+	if ns.IsRogue then
+		ns.StealthSpellName = GetSpellInfo(ns.STEALTH_SPELL_ID)
+	end
 
-    if ns.IsHunter then
-        ns.ResolveHunterSpells()
-        ns.PetDeadDismissed = false
-    end
+	if ns.IsDruid then
+		-- Dire Bear was merged into Bear Form in Cataclysm; resolve whichever exists.
+		ns.DruidBearFormName = GetSpellInfo(ns.DRUID_DIRE_BEAR_FORM_SPELL_ID)
+			or GetSpellInfo(ns.DRUID_BEAR_FORM_SPELL_ID)
+		ns.DruidCatFormName = GetSpellInfo(ns.DRUID_CAT_FORM_SPELL_ID)
+	end
 
-    ns.SpellCache = {}
-    if ns.ConjureSpells then
-        for _, spellList in pairs(ns.ConjureSpells) do
-            for _, data in ipairs(spellList) do
-                local spellID = data[1]
-                if GetSpellInfo(spellID) then
-                    ns.SpellCache[spellID] = true
-                end
-            end
-        end
-    end
+	if ns.IsHunter then
+		ns.ResolveHunterSpells()
+		ns.PetDeadDismissed = false
+	end
 
-    if ns.UpdateFirstAidSkill then
-        ns.UpdateFirstAidSkill()
-    end
-    if ns.UpdateAlchemySkill then
-        ns.UpdateAlchemySkill()
-    end
-    if ns.UpdateEngineeringSkill then
-        ns.UpdateEngineeringSkill()
-    end
+	ns.SpellCache = {}
+	if ns.ConjureSpells then
+		for _, spellList in pairs(ns.ConjureSpells) do
+			for _, data in ipairs(spellList) do
+				local spellID = data[1]
+				if GetSpellInfo(spellID) then
+					ns.SpellCache[spellID] = true
+				end
+			end
+		end
+	end
 
-    local LDBIcon = LibStub("LibDBIcon-1.0")
-    if LDBIcon and ns.LDBObj and not ns.IconRegistered then
-        LDBIcon:Register(ns.LOCALE_NAME, ns.LDBObj, ns.db.global.minimap)
-        ns.IconRegistered = true
-    end
+	if ns.UpdateFirstAidSkill then
+		ns.UpdateFirstAidSkill()
+	end
+	if ns.UpdateAlchemySkill then
+		ns.UpdateAlchemySkill()
+	end
+	if ns.UpdateEngineeringSkill then
+		ns.UpdateEngineeringSkill()
+	end
+
+	local LDBIcon = LibStub("LibDBIcon-1.0")
+	if LDBIcon and ns.LDBObj and not ns.IconRegistered then
+		LDBIcon:Register(ns.LOCALE_NAME, ns.LDBObj, ns.db.global.minimap)
+		ns.IconRegistered = true
+	end
 end
 
 local function InitVars()
-    if not ns.db then
-        --[[
+	if not ns.db then
+		--[[
             One account-wide SavedVariable managed by AceDB-3.0. The third
             argument (defaultProfile = true) lands every character on the shared
             "Default" profile out of the box, so settings behave account-wide
             until a character opts into its own profile from the Profiles panel.
             AceDB applies ns.DATABASE_DEFAULTS via metatables -- no hand-merge.
         ]]
-        ns.db = LibStub("AceDB-3.0"):New("ConnoisseurDB", ns.DATABASE_DEFAULTS, true)
+		ns.db = LibStub("AceDB-3.0"):New("ConnoisseurDB", ns.DATABASE_DEFAULTS, true)
 
-        --[[
+		--[[
             MIGRATION (remove after 2026-10-06): move pre-AceDB saved data into
             the AceDB profile/global. Two sources:
               (a) the old per-character ConnoisseurCharDB (settings + ignoreList),
@@ -145,124 +151,103 @@ local function InitVars()
             rest; each source is cleared after copying so this runs once. A user
             who hasn't logged in within the window simply starts from defaults.
         ]]
-        if ConnoisseurCharDB then
-            if type(ConnoisseurCharDB.settings) == "table" then
-                for key, value in pairs(ConnoisseurCharDB.settings) do
-                    ns.db.profile[key] = value
-                end
-            end
-            if type(ConnoisseurCharDB.ignoreList) == "table" then
-                ns.db.profile.ignoreList = ConnoisseurCharDB.ignoreList
-            end
-            ConnoisseurCharDB = nil
-        end
-        if ConnoisseurDB.showWelcome ~= nil then
-            ns.db.profile.showWelcome = ConnoisseurDB.showWelcome
-            ConnoisseurDB.showWelcome = nil
-        end
-        if ConnoisseurDB.enabledMacros ~= nil then
-            ns.db.profile.enabledMacros = ConnoisseurDB.enabledMacros
-            ConnoisseurDB.enabledMacros = nil
-        end
-        if ConnoisseurDB.itemCache ~= nil then
-            ns.db.profile.itemCache = ConnoisseurDB.itemCache
-            ConnoisseurDB.itemCache = nil
-        end
-        if ConnoisseurDB.itemCacheVersion ~= nil then
-            ns.db.profile.itemCacheVersion = ConnoisseurDB.itemCacheVersion
-            ConnoisseurDB.itemCacheVersion = nil
-        end
-        if ConnoisseurDB.minimap ~= nil then
-            ns.db.global.minimap = ConnoisseurDB.minimap
-            ConnoisseurDB.minimap = nil
-        end
+		if ConnoisseurCharDB then
+			if type(ConnoisseurCharDB.settings) == "table" then
+				for key, value in pairs(ConnoisseurCharDB.settings) do
+					ns.db.profile[key] = value
+				end
+			end
+			if type(ConnoisseurCharDB.ignoreList) == "table" then
+				ns.db.profile.ignoreList = ConnoisseurCharDB.ignoreList
+			end
+			ConnoisseurCharDB = nil
+		end
+		if ConnoisseurDB.showWelcome ~= nil then
+			ns.db.profile.showWelcome = ConnoisseurDB.showWelcome
+			ConnoisseurDB.showWelcome = nil
+		end
+		if ConnoisseurDB.enabledMacros ~= nil then
+			ns.db.profile.enabledMacros = ConnoisseurDB.enabledMacros
+			ConnoisseurDB.enabledMacros = nil
+		end
+		if ConnoisseurDB.itemCache ~= nil then
+			ns.db.profile.itemCache = ConnoisseurDB.itemCache
+			ConnoisseurDB.itemCache = nil
+		end
+		if ConnoisseurDB.itemCacheVersion ~= nil then
+			ns.db.profile.itemCacheVersion = ConnoisseurDB.itemCacheVersion
+			ConnoisseurDB.itemCacheVersion = nil
+		end
+		if ConnoisseurDB.minimap ~= nil then
+			ns.db.global.minimap = ConnoisseurDB.minimap
+			ConnoisseurDB.minimap = nil
+		end
 
-        --[[
+		--[[
             Switching, copying, or resetting a profile swaps every user setting
             at once, so the macros and aura tracking must rebuild to match the
             newly active profile.
         ]]
-        local function OnProfileChange()
-            ns.ResetMacroState()
-            ns.UpdateAuraTracking()
-            if ns.ApplyMacroNameVisibility then
-                ns.ApplyMacroNameVisibility()
-            end
-            ns.RequestUpdate()
-        end
-        ns.db.RegisterCallback(ns, "OnProfileChanged", OnProfileChange)
-        ns.db.RegisterCallback(ns, "OnProfileCopied", OnProfileChange)
-        ns.db.RegisterCallback(ns, "OnProfileReset", OnProfileChange)
+		local function OnProfileChange()
+			ns.ResetMacroState()
+			ns.UpdateAuraTracking()
+			if ns.ApplyMacroNameVisibility then
+				ns.ApplyMacroNameVisibility()
+			end
+			ns.RequestUpdate()
+		end
+		ns.db.RegisterCallback(ns, "OnProfileChanged", OnProfileChange)
+		ns.db.RegisterCallback(ns, "OnProfileCopied", OnProfileChange)
+		ns.db.RegisterCallback(ns, "OnProfileReset", OnProfileChange)
 
-        --[[
+		--[[
             Options registration is deferred to here (rather than at Options.lua
             load) because the Profiles panel reads its display name from the
             stock AceDBOptions table, which needs ns.db. Runs once, inside this
             same not-yet-initialized guard.
         ]]
-        if ns.InitializeOptions then
-            ns.InitializeOptions()
-        end
-    end
+		if ns.InitializeOptions then
+			ns.InitializeOptions()
+		end
+	end
 
-    --[[
+	--[[
         Derived item cache is lazy-inited on the profile (never declared in
         defaults). Invalidate on a version change; the scanner's stale-schema
         nil-test catches same-version (dev) field additions.
     ]]
-    if ns.db.profile.itemCacheVersion ~= ns.Version then
-        ns.db.profile.itemCache = {}
-        ns.db.profile.itemCacheVersion = ns.Version
-    else
-        ns.db.profile.itemCache = ns.db.profile.itemCache or {}
-    end
+	if ns.db.profile.itemCacheVersion ~= ns.Version then
+		ns.db.profile.itemCache = {}
+		ns.db.profile.itemCacheVersion = ns.Version
+	else
+		ns.db.profile.itemCache = ns.db.profile.itemCache or {}
+	end
 
-    ns.CachedPlayerLevel = UnitLevel("player") or 1
-    ns.CachedMapID = C_Map.GetBestMapForUnit("player")
+	ns.CachedPlayerLevel = UnitLevel("player") or 1
+	ns.CachedMapID = C_Map.GetBestMapForUnit("player")
 
-    --[[
+	--[[
         Session-constant work runs once. Everything above this gate refreshes
         every call — SavedVariables existence and the cached level/zone, which
         change between logins and as the player levels and zones.
     ]]
-    if not varsInitialized then
-        varsInitialized = true
-        InitSessionConstants()
-    end
+	if not varsInitialized then
+		varsInitialized = true
+		InitSessionConstants()
+	end
 
-    --[[
+	--[[
         QUEST_LOG_UPDATE fires very frequently, and the only consumer of quest
         data is Hunter pet-food quest-objective skipping (ScanPetFood via
         BuildActiveQuestSet). Register it only for hunters so everyone else
         doesn't pay for a full bag rescan + macro rebuild on every quest-log
         churn. Kept per-call (idempotent) so registration follows ns.IsHunter.
     ]]
-    if ns.IsHunter then
-        frame:RegisterEvent("QUEST_LOG_UPDATE")
-    else
-        frame:UnregisterEvent("QUEST_LOG_UPDATE")
-    end
-end
-
---------------------------------------------------------------------------------
--- Reset
---------------------------------------------------------------------------------
-
---[[
-    Reset All Profiles -- the one custom control on the Profiles panel. Wipes
-    every profile on the account back to defaults via AceDB's ResetDB, but
-    snapshots and restores ns.db.global.minimap first so the reset never moves
-    the user's minimap button (the minimap subtable is account-level and
-    profile-independent). The rebuild afterward repaints macros and aura
-    tracking for the freshly reset active profile.
-]]
-function ns:ResetAllProfiles()
-    local savedMinimap = ns.db.global.minimap
-    ns.db:ResetDB()
-    ns.db.global.minimap = savedMinimap
-    ns.ResetMacroState()
-    ns.UpdateAuraTracking()
-    ns.RequestUpdate()
+	if ns.IsHunter then
+		frame:RegisterEvent("QUEST_LOG_UPDATE")
+	else
+		frame:UnregisterEvent("QUEST_LOG_UPDATE")
+	end
 end
 
 --------------------------------------------------------------------------------
@@ -275,77 +260,90 @@ end
     path) and matches what AceConfig hands back to the set callback.
 ]]
 function ns.UpdateAuraTracking()
-    local settings = ns.db.profile
+	local settings = ns.db.profile
 
-    local buffFoodActive = settings.useBuffFood and ns.IsModeActive(settings.buffFoodMode)
-    local scrollsActive = settings.useScrolls and ns.IsModeActive(settings.scrollsMode)
-    local petBuffActive = settings.usePetBuffFood and ns.IsModeActive(settings.petBuffFoodMode)
+	local buffFoodActive = settings.useBuffFood and ns.IsModeActive(settings.buffFoodMode)
+	local scrollsActive = settings.useScrolls and ns.IsModeActive(settings.scrollsMode)
+	local petBuffActive = settings.usePetBuffFood and ns.IsModeActive(settings.petBuffFoodMode)
 
-    if buffFoodActive or scrollsActive then
-        ns.WellFedState = ns.HasWellFedBuff and ns.HasWellFedBuff() or false
-    else
-        ns.WellFedState = false
-    end
+	if buffFoodActive or scrollsActive then
+		ns.WellFedState = ns.HasWellFedBuff and ns.HasWellFedBuff() or false
+	else
+		ns.WellFedState = false
+	end
 
-    if buffFoodActive or scrollsActive or petBuffActive then
-        frame:RegisterUnitEvent("UNIT_AURA", "player", "pet")
-    else
-        frame:UnregisterEvent("UNIT_AURA")
-    end
+	if buffFoodActive or scrollsActive or petBuffActive then
+		frame:RegisterUnitEvent("UNIT_AURA", "player", "pet")
+	else
+		frame:UnregisterEvent("UNIT_AURA")
+	end
 end
 
 function ns.ToggleBuffFood(value)
-    local settings = ns.db.profile
-    if value == nil then
-        settings.useBuffFood = not settings.useBuffFood
-    else
-        settings.useBuffFood = value
-    end
-    ns.UpdateAuraTracking()
-    if ns.ResetMacroState then
-        ns.ResetMacroState()
-    end
-    ns.RequestUpdate()
+	local settings = ns.db.profile
+	if value == nil then
+		settings.useBuffFood = not settings.useBuffFood
+	else
+		settings.useBuffFood = value
+	end
+	ns.UpdateAuraTracking()
+	if ns.ResetMacroState then
+		ns.ResetMacroState()
+	end
+	ns.RequestUpdate()
 end
 
 function ns.ToggleScrollBuffs(value)
-    local settings = ns.db.profile
-    if value == nil then
-        settings.useScrolls = not settings.useScrolls
-    else
-        settings.useScrolls = value
-    end
-    ns.UpdateAuraTracking()
-    if ns.ResetMacroState then
-        ns.ResetMacroState()
-    end
-    ns.RequestUpdate()
+	local settings = ns.db.profile
+	if value == nil then
+		settings.useScrolls = not settings.useScrolls
+	else
+		settings.useScrolls = value
+	end
+	ns.UpdateAuraTracking()
+	if ns.ResetMacroState then
+		ns.ResetMacroState()
+	end
+	ns.RequestUpdate()
 end
 
 function ns.ToggleShadowmeldDrinking(value)
-    local settings = ns.db.profile
-    if value == nil then
-        settings.enableShadowmeldDrinking = not settings.enableShadowmeldDrinking
-    else
-        settings.enableShadowmeldDrinking = value
-    end
-    if ns.ResetMacroState then
-        ns.ResetMacroState()
-    end
-    ns.RequestUpdate()
+	local settings = ns.db.profile
+	if value == nil then
+		settings.enableShadowmeldDrinking = not settings.enableShadowmeldDrinking
+	else
+		settings.enableShadowmeldDrinking = value
+	end
+	if ns.ResetMacroState then
+		ns.ResetMacroState()
+	end
+	ns.RequestUpdate()
+end
+
+function ns.ToggleStealthEating(value)
+	local settings = ns.db.profile
+	if value == nil then
+		settings.enableStealthEating = not settings.enableStealthEating
+	else
+		settings.enableStealthEating = value
+	end
+	if ns.ResetMacroState then
+		ns.ResetMacroState()
+	end
+	ns.RequestUpdate()
 end
 
 function ns.ToggleDruidMacroHelper(value)
-    local settings = ns.db.profile
-    if value == nil then
-        settings.enableDruidMacroHelper = not settings.enableDruidMacroHelper
-    else
-        settings.enableDruidMacroHelper = value
-    end
-    if ns.ResetMacroState then
-        ns.ResetMacroState()
-    end
-    ns.RequestUpdate()
+	local settings = ns.db.profile
+	if value == nil then
+		settings.enableDruidMacroHelper = not settings.enableDruidMacroHelper
+	else
+		settings.enableDruidMacroHelper = value
+	end
+	if ns.ResetMacroState then
+		ns.ResetMacroState()
+	end
+	ns.RequestUpdate()
 end
 
 --------------------------------------------------------------------------------
@@ -353,55 +351,52 @@ end
 --------------------------------------------------------------------------------
 
 function ns.RegisterDataRetry()
-    frame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
-    C_Timer.After(
-        2,
-        function()
-            ns.RequestUpdate()
-        end
-    )
+	frame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
+	C_Timer.After(2, function()
+		ns.RequestUpdate()
+	end)
 end
 
 function ns.UnregisterDataRetry()
-    frame:UnregisterEvent("GET_ITEM_INFO_RECEIVED")
+	frame:UnregisterEvent("GET_ITEM_INFO_RECEIVED")
 end
 
 local function OnUpdateHandler(self, elapsed)
-    if InCombatLockdown() then
-        --[[
+	if InCombatLockdown() then
+		--[[
             Macros can't be written in combat. Disarm the tick but leave the
             work pending (isUpdatePending stays true); PLAYER_REGEN_ENABLED, or
             any later out-of-combat request, re-arms it.
         ]]
-        frame:SetScript("OnUpdate", nil)
-        isTickScheduled = false
-        return
-    end
+		frame:SetScript("OnUpdate", nil)
+		isTickScheduled = false
+		return
+	end
 
-    updateTimer = updateTimer + elapsed
-    if updateTimer > UPDATE_THROTTLE then
-        frame:SetScript("OnUpdate", nil)
-        isTickScheduled = false
-        isUpdatePending = false
-        if ns.UpdateMacros then
-            ns.UpdateMacros()
-        end
-    end
+	updateTimer = updateTimer + elapsed
+	if updateTimer > UPDATE_THROTTLE then
+		frame:SetScript("OnUpdate", nil)
+		isTickScheduled = false
+		isUpdatePending = false
+		if ns.UpdateMacros then
+			ns.UpdateMacros()
+		end
+	end
 end
 
 function ns.RequestUpdate()
-    isUpdatePending = true
+	isUpdatePending = true
 
-    --[[
+	--[[
         In combat, leave the work pending without arming the tick — macro
         writes are blocked until combat drops, and PLAYER_REGEN_ENABLED
         re-requests then.
     ]]
-    if InCombatLockdown() then
-        return
-    end
+	if InCombatLockdown() then
+		return
+	end
 
-    --[[
+	--[[
         Out of combat, ensure the throttled tick is armed. Gating on
         isTickScheduled (not isUpdatePending) means a request always re-arms a
         disarmed tick, so a stranded isUpdatePending can never swallow updates
@@ -409,26 +404,24 @@ function ns.RequestUpdate()
         the throttle still fires ~UPDATE_THROTTLE after the first request in a
         burst rather than debouncing to the last.
     ]]
-    if not isTickScheduled then
-        isTickScheduled = true
-        updateTimer = 0
-        frame:SetScript("OnUpdate", OnUpdateHandler)
-    end
+	if not isTickScheduled then
+		isTickScheduled = true
+		updateTimer = 0
+		frame:SetScript("OnUpdate", OnUpdateHandler)
+	end
 end
 
 --------------------------------------------------------------------------------
 -- Event Handling
 --------------------------------------------------------------------------------
 
-frame:SetScript(
-    "OnEvent",
-    function(self, event, ...)
-        -- Diagnostics event-log tap; the boolean is read first so logging-off is free.
-        if ns.diagnostics.logging then
-            ns:LogEvent(event, ...)
-        end
+frame:SetScript("OnEvent", function(self, event, ...)
+	-- Diagnostics event-log tap; the boolean is read first so logging-off is free.
+	if ns.diagnostics.logging then
+		ns:LogEvent(event, ...)
+	end
 
-        --[[
+	--[[
         Initialization must run regardless of combat state, so it is handled
         ahead of the lockdown guard below. PLAYER_LOGIN is the earliest safe
         point (SavedVariables are loaded) and fires before the first
@@ -439,12 +432,12 @@ frame:SetScript(
         leaving ns.db nil until the next out-of-combat
         PLAYER_ENTERING_WORLD.
     ]]
-        if event == "PLAYER_LOGIN" then
-            InitVars()
-            return
-        end
+	if event == "PLAYER_LOGIN" then
+		InitVars()
+		return
+	end
 
-        --[[
+	--[[
         UI_ERROR_MESSAGE is also handled ahead of the lockdown guard: both
         of its consumers must work mid-combat and neither touches protected
         functions. The wrong-zone report mostly fires when a zone-locked
@@ -453,20 +446,20 @@ frame:SetScript(
         RequestUpdate, whose OnUpdate handler already defers macro writes
         until combat drops.
     ]]
-        if event == "UI_ERROR_MESSAGE" then
-            local _, msg = ...
+	if event == "UI_ERROR_MESSAGE" then
+		local _, msg = ...
 
-            if ns.HandleHunterPetError then
-                ns.HandleHunterPetError(msg)
-            end
+		if ns.HandleHunterPetError then
+			ns.HandleHunterPetError(msg)
+		end
 
-            if ns.ReportZoneRestriction then
-                ns.ReportZoneRestriction(msg)
-            end
-            return
-        end
+		if ns.ReportZoneRestriction then
+			ns.ReportZoneRestriction(msg)
+		end
+		return
+	end
 
-        --[[
+	--[[
         Leveling changes which items, scrolls, and spells qualify, so a
         level-up forces a full rebuild of every macro. Refresh the cached level
         and hunter spell names here, above the combat lockdown guard, because a
@@ -475,99 +468,97 @@ frame:SetScript(
         every macro to rewrite; the write itself still defers to the
         post-combat tick via the throttled update.
     ]]
-        if event == "PLAYER_LEVEL_UP" then
-            ns.CachedPlayerLevel = UnitLevel("player") or ns.CachedPlayerLevel or 1
-            if ns.IsHunter then
-                ns.ResolveHunterSpells()
-            end
-            if ns.ResetMacroState then
-                ns.ResetMacroState()
-            end
-            ns.RequestUpdate()
-            return
-        end
+	if event == "PLAYER_LEVEL_UP" then
+		ns.CachedPlayerLevel = UnitLevel("player") or ns.CachedPlayerLevel or 1
+		if ns.IsHunter then
+			ns.ResolveHunterSpells()
+		end
+		if ns.ResetMacroState then
+			ns.ResetMacroState()
+		end
+		ns.RequestUpdate()
+		return
+	end
 
-        if InCombatLockdown() then
-            isUpdatePending = true
-            return
-        end
+	if InCombatLockdown() then
+		isUpdatePending = true
+		return
+	end
 
-        if event == "PLAYER_REGEN_ENABLED" then
-            if isUpdatePending then
-                ns.RequestUpdate()
-            end
-            return
-        end
+	if event == "PLAYER_REGEN_ENABLED" then
+		if isUpdatePending then
+			ns.RequestUpdate()
+		end
+		return
+	end
 
-        if
-            event == "BAG_UPDATE_DELAYED" or event == "ITEM_PUSH" or event == "PLAYER_TARGET_CHANGED" or
-                event == "GET_ITEM_INFO_RECEIVED" or
-                event == "PLAYER_ALIVE" or
-                event == "PLAYER_UNGHOST" or
-                event == "GROUP_ROSTER_UPDATE" or
-                event == "QUEST_LOG_UPDATE"
-         then
-            ns.RequestUpdate()
-        elseif event == "ZONE_CHANGED_NEW_AREA" then
-            ns.CachedMapID = C_Map.GetBestMapForUnit("player")
-            ns.RequestUpdate()
-        elseif event == "SPELLS_CHANGED" then
-            --[[
+	if
+		event == "BAG_UPDATE_DELAYED"
+		or event == "ITEM_PUSH"
+		or event == "PLAYER_TARGET_CHANGED"
+		or event == "GET_ITEM_INFO_RECEIVED"
+		or event == "PLAYER_ALIVE"
+		or event == "PLAYER_UNGHOST"
+		or event == "GROUP_ROSTER_UPDATE"
+		or event == "QUEST_LOG_UPDATE"
+	then
+		ns.RequestUpdate()
+	elseif event == "ZONE_CHANGED_NEW_AREA" then
+		ns.CachedMapID = C_Map.GetBestMapForUnit("player")
+		ns.RequestUpdate()
+	elseif event == "SPELLS_CHANGED" then
+		--[[
             Hunter spell-name cache refreshes here so a level-up training
             visit (e.g. Mend Pet at 12) starts participating in the macro
             immediately. Mages/warlocks don't have a name cache, but their
             macro bodies still depend on KnowsAny / GetSmartSpell results,
             so we trigger a generic rebuild for everyone.
         ]]
-            if ns.IsHunter then
-                ns.ResolveHunterSpells()
-            end
-            ns.RequestUpdate()
-        elseif event == "PLAYER_ENTERING_WORLD" then
-            InitVars()
-            ns.PrintWelcome()
-            ns.UpdateAuraTracking()
-            if ns.ApplyMacroNameVisibility then
-                ns.ApplyMacroNameVisibility()
-            end
-            ns.RequestUpdate()
-            C_Timer.After(
-                3,
-                function()
-                    ns.RequestUpdate()
-                end
-            )
-        elseif event == "SKILL_LINES_CHANGED" then
-            if ns.UpdateFirstAidSkill then
-                ns.UpdateFirstAidSkill()
-            end
-            if ns.UpdateAlchemySkill then
-                ns.UpdateAlchemySkill()
-            end
-            if ns.UpdateEngineeringSkill then
-                ns.UpdateEngineeringSkill()
-            end
-            ns.RequestUpdate()
-        elseif event == "UNIT_AURA" then
-            if ns.HandleUnitAura then
-                ns.HandleUnitAura(...)
-            end
-        elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
-            local _, _, spellID = ...
-            if ns.SpellCache and ns.SpellCache[spellID] then
-                ns.RequestUpdate()
-            end
-        elseif event == "UNIT_PET" then
-            if ns.HandlePetChanged then
-                ns.HandlePetChanged(...)
-            end
-        elseif event == "PLAYER_LOGOUT" then
-            if ns.PruneIgnoreList then
-                ns.PruneIgnoreList()
-            end
-        end
-    end
-)
+		if ns.IsHunter then
+			ns.ResolveHunterSpells()
+		end
+		ns.RequestUpdate()
+	elseif event == "PLAYER_ENTERING_WORLD" then
+		InitVars()
+		ns.PrintWelcome()
+		ns.UpdateAuraTracking()
+		if ns.ApplyMacroNameVisibility then
+			ns.ApplyMacroNameVisibility()
+		end
+		ns.RequestUpdate()
+		C_Timer.After(3, function()
+			ns.RequestUpdate()
+		end)
+	elseif event == "SKILL_LINES_CHANGED" then
+		if ns.UpdateFirstAidSkill then
+			ns.UpdateFirstAidSkill()
+		end
+		if ns.UpdateAlchemySkill then
+			ns.UpdateAlchemySkill()
+		end
+		if ns.UpdateEngineeringSkill then
+			ns.UpdateEngineeringSkill()
+		end
+		ns.RequestUpdate()
+	elseif event == "UNIT_AURA" then
+		if ns.HandleUnitAura then
+			ns.HandleUnitAura(...)
+		end
+	elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
+		local _, _, spellID = ...
+		if ns.SpellCache and ns.SpellCache[spellID] then
+			ns.RequestUpdate()
+		end
+	elseif event == "UNIT_PET" then
+		if ns.HandlePetChanged then
+			ns.HandlePetChanged(...)
+		end
+	elseif event == "PLAYER_LOGOUT" then
+		if ns.PruneIgnoreList then
+			ns.PruneIgnoreList()
+		end
+	end
+end)
 
 --------------------------------------------------------------------------------
 -- Events
@@ -581,26 +572,26 @@ frame:SetScript(
     covers them too.
 ]]
 ns.EVENT_NAMES = {
-    "BAG_UPDATE_DELAYED",
-    "ITEM_PUSH",
-    "PLAYER_ALIVE",
-    "PLAYER_ENTERING_WORLD",
-    "PLAYER_LEVEL_UP",
-    "PLAYER_LOGIN",
-    "PLAYER_LOGOUT",
-    "PLAYER_REGEN_ENABLED",
-    "PLAYER_TARGET_CHANGED",
-    "PLAYER_UNGHOST",
-    "UI_ERROR_MESSAGE",
-    "ZONE_CHANGED_NEW_AREA",
-    "SKILL_LINES_CHANGED",
-    "SPELLS_CHANGED",
-    "GROUP_ROSTER_UPDATE",
-    "UNIT_PET",
-    "UNIT_SPELLCAST_SUCCEEDED",
-    "UNIT_AURA",
-    "QUEST_LOG_UPDATE",
-    "GET_ITEM_INFO_RECEIVED"
+	"BAG_UPDATE_DELAYED",
+	"ITEM_PUSH",
+	"PLAYER_ALIVE",
+	"PLAYER_ENTERING_WORLD",
+	"PLAYER_LEVEL_UP",
+	"PLAYER_LOGIN",
+	"PLAYER_LOGOUT",
+	"PLAYER_REGEN_ENABLED",
+	"PLAYER_TARGET_CHANGED",
+	"PLAYER_UNGHOST",
+	"UI_ERROR_MESSAGE",
+	"ZONE_CHANGED_NEW_AREA",
+	"SKILL_LINES_CHANGED",
+	"SPELLS_CHANGED",
+	"GROUP_ROSTER_UPDATE",
+	"UNIT_PET",
+	"UNIT_SPELLCAST_SUCCEEDED",
+	"UNIT_AURA",
+	"QUEST_LOG_UPDATE",
+	"GET_ITEM_INFO_RECEIVED",
 }
 
 --[[
@@ -610,17 +601,17 @@ ns.EVENT_NAMES = {
     GET_ITEM_INFO_RECEIVED via RegisterDataRetry).
 ]]
 local DEFERRED_EVENTS = {
-    UNIT_PET = true,
-    UNIT_SPELLCAST_SUCCEEDED = true,
-    UNIT_AURA = true,
-    QUEST_LOG_UPDATE = true,
-    GET_ITEM_INFO_RECEIVED = true
+	UNIT_PET = true,
+	UNIT_SPELLCAST_SUCCEEDED = true,
+	UNIT_AURA = true,
+	QUEST_LOG_UPDATE = true,
+	GET_ITEM_INFO_RECEIVED = true,
 }
 
 for _, event in ipairs(ns.EVENT_NAMES) do
-    if not DEFERRED_EVENTS[event] then
-        frame:RegisterEvent(event)
-    end
+	if not DEFERRED_EVENTS[event] then
+		frame:RegisterEvent(event)
+	end
 end
 
 frame:RegisterUnitEvent("UNIT_PET", "player")
