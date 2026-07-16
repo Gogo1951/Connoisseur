@@ -30,3 +30,6 @@ ignore:
   - .pkgmeta
   - .vscode
   - LICENSE
+  - tools
+  - Features/Restocker/Specs
+  - Features/Restocker/Tests

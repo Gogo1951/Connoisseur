@@ -1,12 +1,17 @@
 local _, ns = ...
 
 --[[
-    Scanner-Inventory -- scans the player's bags and selects the single best item
-    per macro category (food, water, potions, healthstones, ...) plus the best
-    Hunter pet food, applying scoring, ranking, and usability gates.
+    Scanner-Inventory -- scans the player's bags and selects the best item per
+    macro category, applying scoring, ranking, and usability gates. WHAT each
+    category consumes and HOW it scores is declared by the macro definitions
+    themselves (itemTypes / accepts / score / ranked / ... — see the
+    definition protocol in Features/Macros/Engine.lua); this file owns the
+    shared machinery: the usability gates, the RANKING_PRIORITY tiebreak
+    ladder, and the scan loop that dispatches each bag item to every matching
+    definition.
 
-    Exposes: ns.ScanBags, ns.ScanPetFood, ns.BestFoodID, ns.BestFoodLink,
-    ns.BestPetFoodID, ns.BestPetFoodLink.
+    Exposes: ns.ScanBags, ns.AdjustedScore, ns.BestSelection, ns.BestFoodID,
+    ns.BestFoodLink.
 ]]
 
 --------------------------------------------------------------------------------
@@ -16,108 +21,20 @@ local _, ns = ...
 ns.BestFoodID = nil
 ns.BestFoodLink = nil
 
-ns.BestPetFoodID = nil
-ns.BestPetFoodLink = nil
-
 --------------------------------------------------------------------------------
 -- Best Item Tracking
 --------------------------------------------------------------------------------
 
-local best = {
-    ["Bandage"] = {
-        id = nil,
-        value = 0,
-        price = 0,
-        count = 0,
-        link = nil,
-        isBuffFood = false,
-        isPercent = false,
-        isHybrid = false
-    },
-    ["Explosive"] = {
-        id = nil,
-        value = 0,
-        price = 0,
-        count = 0,
-        link = nil,
-        isBuffFood = false,
-        isPercent = false,
-        isHybrid = false
-    },
-    ["Food"] = {
-        id = nil,
-        value = 0,
-        price = 0,
-        count = 0,
-        link = nil,
-        isBuffFood = false,
-        isPercent = false,
-        isHybrid = false
-    },
-    ["Health Potion"] = {
-        id = nil,
-        value = 0,
-        price = 0,
-        count = 0,
-        link = nil,
-        isBuffFood = false,
-        isPercent = false,
-        isHybrid = false,
-        topIDs = {}
-    },
-    ["Healthstone"] = {
-        id = nil,
-        value = 0,
-        price = 0,
-        count = 0,
-        link = nil,
-        isBuffFood = false,
-        isPercent = false,
-        isHybrid = false,
-        topIDs = {}
-    },
-    ["Mana Gem"] = {
-        id = nil,
-        value = 0,
-        price = 0,
-        count = 0,
-        link = nil,
-        isBuffFood = false,
-        isPercent = false,
-        isHybrid = false
-    },
-    ["Mana Potion"] = {
-        id = nil,
-        value = 0,
-        price = 0,
-        count = 0,
-        link = nil,
-        isBuffFood = false,
-        isPercent = false,
-        isHybrid = false,
-        topIDs = {}
-    },
-    ["Soulstone"] = {
-        id = nil,
-        value = 0,
-        price = 0,
-        count = 0,
-        link = nil,
-        isBuffFood = false,
-        isPercent = false,
-        isHybrid = false
-    },
-    ["Water"] = {
-        id = nil,
-        value = 0,
-        price = 0,
-        count = 0,
-        link = nil,
-        isBuffFood = false,
-        isPercent = false,
-        isHybrid = false
-    }
-}
+--[[
+    Per-category winner records and ranked-candidate lists, built from the
+    definition registry (ns.RegisteredMacroDefs) instead of hardcoded here:
+    every registered definition with an itemTypes set gets a winner record,
+    and ranked definitions also get a topIDs list plus a candidate
+    collector. Definitions register from Features/Macros/*.lua, which load
+    after this file, so the tables are built lazily on the first scan
+    (BuildSelectionTables below) — every scan happens long after load.
+]]
+local best = {}
 
 --[[
     Expose the scanner's live best table for diagnostics. ScanBags resets and
@@ -128,19 +45,41 @@ local best = {
 ]]
 ns.BestSelection = best
 
+local rankedCandidates = {}
+
 local function ResetBest(entry)
-    entry.id = nil
-    entry.value = 0
-    entry.price = 0
-    entry.count = 0
-    entry.link = nil
-    entry.isBuffFood = false
-    entry.isPercent = false
-    entry.isHybrid = false
-    entry.isConjured = false
-    if entry.topIDs then
-        wipe(entry.topIDs)
-    end
+	entry.id = nil
+	entry.value = 0
+	entry.price = 0
+	entry.count = 0
+	entry.link = nil
+	entry.isBuffFood = false
+	entry.isPercent = false
+	entry.isHybrid = false
+	entry.isConjured = false
+	if entry.topIDs then
+		wipe(entry.topIDs)
+	end
+end
+
+local selectionTablesBuilt = false
+
+local function BuildSelectionTables()
+	if selectionTablesBuilt then
+		return
+	end
+	selectionTablesBuilt = true
+	for _, def in ipairs(ns.RegisteredMacroDefs) do
+		if def.itemTypes then
+			local entry = {}
+			if def.ranked then
+				entry.topIDs = {}
+				rankedCandidates[def.typeName] = {}
+			end
+			ResetBest(entry)
+			best[def.typeName] = entry
+		end
+	end
 end
 
 --------------------------------------------------------------------------------
@@ -166,85 +105,138 @@ end
 ]]
 
 local function AdjustedScore(data, baseValue)
-    local score = baseValue
-    if data.zones then
-        score = score + 2
-    end
-    if (data.maxStack or 1) > 10 then
-        score = score + 1
-    end
-    return score
+	local score = baseValue
+	if data.zones then
+		score = score + 2
+	end
+	if (data.maxStack or 1) > 10 then
+		score = score + 1
+	end
+	return score
 end
+-- Exposed for the definitions' score() hooks (Bandage, Health/Mana Potion).
+ns.AdjustedScore = AdjustedScore
 
 --------------------------------------------------------------------------------
 -- Comparison Logic
 --------------------------------------------------------------------------------
 
 --[[
-    Candidate wins if, in order: it's a buff food when we want one, it's a
-    percent-heal, it has a higher score, it's conjured (a conjured item beats a
-    non-conjured item of equal value), a lower price, the correct hybrid
-    preference, fewer copies in bags, or — as a final, never-equal tiebreak —
-    a lower itemID.
+    RANKING_PRIORITY is the single source of truth for how consumables are
+    ranked. Both comparator forms — IsBetter's single-winner test and the
+    ranked lists' pairwise sort (CompareRankedCandidates) — are generated from
+    this one ordered list by CompareRecords, so reordering a step here is the
+    only edit needed to change the ranking everywhere.
 
-    The itemID tiebreak mirrors CompareRankedCandidates: without it, two items
-    that match on every other field compare equal, so the winner is whichever
-    the pairs() scan over slotItems happened to reach first. That order is not
-    stable between an in-session rescan (a wiped-and-rebuilt table) and a fresh
-    table after /reload, so the selection could flip for identical bags — the
-    item would only "update" after a reload. Comparing itemID last makes the
-    pick deterministic, so a buy-triggered rescan and a reload always agree.
+    Step shape:
+      field — record field to compare
+      kind  — "bool" (truthy side wins), "higher", or "lower"
+      gatedOnAllowBuffFood       — step runs only when the caller allows buff
+                                   food (the Food macro path)
+      truthyWinsWhenPreferHybrid — direction flag for the hybrid step: truthy
+                                   wins when the caller prefers hybrids (Food);
+                                   falsy wins otherwise (Water, ranked potions)
+
+    Boolean fields are compared RAW (~=), never coerced: winner entries store
+    e.g. `data.isBuffFood` unnormalized, so nil-vs-false pairs occur in
+    practice, count as a difference, and decide the step — that outcome is
+    part of the long-standing observed ordering and must not change.
 ]]
 
-local function IsBetter(candidate, candidateCount, candidatePrice, currentBest, score, allowBuffFood, preferHybrid)
-    if not currentBest.id then
-        return true
-    end
+local RANKING_PRIORITY = {
+	-- Buff food first when the Food macro wants one.
+	{ field = "isBuffFood", kind = "bool", gatedOnAllowBuffFood = true },
 
-    if allowBuffFood and candidate.isBuffFood ~= currentBest.isBuffFood then
-        return candidate.isBuffFood
-    end
+	-- Percent-based restores beat flat values.
+	{ field = "isPercent", kind = "bool" },
 
-    if candidate.isPercent ~= currentBest.isPercent then
-        return candidate.isPercent
-    end
+	-- Higher restore/damage score (AdjustedScore bonuses included).
+	{ field = "value", kind = "higher" },
 
-    if score ~= currentBest.value then
-        return score > currentBest.value
-    end
-
-    --[[
-        Conjured food/water beats a non-conjured item of equal restore value. A
-        mage's conjured ration is free and infinite, so at equal food/mana it
-        should always be the pick rather than burning a purchased, quested, or
-        arena-only drink. Below score (a higher-value item still wins) and above
-        price so the preference is deterministic instead of falling through to
-        the incidental price/count/itemID tiebreaks. isConjured is false for
-        every non-food/water type, so this is a no-op for potions, stones, gems,
-        and bandages.
+	--[[
+        Conjured food/water beats a non-conjured item of equal restore value.
+        A mage's conjured ration is free and infinite, so at equal food/mana
+        it should always be the pick rather than burning a purchased, quested,
+        or arena-only drink. Below value (a higher-value item still wins) and
+        above price so the preference is deterministic instead of falling
+        through to the incidental price/count/itemID tiebreaks. isConjured is
+        false for every non-food/water type, so this is a no-op for potions,
+        stones, gems, and bandages.
     ]]
-    if candidate.isConjured ~= currentBest.isConjured then
-        return candidate.isConjured
-    end
+	{ field = "isConjured", kind = "bool" },
 
-    if candidatePrice ~= currentBest.price then
-        return candidatePrice < currentBest.price
-    end
+	-- Cheaper wins.
+	{ field = "price", kind = "lower" },
 
-    local candidateIsHybrid = (candidate.healthValue > 0 and candidate.manaValue > 0)
-    if candidateIsHybrid ~= currentBest.isHybrid then
-        if preferHybrid then
-            return candidateIsHybrid
-        else
-            return not candidateIsHybrid
-        end
-    end
+	-- Hybrid food/water: the Food macro prefers hybrids; Water and the
+	-- ranked potion lists prefer dedicated items.
+	{ field = "isHybrid", kind = "bool", truthyWinsWhenPreferHybrid = true },
 
-    if candidateCount ~= currentBest.count then
-        return candidateCount < currentBest.count
-    end
+	-- Fewer copies in bags: burn the smaller pile first.
+	{ field = "count", kind = "lower" },
 
-    return candidate.id < currentBest.id
+	--[[
+        Final, never-equal tiebreak. Without it, two items that match on every
+        other field compare equal, so the winner is whichever the pairs() scan
+        over slotItems happened to reach first. That order is not stable
+        between an in-session rescan (a wiped-and-rebuilt table) and a fresh
+        table after /reload, so the selection could flip for identical bags —
+        the item would only "update" after a reload. Comparing itemID last
+        makes the pick deterministic, so a buy-triggered rescan and a reload
+        always agree; it also keeps table.sort's instability from reordering
+        equal ranks between scans and churning macro rewrites.
+    ]]
+	{ field = "id", kind = "lower" },
+}
+
+-- Returns true when record `a` outranks record `b` under RANKING_PRIORITY.
+local function CompareRecords(a, b, allowBuffFood, preferHybrid)
+	for i = 1, #RANKING_PRIORITY do
+		local step = RANKING_PRIORITY[i]
+		if not (step.gatedOnAllowBuffFood and not allowBuffFood) then
+			local av, bv = a[step.field], b[step.field]
+			if av ~= bv then
+				if step.kind == "higher" then
+					return av > bv
+				elseif step.kind == "lower" then
+					return av < bv
+				elseif step.truthyWinsWhenPreferHybrid and not preferHybrid then
+					return not av
+				else
+					return av and true or false
+				end
+			end
+		end
+	end
+	return false
+end
+
+--[[
+    Single-winner form: does this bag item beat the current best entry?
+    The candidate's fields are normalized into a reusable scratch record —
+    score arrives as a parameter because the call sites pass AdjustedScore or
+    a raw restore value, and hybrid is derived from the restore values exactly
+    as before — so CompareRecords reads both sides through the same field
+    names. Best entries already use these names (see ResetBest).
+]]
+local candidateRecord = {}
+
+local function IsBetter(candidate, candidateCount, candidatePrice, currentBest, score, allowBuffFood, preferHybrid)
+	if not currentBest.id then
+		return true
+	end
+
+	local record = candidateRecord
+	record.isBuffFood = candidate.isBuffFood
+	record.isPercent = candidate.isPercent
+	record.value = score
+	record.isConjured = candidate.isConjured
+	record.price = candidatePrice
+	record.isHybrid = (candidate.healthValue > 0 and candidate.manaValue > 0)
+	record.count = candidateCount
+	record.id = candidate.id
+
+	return CompareRecords(record, currentBest, allowBuffFood, preferHybrid)
 end
 
 --------------------------------------------------------------------------------
@@ -252,73 +244,53 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-    The ns.MultiUseMacroTypes categories stack up to ns.MULTI_USE_MAX_ITEMS
-    /use lines per macro, so instead of tracking a single running winner
-    they collect every usable candidate during the scan and are ranked once
-    it completes. The other categories keep the single-winner IsBetter path.
+    The ranked definitions (ranked = true — the ns.MultiUseMacroTypes
+    categories) stack up to ns.MULTI_USE_MAX_ITEMS /use lines per macro, so
+    instead of tracking a single running winner they collect every usable
+    candidate during the scan into rankedCandidates (declared above, keyed
+    by typeName from the registry) and are ranked once it completes. The
+    other categories keep the single-winner IsBetter path.
 ]]
 
-local rankedCandidates = {
-    ["Health Potion"] = {},
-    ["Healthstone"] = {},
-    ["Mana Potion"] = {}
-}
-
 local function AddRankedCandidate(typeName, id, data, score, count)
-    local list = rankedCandidates[typeName]
-    list[#list + 1] = {
-        id = id,
-        value = score,
-        price = data.price,
-        count = count,
-        isPercent = data.isPercent or false,
-        isHybrid = (data.healthValue > 0 and data.manaValue > 0)
-    }
+	local list = rankedCandidates[typeName]
+	list[#list + 1] = {
+		id = id,
+		value = score,
+		price = data.price,
+		count = count,
+		isPercent = data.isPercent or false,
+		isHybrid = (data.healthValue > 0 and data.manaValue > 0),
+	}
 end
 
 --[[
-    Pairwise form of IsBetter's ordering for the ranked categories, where
-    allowBuffFood and preferHybrid are always false: percent heals first,
-    then higher score, lower price, non-hybrid, fewer copies in bags.
-    itemID is the final tiebreak so candidates never compare equal — keeps
-    table.sort's instability from reordering equal ranks between scans and
-    churning macro rewrites.
+    Pairwise sort form for the ranked categories — the same RANKING_PRIORITY
+    chain with allowBuffFood and preferHybrid always false: percent heals
+    first, then higher score, lower price, non-hybrid, fewer copies, itemID.
+    Ranked records carry no isBuffFood/isConjured fields, so those steps
+    compare nil-to-nil and pass through.
 ]]
 local function CompareRankedCandidates(a, b)
-    if a.isPercent ~= b.isPercent then
-        return a.isPercent
-    end
-    if a.value ~= b.value then
-        return a.value > b.value
-    end
-    if a.price ~= b.price then
-        return a.price < b.price
-    end
-    if a.isHybrid ~= b.isHybrid then
-        return not a.isHybrid
-    end
-    if a.count ~= b.count then
-        return a.count < b.count
-    end
-    return a.id < b.id
+	return CompareRecords(a, b, false, false)
 end
 
 local function RankCandidates()
-    for typeName, list in pairs(rankedCandidates) do
-        table.sort(list, CompareRankedCandidates)
+	for typeName, list in pairs(rankedCandidates) do
+		table.sort(list, CompareRankedCandidates)
 
-        local entry = best[typeName]
-        local winner = list[1]
-        if winner then
-            entry.id = winner.id
-            entry.value = winner.value
-            entry.price = winner.price
-            entry.count = winner.count
-        end
-        for rank = 1, math.min(#list, ns.MULTI_USE_MAX_ITEMS) do
-            entry.topIDs[rank] = list[rank].id
-        end
-    end
+		local entry = best[typeName]
+		local winner = list[1]
+		if winner then
+			entry.id = winner.id
+			entry.value = winner.value
+			entry.price = winner.price
+			entry.count = winner.count
+		end
+		for rank = 1, math.min(#list, ns.MULTI_USE_MAX_ITEMS) do
+			entry.topIDs[rank] = list[rank].id
+		end
+	end
 end
 
 --------------------------------------------------------------------------------
@@ -329,15 +301,15 @@ local itemCounts = {}
 local slotItems = {}
 
 function ns.ScanBags()
-    --[[
+	--[[
         Refresh the zone at scan time. A zone change during combat is gated out
         by the lockdown guard in Core's dispatcher, so ZONE_CHANGED_NEW_AREA
         never updates the cache mid-fight; reading it here keeps zone-restricted
         item filtering from running against a stale map after combat drops.
     ]]
-    ns.CachedMapID = C_Map.GetBestMapForUnit("player")
+	ns.CachedMapID = C_Map.GetBestMapForUnit("player")
 
-    --[[
+	--[[
         Party/raid-restricted Buff Food, Scrolls, and Pet Food go stale when
         group composition or the mode dropdown changes — those flip whether a
         feature is active but have no dedicated UpdateAuraTracking call, so
@@ -345,96 +317,98 @@ function ns.ScanBags()
         ScanBags is the single point every rescan passes through, so reconcile
         aura tracking here, before AllowBuffFood reads ns.WellFedState below.
     ]]
-    if ns.UpdateAuraTracking then
-        ns.UpdateAuraTracking()
-    end
+	if ns.UpdateAuraTracking then
+		ns.UpdateAuraTracking()
+	end
 
-    local playerLevel = ns.CachedPlayerLevel
-    local currentMap = ns.CachedMapID
-    --[[
+	local playerLevel = ns.CachedPlayerLevel
+	local currentMap = ns.CachedMapID
+	--[[
         Arena-only consumables (e.g. Star's Tears) are gated on the live
         instance type instead of a zone-ID list, so every arena is covered with
         no map IDs to maintain. IsInInstance is safe on Era (returns "none").
         ScanBags re-runs on PLAYER_ENTERING_WORLD and ZONE_CHANGED_NEW_AREA, so
         this refreshes on every arena entry and exit.
     ]]
-    local inArena = select(2, IsInInstance()) == "arena"
-    local firstAidSkill = ns.CurrentFirstAidSkill or 0
-    local alchemySkill = ns.CurrentAlchemySkill or 0
-    local engineeringSkill = ns.CurrentEngineeringSkill or 0
-    local settings = (ns.db and ns.db.profile) or {}
-    local itemCache = (ns.db and ns.db.profile.itemCache) or {}
+	local inArena = select(2, IsInInstance()) == "arena"
+	local firstAidSkill = ns.CurrentFirstAidSkill or 0
+	local alchemySkill = ns.CurrentAlchemySkill or 0
+	local engineeringSkill = ns.CurrentEngineeringSkill or 0
+	local settings = (ns.db and ns.db.profile) or {}
+	local itemCache = (ns.db and ns.db.profile.itemCache) or {}
 
-    --[[
+	--[[
         Testing aid: targeting yourself forces the Food macro into plain-food
         mode — no scrolls, no buff food, just the best non-buff food. Useful
         for verifying what the macro picks without re-toggling settings.
         Scrolls are already suppressed on any friendly-player target (including
         self) in UpdateMacros, so we only need to disable buff-food here.
     ]]
-    local targetingSelf = UnitExists("target") and UnitIsUnit("target", "player")
+	local targetingSelf = UnitExists("target") and UnitIsUnit("target", "player")
 
-    --[[
+	--[[
         Arena rule: scrolls, pet buff food, and buff food cannot be consumed in
         a PvP Arena, so the Food macro must stay in plain (non-buff) food mode
         there. Buff-food preference is gated here; the scroll and pet-buff
         override resolvers are gated below.
     ]]
-    ns.AllowBuffFood = settings.useBuffFood
-        and ns.IsModeActive(settings.buffFoodMode)
-        and not ns.WellFedState
-        and not targetingSelf
-        and not inArena
+	ns.AllowBuffFood = settings.useBuffFood
+		and ns.IsModeActive(settings.buffFoodMode)
+		and not ns.WellFedState
+		and not targetingSelf
+		and not inArena
 
-    for _, entry in pairs(best) do
-        ResetBest(entry)
-    end
+	BuildSelectionTables()
 
-    for _, list in pairs(rankedCandidates) do
-        wipe(list)
-    end
+	for _, entry in pairs(best) do
+		ResetBest(entry)
+	end
 
-    local dataRetry = false
-    wipe(itemCounts)
-    wipe(slotItems)
+	for _, list in pairs(rankedCandidates) do
+		wipe(list)
+	end
 
-    for bag = 0, NUM_BAG_SLOTS do
-        for slot = 1, ns.GetContainerNumSlots(bag) do
-            local info = ns.GetContainerItemInfo(bag, slot)
-            if info and info.itemID then
-                local id = info.itemID
-                itemCounts[id] = (itemCounts[id] or 0) + info.stackCount
-                if not slotItems[id] then
-                    slotItems[id] = info.hyperlink
-                end
-            end
-        end
-    end
+	local dataRetry = false
+	wipe(itemCounts)
+	wipe(slotItems)
 
-    --[[
+	for bag = 0, NUM_BAG_SLOTS do
+		for slot = 1, ns.GetContainerNumSlots(bag) do
+			local info = ns.GetContainerItemInfo(bag, slot)
+			if info and info.itemID then
+				local id = info.itemID
+				itemCounts[id] = (itemCounts[id] or 0) + info.stackCount
+				if not slotItems[id] then
+					slotItems[id] = info.hyperlink
+				end
+			end
+		end
+	end
+
+	--[[
         Overrides check happens before standard consumable scan. Skipped
         entirely in a PvP Arena (see the arena rule above): scroll mode and pet
         buff food can't be used there, so both stay nil and the Food macro keeps
         its plain food/conjure form.
     ]]
-    if inArena then
-        ns.ScrollOverrideIDs = nil
-        ns.PetBuffOverrideID = nil
-    else
-        ns.ScrollOverrideIDs = ns.FindScrollOverrides(itemCounts)
-        ns.PetBuffOverrideID = ns.FindPetBuffOverride(itemCounts)
-    end
+	if inArena then
+		ns.ScrollOverrideIDs = nil
+		ns.PetBuffOverrideID = nil
+	else
+		ns.ScrollOverrideIDs = ns.FindScrollOverrides(itemCounts)
+		ns.PetBuffOverrideID = ns.FindPetBuffOverride(itemCounts)
+	end
 
-    local ignoreList = (ns.db and ns.db.profile.ignoreList) or {}
+	local ignoreList = (ns.db and ns.db.profile.ignoreList) or {}
 
-    for id, hyperlink in pairs(slotItems) do
-        if not ignoreList[id] then
-            -- Skip scroll items from normal consumable processing
-            if ns.ScrollItemLookup and ns.ScrollItemLookup[id] then
-                -- Scrolls are handled by the scroll override system
-            else
-                local data = itemCache[id]
-                --[[
+	for id, hyperlink in pairs(slotItems) do
+		if not ignoreList[id] then
+			-- Skip scroll items from normal consumable processing
+			if ns.ScrollItemLookup and ns.ScrollItemLookup[id] then
+				-- Scrolls are handled by the scroll override system
+			else
+				local data = itemCache[id]
+				--[[
                     Drop cache entries from an older schema so CacheItemData
                     re-derives them below. Test the NEWEST cached field, not an
                     old one: version-stamp invalidation only fires on a release
@@ -444,36 +418,49 @@ function ns.ScanBags()
                     the older fields are kept in the test to also catch
                     pre-maxStack/-arenaUsable/-isConjured entries.
                 ]]
-                if data and data ~= "IGNORE" and (data.maxStack == nil or data.arenaUsable == nil or data.isConjured == nil or data.damageValue == nil) then
-                    data = nil
-                    itemCache[id] = nil
-                end
-                if not data then
-                    data = ns.CacheItemData(id)
-                end
+				if
+					data
+					and data ~= "IGNORE"
+					and (
+						data.maxStack == nil
+						or data.arenaUsable == nil
+						or data.isConjured == nil
+						or data.damageValue == nil
+					)
+				then
+					data = nil
+					itemCache[id] = nil
+				end
+				if not data then
+					data = ns.CacheItemData(id)
+				end
 
-                if not data then
-                    dataRetry = true
-                elseif data ~= "IGNORE" then
-                    local usable = true
+				if not data then
+					dataRetry = true
+				elseif data ~= "IGNORE" then
+					local usable = true
 
-                    if data.requiredLevel > playerLevel then
-                        usable = false
-                    end
+					if data.requiredLevel > playerLevel then
+						usable = false
+					end
 
-                    if usable and data.requiredFirstAid > 0 and data.requiredFirstAid > firstAidSkill then
-                        usable = false
-                    end
+					if usable and data.requiredFirstAid > 0 and data.requiredFirstAid > firstAidSkill then
+						usable = false
+					end
 
-                    if usable and (data.requiredAlchemy or 0) > 0 and (data.requiredAlchemy or 0) > alchemySkill then
-                        usable = false
-                    end
+					if usable and (data.requiredAlchemy or 0) > 0 and (data.requiredAlchemy or 0) > alchemySkill then
+						usable = false
+					end
 
-                    if usable and (data.requiredEngineering or 0) > 0 and (data.requiredEngineering or 0) > engineeringSkill then
-                        usable = false
-                    end
+					if
+						usable
+						and (data.requiredEngineering or 0) > 0
+						and (data.requiredEngineering or 0) > engineeringSkill
+					then
+						usable = false
+					end
 
-                    --[[
+					--[[
                         Engineering specialization gate (Global Thermal Sapper
                         Charge requires Goblin Engineer). Checked live rather
                         than cached at login because the specialization can be
@@ -482,25 +469,25 @@ function ns.ScanBags()
                         GetSmartSpell — profession passives can live on either
                         surface depending on client.
                     ]]
-                    if usable and data.requiredSpellID then
-                        local known = IsSpellKnown(data.requiredSpellID)
-                        if not known and IsPlayerSpell then
-                            known = IsPlayerSpell(data.requiredSpellID)
-                        end
-                        if not known then
-                            usable = false
-                        end
-                    end
+					if usable and data.requiredSpellID then
+						local known = IsSpellKnown(data.requiredSpellID)
+						if not known and IsPlayerSpell then
+							known = IsPlayerSpell(data.requiredSpellID)
+						end
+						if not known then
+							usable = false
+						end
+					end
 
-                    if usable and data.zones then
-                        usable = (currentMap ~= nil) and (data.zones[currentMap] == true)
-                    end
+					if usable and data.zones then
+						usable = (currentMap ~= nil) and (data.zones[currentMap] == true)
+					end
 
-                    if usable and data.arenaOnly and not inArena then
-                        usable = false
-                    end
+					if usable and data.arenaOnly and not inArena then
+						usable = false
+					end
 
-                    --[[
+					--[[
                         In a PvP Arena only conjured food/water and the arena-only
                         drinks (Star's Tears/Lament) can be consumed -- regular
                         food and drink are blocked. Gate the rest out so the macro
@@ -508,324 +495,73 @@ function ns.ScanBags()
                         Ranking within what survives is unchanged (highest value,
                         then price, then count).
                     ]]
-                    if usable and inArena then
-                        local t = data.itemType
-                        local isFoodOrWater = (t == "food" or t == "water" or t == "foodwater")
-                        if isFoodOrWater and not data.arenaUsable then
-                            usable = false
-                        end
-                    end
+					if usable and inArena then
+						local t = data.itemType
+						local isFoodOrWater = (t == "food" or t == "water" or t == "foodwater")
+						if isFoodOrWater and not data.arenaUsable then
+							usable = false
+						end
+					end
 
-                    if usable then
-                        local totalCount = itemCounts[id]
-                        local itemType = data.itemType
+					if usable then
+						local totalCount = itemCounts[id]
 
-                        if itemType == "bandage" then
-                            local adjusted = AdjustedScore(data, data.healthValue)
-                            if IsBetter(data, totalCount, data.price, best["Bandage"], adjusted, false) then
-                                local winner = best["Bandage"]
-                                winner.id = id
-                                winner.value = adjusted
-                                winner.price = data.price
-                                winner.count = totalCount
-                            end
-                        elseif itemType == "healthstone" then
-                            AddRankedCandidate("Healthstone", id, data, data.healthValue, totalCount)
-                        elseif itemType == "soulstone" then
-                            if IsBetter(data, totalCount, data.price, best["Soulstone"], data.healthValue, false) then
-                                local winner = best["Soulstone"]
-                                winner.id = id
-                                winner.value = data.healthValue
-                                winner.price = data.price
-                                winner.count = totalCount
-                            end
-                        elseif itemType == "managem" then
-                            if IsBetter(data, totalCount, data.price, best["Mana Gem"], data.manaValue, false) then
-                                local winner = best["Mana Gem"]
-                                winner.id = id
-                                winner.value = data.manaValue
-                                winner.price = data.price
-                                winner.count = totalCount
-                            end
-                        elseif itemType == "explosive" then
-                            -- Ranked by minimum damage; ties fall to the standard ladder.
-                            if IsBetter(data, totalCount, data.price, best["Explosive"], data.damageValue, false) then
-                                local winner = best["Explosive"]
-                                winner.id = id
-                                winner.value = data.damageValue
-                                winner.price = data.price
-                                winner.count = totalCount
-                            end
-                        elseif itemType == "potion" then
-                            if data.healthValue > 0 then
-                                local adjusted = AdjustedScore(data, data.healthValue)
-                                AddRankedCandidate("Health Potion", id, data, adjusted, totalCount)
-                            end
-                            if data.manaValue > 0 then
-                                local adjusted = AdjustedScore(data, data.manaValue)
-                                AddRankedCandidate("Mana Potion", id, data, adjusted, totalCount)
-                            end
-                        elseif itemType == "food" or itemType == "water" or itemType == "foodwater" then
-                            if not (data.isBuffFood and not ns.AllowBuffFood) then
-                                if itemType == "food" or itemType == "foodwater" then
-                                    if
-                                        IsBetter(
-                                            data,
-                                            totalCount,
-                                            data.price,
-                                            best["Food"],
-                                            data.healthValue,
-                                            ns.AllowBuffFood,
-                                            true
-                                        )
-                                     then
-                                        local winner = best["Food"]
-                                        winner.id = id
-                                        winner.value = data.healthValue
-                                        winner.price = data.price
-                                        winner.count = totalCount
-                                        winner.isBuffFood = data.isBuffFood
-                                        winner.isPercent = data.isPercent
-                                        winner.link = hyperlink
-                                        winner.isHybrid = (itemType == "foodwater")
-                                        winner.isConjured = data.isConjured
-                                    end
-                                end
-                                if itemType == "water" or itemType == "foodwater" then
-                                    if
-                                        IsBetter(
-                                            data,
-                                            totalCount,
-                                            data.price,
-                                            best["Water"],
-                                            data.manaValue,
-                                            ns.AllowBuffFood,
-                                            false
-                                        )
-                                     then
-                                        local winner = best["Water"]
-                                        winner.id = id
-                                        winner.value = data.manaValue
-                                        winner.price = data.price
-                                        winner.count = totalCount
-                                        winner.isBuffFood = data.isBuffFood
-                                        winner.isPercent = data.isPercent
-                                        winner.isHybrid = (itemType == "foodwater")
-                                        winner.isConjured = data.isConjured
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
+						--[[
+                            Dispatch the item to every registered definition
+                            whose itemTypes set claims its cached itemType.
+                            Deliberately not first-match-wins: more than one
+                            category may consume the same item — a potion
+                            with both health and mana values feeds Health
+                            Potion and Mana Potion, and a foodwater hybrid
+                            feeds Food and Water.
+                        ]]
+						for _, def in ipairs(ns.RegisteredMacroDefs) do
+							if
+								def.itemTypes
+								and def.itemTypes[data.itemType]
+								and (not def.accepts or def.accepts(data))
+							then
+								local score = def.score(data)
+								if def.ranked then
+									AddRankedCandidate(def.typeName, id, data, score, totalCount)
+								else
+									local entry = best[def.typeName]
+									-- allowBuffFood defs track the live scan
+									-- preference; everyone else compares with
+									-- the buff-food step gated off.
+									local allowBuffFood = def.allowBuffFood and ns.AllowBuffFood
+									if
+										IsBetter(
+											data,
+											totalCount,
+											data.price,
+											entry,
+											score,
+											allowBuffFood,
+											def.preferHybrid
+										)
+									then
+										entry.id = id
+										entry.value = score
+										entry.price = data.price
+										entry.count = totalCount
+										if def.winnerExtras then
+											def.winnerExtras(entry, data, hyperlink)
+										end
+									end
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+	end
 
-    RankCandidates()
+	RankCandidates()
 
-    ns.BestFoodID = best["Food"].id
-    ns.BestFoodLink = best["Food"].link
+	ns.BestFoodID = best["Food"].id
+	ns.BestFoodLink = best["Food"].link
 
-    return best, dataRetry
-end
-
---------------------------------------------------------------------------------
--- Active Quest Set (Hunter)
---------------------------------------------------------------------------------
-
---[[
-    Builds a set of quest IDs the player currently has in their quest log.
-    Used by ScanPetFood to skip foods that are objectives for active quests.
-]]
-
-local activeQuestIDs = {}
-
-local function BuildActiveQuestSet()
-    wipe(activeQuestIDs)
-    for questIndex = 1, GetNumQuestLogEntries() do
-        local _, _, _, isHeader, _, _, _, questID = GetQuestLogTitle(questIndex)
-        -- Include completed-but-not-turned-in quests too: turn-in still consumes the items.
-        if not isHeader and questID then
-            activeQuestIDs[questID] = true
-        end
-    end
-end
-
-local function IsNeededForQuest(questIDs)
-    for _, questID in ipairs(questIDs) do
-        if activeQuestIDs[questID] then
-            return true
-        end
-    end
-    return false
-end
-
---------------------------------------------------------------------------------
--- Pet Food Scanning (Hunter)
---------------------------------------------------------------------------------
-
---[[
-    Selects the lowest-itemLevel food that still gives maximum happiness
-    (petLevel - foodItemLevel between 0 and 10). Ties broken by sell price
-    (lower wins), then total count in bags (fewer wins).
-
-    If no food sits in the max-happiness bracket, falls back to the food
-    closest to (but above) the pet's level. Pets eat above-level food, just
-    wastefully — better than letting the pet go hungry.
-
-    Note: there is no upper cap on how far above pet level the fallback can
-    reach. Confirmed empirically on Anniversary (1.15.x): a level-8 cat will
-    happily eat level-70 meat. The fallback ranks by lowest food level first,
-    so the *least* wasteful option still wins when multiple are available.
-
-    All data (itemLevel, dietID, sellPrice, questIDs) comes from the stored
-    ns.PetFoodData table. No server queries are needed during scanning.
-
-    Quest objective foods are skipped whenever the player has that quest in
-    their log (including completed-but-not-turned-in), since turn-in consumes
-    the items.
-]]
-
-function ns.ScanPetFood()
-    ns.BestPetFoodID = nil
-    ns.BestPetFoodLink = nil
-
-    if not ns.PetFoodData or not ns.PetDietMap then
-        return
-    end
-
-    -- Must have a living pet out
-    if not UnitExists("pet") or UnitIsDead("pet") or UnitIsGhost("pet") then
-        return
-    end
-
-    local petLevel = UnitLevel("pet")
-    if not petLevel or petLevel < 1 then
-        return
-    end
-
-    -- Build a set of diet IDs the current pet accepts
-    local petDiets = {GetPetFoodTypes()}
-    if not petDiets or #petDiets == 0 then
-        return
-    end
-
-    local dietSet = {}
-    for _, dietName in ipairs(petDiets) do
-        local dietID = ns.PetDietMap[dietName]
-        if dietID then
-            dietSet[dietID] = true
-        end
-    end
-
-    -- Snapshot the player's active quests once per scan
-    BuildActiveQuestSet()
-
-    local ignoreList = (ns.db and ns.db.profile.ignoreList) or {}
-
-    local bestID, bestLink
-    local bestLevel = 999
-    local bestPrice = 999999
-    local bestCount = 999999
-
-    --[[
-        Wasteful fallback: pets will eat food above their level when no in-bracket
-        option is available. Prefer the food closest to pet level (lowest waste).
-    ]]
-    local fallbackID, fallbackLink
-    local fallbackLevel = 999
-    local fallbackPrice = 999999
-    local fallbackCount = 999999
-
-    for bag = 0, NUM_BAG_SLOTS do
-        for slot = 1, ns.GetContainerNumSlots(bag) do
-            local info = ns.GetContainerItemInfo(bag, slot)
-            if info and info.itemID then
-                local id = info.itemID
-                local foodData = ns.PetFoodData[id]
-
-                if foodData and not ignoreList[id] then
-                    local foodLevel = foodData[1]
-                    local foodDiet = foodData[2]
-                    local sellPrice = foodData[3]
-                    local questIDs = foodData[4]
-
-                    if dietSet[foodDiet] then
-                        local levelDelta = petLevel - foodLevel
-                        local inHappyBracket = (levelDelta >= 0 and levelDelta <= 10)
-                        local isAbovePet = (levelDelta < 0)
-
-                        if inHappyBracket or isAbovePet then
-                            -- Skip foods needed for active quests
-                            local skipQuest = false
-                            if questIDs then
-                                skipQuest = IsNeededForQuest(questIDs)
-                            end
-
-                            if not skipQuest then
-                                local totalCount = ns.GetItemCount(id)
-
-                                if inHappyBracket then
-                                    -- Prefer: lowest itemLevel, then lowest sell price, then fewest in bags
-                                    local isBetter = false
-                                    if not bestID then
-                                        isBetter = true
-                                    elseif foodLevel ~= bestLevel then
-                                        isBetter = foodLevel < bestLevel
-                                    elseif sellPrice ~= bestPrice then
-                                        isBetter = sellPrice < bestPrice
-                                    else
-                                        isBetter = totalCount < bestCount
-                                    end
-
-                                    if isBetter then
-                                        bestID = id
-                                        bestLink = info.hyperlink
-                                        bestLevel = foodLevel
-                                        bestPrice = sellPrice
-                                        bestCount = totalCount
-                                    end
-                                else
-                                    --[[
-                                        Fallback (food above pet level). No upper cap:
-                                        pets will eat food at any level higher than their
-                                        own (confirmed: lvl-8 cat eats lvl-70 meat). Prefer
-                                        closest to pet level (lowest), then cheapest, then
-                                        fewest in bags.
-                                    ]]
-                                    local isBetter = false
-                                    if not fallbackID then
-                                        isBetter = true
-                                    elseif foodLevel ~= fallbackLevel then
-                                        isBetter = foodLevel < fallbackLevel
-                                    elseif sellPrice ~= fallbackPrice then
-                                        isBetter = sellPrice < fallbackPrice
-                                    else
-                                        isBetter = totalCount < fallbackCount
-                                    end
-
-                                    if isBetter then
-                                        fallbackID = id
-                                        fallbackLink = info.hyperlink
-                                        fallbackLevel = foodLevel
-                                        fallbackPrice = sellPrice
-                                        fallbackCount = totalCount
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    if bestID then
-        ns.BestPetFoodID = bestID
-        ns.BestPetFoodLink = bestLink
-    else
-        ns.BestPetFoodID = fallbackID
-        ns.BestPetFoodLink = fallbackLink
-    end
+	return best, dataRetry
 end

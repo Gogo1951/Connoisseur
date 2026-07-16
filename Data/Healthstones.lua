@@ -35,38 +35,38 @@ ORDER BY (st.EffectBasePoints1 + 1) DESC, s.RequiredLevel DESC, s.entry DESC;
 ]]
 
 ns.RawData.Healthstone = {
-    -- [ID] = {Healthstone Amount, Required Level, {Allowed Zones}}, -- Name
+	-- [ID] = {Healthstone Amount, Required Level, {Allowed Zones}}, -- Name
 
-    [36894] = {5136, 69}, -- Fel Healthstone
-    [36893] = {4708, 69}, -- Fel Healthstone
-    [36892] = {4280, 69}, -- Fel Healthstone
-    [36891] = {4200, 63}, -- Demonic Healthstone
-    [36890] = {3850, 63}, -- Demonic Healthstone
-    [36889] = {3500, 63}, -- Demonic Healthstone
-    [22105] = {2496, 60}, -- Master Healthstone
-    [22104] = {2288, 60}, -- Master Healthstone
-    [22103] = {2080, 60}, -- Master Healthstone
-    [32578] = {2000, 1}, -- Charged Crystal Focus
-    [19013] = {1440, 48}, -- Major Healthstone
-    [19012] = {1320, 48}, -- Major Healthstone
-    [9421] = {1200, 48}, -- Major Healthstone
-    [15723] = {1050, 50}, -- Tea with Sugar
-    [19011] = {960, 36}, -- Greater Healthstone
-    [19010] = {880, 36}, -- Greater Healthstone
-    [5510] = {800, 36}, -- Greater Healthstone
-    [11951] = {700, 45}, -- Whipper Root Tuber
-    [19009] = {600, 24}, -- Healthstone
-    [19008] = {550, 24}, -- Healthstone
-    [14894] = {525, 1}, -- Lily Root
-    [5509] = {500, 24}, -- Healthstone
-    [19007] = {300, 12}, -- Lesser Healthstone
-    [19006] = {275, 12}, -- Lesser Healthstone
-    [5511] = {250, 12}, -- Lesser Healthstone
-    [19005] = {120, 1}, -- Minor Healthstone
-    [19004] = {110, 1}, -- Minor Healthstone
-    [5512] = {100, 1}, -- Minor Healthstone
-    [5205] = {71, 5}, -- Sprouted Frond
-    [23329] = {18, 1}, -- Enriched Lasher Root
+	[36894] = { 5136, 69 }, -- Fel Healthstone
+	[36893] = { 4708, 69 }, -- Fel Healthstone
+	[36892] = { 4280, 69 }, -- Fel Healthstone
+	[36891] = { 4200, 63 }, -- Demonic Healthstone
+	[36890] = { 3850, 63 }, -- Demonic Healthstone
+	[36889] = { 3500, 63 }, -- Demonic Healthstone
+	[22105] = { 2496, 60 }, -- Master Healthstone
+	[22104] = { 2288, 60 }, -- Master Healthstone
+	[22103] = { 2080, 60 }, -- Master Healthstone
+	[32578] = { 2000, 1 }, -- Charged Crystal Focus
+	[19013] = { 1440, 48 }, -- Major Healthstone
+	[19012] = { 1320, 48 }, -- Major Healthstone
+	[9421] = { 1200, 48 }, -- Major Healthstone
+	[15723] = { 1050, 50 }, -- Tea with Sugar
+	[19011] = { 960, 36 }, -- Greater Healthstone
+	[19010] = { 880, 36 }, -- Greater Healthstone
+	[5510] = { 800, 36 }, -- Greater Healthstone
+	[11951] = { 700, 45 }, -- Whipper Root Tuber
+	[19009] = { 600, 24 }, -- Healthstone
+	[19008] = { 550, 24 }, -- Healthstone
+	[14894] = { 525, 1 }, -- Lily Root
+	[5509] = { 500, 24 }, -- Healthstone
+	[19007] = { 300, 12 }, -- Lesser Healthstone
+	[19006] = { 275, 12 }, -- Lesser Healthstone
+	[5511] = { 250, 12 }, -- Lesser Healthstone
+	[19005] = { 120, 1 }, -- Minor Healthstone
+	[19004] = { 110, 1 }, -- Minor Healthstone
+	[5512] = { 100, 1 }, -- Minor Healthstone
+	[5205] = { 71, 5 }, -- Sprouted Frond
+	[23329] = { 18, 1 }, -- Enriched Lasher Root
 }
 
 --[[
@@ -79,11 +79,11 @@ ns.RawData.Healthstone = {
 ]]
 ns.ConjuredItemIDsBySpell = ns.ConjuredItemIDsBySpell or {}
 
-ns.ConjuredItemIDsBySpell[47878] = {36892, 36893, 36894} -- Fel Healthstone
-ns.ConjuredItemIDsBySpell[47871] = {36889, 36890, 36891} -- Demonic Healthstone
-ns.ConjuredItemIDsBySpell[27230] = {22103, 22104, 22105} -- Master Healthstone
-ns.ConjuredItemIDsBySpell[11730] = {9421, 19012, 19013} -- Major Healthstone
-ns.ConjuredItemIDsBySpell[11729] = {5510, 19010, 19011} -- Greater Healthstone
-ns.ConjuredItemIDsBySpell[5699] = {5509, 19008, 19009} -- Healthstone
-ns.ConjuredItemIDsBySpell[6202] = {5511, 19006, 19007} -- Lesser Healthstone
-ns.ConjuredItemIDsBySpell[6201] = {5512, 19004, 19005} -- Minor Healthstone
+ns.ConjuredItemIDsBySpell[47878] = { 36892, 36893, 36894 } -- Fel Healthstone
+ns.ConjuredItemIDsBySpell[47871] = { 36889, 36890, 36891 } -- Demonic Healthstone
+ns.ConjuredItemIDsBySpell[27230] = { 22103, 22104, 22105 } -- Master Healthstone
+ns.ConjuredItemIDsBySpell[11730] = { 9421, 19012, 19013 } -- Major Healthstone
+ns.ConjuredItemIDsBySpell[11729] = { 5510, 19010, 19011 } -- Greater Healthstone
+ns.ConjuredItemIDsBySpell[5699] = { 5509, 19008, 19009 } -- Healthstone
+ns.ConjuredItemIDsBySpell[6202] = { 5511, 19006, 19007 } -- Lesser Healthstone
+ns.ConjuredItemIDsBySpell[6201] = { 5512, 19004, 19005 } -- Minor Healthstone

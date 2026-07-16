@@ -15,15 +15,15 @@ local LDBIcon = LibStub("LibDBIcon-1.0")
     white if the table isn't available (extremely old Classic builds).
 ]]
 local function GetClassColorStr(classToken)
-    local localHex = ns.CLASS_COLORS and ns.CLASS_COLORS[classToken]
-    if localHex then
-        return "|cff" .. localHex
-    end
-    local color = RAID_CLASS_COLORS and RAID_CLASS_COLORS[classToken]
-    if color and color.colorStr then
-        return "|c" .. color.colorStr
-    end
-    return "|cffFFFFFF"
+	local localHex = ns.CLASS_COLORS and ns.CLASS_COLORS[classToken]
+	if localHex then
+		return "|cff" .. localHex
+	end
+	local color = RAID_CLASS_COLORS and RAID_CLASS_COLORS[classToken]
+	if color and color.colorStr then
+		return "|c" .. color.colorStr
+	end
+	return "|cffFFFFFF"
 end
 
 --------------------------------------------------------------------------------
@@ -33,25 +33,25 @@ end
 local UpdateTooltip
 
 function ns.UpdateLDB()
-    if not ns.LDBObj then
-        return
-    end
+	if not ns.LDBObj then
+		return
+	end
 
-    local iconID = ns.BestFoodID or ns.Config["Food"].defaultID
-    local newIcon = ns.GetItemIcon(iconID) or "Interface\\Icons\\INV_Misc_Food_02"
-    ns.LDBObj.icon = newIcon
+	local iconID = ns.BestFoodID or ns.Config["Food"].defaultID
+	local newIcon = ns.GetItemIcon(iconID) or "Interface\\Icons\\INV_Misc_Food_02"
+	ns.LDBObj.icon = newIcon
 
-    if LDBIcon then
-        local button = LDBIcon:GetMinimapButton(ns.LOCALE_NAME)
-        if button then
-            if button.icon then
-                button.icon:SetTexture(newIcon)
-            end
-            if GameTooltip:GetOwner() == button then
-                UpdateTooltip(button)
-            end
-        end
-    end
+	if LDBIcon then
+		local button = LDBIcon:GetMinimapButton(ns.LOCALE_NAME)
+		if button then
+			if button.icon then
+				button.icon:SetTexture(newIcon)
+			end
+			if GameTooltip:GetOwner() == button then
+				UpdateTooltip(button)
+			end
+		end
+	end
 end
 
 --------------------------------------------------------------------------------
@@ -65,23 +65,23 @@ end
     registration — so the choice persists across reloads with no extra wiring.
 ]]
 function ns.ToggleMinimapButton(value)
-    ns.db.global.minimap = ns.db.global.minimap or {}
-    local show
-    if value == nil then
-        show = ns.db.global.minimap.hide
-    else
-        show = value
-    end
-    ns.db.global.minimap.hide = not show
+	ns.db.global.minimap = ns.db.global.minimap or {}
+	local show
+	if value == nil then
+		show = ns.db.global.minimap.hide
+	else
+		show = value
+	end
+	ns.db.global.minimap.hide = not show
 
-    if not LDBIcon then
-        return
-    end
-    if show then
-        LDBIcon:Show(ns.LOCALE_NAME)
-    else
-        LDBIcon:Hide(ns.LOCALE_NAME)
-    end
+	if not LDBIcon then
+		return
+	end
+	if show then
+		LDBIcon:Show(ns.LOCALE_NAME)
+	else
+		LDBIcon:Hide(ns.LOCALE_NAME)
+	end
 end
 
 --------------------------------------------------------------------------------
@@ -91,159 +91,165 @@ end
 local KnowsAny = ns.KnowsAny
 
 UpdateTooltip = function(anchor)
-    if not (ns.db and ns.db.profile) then
-        return
-    end
-    local settings = ns.db.profile
-    local tooltip = GameTooltip
+	if not (ns.db and ns.db.profile) then
+		return
+	end
+	local settings = ns.db.profile
+	local tooltip = GameTooltip
 
-    tooltip:SetOwner(anchor, "ANCHOR_BOTTOMLEFT")
-    tooltip:ClearLines()
+	tooltip:SetOwner(anchor, "ANCHOR_BOTTOMLEFT")
+	tooltip:ClearLines()
 
-    tooltip:AddDoubleLine(GetColor("TITLE") .. L["ADDON_TITLE"] .. "|r", GetColor("MUTED") .. ns.Version .. "|r")
-    tooltip:AddLine(" ")
-    tooltip:AddLine(" ")
+	tooltip:AddDoubleLine(GetColor("TITLE") .. L["ADDON_TITLE"] .. "|r", GetColor("MUTED") .. ns.Version .. "|r")
+	tooltip:AddLine(" ")
+	tooltip:AddLine(" ")
 
-    -- Prioritize Buff Food
-    local buffState =
-        settings.useBuffFood and (GetColor("ON") .. L["UI_ENABLED"] .. "|r") or
-        (GetColor("OFF") .. L["UI_DISABLED"] .. "|r")
-    tooltip:AddDoubleLine(GetColor("TITLE") .. L["MENU_BUFF_FOOD"] .. "|r", buffState)
-    tooltip:AddLine(GetColor("BODY") .. L["MENU_BUFF_FOOD_DESCRIPTION"] .. "|r", 1, 1, 1, true)
-    tooltip:AddDoubleLine(GetColor("INFO") .. L["UI_LEFT_CLICK"] .. "|r", GetColor("INFO") .. L["UI_TOGGLE"] .. "|r")
-    tooltip:AddLine(" ")
+	-- Prioritize Buff Food
+	local buffState = settings.useBuffFood and (GetColor("ON") .. L["UI_ENABLED"] .. "|r")
+		or (GetColor("OFF") .. L["UI_DISABLED"] .. "|r")
+	tooltip:AddDoubleLine(GetColor("TITLE") .. L["OPTIONS_BUFF_FOOD"] .. "|r", buffState)
+	tooltip:AddLine(GetColor("BODY") .. L["MENU_BUFF_FOOD_DESCRIPTION"] .. "|r", 1, 1, 1, true)
+	tooltip:AddDoubleLine(GetColor("INFO") .. L["UI_LEFT_CLICK"] .. "|r", GetColor("INFO") .. L["UI_TOGGLE"] .. "|r")
+	tooltip:AddLine(" ")
 
-    -- Include Scroll Buffs
-    local scrollState =
-        settings.useScrolls and (GetColor("ON") .. L["UI_ENABLED"] .. "|r") or
-        (GetColor("OFF") .. L["UI_DISABLED"] .. "|r")
-    tooltip:AddDoubleLine(GetColor("TITLE") .. L["MENU_SCROLL_BUFFS"] .. "|r", scrollState)
-    tooltip:AddLine(GetColor("BODY") .. L["MENU_SCROLL_BUFFS_DESCRIPTION"] .. "|r", 1, 1, 1, true)
-    tooltip:AddDoubleLine(GetColor("INFO") .. L["UI_SHIFT_LEFT"] .. "|r", GetColor("INFO") .. L["UI_TOGGLE"] .. "|r")
+	-- Include Scroll Buffs
+	local scrollState = settings.useScrolls and (GetColor("ON") .. L["UI_ENABLED"] .. "|r")
+		or (GetColor("OFF") .. L["UI_DISABLED"] .. "|r")
+	tooltip:AddDoubleLine(GetColor("TITLE") .. L["MENU_SCROLL_BUFFS"] .. "|r", scrollState)
+	tooltip:AddLine(GetColor("BODY") .. L["MENU_SCROLL_BUFFS_DESCRIPTION"] .. "|r", 1, 1, 1, true)
+	tooltip:AddDoubleLine(GetColor("INFO") .. L["UI_SHIFT_LEFT"] .. "|r", GetColor("INFO") .. L["UI_TOGGLE"] .. "|r")
 
-    -- Current Best Food
-    tooltip:AddLine(" ")
-    tooltip:AddLine(GetColor("TITLE") .. L["UI_BEST_FOOD"] .. "|r")
-    if ns.BestFoodID and ns.BestFoodLink then
-        local foodIcon = ns.GetItemIcon(ns.BestFoodID)
-        tooltip:AddLine(format("|T%s:14:14|t %s", foodIcon, ns.BestFoodLink))
-        tooltip:AddDoubleLine(
-            GetColor("INFO") .. L["UI_RIGHT_CLICK"] .. "|r",
-            GetColor("INFO") .. L["MENU_IGNORE"] .. "|r"
-        )
-    else
-        tooltip:AddLine(GetColor("BODY") .. format(L["MSG_NO_ITEM"], L["LABEL_FOOD"]) .. "|r", 1, 1, 1, true)
-    end
+	-- Current Best Food
+	tooltip:AddLine(" ")
+	tooltip:AddLine(GetColor("TITLE") .. L["UI_BEST_FOOD"] .. "|r")
+	if ns.BestFoodID and ns.BestFoodLink then
+		local foodIcon = ns.GetItemIcon(ns.BestFoodID)
+		tooltip:AddLine(format("|T%s:14:14|t %s", foodIcon, ns.BestFoodLink))
+		tooltip:AddDoubleLine(
+			GetColor("INFO") .. L["UI_RIGHT_CLICK"] .. "|r",
+			GetColor("INFO") .. L["MENU_IGNORE"] .. "|r"
+		)
+	else
+		tooltip:AddLine(GetColor("BODY") .. format(L["MSG_NO_ITEM"], L["LABEL_FOOD"]) .. "|r", 1, 1, 1, true)
+	end
 
-    -- Ignore List
-    local ignoreList = ns.db.profile.ignoreList or {}
-    local hasIgnoredItems = next(ignoreList) ~= nil
-    if hasIgnoredItems then
-        tooltip:AddLine(" ")
-        tooltip:AddLine(GetColor("TITLE") .. L["UI_IGNORE_LIST"] .. "|r")
+	-- Ignore List
+	local ignoreList = ns.db.profile.ignoreList or {}
+	local hasIgnoredItems = next(ignoreList) ~= nil
+	if hasIgnoredItems then
+		tooltip:AddLine(" ")
+		tooltip:AddLine(GetColor("TITLE") .. L["UI_IGNORE_LIST"] .. "|r")
 
-        local sortedIgnoreList = {}
-        for itemID in pairs(ignoreList) do
-            local name, _, quality, _, _, _, _, _, _, texture = GetItemInfo(itemID)
-            if name then
-                tinsert(sortedIgnoreList, {id = itemID, name = name, quality = quality, texture = texture})
-            else
-                tinsert(sortedIgnoreList, {id = itemID, name = "ZZZ_Unknown", quality = 0, texture = nil})
-            end
-        end
+		local sortedIgnoreList = {}
+		for itemID in pairs(ignoreList) do
+			local name, _, quality, _, _, _, _, _, _, texture = GetItemInfo(itemID)
+			if name then
+				tinsert(sortedIgnoreList, { id = itemID, name = name, quality = quality, texture = texture })
+			else
+				tinsert(sortedIgnoreList, { id = itemID, name = "ZZZ_Unknown", quality = 0, texture = nil })
+			end
+		end
 
-        table.sort(
-            sortedIgnoreList,
-            function(a, b)
-                return a.name < b.name
-            end
-        )
+		table.sort(sortedIgnoreList, function(a, b)
+			return a.name < b.name
+		end)
 
-        for _, item in ipairs(sortedIgnoreList) do
-            if item.texture then
-                local _, _, _, colorHex = GetItemQualityColor(item.quality)
-                tooltip:AddLine(format("|T%s:14:14|t |c%s[%s]|r", item.texture, colorHex, item.name))
-            else
-                tooltip:AddLine(GetColor("MUTED") .. "ID: " .. item.id .. "|r")
-            end
-        end
+		for _, item in ipairs(sortedIgnoreList) do
+			if item.texture then
+				local _, _, _, colorHex = GetItemQualityColor(item.quality)
+				tooltip:AddLine(format("|T%s:14:14|t |c%s[%s]|r", item.texture, colorHex, item.name))
+			else
+				tooltip:AddLine(GetColor("MUTED") .. "ID: " .. item.id .. "|r")
+			end
+		end
 
-        tooltip:AddDoubleLine(
-            GetColor("INFO") .. L["UI_MIDDLE_CLICK"] .. "|r",
-            GetColor("INFO") .. L["MENU_CLEAR_IGNORE"] .. "|r"
-        )
-    end
+		tooltip:AddDoubleLine(
+			GetColor("INFO") .. L["UI_MIDDLE_CLICK"] .. "|r",
+			GetColor("INFO") .. L["MENU_CLEAR_IGNORE"] .. "|r"
+		)
+	end
 
-    -- Class-specific conjure tips
-    local _, playerClass = UnitClass("player")
-    local descriptionColor = GetColor("BODY")
+	-- Class-specific conjure tips
+	local _, playerClass = UnitClass("player")
+	local descriptionColor = GetColor("BODY")
 
-    if playerClass == "MAGE" and ns.ConjureSpells then
-        local classColor = GetClassColorStr("MAGE")
-        local knowsTable = KnowsAny(ns.ConjureSpells.MageCreateTable)
-        local knowsFood = KnowsAny(ns.ConjureSpells.MageCreateFood)
-        local knowsWater = KnowsAny(ns.ConjureSpells.MageCreateWater)
-        local knowsManaGem = KnowsAny(ns.ConjureSpells.MageCreateManaGem)
+	if playerClass == "MAGE" and ns.ConjureSpells then
+		local classColor = GetClassColorStr("MAGE")
+		local knowsTable = KnowsAny(ns.ConjureSpells.MageCreateTable)
+		local knowsFood = KnowsAny(ns.ConjureSpells.MageCreateFood)
+		local knowsWater = KnowsAny(ns.ConjureSpells.MageCreateWater)
+		local knowsManaGem = KnowsAny(ns.ConjureSpells.MageCreateManaGem)
 
-        if knowsFood or knowsWater or knowsTable or knowsManaGem then
-            tooltip:AddLine(" ")
-            tooltip:AddLine(classColor .. L["PREFIX_MAGE"] .. "|r")
-            if knowsFood or knowsWater then
-                tooltip:AddLine(descriptionColor .. L["TIP_MAGE_CONJURE"] .. "|r", 1, 1, 1, true)
-            end
-            if knowsTable then
-                tooltip:AddLine(" ")
-                tooltip:AddLine(descriptionColor .. L["TIP_MAGE_TABLE"] .. "|r", 1, 1, 1, true)
-            end
-            tooltip:AddLine(" ")
-            tooltip:AddLine(descriptionColor .. L["TIP_DOWNRANK"] .. "|r", 1, 1, 1, true)
-            if knowsManaGem then
-                tooltip:AddLine(" ")
-                tooltip:AddLine(descriptionColor .. L["TIP_MAGE_GEM"] .. "|r", 1, 1, 1, true)
-            end
-        end
-    elseif playerClass == "WARLOCK" and ns.ConjureSpells then
-        local classColor = GetClassColorStr("WARLOCK")
-        local knowsSoulwell = KnowsAny(ns.ConjureSpells.WarlockCreateSoulwell)
-        local knowsHealthstone = KnowsAny(ns.ConjureSpells.WarlockCreateHealthstone)
-        local knowsSoulstone = KnowsAny(ns.ConjureSpells.WarlockCreateSoulstone)
+		if knowsFood or knowsWater or knowsTable or knowsManaGem then
+			tooltip:AddLine(" ")
+			tooltip:AddLine(classColor .. L["PREFIX_MAGE"] .. "|r")
+			if knowsFood or knowsWater then
+				tooltip:AddLine(descriptionColor .. L["TIP_MAGE_CONJURE"] .. "|r", 1, 1, 1, true)
+			end
+			if knowsTable then
+				tooltip:AddLine(" ")
+				tooltip:AddLine(descriptionColor .. L["TIP_MAGE_TABLE"] .. "|r", 1, 1, 1, true)
+			end
+			tooltip:AddLine(" ")
+			tooltip:AddLine(descriptionColor .. L["TIP_DOWNRANK"] .. "|r", 1, 1, 1, true)
+			if knowsManaGem then
+				tooltip:AddLine(" ")
+				tooltip:AddLine(descriptionColor .. L["TIP_MAGE_GEM"] .. "|r", 1, 1, 1, true)
+			end
+		end
+	elseif playerClass == "WARLOCK" and ns.ConjureSpells then
+		local classColor = GetClassColorStr("WARLOCK")
+		local knowsSoulwell = KnowsAny(ns.ConjureSpells.WarlockCreateSoulwell)
+		local knowsHealthstone = KnowsAny(ns.ConjureSpells.WarlockCreateHealthstone)
+		local knowsSoulstone = KnowsAny(ns.ConjureSpells.WarlockCreateSoulstone)
 
-        if knowsHealthstone or knowsSoulstone or knowsSoulwell then
-            tooltip:AddLine(" ")
-            tooltip:AddLine(classColor .. L["PREFIX_WARLOCK"] .. "|r")
-            if knowsHealthstone or knowsSoulstone then
-                tooltip:AddLine(descriptionColor .. L["TIP_WARLOCK_CONJURE"] .. "|r", 1, 1, 1, true)
-            end
-            if knowsSoulwell then
-                tooltip:AddLine(" ")
-                tooltip:AddLine(descriptionColor .. L["TIP_WARLOCK_SOUL"] .. "|r", 1, 1, 1, true)
-            end
-            tooltip:AddLine(" ")
-            tooltip:AddLine(descriptionColor .. L["TIP_DOWNRANK"] .. "|r", 1, 1, 1, true)
-        end
-    elseif playerClass == "HUNTER" and ns.FeedPetSpellName then
-        local classColor = GetClassColorStr("HUNTER")
+		if knowsHealthstone or knowsSoulstone or knowsSoulwell then
+			tooltip:AddLine(" ")
+			tooltip:AddLine(classColor .. L["PREFIX_WARLOCK"] .. "|r")
+			if knowsHealthstone or knowsSoulstone then
+				tooltip:AddLine(descriptionColor .. L["TIP_WARLOCK_CONJURE"] .. "|r", 1, 1, 1, true)
+			end
+			if knowsSoulwell then
+				tooltip:AddLine(" ")
+				tooltip:AddLine(descriptionColor .. L["TIP_WARLOCK_SOUL"] .. "|r", 1, 1, 1, true)
+			end
+			tooltip:AddLine(" ")
+			tooltip:AddLine(descriptionColor .. L["TIP_DOWNRANK"] .. "|r", 1, 1, 1, true)
+		end
+	elseif playerClass == "ROGUE" and ns.POISONS_SPELL_ID then
+		local knowsPoisons = IsSpellKnown(ns.POISONS_SPELL_ID)
+		if not knowsPoisons and IsPlayerSpell then
+			knowsPoisons = IsPlayerSpell(ns.POISONS_SPELL_ID)
+		end
+		if knowsPoisons then
+			local classColor = GetClassColorStr("ROGUE")
+			tooltip:AddLine(" ")
+			tooltip:AddLine(classColor .. L["PREFIX_ROGUE"] .. "|r")
+			tooltip:AddLine(descriptionColor .. L["TIP_ROGUE_POISONS"] .. "|r", 1, 1, 1, true)
+		end
+	elseif playerClass == "HUNTER" and ns.FeedPetSpellName then
+		local classColor = GetClassColorStr("HUNTER")
 
-        tooltip:AddLine(" ")
-        tooltip:AddLine(classColor .. L["PREFIX_HUNTER"] .. "|r")
-        tooltip:AddLine(descriptionColor .. L["TIP_HUNTER_FEED_PET"] .. "|r", 1, 1, 1, true)
+		tooltip:AddLine(" ")
+		tooltip:AddLine(classColor .. L["PREFIX_HUNTER"] .. "|r")
+		tooltip:AddLine(descriptionColor .. L["TIP_HUNTER_FEED_PET"] .. "|r", 1, 1, 1, true)
 
-        tooltip:AddLine(" ")
-        tooltip:AddLine(GetColor("TITLE") .. L["UI_BEST_PET_FOOD"] .. "|r")
-        if ns.BestPetFoodID and ns.BestPetFoodLink then
-            local foodIcon = ns.GetItemIcon(ns.BestPetFoodID)
-            tooltip:AddLine(format("|T%s:14:14|t %s", foodIcon, ns.BestPetFoodLink))
-        else
-            tooltip:AddLine(GetColor("BODY") .. format(L["MSG_NO_ITEM"], L["LABEL_PET_FOOD"]) .. "|r", 1, 1, 1, true)
-        end
-    end
+		tooltip:AddLine(" ")
+		tooltip:AddLine(GetColor("TITLE") .. L["UI_BEST_PET_FOOD"] .. "|r")
+		if ns.BestPetFoodID and ns.BestPetFoodLink then
+			local foodIcon = ns.GetItemIcon(ns.BestPetFoodID)
+			tooltip:AddLine(format("|T%s:14:14|t %s", foodIcon, ns.BestPetFoodLink))
+		else
+			tooltip:AddLine(GetColor("BODY") .. format(L["MSG_NO_ITEM"], L["LABEL_PET_FOOD"]) .. "|r", 1, 1, 1, true)
+		end
+	end
 
-    -- Options block (always the last thing in the tooltip; no hint line below it)
-    tooltip:AddLine(" ")
-    tooltip:AddLine(GetColor("TITLE") .. L["MENU_OPTIONS"] .. "|r")
-    tooltip:AddLine(GetColor("INFO") .. L["MENU_OPTIONS_KEYBIND"] .. "|r")
+	-- Options block (always the last thing in the tooltip; no hint line below it)
+	tooltip:AddLine(" ")
+	tooltip:AddLine(GetColor("TITLE") .. L["MENU_OPTIONS"] .. "|r")
+	tooltip:AddLine(GetColor("INFO") .. L["MENU_OPTIONS_KEYBIND"] .. "|r")
 
-    tooltip:Show()
+	tooltip:Show()
 end
 
 --------------------------------------------------------------------------------
@@ -251,55 +257,51 @@ end
 --------------------------------------------------------------------------------
 
 if LDB then
-    ns.LDBObj =
-        LDB:NewDataObject(
-        ns.LOCALE_NAME,
-        {
-            type = "data source",
-            text = L["ADDON_TITLE"],
-            icon = "Interface\\Icons\\INV_Misc_Food_02",
-            OnClick = function(self, button)
-                -- Shift + Middle-Click always opens the options panel; checked first (matches every Gogo1951 add-on).
-                if button == "MiddleButton" and IsShiftKeyDown() then
-                    if ns.OpenOptionsPanel then
-                        ns:OpenOptionsPanel()
-                    end
-                    return
-                end
-                if button == "RightButton" and ns.BestFoodID then
-                    if ns.db and ns.db.profile then
-                        ns.db.profile.ignoreList = ns.db.profile.ignoreList or {}
-                        ns.db.profile.ignoreList[ns.BestFoodID] = true
-                    end
-                    if ns.UpdateMacros then
-                        ns.UpdateMacros(true)
-                    end
-                elseif button == "LeftButton" and IsShiftKeyDown() then
-                    if ns.ToggleScrollBuffs then
-                        ns.ToggleScrollBuffs()
-                    end
-                elseif button == "LeftButton" then
-                    if ns.ToggleBuffFood then
-                        ns.ToggleBuffFood()
-                    end
-                elseif button == "MiddleButton" then
-                    if ns.db and ns.db.profile then
-                        ns.db.profile.ignoreList = ns.db.profile.ignoreList or {}
-                        wipe(ns.db.profile.ignoreList)
-                    end
-                    if ns.UpdateMacros then
-                        ns.UpdateMacros(true)
-                    end
-                end
+	ns.LDBObj = LDB:NewDataObject(ns.LOCALE_NAME, {
+		type = "data source",
+		text = L["ADDON_TITLE"],
+		icon = "Interface\\Icons\\INV_Misc_Food_02",
+		OnClick = function(self, button)
+			-- Shift + Middle-Click always opens the options panel; checked first (matches every Gogo1951 add-on).
+			if button == "MiddleButton" and IsShiftKeyDown() then
+				if ns.OpenOptionsPanel then
+					ns:OpenOptionsPanel()
+				end
+				return
+			end
+			if button == "RightButton" and ns.BestFoodID then
+				if ns.db and ns.db.profile then
+					ns.db.profile.ignoreList = ns.db.profile.ignoreList or {}
+					ns.db.profile.ignoreList[ns.BestFoodID] = true
+				end
+				if ns.UpdateMacros then
+					ns.UpdateMacros(true)
+				end
+			elseif button == "LeftButton" and IsShiftKeyDown() then
+				if ns.ToggleScrollBuffs then
+					ns.ToggleScrollBuffs()
+				end
+			elseif button == "LeftButton" then
+				if ns.ToggleBuffFood then
+					ns.ToggleBuffFood()
+				end
+			elseif button == "MiddleButton" then
+				if ns.db and ns.db.profile then
+					ns.db.profile.ignoreList = ns.db.profile.ignoreList or {}
+					wipe(ns.db.profile.ignoreList)
+				end
+				if ns.UpdateMacros then
+					ns.UpdateMacros(true)
+				end
+			end
 
-                ns.UpdateLDB()
-            end,
-            OnEnter = function(self)
-                UpdateTooltip(self)
-            end,
-            OnLeave = function()
-                GameTooltip:Hide()
-            end
-        }
-    )
+			ns.UpdateLDB()
+		end,
+		OnEnter = function(self)
+			UpdateTooltip(self)
+		end,
+		OnLeave = function()
+			GameTooltip:Hide()
+		end,
+	})
 end

@@ -1,0 +1,104 @@
+local _, ns = ...
+
+--------------------------------------------------------------------------------
+-- Rogue Poisons
+--------------------------------------------------------------------------------
+
+--[[
+    Poison items grouped by type. Group NAMES are never localized here: each
+    group's display name is resolved at runtime via GetItemInfo on the base
+    (rank 1) item of the series, so the client's own item localization does
+    the work (see ns.GetPoisonGroupName in Features/Macros/Tools-Rogues.lua).
+
+    Items from later expansions than the running client simply never appear
+    in bags, so no per-flavor gating is needed — same policy as the other
+    Data/ tables.
+]]
+
+-- [groupID] = base item of the series (the group's runtime display name)
+ns.PoisonGroupBaseItems = {
+	[1] = 21835, -- Anesthetic Poison
+	[2] = 3775, -- Crippling Poison
+	[3] = 2892, -- Deadly Poison
+	[4] = 6947, -- Instant Poison
+	[5] = 5237, -- Mind-numbing Poison
+	[6] = 10918, -- Wound Poison
+}
+
+--[[
+    English fallback names, used only while GetItemInfo is still cold for a
+    base item (first dropdown open on a fresh cache). Not a locale surface —
+    the real names come from the client.
+]]
+ns.PoisonGroupFallbackNames = {
+	[1] = "Anesthetic Poison",
+	[2] = "Crippling Poison",
+	[3] = "Deadly Poison",
+	[4] = "Instant Poison",
+	[5] = "Mind-numbing Poison",
+	[6] = "Wound Poison",
+}
+
+-- [ID] = {Required Level, Poison Group}, -- Item Name
+ns.PoisonData = {
+	[21835] = { 68, 1 }, -- Anesthetic Poison
+	[43237] = { 77, 1 }, -- Anesthetic Poison II
+	[3775] = { 20, 2 }, -- Crippling Poison
+	[3776] = { 50, 2 }, -- Crippling Poison II
+	[2892] = { 30, 3 }, -- Deadly Poison
+	[2893] = { 38, 3 }, -- Deadly Poison II
+	[8984] = { 46, 3 }, -- Deadly Poison III
+	[8985] = { 54, 3 }, -- Deadly Poison IV
+	[20844] = { 60, 3 }, -- Deadly Poison V
+	[22053] = { 62, 3 }, -- Deadly Poison VI
+	[22054] = { 70, 3 }, -- Deadly Poison VII
+	[43232] = { 76, 3 }, -- Deadly Poison VIII
+	[43233] = { 80, 3 }, -- Deadly Poison IX
+	[6947] = { 20, 4 }, -- Instant Poison
+	[6949] = { 28, 4 }, -- Instant Poison II
+	[6950] = { 36, 4 }, -- Instant Poison III
+	[8926] = { 44, 4 }, -- Instant Poison IV
+	[8927] = { 52, 4 }, -- Instant Poison V
+	[8928] = { 60, 4 }, -- Instant Poison VI
+	[21927] = { 68, 4 }, -- Instant Poison VII
+	[43230] = { 73, 4 }, -- Instant Poison VIII
+	[43231] = { 79, 4 }, -- Instant Poison IX
+	[5237] = { 24, 5 }, -- Mind-numbing Poison
+	[6951] = { 38, 5 }, -- Mind-numbing Poison II
+	[9186] = { 52, 5 }, -- Mind-numbing Poison III
+	[10918] = { 32, 6 }, -- Wound Poison
+	[10920] = { 40, 6 }, -- Wound Poison II
+	[10921] = { 48, 6 }, -- Wound Poison III
+	[10922] = { 56, 6 }, -- Wound Poison IV
+	[22055] = { 64, 6 }, -- Wound Poison V
+	[43234] = { 72, 6 }, -- Wound Poison VI
+	[43235] = { 78, 6 }, -- Wound Poison VII
+}
+
+--------------------------------------------------------------------------------
+-- Derived Poison Lookups
+--------------------------------------------------------------------------------
+
+--[[
+    Per-group candidate lists sorted best-first (highest required level =
+    highest rank), precomputed once so the per-update scan is a plain walk.
+    Same pattern as the derived scroll lookups in Data/Scrolls.lua.
+]]
+ns.PoisonsByGroup = {}
+for itemID, row in pairs(ns.PoisonData) do
+	local group = row[2]
+	local list = ns.PoisonsByGroup[group]
+	if not list then
+		list = {}
+		ns.PoisonsByGroup[group] = list
+	end
+	list[#list + 1] = { itemID, row[1] }
+end
+for _, list in pairs(ns.PoisonsByGroup) do
+	table.sort(list, function(a, b)
+		if a[2] ~= b[2] then
+			return a[2] > b[2]
+		end
+		return a[1] > b[1]
+	end)
+end

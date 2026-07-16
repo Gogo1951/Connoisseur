@@ -32,13 +32,13 @@ ORDER BY
 ]]
 
 ns.RawData.ManaGem = {
-    -- [ID] = {Mana Amount, {Allowed Zones}}, -- Name
-    [33312] = {3330}, -- Mana Sapphire
-    [22044] = {2340}, -- Mana Emerald
-    [8008] = {1073}, -- Mana Ruby
-    [8007] = {829}, -- Mana Citrine
-    [5513] = {585}, -- Mana Jade
-    [5514] = {390}, -- Mana Agate
+	-- [ID] = {Mana Amount, {Allowed Zones}}, -- Name
+	[33312] = { 3330 }, -- Mana Sapphire
+	[22044] = { 2340 }, -- Mana Emerald
+	[8008] = { 1073 }, -- Mana Ruby
+	[8007] = { 829 }, -- Mana Citrine
+	[5513] = { 585 }, -- Mana Jade
+	[5514] = { 390 }, -- Mana Agate
 }
 
 --[[
@@ -51,9 +51,9 @@ ns.RawData.ManaGem = {
 ]]
 ns.ConjuredItemIDsBySpell = ns.ConjuredItemIDsBySpell or {}
 
-ns.ConjuredItemIDsBySpell[42985] = {33312} -- Conjure Mana Sapphire
-ns.ConjuredItemIDsBySpell[27101] = {22044} -- Conjure Mana Emerald
-ns.ConjuredItemIDsBySpell[10054] = {8008} -- Conjure Mana Ruby
-ns.ConjuredItemIDsBySpell[10053] = {8007} -- Conjure Mana Citrine
-ns.ConjuredItemIDsBySpell[3552] = {5513} -- Conjure Mana Jade
-ns.ConjuredItemIDsBySpell[759] = {5514} -- Conjure Mana Agate
+ns.ConjuredItemIDsBySpell[42985] = { 33312 } -- Conjure Mana Sapphire
+ns.ConjuredItemIDsBySpell[27101] = { 22044 } -- Conjure Mana Emerald
+ns.ConjuredItemIDsBySpell[10054] = { 8008 } -- Conjure Mana Ruby
+ns.ConjuredItemIDsBySpell[10053] = { 8007 } -- Conjure Mana Citrine
+ns.ConjuredItemIDsBySpell[3552] = { 5513 } -- Conjure Mana Jade
+ns.ConjuredItemIDsBySpell[759] = { 5514 } -- Conjure Mana Agate

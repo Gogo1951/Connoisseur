@@ -5,9 +5,9 @@ local _, ns = ...
     color accessor, cross-client API shims, and small game-state predicates.
     No module state, no SavedVariables.
 
-    Exposes: ns.GetColor, ns.COLORS, ns.GetItemCount, ns.GetItemIcon,
-    ns.GetContainerNumSlots, ns.GetContainerItemInfo, ns.IsModeActive,
-    ns.KnowsAny.
+    Exposes: ns.GetColor, ns.COLORS, ns.IsEra, ns.IsTBC, ns.GetItemCount,
+    ns.GetItemIcon, ns.GetContainerNumSlots, ns.GetContainerItemInfo,
+    ns.IsModeActive, ns.KnowsAny.
 ]]
 
 --------------------------------------------------------------------------------
@@ -22,21 +22,42 @@ local _, ns = ...
 local COLOR_PREFIX = "|cff"
 
 local COLORS = {
-    TITLE = COLOR_PREFIX .. ns.PALETTE.TITLE,
-    INFO = COLOR_PREFIX .. ns.PALETTE.INFO,
-    BODY = COLOR_PREFIX .. ns.PALETTE.BODY,
-    TEXT = COLOR_PREFIX .. ns.PALETTE.TEXT,
-    ON = COLOR_PREFIX .. ns.PALETTE.ON,
-    OFF = COLOR_PREFIX .. ns.PALETTE.OFF,
-    SEPARATOR = COLOR_PREFIX .. ns.PALETTE.SEPARATOR,
-    MUTED = COLOR_PREFIX .. ns.PALETTE.MUTED
+	TITLE = COLOR_PREFIX .. ns.PALETTE.TITLE,
+	INFO = COLOR_PREFIX .. ns.PALETTE.INFO,
+	BODY = COLOR_PREFIX .. ns.PALETTE.BODY,
+	TEXT = COLOR_PREFIX .. ns.PALETTE.TEXT,
+	ON = COLOR_PREFIX .. ns.PALETTE.ON,
+	OFF = COLOR_PREFIX .. ns.PALETTE.OFF,
+	SEPARATOR = COLOR_PREFIX .. ns.PALETTE.SEPARATOR,
+	MUTED = COLOR_PREFIX .. ns.PALETTE.MUTED,
 }
 
 ns.COLORS = COLORS
 
 function ns.GetColor(key)
-    return COLORS[key] or COLORS.TEXT
+	return COLORS[key] or COLORS.TEXT
 end
+
+--------------------------------------------------------------------------------
+-- Client Flavor
+--------------------------------------------------------------------------------
+
+--[[
+    The single source of truth for which game client we are running on. The
+    TOC ships one Lua codebase for both target clients (see the TOC
+    ## Interface line), and a handful of spell mechanics differ between
+    them. Anything that must branch on flavor reads ns.IsEra / ns.IsTBC — never
+    re-derives WOW_PROJECT_ID inline, and never assumes one flavor's behavior
+    is universal. WOW_PROJECT_ID is a client global set before addons load, so
+    these are safe to resolve here at file-load time.
+
+    The known flavor split — warlock Healthstone/Soulstone rank pinning — is
+    declared in data (rankIsTBCOnly in ns.ConjureSpells, Data/Data.lua) and
+    applied by ns.GetSmartSpell (Features/Macros/Engine.lua). See the
+    RECURRING BUG note on WarlockCreateHealthstone before touching either.
+]]
+ns.IsEra = (WOW_PROJECT_ID == WOW_PROJECT_CLASSIC)
+ns.IsTBC = (WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC)
 
 --------------------------------------------------------------------------------
 -- Item & Container API Shims
@@ -47,8 +68,8 @@ end
     branch-free and never hit "attempt to index nil" on a missing global.
     Item readers live on C_Item on retail and as globals on Classic/TBC;
     container readers are the reverse — C_Container is the only surface on the
-    target clients (Era 1.15.8 / TBC 2.5.5), with the old globals kept only as
-    a pre-C_Container fallback. Each shim picks the API by existence, never by
+    target clients (see the TOC ## Interface line), with the old globals kept
+    only as a pre-C_Container fallback. Each shim picks the API by existence, never by
     a truthy result.
 ]]
 ns.GetItemCount = (C_Item and C_Item.GetItemCount) or GetItemCount
@@ -61,26 +82,26 @@ ns.GetContainerItemInfo = (C_Container and C_Container.GetContainerItemInfo) or 
 --------------------------------------------------------------------------------
 
 function ns.IsModeActive(mode)
-    if mode == "always" then
-        return true
-    end
-    if mode == "party" then
-        return IsInGroup()
-    end
-    if mode == "raid" then
-        return IsInRaid()
-    end
-    return true
+	if mode == "always" then
+		return true
+	end
+	if mode == "party" then
+		return IsInGroup()
+	end
+	if mode == "raid" then
+		return IsInRaid()
+	end
+	return true
 end
 
 function ns.KnowsAny(spellList)
-    if not spellList then
-        return false
-    end
-    for _, data in ipairs(spellList) do
-        if IsSpellKnown(data[1]) then
-            return true
-        end
-    end
-    return false
+	if not spellList then
+		return false
+	end
+	for _, data in ipairs(spellList) do
+		if IsSpellKnown(data[1]) then
+			return true
+		end
+	end
+	return false
 end

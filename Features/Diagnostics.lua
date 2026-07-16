@@ -39,34 +39,34 @@ ns.diagnostics = ns.diagnostics or { enabled = false, logging = false, log = nil
     identity, not a diagnostics string.
 ]]
 ns.DiagnosticsStrings = {
-    TAB = "Diagnostic Tools",
-    WARNING = "These tools help diagnose problems and are meant for developers. They won't change how the add-on works, but their output includes technical details about your client and installed add-ons. Leave this off unless you're troubleshooting with someone.",
-    ENABLE = "Enable Diagnostic Tools",
-    EVENT_LOG_TITLE = "Event Log",
-    EVENT_LOG_START = "Start Event Log",
-    EVENT_LOG_STOP = "Stop Event Log",
-    EVENT_LOG_SHOW = "Show Captured Events",
-    EVENT_LOG_HINT = "Captures the events the add-on registered for, with arguments, in the order they fired. The best tool for 'my macro didn't update' reports.",
-    EVENTS_TITLE = "Event Registration",
-    EVENTS_BUTTON = "Test Event Registration",
-    API_TITLE = "API Endpoints",
-    API_BUTTON = "Test WoW API Endpoints",
-    CONTEXT_TITLE = "Connoisseur Context",
-    CONTEXT_BUTTON = "Show Connoisseur Context",
-    ADDONS_TITLE = "Other Add-ons",
-    ADDONS_BUTTON = "List Installed Add-ons",
-    SAVED_TITLE = "Saved Variables",
-    SAVED_BUTTON = "Dump Saved Variables",
-    LIBS_TITLE = "Library Versions",
-    LIBS_BUTTON = "List Library Versions",
-    TAINT_TITLE = "Taint Log",
-    TAINT_STATE = "Taint logging is currently set to level %d (0 = off, 2 = verbose).",
-    TAINT_ON = "Turn On Taint Log",
-    TAINT_OFF = "Turn Off Taint Log",
-    TAINT_HINT = "Writes to Logs\\taint.log. The setting persists until turned off; reload your UI to capture taint from login onward.",
-    TOOLS_TITLE = "External Tools",
-    TOOLS_ERRORS = "Lua errors: install BugSack and !BugGrabber, or enable %s to surface them.",
-    TOOLS_ETRACE = "Live event tracing: use %s."
+	TAB = "Diagnostic Tools",
+	WARNING = "These tools help diagnose problems and are meant for developers. They won't change how the add-on works, but their output includes technical details about your client and installed add-ons. Leave this off unless you're troubleshooting with someone.",
+	ENABLE = "Enable Diagnostic Tools",
+	EVENT_LOG_TITLE = "Event Log",
+	EVENT_LOG_START = "Start Event Log",
+	EVENT_LOG_STOP = "Stop Event Log",
+	EVENT_LOG_SHOW = "Show Captured Events",
+	EVENT_LOG_HINT = "Captures the events the add-on registered for, with arguments, in the order they fired. The best tool for 'my macro didn't update' reports.",
+	EVENTS_TITLE = "Event Registration",
+	EVENTS_BUTTON = "Test Event Registration",
+	API_TITLE = "API Endpoints",
+	API_BUTTON = "Test WoW API Endpoints",
+	CONTEXT_TITLE = "Connoisseur Context",
+	CONTEXT_BUTTON = "Show Connoisseur Context",
+	ADDONS_TITLE = "Other Add-ons",
+	ADDONS_BUTTON = "List Installed Add-ons",
+	SAVED_TITLE = "Saved Variables",
+	SAVED_BUTTON = "Dump Saved Variables",
+	LIBS_TITLE = "Library Versions",
+	LIBS_BUTTON = "List Library Versions",
+	TAINT_TITLE = "Taint Log",
+	TAINT_STATE = "Taint logging is currently set to level %d (0 = off, 2 = verbose).",
+	TAINT_ON = "Turn On Taint Log",
+	TAINT_OFF = "Turn Off Taint Log",
+	TAINT_HINT = "Writes to Logs\\taint.log. The setting persists until turned off; reload your UI to capture taint from login onward.",
+	TOOLS_TITLE = "External Tools",
+	TOOLS_ERRORS = "Lua errors: install BugSack and !BugGrabber, or enable %s to surface them.",
+	TOOLS_ETRACE = "Live event tracing: use %s.",
 }
 
 --------------------------------------------------------------------------------
@@ -74,10 +74,10 @@ ns.DiagnosticsStrings = {
 --------------------------------------------------------------------------------
 
 function ns:SetDiagnosticsEnabled(value)
-    ns.diagnostics.enabled = value and true or false
-    if not ns.diagnostics.enabled then
-        ns:StopEventLog()
-    end
+	ns.diagnostics.enabled = value and true or false
+	if not ns.diagnostics.enabled then
+		ns:StopEventLog()
+	end
 end
 
 --------------------------------------------------------------------------------
@@ -85,12 +85,17 @@ end
 --------------------------------------------------------------------------------
 
 local function GetClientHeader()
-    local version, build, _, tocVersion = GetBuildInfo()
-    return string.format(
-        "%s %s // Client %s // Build %s // TOC %s // Locale %s // Project %s",
-        L["ADDON_TITLE"], ns.Version, version, build, tocVersion,
-        GetLocale(), tostring(WOW_PROJECT_ID)
-    )
+	local version, build, _, tocVersion = GetBuildInfo()
+	return string.format(
+		"%s %s // Client %s // Build %s // TOC %s // Locale %s // Project %s",
+		L["ADDON_TITLE"],
+		ns.Version,
+		version,
+		build,
+		tocVersion,
+		GetLocale(),
+		tostring(WOW_PROJECT_ID)
+	)
 end
 
 --------------------------------------------------------------------------------
@@ -116,17 +121,17 @@ local EVENT_LOG_MAX_ARG_LENGTH = 255
     appear here regardless.
 ]]
 ns.DIAGNOSTIC_EVENT_EXCLUDE = {
-    UNIT_AURA = true
+	UNIT_AURA = true,
 }
 
 function ns:StartEventLog()
-    ns.diagnostics.log = {}
-    ns.diagnostics.logging = true
+	ns.diagnostics.log = {}
+	ns.diagnostics.logging = true
 end
 
 function ns:StopEventLog()
-    ns.diagnostics.logging = false
-    ns.diagnostics.log = nil
+	ns.diagnostics.logging = false
+	ns.diagnostics.log = nil
 end
 
 --[[
@@ -141,31 +146,35 @@ end
     would eat the following ", " separator.
 ]]
 function ns:LogEvent(event, ...)
-    if ns.DIAGNOSTIC_EVENT_EXCLUDE[event] then return end
-    local parts = {}
-    for index = 1, select("#", ...) do
-        if index > EVENT_LOG_MAX_ARGS then break end
-        local raw = string.sub(tostring((select(index, ...))), 1, EVENT_LOG_MAX_ARG_LENGTH)
-        parts[index] = (raw:gsub("|", "||"))
-    end
-    local log = ns.diagnostics.log
-    log[#log + 1] = string.format("%.3f %s(%s)", GetTime(), event, table.concat(parts, ", "))
-    if #log > EVENT_LOG_SIZE then
-        table.remove(log, 1)
-    end
+	if ns.DIAGNOSTIC_EVENT_EXCLUDE[event] then
+		return
+	end
+	local parts = {}
+	for index = 1, select("#", ...) do
+		if index > EVENT_LOG_MAX_ARGS then
+			break
+		end
+		local raw = string.sub(tostring((select(index, ...))), 1, EVENT_LOG_MAX_ARG_LENGTH)
+		parts[index] = (raw:gsub("|", "||"))
+	end
+	local log = ns.diagnostics.log
+	log[#log + 1] = string.format("%.3f %s(%s)", GetTime(), event, table.concat(parts, ", "))
+	if #log > EVENT_LOG_SIZE then
+		table.remove(log, 1)
+	end
 end
 
 function ns:BuildEventLogReport()
-    local lines = {GetClientHeader(), ""}
-    local log = ns.diagnostics.log
-    if not log or #log == 0 then
-        lines[#lines + 1] = "(no events captured)"
-    else
-        for _, entry in ipairs(log) do
-            lines[#lines + 1] = entry
-        end
-    end
-    return table.concat(lines, "\n")
+	local lines = { GetClientHeader(), "" }
+	local log = ns.diagnostics.log
+	if not log or #log == 0 then
+		lines[#lines + 1] = "(no events captured)"
+	else
+		for _, entry in ipairs(log) do
+			lines[#lines + 1] = entry
+		end
+	end
+	return table.concat(lines, "\n")
 end
 
 --------------------------------------------------------------------------------
@@ -184,37 +193,37 @@ end
 local probeFrame
 
 local function GetProbeFrame()
-    if not probeFrame then
-        probeFrame = CreateFrame("Frame")
-    end
-    return probeFrame
+	if not probeFrame then
+		probeFrame = CreateFrame("Frame")
+	end
+	return probeFrame
 end
 
 function ns:RunEventChecks()
-    local lines = {GetClientHeader(), ""}
-    local hasIsEventValid = type(C_EventUtils) == "table" and type(C_EventUtils.IsEventValid) == "function"
-    local probe = GetProbeFrame()
-    local failures = 0
-    for _, event in ipairs(ns.EVENT_NAMES or {}) do
-        local valid = "n/a"
-        if hasIsEventValid then
-            valid = C_EventUtils.IsEventValid(event) and "valid" or "INVALID"
-        end
-        local ok = pcall(probe.RegisterEvent, probe, event)
-        if ok then
-            probe:UnregisterEvent(event)
-        else
-            failures = failures + 1
-        end
-        lines[#lines + 1] = string.format("[%s] %s (IsEventValid: %s)", ok and "PASS" or "FAIL", event, valid)
-    end
-    lines[#lines + 1] = ""
-    if failures == 0 then
-        lines[#lines + 1] = "All events register on this client."
-    else
-        lines[#lines + 1] = string.format("%d event(s) failed to register.", failures)
-    end
-    return table.concat(lines, "\n")
+	local lines = { GetClientHeader(), "" }
+	local hasIsEventValid = type(C_EventUtils) == "table" and type(C_EventUtils.IsEventValid) == "function"
+	local probe = GetProbeFrame()
+	local failures = 0
+	for _, event in ipairs(ns.EVENT_NAMES or {}) do
+		local valid = "n/a"
+		if hasIsEventValid then
+			valid = C_EventUtils.IsEventValid(event) and "valid" or "INVALID"
+		end
+		local ok = pcall(probe.RegisterEvent, probe, event)
+		if ok then
+			probe:UnregisterEvent(event)
+		else
+			failures = failures + 1
+		end
+		lines[#lines + 1] = string.format("[%s] %s (IsEventValid: %s)", ok and "PASS" or "FAIL", event, valid)
+	end
+	lines[#lines + 1] = ""
+	if failures == 0 then
+		lines[#lines + 1] = "All events register on this client."
+	else
+		lines[#lines + 1] = string.format("%d event(s) failed to register.", failures)
+	end
+	return table.concat(lines, "\n")
 end
 
 --------------------------------------------------------------------------------
@@ -231,56 +240,311 @@ end
     client provides.
 ]]
 ns.DIAGNOSTIC_API_CHECKS = {
-    -- { label, testFunction }
-    {"C_AddOns.GetAddOnMetadata", function() return type(C_AddOns) == "table" and type(C_AddOns.GetAddOnMetadata) == "function" end},
-    {"GetAddOnMetadata (legacy)", function() return type(GetAddOnMetadata) == "function" end},
-    {"C_AddOns.GetAddOnInfo", function() return type(C_AddOns) == "table" and type(C_AddOns.GetAddOnInfo) == "function" end},
-    {"GetAddOnInfo (legacy)", function() return type(GetAddOnInfo) == "function" end},
-    {"C_AddOns.GetNumAddOns", function() return type(C_AddOns) == "table" and type(C_AddOns.GetNumAddOns) == "function" end},
-    {"GetNumAddOns (legacy)", function() return type(GetNumAddOns) == "function" end},
-    --[[
+	-- { label, testFunction }
+	{
+		"C_AddOns.GetAddOnMetadata",
+		function()
+			return type(C_AddOns) == "table" and type(C_AddOns.GetAddOnMetadata) == "function"
+		end,
+	},
+	{
+		"GetAddOnMetadata (legacy)",
+		function()
+			return type(GetAddOnMetadata) == "function"
+		end,
+	},
+	{
+		"C_AddOns.GetAddOnInfo",
+		function()
+			return type(C_AddOns) == "table" and type(C_AddOns.GetAddOnInfo) == "function"
+		end,
+	},
+	{
+		"GetAddOnInfo (legacy)",
+		function()
+			return type(GetAddOnInfo) == "function"
+		end,
+	},
+	{
+		"C_AddOns.GetNumAddOns",
+		function()
+			return type(C_AddOns) == "table" and type(C_AddOns.GetNumAddOns) == "function"
+		end,
+	},
+	{
+		"GetNumAddOns (legacy)",
+		function()
+			return type(GetNumAddOns) == "function"
+		end,
+	},
+	--[[
         C_Container has no legacy-global rows by design: GetContainerNumSlots /
-        GetContainerItemInfo are absent on the target clients (Era 1.15.8 +
-        TBC 2.5.5), where C_Container is the only container API. See the container shims in Utilities.
+        GetContainerItemInfo are absent on the target clients (see the TOC
+        ## Interface line), where C_Container is the only container API. See
+        the container shims in Utilities.
     ]]
-    {"C_Container.GetContainerNumSlots", function() return type(C_Container) == "table" and type(C_Container.GetContainerNumSlots) == "function" end},
-    {"C_Container.GetContainerItemInfo", function() return type(C_Container) == "table" and type(C_Container.GetContainerItemInfo) == "function" end},
-    {"C_Map.GetBestMapForUnit", function() return type(C_Map) == "table" and type(C_Map.GetBestMapForUnit) == "function" end},
-    {"IsInInstance", function() return type(IsInInstance) == "function" end},
-    {"C_Item.GetItemCount", function() return type(C_Item) == "table" and type(C_Item.GetItemCount) == "function" end},
-    {"GetItemCount (legacy)", function() return type(GetItemCount) == "function" end},
-    {"C_Item.GetItemIconByID", function() return type(C_Item) == "table" and type(C_Item.GetItemIconByID) == "function" end},
-    {"GetItemIcon (legacy)", function() return type(GetItemIcon) == "function" end},
-    {"GetItemInfo", function() return type(GetItemInfo) == "function" end},
-    {"GetMacroIndexByName", function() return type(GetMacroIndexByName) == "function" end},
-    {"CreateMacro", function() return type(CreateMacro) == "function" end},
-    {"EditMacro", function() return type(EditMacro) == "function" end},
-    {"DeleteMacro", function() return type(DeleteMacro) == "function" end},
-    {"GetMacroBody", function() return type(GetMacroBody) == "function" end},
-    {"GetNumMacros", function() return type(GetNumMacros) == "function" end},
-    {"GetPetFoodTypes", function() return type(GetPetFoodTypes) == "function" end},
-    {"GetNumSkillLines", function() return type(GetNumSkillLines) == "function" end},
-    {"GetSkillLineInfo", function() return type(GetSkillLineInfo) == "function" end},
-    {"GetNumQuestLogEntries", function() return type(GetNumQuestLogEntries) == "function" end},
-    {"GetQuestLogTitle", function() return type(GetQuestLogTitle) == "function" end},
-    {"UnitAura", function() return type(UnitAura) == "function" end},
-    {"GetSpellInfo", function() return type(GetSpellInfo) == "function" end},
-    {"IsSpellKnown", function() return type(IsSpellKnown) == "function" end},
-    {"IsPlayerSpell", function() return type(IsPlayerSpell) == "function" end},
-    {"SecureCmdOptionParse", function() return type(SecureCmdOptionParse) == "function" end},
-    {"C_Timer.After", function() return type(C_Timer) == "table" and type(C_Timer.After) == "function" end},
-    {"C_EventUtils.IsEventValid", function() return type(C_EventUtils) == "table" and type(C_EventUtils.IsEventValid) == "function" end},
-    {"GetCVar", function() return type(GetCVar) == "function" end},
-    {"SetCVar", function() return type(SetCVar) == "function" end}
+	{
+		"C_Container.GetContainerNumSlots",
+		function()
+			return type(C_Container) == "table" and type(C_Container.GetContainerNumSlots) == "function"
+		end,
+	},
+	{
+		"C_Container.GetContainerItemInfo",
+		function()
+			return type(C_Container) == "table" and type(C_Container.GetContainerItemInfo) == "function"
+		end,
+	},
+	{
+		"C_Map.GetBestMapForUnit",
+		function()
+			return type(C_Map) == "table" and type(C_Map.GetBestMapForUnit) == "function"
+		end,
+	},
+	{
+		"IsInInstance",
+		function()
+			return type(IsInInstance) == "function"
+		end,
+	},
+	{
+		"C_Item.GetItemCount",
+		function()
+			return type(C_Item) == "table" and type(C_Item.GetItemCount) == "function"
+		end,
+	},
+	{
+		"GetItemCount (legacy)",
+		function()
+			return type(GetItemCount) == "function"
+		end,
+	},
+	{
+		"C_Item.GetItemIconByID",
+		function()
+			return type(C_Item) == "table" and type(C_Item.GetItemIconByID) == "function"
+		end,
+	},
+	{
+		"GetItemIcon (legacy)",
+		function()
+			return type(GetItemIcon) == "function"
+		end,
+	},
+	{
+		"GetItemInfo",
+		function()
+			return type(GetItemInfo) == "function"
+		end,
+	},
+	{
+		"GetMacroIndexByName",
+		function()
+			return type(GetMacroIndexByName) == "function"
+		end,
+	},
+	{
+		"CreateMacro",
+		function()
+			return type(CreateMacro) == "function"
+		end,
+	},
+	{
+		"EditMacro",
+		function()
+			return type(EditMacro) == "function"
+		end,
+	},
+	{
+		"DeleteMacro",
+		function()
+			return type(DeleteMacro) == "function"
+		end,
+	},
+	{
+		"GetMacroBody",
+		function()
+			return type(GetMacroBody) == "function"
+		end,
+	},
+	{
+		"GetNumMacros",
+		function()
+			return type(GetNumMacros) == "function"
+		end,
+	},
+	{
+		"GetPetFoodTypes",
+		function()
+			return type(GetPetFoodTypes) == "function"
+		end,
+	},
+	{
+		"GetNumSkillLines",
+		function()
+			return type(GetNumSkillLines) == "function"
+		end,
+	},
+	{
+		"GetSkillLineInfo",
+		function()
+			return type(GetSkillLineInfo) == "function"
+		end,
+	},
+	{
+		"GetNumQuestLogEntries",
+		function()
+			return type(GetNumQuestLogEntries) == "function"
+		end,
+	},
+	{
+		"GetQuestLogTitle",
+		function()
+			return type(GetQuestLogTitle) == "function"
+		end,
+	},
+	{
+		"UnitAura",
+		function()
+			return type(UnitAura) == "function"
+		end,
+	},
+	{
+		"GetSpellInfo",
+		function()
+			return type(GetSpellInfo) == "function"
+		end,
+	},
+	{
+		"IsSpellKnown",
+		function()
+			return type(IsSpellKnown) == "function"
+		end,
+	},
+	{
+		"IsPlayerSpell",
+		function()
+			return type(IsPlayerSpell) == "function"
+		end,
+	},
+	{
+		"SecureCmdOptionParse",
+		function()
+			return type(SecureCmdOptionParse) == "function"
+		end,
+	},
+	{
+		"C_Timer.After",
+		function()
+			return type(C_Timer) == "table" and type(C_Timer.After) == "function"
+		end,
+	},
+	{
+		"C_EventUtils.IsEventValid",
+		function()
+			return type(C_EventUtils) == "table" and type(C_EventUtils.IsEventValid) == "function"
+		end,
+	},
+	-- Restocker's load-bearing surface (merchant buying and bank restocking).
+	{
+		"GetMerchantNumItems",
+		function()
+			return type(GetMerchantNumItems) == "function"
+		end,
+	},
+	{
+		"GetMerchantItemInfo",
+		function()
+			return type(GetMerchantItemInfo) == "function"
+		end,
+	},
+	{
+		"GetMerchantItemLink",
+		function()
+			return type(GetMerchantItemLink) == "function"
+		end,
+	},
+	{
+		"BuyMerchantItem",
+		function()
+			return type(BuyMerchantItem) == "function"
+		end,
+	},
+	{
+		"UnitReaction",
+		function()
+			return type(UnitReaction) == "function"
+		end,
+	},
+	{
+		"GetNetStats",
+		function()
+			return type(GetNetStats) == "function"
+		end,
+	},
+	{
+		"GetItemFamily",
+		function()
+			return type(GetItemFamily) == "function"
+		end,
+	},
+	{
+		"GetInventorySlotInfo",
+		function()
+			return type(GetInventorySlotInfo) == "function"
+		end,
+	},
+	{
+		"C_Container.GetContainerNumFreeSlots",
+		function()
+			return type(C_Container) == "table" and type(C_Container.GetContainerNumFreeSlots) == "function"
+		end,
+	},
+	{
+		"C_Container.PickupContainerItem",
+		function()
+			return type(C_Container) == "table" and type(C_Container.PickupContainerItem) == "function"
+		end,
+	},
+	{
+		"C_Container.SplitContainerItem",
+		function()
+			return type(C_Container) == "table" and type(C_Container.SplitContainerItem) == "function"
+		end,
+	},
+	{
+		"C_Container.UseContainerItem",
+		function()
+			return type(C_Container) == "table" and type(C_Container.UseContainerItem) == "function"
+		end,
+	},
+	{
+		"C_Container.ContainerIDToInventoryID",
+		function()
+			return type(C_Container) == "table" and type(C_Container.ContainerIDToInventoryID) == "function"
+		end,
+	},
+	{
+		"GetCVar",
+		function()
+			return type(GetCVar) == "function"
+		end,
+	},
+	{
+		"SetCVar",
+		function()
+			return type(SetCVar) == "function"
+		end,
+	},
 }
 
 function ns:RunApiChecks()
-    local lines = {GetClientHeader(), ""}
-    for _, check in ipairs(ns.DIAGNOSTIC_API_CHECKS) do
-        local ok, result = pcall(check[2])
-        lines[#lines + 1] = ((ok and result) and "[PASS] " or "[FAIL] ") .. check[1]
-    end
-    return table.concat(lines, "\n")
+	local lines = { GetClientHeader(), "" }
+	for _, check in ipairs(ns.DIAGNOSTIC_API_CHECKS) do
+		local ok, result = pcall(check[2])
+		lines[#lines + 1] = ((ok and result) and "[PASS] " or "[FAIL] ") .. check[1]
+	end
+	return table.concat(lines, "\n")
 end
 
 --------------------------------------------------------------------------------
@@ -294,52 +558,55 @@ end
     minimap button — the display context behind off-screen / wrong-scale reports.
 ]]
 ns.DIAGNOSTIC_SPELLS = {
-    -- { spellID, label }
-    {587, "Conjure Food (Rank 1)"},
-    {5504, "Conjure Water (Rank 1)"},
-    {759, "Conjure Mana Agate"},
-    {43987, "Ritual of Refreshment"},
-    {6201, "Create Healthstone (Minor)"},
-    {693, "Create Soulstone (Minor)"},
-    {29893, "Ritual of Souls"},
-    {883, "Call Pet"},
-    {6991, "Feed Pet"},
-    {136, "Mend Pet"},
-    {982, "Revive Pet"},
-    {2641, "Dismiss Pet"},
-    {20580, "Shadowmeld"},
-    {20222, "Goblin Engineer"}
+	-- { spellID, label }
+	{ 587, "Conjure Food (Rank 1)" },
+	{ 5504, "Conjure Water (Rank 1)" },
+	{ 759, "Conjure Mana Agate" },
+	{ 43987, "Ritual of Refreshment" },
+	{ 6201, "Create Healthstone (Minor)" },
+	{ 693, "Create Soulstone (Minor)" },
+	{ 29893, "Ritual of Souls" },
+	{ 883, "Call Pet" },
+	{ 6991, "Feed Pet" },
+	{ 136, "Mend Pet" },
+	{ 982, "Revive Pet" },
+	{ 2641, "Dismiss Pet" },
+	{ 20580, "Shadowmeld" },
+	{ 20222, "Goblin Engineer" },
 }
 
 function ns:BuildContextReport()
-    local lines = {GetClientHeader(), ""}
+	local lines = { GetClientHeader(), "" }
 
-    local _, classToken = UnitClass("player")
-    lines[#lines + 1] = string.format(
-        "Class: %s // Level: %s // Cached level: %s // Cached map: %s",
-        tostring(classToken), tostring(UnitLevel("player")),
-        tostring(ns.CachedPlayerLevel), tostring(ns.CachedMapID)
-    )
+	local _, classToken = UnitClass("player")
+	lines[#lines + 1] = string.format(
+		"Class: %s // Level: %s // Cached level: %s // Cached map: %s",
+		tostring(classToken),
+		tostring(UnitLevel("player")),
+		tostring(ns.CachedPlayerLevel),
+		tostring(ns.CachedMapID)
+	)
 
-    -- The profession ranks the scanner's usability gates read (0 = unlearned).
-    lines[#lines + 1] = string.format(
-        "Skills: First Aid %s // Alchemy %s // Engineering %s",
-        tostring(ns.CurrentFirstAidSkill), tostring(ns.CurrentAlchemySkill),
-        tostring(ns.CurrentEngineeringSkill)
-    )
+	-- The profession ranks the scanner's usability gates read (0 = unlearned).
+	lines[#lines + 1] = string.format(
+		"Skills: First Aid %s // Alchemy %s // Engineering %s",
+		tostring(ns.CurrentFirstAidSkill),
+		tostring(ns.CurrentAlchemySkill),
+		tostring(ns.CurrentEngineeringSkill)
+	)
 
-    lines[#lines + 1] = ""
-    lines[#lines + 1] = "-- Best-item selection --"
-    lines[#lines + 1] = string.format("BestFoodID: %s", tostring(ns.BestFoodID))
-    lines[#lines + 1] = string.format("BestPetFoodID: %s", tostring(ns.BestPetFoodID))
-    if ns.ScrollOverrideIDs and #ns.ScrollOverrideIDs > 0 then
-        lines[#lines + 1] = "ScrollOverrideIDs: " .. table.concat(ns.ScrollOverrideIDs, ", ")
-    else
-        lines[#lines + 1] = "ScrollOverrideIDs: (none)"
-    end
-    lines[#lines + 1] = string.format("PetBuffOverrideID: %s", tostring(ns.PetBuffOverrideID))
+	lines[#lines + 1] = ""
+	lines[#lines + 1] = "-- Best-item selection --"
+	lines[#lines + 1] = string.format("BestFoodID: %s", tostring(ns.BestFoodID))
+	lines[#lines + 1] = string.format("BestPetFoodID: %s", tostring(ns.BestPetFoodID))
+	if ns.ScrollOverrideIDs and #ns.ScrollOverrideIDs > 0 then
+		lines[#lines + 1] = "ScrollOverrideIDs: " .. table.concat(ns.ScrollOverrideIDs, ", ")
+	else
+		lines[#lines + 1] = "ScrollOverrideIDs: (none)"
+	end
+	lines[#lines + 1] = string.format("PetBuffOverrideID: %s", tostring(ns.PetBuffOverrideID))
 
-    --[[
+	--[[
         Per-category winners from the last ScanBags pass (ns.BestSelection is
         the scanner's live best table). The read-out for "category X didn't
         update" reports: it shows exactly what the scanner picked plus the
@@ -347,53 +614,57 @@ function ns:BuildContextReport()
         and the ranked topIDs for multi-use types — none of which BestFoodID
         alone can reveal.
     ]]
-    local selection = ns.BestSelection
-    if selection then
-        lines[#lines + 1] = ""
-        lines[#lines + 1] = "-- Best by category (last scan) --"
-        local categories = {}
-        for typeName in pairs(selection) do
-            categories[#categories + 1] = typeName
-        end
-        table.sort(categories)
-        for _, typeName in ipairs(categories) do
-            local entry = selection[typeName]
-            local detail = string.format(
-                "id=%s value=%s price=%s count=%s",
-                tostring(entry.id), tostring(entry.value),
-                tostring(entry.price), tostring(entry.count)
-            )
-            if entry.topIDs and #entry.topIDs > 0 then
-                detail = detail .. " topIDs=" .. table.concat(entry.topIDs, ",")
-            end
-            lines[#lines + 1] = string.format("%s: %s", typeName, detail)
-        end
-    end
+	local selection = ns.BestSelection
+	if selection then
+		lines[#lines + 1] = ""
+		lines[#lines + 1] = "-- Best by category (last scan) --"
+		local categories = {}
+		for typeName in pairs(selection) do
+			categories[#categories + 1] = typeName
+		end
+		table.sort(categories)
+		for _, typeName in ipairs(categories) do
+			local entry = selection[typeName]
+			local detail = string.format(
+				"id=%s value=%s price=%s count=%s",
+				tostring(entry.id),
+				tostring(entry.value),
+				tostring(entry.price),
+				tostring(entry.count)
+			)
+			if entry.topIDs and #entry.topIDs > 0 then
+				detail = detail .. " topIDs=" .. table.concat(entry.topIDs, ",")
+			end
+			lines[#lines + 1] = string.format("%s: %s", typeName, detail)
+		end
+	end
 
-    lines[#lines + 1] = ""
-    lines[#lines + 1] = "-- Spell knowledge --"
-    for _, entry in ipairs(ns.DIAGNOSTIC_SPELLS) do
-        local spellID, label = entry[1], entry[2]
-        local known = IsSpellKnown(spellID)
-        if not known and IsPlayerSpell then
-            known = IsPlayerSpell(spellID)
-        end
-        local name = GetSpellInfo(spellID)
-        lines[#lines + 1] = string.format(
-            "[%s] %s (%d)%s",
-            known and "KNOWN" or "  -  ", label, spellID,
-            name and (" = " .. name) or " (no name on this client)"
-        )
-    end
+	lines[#lines + 1] = ""
+	lines[#lines + 1] = "-- Spell knowledge --"
+	for _, entry in ipairs(ns.DIAGNOSTIC_SPELLS) do
+		local spellID, label = entry[1], entry[2]
+		local known = IsSpellKnown(spellID)
+		if not known and IsPlayerSpell then
+			known = IsPlayerSpell(spellID)
+		end
+		local name = GetSpellInfo(spellID)
+		lines[#lines + 1] = string.format(
+			"[%s] %s (%d)%s",
+			known and "KNOWN" or "  -  ",
+			label,
+			spellID,
+			name and (" = " .. name) or " (no name on this client)"
+		)
+	end
 
-    lines[#lines + 1] = ""
-    lines[#lines + 1] = "-- Display context --"
-    local pw, ph = GetPhysicalScreenSize()
-    lines[#lines + 1] = string.format("PhysicalScreenSize: %s x %s", tostring(pw), tostring(ph))
-    lines[#lines + 1] = string.format("UIParent scale: %s", tostring(UIParent and UIParent:GetScale()))
-    lines[#lines + 1] = string.format("uiScale CVar: %s", tostring(GetCVar("uiScale")))
+	lines[#lines + 1] = ""
+	lines[#lines + 1] = "-- Display context --"
+	local pw, ph = GetPhysicalScreenSize()
+	lines[#lines + 1] = string.format("PhysicalScreenSize: %s x %s", tostring(pw), tostring(ph))
+	lines[#lines + 1] = string.format("UIParent scale: %s", tostring(UIParent and UIParent:GetScale()))
+	lines[#lines + 1] = string.format("uiScale CVar: %s", tostring(GetCVar("uiScale")))
 
-    return table.concat(lines, "\n")
+	return table.concat(lines, "\n")
 end
 
 --------------------------------------------------------------------------------
@@ -401,16 +672,16 @@ end
 --------------------------------------------------------------------------------
 
 function ns:BuildAddOnReport()
-    local lines = {GetClientHeader(), ""}
-    local getInfo = (C_AddOns and C_AddOns.GetAddOnInfo) or GetAddOnInfo
-    local getMeta = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
-    local count = (C_AddOns and C_AddOns.GetNumAddOns and C_AddOns.GetNumAddOns()) or GetNumAddOns()
-    for index = 1, count do
-        local name, _, _, loadable = getInfo(index)
-        local version = getMeta(index, "Version") or "?"
-        lines[#lines + 1] = string.format("%s v%s [%s]", name, version, loadable and "loadable" or "disabled")
-    end
-    return table.concat(lines, "\n")
+	local lines = { GetClientHeader(), "" }
+	local getInfo = (C_AddOns and C_AddOns.GetAddOnInfo) or GetAddOnInfo
+	local getMeta = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
+	local count = (C_AddOns and C_AddOns.GetNumAddOns and C_AddOns.GetNumAddOns()) or GetNumAddOns()
+	for index = 1, count do
+		local name, _, _, loadable = getInfo(index)
+		local version = getMeta(index, "Version") or "?"
+		lines[#lines + 1] = string.format("%s v%s [%s]", name, version, loadable and "loadable" or "disabled")
+	end
+	return table.concat(lines, "\n")
 end
 
 --------------------------------------------------------------------------------
@@ -418,68 +689,101 @@ end
 --------------------------------------------------------------------------------
 
 local function DumpTable(value, indent, depth, lines)
-    if depth > 8 then
-        lines[#lines + 1] = indent .. "<max depth>"
-        return
-    end
-    local keys = {}
-    for key in pairs(value) do
-        keys[#keys + 1] = key
-    end
-    table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
-    for _, key in ipairs(keys) do
-        local entry = value[key]
-        if type(entry) == "table" then
-            --[[
+	if depth > 8 then
+		lines[#lines + 1] = indent .. "<max depth>"
+		return
+	end
+	local keys = {}
+	for key in pairs(value) do
+		keys[#keys + 1] = key
+	end
+	table.sort(keys, function(a, b)
+		return tostring(a) < tostring(b)
+	end)
+	for _, key in ipairs(keys) do
+		local entry = value[key]
+		if type(entry) == "table" then
+			--[[
                 itemCache can hold hundreds of rows; summarize its size rather
                 than dumping every entry (see DATA -- large arrays are described,
                 not reproduced). Matched by key at any depth, since under AceDB
                 it lives inside the active profile rather than at the root.
             ]]
-            if key == "itemCache" then
-                local count = 0
-                for _ in pairs(entry) do
-                    count = count + 1
-                end
-                lines[#lines + 1] = indent .. tostring(key) .. string.format(" = <%d cached items>", count)
-            else
-                lines[#lines + 1] = indent .. tostring(key) .. " = {"
-                DumpTable(entry, indent .. "    ", depth + 1, lines)
-                lines[#lines + 1] = indent .. "}"
-            end
-        else
-            lines[#lines + 1] = indent .. tostring(key) .. " = " .. tostring(entry)
-        end
-    end
+			if key == "itemCache" then
+				local count = 0
+				for _ in pairs(entry) do
+					count = count + 1
+				end
+				lines[#lines + 1] = indent .. tostring(key) .. string.format(" = <%d cached items>", count)
+			else
+				lines[#lines + 1] = indent .. tostring(key) .. " = {"
+				DumpTable(entry, indent .. "    ", depth + 1, lines)
+				lines[#lines + 1] = indent .. "}"
+			end
+		else
+			lines[#lines + 1] = indent .. tostring(key) .. " = " .. tostring(entry)
+		end
+	end
 end
 
 function ns:BuildSavedVariablesReport()
-    local lines = {GetClientHeader(), ""}
+	local lines = { GetClientHeader(), "" }
 
-    --[[
+	--[[
         Dump the single AceDB-managed SavedVariable in its real on-disk shape
         (profiles / global / profileKeys). DumpTable summarizes any itemCache
         table it meets -- now nested under the active profile -- as
         "<N cached items>", so the report stays readable and read-only.
     ]]
-    lines[#lines + 1] = "ConnoisseurDB = {"
-    DumpTable(ConnoisseurDB or {}, "    ", 1, lines)
-    lines[#lines + 1] = "}"
+	lines[#lines + 1] = "ConnoisseurDB = {"
+	DumpTable(ConnoisseurDB or {}, "    ", 1, lines)
+	lines[#lines + 1] = "}"
 
-    --[[
+	--[[
+        Restocker's own account-wide SavedVariable (see Features/Restocker/
+        Restocker.lua). Its profiles hold one row per tracked item and can run
+        long, so each profile is summarized as "<N items>" -- the same rule
+        DumpTable applies to itemCache. The view table keeps this read-only.
+    ]]
+	local restockerDB = ConnoisseurRestockerDB or {}
+	local restockerView = {}
+	for key, entry in pairs(restockerDB) do
+		restockerView[key] = entry
+	end
+	if type(restockerDB.profiles) == "table" then
+		local profileSummaries = {}
+		for name, profile in pairs(restockerDB.profiles) do
+			if type(profile) == "table" then
+				local count = 0
+				for _ in pairs(profile) do
+					count = count + 1
+				end
+				profileSummaries[name] = string.format("<%d items>", count)
+			else
+				profileSummaries[name] = tostring(profile)
+			end
+		end
+		restockerView.profiles = profileSummaries
+	end
+	lines[#lines + 1] = ""
+	lines[#lines + 1] = "ConnoisseurRestockerDB = {"
+	DumpTable(restockerView, "    ", 1, lines)
+	lines[#lines + 1] = "}"
+
+	--[[
         MIGRATION (remove after 2026-10-06): also dump the legacy per-character
         table while the migration window is open, so a bug report from a user
         whose ConnoisseurCharDB hasn't been folded into a profile yet still
         carries their old configuration.
     ]]
-    if ConnoisseurCharDB then
-        lines[#lines + 1] = ""
-        lines[#lines + 1] = "ConnoisseurCharDB = {"
-        DumpTable(ConnoisseurCharDB, "    ", 1, lines)
-        lines[#lines + 1] = "}"
-    end
+	if ConnoisseurCharDB then
+		lines[#lines + 1] = ""
+		lines[#lines + 1] = "ConnoisseurCharDB = {"
+		DumpTable(ConnoisseurCharDB, "    ", 1, lines)
+		lines[#lines + 1] = "}"
+	end
 
-    return table.concat(lines, "\n")
+	return table.concat(lines, "\n")
 end
 
 --------------------------------------------------------------------------------
@@ -487,16 +791,16 @@ end
 --------------------------------------------------------------------------------
 
 function ns:BuildLibraryReport()
-    local lines = {GetClientHeader(), ""}
-    local names = {}
-    for name in LibStub:IterateLibraries() do
-        names[#names + 1] = name
-    end
-    table.sort(names)
-    for _, name in ipairs(names) do
-        lines[#lines + 1] = string.format("%s (minor %s)", name, tostring(LibStub.minors[name]))
-    end
-    return table.concat(lines, "\n")
+	local lines = { GetClientHeader(), "" }
+	local names = {}
+	for name in LibStub:IterateLibraries() do
+		names[#names + 1] = name
+	end
+	table.sort(names)
+	for _, name in ipairs(names) do
+		lines[#lines + 1] = string.format("%s (minor %s)", name, tostring(LibStub.minors[name]))
+	end
+	return table.concat(lines, "\n")
 end
 
 --------------------------------------------------------------------------------
@@ -510,9 +814,9 @@ end
 ]]
 
 function ns:GetTaintLogState()
-    return tonumber(GetCVar("taintLog")) or 0
+	return tonumber(GetCVar("taintLog")) or 0
 end
 
 function ns:SetTaintLog(enabled)
-    SetCVar("taintLog", enabled and 2 or 0)
+	SetCVar("taintLog", enabled and 2 or 0)
 end

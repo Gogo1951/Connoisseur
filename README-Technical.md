@@ -2,278 +2,183 @@
 
 This document combines architecture notes and contribution guidance for developers working on Connoisseur. For end-user documentation, see [README.md](https://github.com/Gogo1951/Connoisseur/blob/main/README.md).
 
----
-
 ## File Map
 
-```text
+```
 Consumable-Connoisseur/
-├── Consumable-Connoisseur.toc      Load order, metadata, SavedVariables (Interface 11508 / 20506)
-├── README.md                       End-user documentation
-├── README-Technical.md             This file
+├── Consumable-Connoisseur.toc          Load order; single TOC for Era + TBC Anniversary
 ├── Data/
-│   ├── Data.lua                    Brand identity, palette, class colors, URLs, OPTIONS_REGISTRY, Config, ConjureSpells, spell/item IDs
-│   ├── Default-Settings.lua        ns.DATABASE_DEFAULTS (single AceDB table: profile + global.minimap)
-│   ├── Bandages.lua                Bandage item table
-│   ├── Explosives.lua              Engineering explosive table (damage, skill, specialization)
-│   ├── Food-and-Water.lua          Food / water / buff-food table
-│   ├── Healthstones.lua            Healthstone table + conjure→item map
-│   ├── Mana-Gems.lua               Mana gem table + conjure→item map
-│   ├── Pet-Foods.lua               Pet food itemLevel/diet/quest table + diet-name map
-│   ├── Potions.lua                 Health / mana potion table
-│   ├── Scrolls.lua                 Scroll item / buff / conflict-spell data + scan priority
-│   └── Soulstones.lua              Soulstone table
+│   ├── Data.lua                        Locale init, palette, ns.Config, conjure spell lists, constants
+│   ├── Default-Settings.lua            ns.DATABASE_DEFAULTS (AceDB profile + global.minimap)
+│   └── *.lua                           Static item data, one file per category (SQL-sourced)
 ├── Features/
-│   ├── Core.lua                    AceDB lifecycle, profile callbacks, legacy migration, central event dispatcher, throttle, version
-│   ├── Utilities.lua               Color accessor, cross-client API shims, mode/spell predicates
-│   ├── Announcements.lua           PrintMessage + login welcome message (player-only prints)
-│   ├── Macro-Runtime.lua           Macro-callback globals (ConnFire / ConnTip / ConnIf / ConnNoItem) + ConnoisseurState transport
-│   ├── Item-Cache.lua              Derives/caches per-item consumable metadata; ignore-list pruning
-│   ├── Scanner-Character.lua       Aura inspection (Well Fed, scrolls, pet buffs), profession skills, scroll/pet overrides
-│   ├── Scanner-Inventory.lua       Bag scan + best-item selection (single-winner, ranked multi-use, pet food)
-│   ├── Macro-Builder-General.lua   Macro composition / write-back, conjure-block assembly
-│   ├── Macro-Builder-Druids.lua    DruidMacroHelper override (HP / MP / HS)
-│   ├── Macro-Builder-Hunters.lua   Feed Pet macro, knowledge tiers, 255-byte trim
-│   ├── Macro-Builder-Mages.lua     Mage conjure resolvers (Water, Food, Mana Gem)
-│   ├── Macro-Builder-Warlocks.lua  Warlock conjure resolvers (Healthstone, Soulstone)
-│   ├── Diagnostics.lua             Runtime-only Diagnostic Tools (event log, API/event probes, dumps); never localized
-│   └── Minimap-Button.lua          LDB data object + minimap tooltip / click handlers
-├── Options/
-│   ├── Options-Utilities.lua       Shared option-widget constructors + mode labels
-│   ├── Options-General.lua         The single settings panel (all feature options live here)
-│   ├── Options-Profiles.lua        Stock AceDBOptions profiles panel + Reset All Profiles
-│   ├── Options-Diagnostics.lua     Diagnostic Tools panel
-│   └── Options.lua                 Deferred AceConfig registration, panel navigation, /foodie slash command
-├── Locales/
-│   ├── enUS.lua                    English strings (source of truth)
-│   └── …                           deDE, esES, esMX, frFR, itIT, koKR, ptBR, ruRU, zhCN, zhTW (loaded by .toc)
-└── Includes/
-    ├── Images/                     Connoisseur.tga (icon / minimap texture)
-    └── Libraries/                  Vendored: LibStub, CallbackHandler-1.0, AceLocale/GUI/Config-3.0, LibDataBroker-1.1, LibDBIcon-1.0
+│   ├── Core.lua                        Central event dispatcher, AceDB lifecycle, update throttle
+│   ├── Utilities.lua                   ns.GetColor, API shims, ns.IsEra/IsTBC, small predicates
+│   ├── Announcements.lua               ns.PrintMessage + once-per-session welcome
+│   ├── Item-Cache.lua                  Derives/caches per-item data; ignore-list pruning
+│   ├── Scanner-Character.lua           Skills, aura probes (Well Fed / scrolls / pet), early re-apply
+│   ├── Scanner-Inventory.lua           Bag scan, RANKING_PRIORITY ladder, per-category winners
+│   ├── Macros/
+│   │   ├── Engine.lua                  Definition registry, body/state-key builders, 255-byte trim
+│   │   ├── Runtime.lua                 ConnFire/ConnTip/ConnIf/ConnNoItem macro globals
+│   │   ├── Tools-<Class>.lua           What each class KNOWS (resolvers, Feed Pet, Poisons)
+│   │   ├── <Category>.lua              One RegisterMacroType definition per macro
+│   │   └── Integration-Druid-Macro-Helper.lua  DMH powershift wrapping (HP/MP/HS)
+│   ├── Action-Button-Text.lua          Macro-name visibility on default bars
+│   ├── Restocker/                      Bag/bank/vendor restocking (/crs); vendored architecture
+│   │   ├── Restocker.lua               Lifecycle, profiles, one-line saved format (v5), slash
+│   │   ├── Bank.lua                    Coroutine restock loop, watchdogs, in-flight gate
+│   │   ├── Bag.lua                     Container moves; split/merge; specialty-bag gating
+│   │   ├── Merchant.lua                Purchase orders, reputation gate
+│   │   ├── BuyIngredients.lua          Crafting reagent auto-buy (rogue poisons)
+│   │   ├── MainFrame.lua / ListFrame.lua   The /crs window
+│   │   ├── Specs/ · Tests/             Dev-only: headless API stubs + planner test (not in TOC)
+│   │   └── ...                         Module/KvEnv/Events/Settings/Item/Cache/Inventory plumbing
+│   ├── Diagnostics.lua                 Runtime-only probes/reports (never persisted)
+│   └── Minimap-Button.lua              LDB object, tooltip, click handlers
+├── Options/                            AceConfig panels (General, Profiles, Diagnostics)
+├── Locales/                            AceLocale files; enUS.lua is source of truth
+├── Includes/                           Vendored libraries — never edited by hand
+└── tools/parity/                       Dev-only offline macro-parity harness (not in TOC)
 ```
 
-Load order (`.toc`): Includes → Locales → Data → Features (Core first, then Utilities, Announcements, Macro-Runtime, Item-Cache, scanners, macro builders, Diagnostics, Minimap-Button) → Options (Utilities, General, Profiles, Diagnostics, then `Options.lua` last).
-
----
+Deprecated files that must stay gone: the pre-restructure `Features/Macro-*.lua` layout and `Features/Restocker/RestockerConf.lua` (deleted; superseded by `RestockerClass.lua` annotations).
 
 ## Architecture
 
 ### Event Loop
 
-`Features/Core.lua` owns a single hidden frame and a central dispatcher. Every event the addon uses is listed once in `ns.EVENT_NAMES` (the dispatcher registers the plain events from it, and the diagnostics Event-Registration check reads the same list, so the two can never drift). The rescan-triggering events — `BAG_UPDATE_DELAYED`, `ITEM_PUSH`, `PLAYER_LEVEL_UP`, `ZONE_CHANGED_NEW_AREA`, `PLAYER_TARGET_CHANGED`, `GROUP_ROSTER_UPDATE`, `SPELLS_CHANGED`, `SKILL_LINES_CHANGED`, `UNIT_PET`, `UNIT_AURA`, `UNIT_SPELLCAST_SUCCEEDED`, `GET_ITEM_INFO_RECEIVED`, `QUEST_LOG_UPDATE`, etc. — route through `RequestUpdate()`, which sets a dirty flag and a 0.5-second throttle (`UPDATE_THROTTLE`). The rescan and macro rewrite happen on the next `OnUpdate` tick once the throttle elapses.
+`Features/Core.lua` owns one frame and one dispatcher; feature files never register their own events — with one accepted exception, Restocker (below). The full event list is exported as `ns.EVENT_NAMES` so the dispatcher and Diagnostics' Event Registration check can never drift. Unit-filtered events (`UNIT_PET`, `UNIT_SPELLCAST_SUCCEEDED`) register via `RegisterUnitEvent`; `UNIT_AURA` registers only while a buff-tracking feature is active; `QUEST_LOG_UPDATE` registers for Hunters only; `GET_ITEM_INFO_RECEIVED` registers only while a scan is waiting on item data.
 
-This coalescing prevents macro thrashing — looting a 30-stack of bandages fires `BAG_UPDATE_DELAYED` once, but a vendor sweep can fire it dozens of times in a few frames. Routing everything through one dispatcher is also what makes the diagnostics event log complete: a feature file that registered its own frame would bypass the tap.
-
-A few events are registered conditionally to avoid paying for them when unused: `UNIT_AURA` only while buff-food / scroll / pet-buff tracking is active (`UpdateAuraTracking`), `QUEST_LOG_UPDATE` only for Hunters (pet-food quest-objective skipping), and `GET_ITEM_INFO_RECEIVED` only while an item lookup is pending (`RegisterDataRetry`).
+Rebuilds funnel through `ns.RequestUpdate()`: a two-flag throttle (`isUpdatePending` / `isTickScheduled`) arms a 0.5 s `OnUpdate` tick. The flags are separate so a pending update can never strand — any out-of-combat request re-arms a disarmed tick.
 
 ### Combat Lockdown
 
-`CreateMacro` / `EditMacro` / `DeleteMacro` are blocked during combat lockdown. Any update path that runs in combat sets the dirty flag and exits early (`UpdateMacros` and `UpdateFeedPetMacro` both guard at entry); the deferred rewrite replays on `PLAYER_REGEN_ENABLED`. `PLAYER_LOGIN`, `PLAYER_LEVEL_UP`, and `UI_ERROR_MESSAGE` are handled *ahead* of the lockdown guard because they must work mid-combat and touch no protected functions (a level-up from a killing blow, a zone-restriction error on a potion pressed mid-fight, etc.); the actual macro write still defers to the post-combat tick.
+Macros cannot be written in combat. Every path defers: the dispatcher swallows most events under `InCombatLockdown()` (setting `isUpdatePending`), the throttle tick disarms itself, and `PLAYER_REGEN_ENABLED` replays the pending work. Three things still run mid-combat because they are read-only and matter there: init on `PLAYER_LOGIN`, `UI_ERROR_MESSAGE` (zone-restriction reporting, dead-pet detection), and `PLAYER_LEVEL_UP` cache refreshes.
 
 ### Scan → Compose → Write
 
-`ns.UpdateMacros()` runs three phases:
-
-1. **Scan** (`Features/Scanner-Inventory.lua`): `ScanBags()` walks every bag slot and selects the best item per category via the comparison ladder (buff-food preference → percent vs flat → score → vendor price → hybrid preference → fewest in bags). Multi-use categories (Health Potion, Healthstone, Mana Potion) collect ranked candidates instead of a single winner. Side effects populate `ns.BestFoodID`, `best[].topIDs`, `ns.ScrollOverrideIDs`, `ns.PetBuffOverrideID`; Hunter pet food is scanned by `ScanPetFood()`.
-
-2. **Compose** (`Features/Macro-Builder-General.lua` + class resolver files): for each type in `ns.Config`, builds the body string: tooltip line → conjure block → action block → optional Shadowmeld suffix (or a dedicated scroll-only body / DMH override when those modes apply). Class files (`Macro-Builder-Mages.lua`, `-Warlocks.lua`) register into `ns.ConjureResolvers`; `Macro-Builder-Druids.lua` exposes `BuildDruidMacroOverride`; `Macro-Builder-Hunters.lua` owns `UpdateFeedPetMacro`.
-
-3. **Write**: hashes the composition into a state key, compares against `currentMacroState[typeName]`, and only calls `EditMacro` (or `CreateMacro` for a new macro) when the body actually changed. Writing during combat is a no-op; the dirty flag re-runs on `PLAYER_REGEN_ENABLED`.
+1. **Scan** — `ns.ScanBags()` (`Scanner-Inventory.lua`) walks bags once, dispatches every usable item to each registered definition claiming its cached `itemType`, and ranks candidates through the single `RANKING_PRIORITY` ladder (buff food → percent → value → conjured → price → hybrid → count → itemID; the last step makes picks deterministic across reloads).
+2. **Compose** — `Features/Macros/Engine.lua` builds each macro body from the definition's hooks (`conjure`, `buildUseLine`, `getStackIDs`, `buildModeOverride`, `appendBlock`, `stateExtras`); `Data/Data.lua`'s `ns.Config` supplies names and default icons.
+3. **Write** — `WriteMacro` creates or edits the shared General-tab macro only when the state key changed. Creation respects `ns.MACRO_SLOT_CUSHION` and warns once per session when the book is full, then self-heals when a slot frees.
 
 ### Item Data Caching
 
-`Features/Item-Cache.lua` derives a canonical per-item shape (itemType, heal/mana/damage values, required level, required First Aid / Alchemy / Engineering skill, required specialization spell, vendor price, max stack, zone restrictions, buff-food/percent flags) from the static `ns.RawData.*` tables plus a one-time `GetItemInfo` read, and stores it in `ConnoisseurDB.itemCache`. Non-consumables are cached as the sentinel `"IGNORE"` so they are never re-derived. `GetItemInfo` returns `nil` on a cold client; when that happens the scan sets a retry flag, `RegisterDataRetry()` registers `GET_ITEM_INFO_RECEIVED` and a 2-second `C_Timer` fallback, and the scan re-runs once data arrives. The cache is keyed by addon version (`itemCacheVersion`): a version bump wipes it on load to pick up corrected data or new fields without stale entries.
+`ns.CacheItemData` (`Features/Item-Cache.lua`) derives a canonical record per item into `ns.db.profile.itemCache`. A `GetItemInfo` cold-call nil marks the scan dirty; `ns.RegisterDataRetry` listens for `GET_ITEM_INFO_RECEIVED` plus a 2 s timer and rescans. Invalidation is two-layered: a version stamp (`itemCacheVersion ~= ns.Version`) wipes on release bumps, and a nil-test of the newest schema field catches same-version dev edits — when adding a cache field, extend that nil-test in `Scanner-Inventory.lua`.
 
 ### State Encoding
 
-Every macro write is preceded by a state key capturing every input that affects the body. Each macro type lives in one of several **pairwise-disjoint** key namespaces, so any transition between modes always changes the key and forces a rewrite:
+Every input that affects a macro body must appear in its state key, or the macro goes stale. Namespaces are disjoint by prefix so any mode transition forces a rewrite: standard keys are item-ID-led (`ITEMIDS(_C…)(_EX:mode)?(_SM|_SE)?`), Food's scroll mode uses `SCROLLS:`, and the Druid override uses `DMH:`. The Poisons and Feed Pet builders keep their own keys with the same lossless-key rule.
 
-**Standard / food mode:**
+## Food Macro: Modes and Overrides
 
-```text
-ITEMIDS(_C(_M:mid)?(_R:rid)?(_MR:key)?(_MM:key)?(_NI:key)?)?(_EX:mode)?(_SM)?
+The Food definition (`Features/Macros/Food.lua`) is the busiest:
+
+- **Plain/buff food** — buff food competes only while the scanner's live `ns.AllowBuffFood` is true (setting + party/raid mode + not Well Fed + not self-targeting + not in an arena).
+- **Scroll-only mode** — with missing scroll buffs and no friendly-player target, the whole body becomes a scroll applier and flips back next update:
+
 ```
-
-- `ITEMIDS` — the slotted item ID, or `none`; for multi-use types (Health Potion, Healthstone, Mana Potion) it is the comma-joined ranked list so a change in any fallback rank also rewrites.
-- `_C` — conjure block present. `_M:mid` / `_R:rid` — middle/right-click spell IDs. `_MR` / `_MM` / `_NI` — "spell not yet learned" miss-tip keys (right / middle / no-item).
-- `_EX:mode` — Explosive click layout (`atplayer` or `toss`), so flipping the dropdown rewrites the macro.
-- `_SM` — Shadowmeld suffix appended (Night Elf Water macro).
-
-**Scroll mode** (`SCROLLS:s1,s2,…`) and **DMH mode** (`DMH:formKey:id1,id2,…`, where `formKey` is `bear`/`cat`) use distinct stems. Numeric item IDs carry no colon, so they can't collide with the `SCROLLS:` / `DMH:` prefixes. If the key matches `currentMacroState[typeName]`, the body is byte-for-byte identical to what's written and the `EditMacro` call is skipped — this is what makes `BAG_UPDATE_DELAYED` storms cheap.
-
----
-
-## Macro Composition Details
-
-### Food Macro: Two Modes
-
-The Food macro swaps between two modes based on what the player needs and what is targeted.
-
-**Scroll mode** — active when (a) `useScrolls` is on, (b) at least one tracked scroll buff is missing, (c) the player has those scrolls in bags, and (d) the player is not targeting another friendly player. The body is just scrolls, in `ns.SCROLL_CHECK_ORDER` priority (Agility, Strength, Protection, Intellect, Spirit, Stamina):
-
-```text
 #showtooltip
-/use [@player] item:SCROLL1
-/use [@player] item:SCROLL2
+/use [@player] item:4425
+/use [@player] item:1180
 ```
 
-Bare `#showtooltip` resolves the action-bar icon to the first scroll. One tap fires all missing scrolls; the next bag/aura scan sees the buffs and the macro flips back to food mode.
+- **Pet-buff override** — `modifyItem` swaps the food for Kibler's Bits / Sporeling Snacks and `buildUseLine` targets `[@pet]`.
+- **Stealth Eating** — `appendBlock` adds `/cast [nostealth] Stealth` (Rogues) or Shadowmeld (other Night Elves) under the food line, flag `SE`. Water does the same for drinking (`SM`), Night Elves only, never Rogues.
 
-**Food mode** — every other case. Standard layout:
+## Multi-Use Macros and the 255-Byte Trim
 
-```text
-#showtooltip item:FOODID
-/cast [btn:3] Ritual of Refreshment; [btn:2] Conjure Food(Rank N);
-/stopmacro [btn:3][btn:2]
-/run ConnFire(FOODID)
-/use item:FOODID
-```
+Health Potion, Mana Potion, and Healthstone are `ranked` definitions: up to `ns.MULTI_USE_MAX_ITEMS` (3) `/use` lines, best first — safe because each category shares an item cooldown, so one press consumes one item and the extra lines are combat fallbacks. Optional Healthstone stacking appends the stone list under the potion lines. The client truncates macro bodies at 255 bytes; `BuildStandardBody` sheds stacked stone lines first, then fallback lines bottom-up — the rank-1 line never drops. Localized spell names make this real: a body that fits in enUS can overflow in ruRU or deDE.
 
-The conjure block uses `/stopmacro` to short-circuit: a right-click conjures and stops, never reaching the food line; a left-click skips the conjure block and eats. The two modes never coexist in one body — scroll mode is purely for self-buffing, food mode purely for eating (and conjure-for-friend on right-click).
+## Era vs TBC: Warlock Rank Pinning (recurring bug)
 
-**Why a friendly-player target flips to food mode.** Mages right-click their Food macro to conjure bread for a friend. In scroll mode the right-click would hit `/use [@player] item:SCROLL1` and fire scrolls on the *Mage* instead. `HasFriendlyPlayerTarget()` suppresses scroll mode whenever another friendly player is targeted; `PLAYER_TARGET_CHANGED` re-runs the update, and because the namespaces are disjoint (`SCROLLS:…` vs the `ITEMIDS…` form) the body always rewrites on the transition. The same helper drives `GetSmartSpell()` conjure downranking — targeting a lower-level friend caps the conjured rank at their level.
+Warlock Healthstones/Soulstones are distinctly-named spells on Era (cast bare; appending `(Rank N)` silently no-ops) but numeric ranks on TBC (must pin `(Rank N)`). The split is declared as data — `rankIsTBCOnly` on the `ns.ConjureSpells` lists — and applied only by `ns.GetSmartSpell`. Mage Conjure Food/Water are numeric-rank on both flavors. Read the RECURRING BUG note on `WarlockCreateHealthstone` in `Data/Data.lua` before touching any of it; fixtures 01/03 in the parity harness lock the behavior.
 
-### Macro-Callback Globals
+## Feed Pet (Hunter)
 
-Macro bodies invoke helpers through `/run`, which executes in the global environment and cannot see the addon namespace. `Macro-Runtime.lua` therefore defines a small set of **intentional globals** — `ConnFire`, `ConnTip`, `ConnIf`, `ConnNoItem`, and the `ConnoisseurState` transport table. It loads after `Announcements.lua` (the tips print through `ns.PrintMessage`) and before the macro builders that emit the `/run Conn…` lines invoking them. This is the documented exception to "the only globals are SavedVariables, slash commands, and named frames"; the distinctive `Conn…` prefix keeps collision risk negligible. `ConnFire(itemID)` stamps the firing item into `ConnoisseurState` so Core's `UI_ERROR_MESSAGE` handler can name the culprit on an `ERR_ITEM_WRONG_ZONE`. Using the short global instead of an inlined snippet saves bytes against the 255-byte limit — which matters most in long locales.
+A custom-update definition in `Tools-Hunters.lua` with three knowledge tiers: print-only stub (any core pet spell missing), Mend-less cascade (10–11), full cascade (12+: ctrl-Dismiss, shift/dead-Revive, `[nopet]` Call-or-Revive, `[btn:2][combat]` Mend, default Feed + food line). Pet food selection prefers the lowest-level max-happiness food, skips active quest objectives, and falls back to above-level food. Dead-but-dismissed pets are detected via `UI_ERROR_MESSAGE` and flip `[nopet]` to Revive.
 
-### The 255-Byte Limit
+## Poisons (Rogue)
 
-WoW silently truncates macro bodies at **255 bytes** (bytes, not characters — multibyte locales hit it sooner). Both Food modes fit comfortably: scroll mode is `#showtooltip` + at most six `/use [@player] item:N` lines (~164 bytes); food mode keeps its pre-scrolls shape. The Hunter Feed Pet macro is the one that can overflow and so carries an explicit trim (below).
+Also custom-update: left-click poisons the off hand (slot 17), right-click the main hand (slot 16), middle-click opens the crafting window. The body `/use`s the poison then the slot, `/click StaticPopup1Button1` to confirm replacement, and clears UI errors. Poison groups per hand come from the profile; group names resolve from the client's own item names, so they localize for free.
 
-### Friendly-Player Target Handling
+## Restocker
 
-See "Why a friendly-player target flips to food mode" above — `HasFriendlyPlayerTarget()` (`Macro-Builder-General.lua`) is the single source of truth, shared by the Food scroll-mode gate and `GetSmartSpell()` downranking.
+Vendored subsystem (accepted interim architecture) behind `/crs`: per-character shopping profiles stored in its own `ConnoisseurRestockerDB`, its own event frame, and `CrsModule`/`CRS_ADDON` globals. Key mechanics:
 
-### Pet Food Override
-
-`ns.PetBuffOverrideID` substitutes the Food slot's *itemID* with Kibler's Bits or Sporeling Snacks when the player's pet lacks the food buff and the items are in bags. It is a substitution, not an extra line: only one `Well Fed` buff exists and one item is consumed per press. The override is part of food mode only; scroll mode fires scrolls alone, and the next press (scrolls applied) lets pet food or normal food take over.
-
-### Mana Gem Uniqueness
-
-Mana Gems are unique — only one rank can sit in bags at a time. `GetSmartSpell` for the Mana Gem macro passes `checkUnique = true`, consulting `ns.ConjuredItemIDsBySpell` (`Data/Mana-Gems.lua`) and `ns.GetItemCount` (the `C_Item`/global shim from `Utilities.lua`) to skip ranks already held. Clicking conjures the highest rank you don't own, so a second press gives a backup at the next rank down. Warlock Healthstones use the same mechanism (`Data/Healthstones.lua`); Soulstones deliberately do **not** (`checkUnique = false`) because their 30-minute use cooldown means only one can ever be deployed.
-
-### Hunter Feed Pet
-
-`ns.UpdateFeedPetMacro()` (`Features/Macro-Builder-Hunters.lua`) builds this macro separately because one button must dispatch to Feed / Mend / Call / Revive / Dismiss based on modifier, button, pet state, and combat. Three knowledge tiers drive the shape:
-
-- **Tier A** (pre-10, any of Feed/Revive/Call/Dismiss Pet missing) — a print-only stub.
-- **Tier B** (10–11, no Mend Pet) — the full cascade minus Mend, plus a click-time tip on `[btn:2][combat]`.
-- **Tier C** (12+, all known) — the full cascade.
-
-Tier C, full form:
-
-```text
-#showtooltip
-/cast [mod:ctrl] Dismiss Pet; [mod:shift][@pet,dead] Revive Pet; [nopet] Call Pet; [btn:2][combat] Mend Pet; Feed Pet
-/stopmacro [mod][btn:2][nopet][@pet,dead][combat]
-/use item:FOODID
-```
-
-When the pet is dead and dismissed, `[nopet]` swaps to Revive Pet so one click works regardless of pet state; combat forces Mend Pet because Feed Pet can't be cast in combat.
-
-**255-byte trim.** The cascade names up to five client-localized spells, so a body that fits in enUS (~196 bytes) overflows in multibyte locales — ruRU runs ~306 bytes. `ComposeFeedPetBody(tier, itemID, includeDismiss, includeRevive)` assembles the body from two flags, and `BuildFeedPetBody` builds the full body, then while it exceeds 255 bytes sheds the optional shortcuts in priority order — `[mod:ctrl]` Dismiss first, then `[mod:shift]`/`[@pet,dead]` Revive — rebuilding the matching `/stopmacro` token set each time. The `[nopet]` summon, the `[btn:2][combat]` Mend branch, the default Feed, and the `/use` food line are **never** dropped, so core feed/summon behavior survives in every locale; only the modifier conveniences are shed. (The consumable and DMH builders carry analogous trims that drop stacked `/use` fallback lines.)
-
-### DruidMacroHelper Integration (Druid HP / MP / HS)
-
-When `enableDruidMacroHelper` is on for a Druid, the Health Potion, Mana Potion, and Healthstone macros are rewritten to use the [DruidMacroHelper](https://www.curseforge.com/wow/addons/druidmacrohelper) addon's `/dmh` syntax so the druid powershifts out of form, `/use`s the consumable, and shifts back — guarded against breaking form when the item is on cooldown, the player is stunned, on GCD, or OOM. Guard prefixes (from `ns.DMHGuards`, copied from DMH's own examples):
-
-- **Health Potion** — `/dmh start` (stun + GCD + mana) plus `/dmh cd pot`
-- **Healthstone** — `/dmh start` plus `/dmh cd hs`
-- **Mana Potion** — `/dmh stun gcd cd pot` — skips the mana check, since a mana pot is for when the druid is OOM
-
-The return form comes from `settings.druidReturnForm` (`"bear"`/`"cat"`).
-
-**Why hard-coded, not auto-tracked.** `EditMacro` is blocked in combat, so any design that listened to `UPDATE_SHAPESHIFT_FORM` and rewrote the body would leave the macro stale during the very combat where a druid powershifts — pressing it could land the druid in the wrong form. The hard-coded preference avoids that; switching forms in earnest is an out-of-combat action and the dropdown is one click.
-
-**Bear vs Dire Bear.** At login `Core.lua` resolves the bear form name via `GetSpellInfo(9634)` (Dire Bear Form) with a fallback to `GetSpellInfo(5487)` (Bear Form). The dropdown stores the abstract `"bear"`; the builder substitutes whichever the character actually knows.
-
----
+- **Bank restocking** is a coroutine stepped by a ping-paced `OnUpdate` timer. Every step re-scans reality (never optimistic bookkeeping), issues at most one move, and waits for item locks to settle. A no-progress watchdog stops with an honest report; an in-flight gate ignores scans taken while a move is mid-air; a bounced exact split escalates to a whole-stack pull whose overshoot is stashed back.
+- **Hard invariant: never sell.** `C_Container.UseContainerItem` sells when a merchant window is open, so the bank loop refuses to run while `merchantIsOpen`.
+- **Saved format v5** — each profile is keyed by itemID; items deflate to one comma-separated line per item at logout and inflate at login (`rsItemToString` / `rsItemFromString`).
+- Chat/UI strings are localized (`RESTOCKER_*` keys); pacing lives in `Bank.lua`; the offline planner test covers the move logic.
 
 ## Diagnostics
 
-`Features/Diagnostics.lua` + `Options/Options-Diagnostics.lua` are the standard Diagnostic Tools panel. Everything there is **runtime-only and side-effect free** — the enable gate and event log live in the in-memory `ns.diagnostics` table (never SavedVariables), default off, and reset to off each session because nothing is persisted. The dispatcher's log tap is a single guarded call (`if ns.diagnostics.logging then ns:LogEvent(event, ...) end`), so logging-off costs one boolean check. Diagnostics strings are developer-facing and deliberately **not localized** (they live in `ns.DiagnosticsStrings`). The one write the panel ever makes is the `taintLog` CVar, via its explicit button.
-
----
+Runtime-only (`ns.diagnostics`, never saved; everything defaults off each login). The panel builds reports on button press only: API/event probes driven by `ns.DIAGNOSTIC_API_CHECKS` and `ns.EVENT_NAMES`, an event log tapped in Core's dispatcher, saved-variable dumps of both tables, library versions, and the taintLog CVar buttons — the only thing it ever writes.
 
 ## Saved Variables
 
-One account-wide SavedVariable, `ConnoisseurDB`, managed by **AceDB-3.0**. Every character starts on the shared **Default** profile (`AceDB:New("ConnoisseurDB", ns.DATABASE_DEFAULTS, true)` — the `true` is the shared-default flag), so settings behave account-wide until a character opts into its own profile from the Profiles panel. Keeping several profiles (e.g. *Raid* vs *Solo*) and switching between them is stock AceDBOptions.
+- **`ConnoisseurDB`** — the AceDB-3.0 table. `profiles.<name>` holds every user setting (toggles, modes, `enabledMacros`, `scrollTypes`, `petBuffTypes`, poison groups, `ignoreList`, plus the derived `itemCache`/`itemCacheVersion`); `global.minimap` is the LibDBIcon subtable, profile-independent so profile operations never move the button; `profileKeys` maps characters to profiles (shared "Default" out of the box via `AceDB:New(..., true)`).
+- **`ConnoisseurRestockerDB`** — Restocker's account-wide table (accepted interim; an AceDB merge is planned): `profiles` (one-line item strings keyed by itemID), `profileKeys` ("Name-Realm" → active profile), `currentProfile`, `framePos`, `autoOpenAtBank`, `autoOpenAtMerchant`, `debugMessages`, `dataVersion`.
 
-- **`ns.db.profile`** — every user setting, so it follows the active profile:
-  - `showWelcome` — the on-login welcome message (default `true`).
-  - `enabledMacros` — per-macro-type on/off (`["Water"] = true`, …). The macros live in the shared General macro tab, so which ones Connoisseur maintains is a per-profile choice; class-gated macros (Feed Pet, conjures) still build only for the right class regardless of the toggle.
-  - `ignoreList` — set of item IDs to skip during best-item selection.
-  - feature preferences: buff food (`useBuffFood`, `buffFoodMode`), scrolls (`useScrolls`, `scrollsMode`, `scrollTypes`), pet buff food (`usePetBuffFood`, `petBuffFoodMode`, `petBuffTypes`), `combineHealthstones`, `explosivesClickMode` (Explosive macro click layout, `atplayer`/`toss`), Night Elf `enableShadowmeldDrinking`, Druid `enableDruidMacroHelper` + `druidReturnForm`. Druid/Night-Elf fields exist in every profile but are only consulted when `ns.IsDruid` / `ns.IsNightElf`.
-  - `itemCache` / `itemCacheVersion` — derived per-item metadata keyed by item ID (see Item Data Caching) plus its addon-version stamp; a mismatch wipes `itemCache` on load. Lazy-inited by `InitVars`, never declared in defaults.
-- **`ns.db.global`** — profile-independent, account-level:
-  - `minimap` — LibDBIcon subtable. Its `hide` flag is the single source of truth for button visibility (the "Enable Minimap Button" toggle is its inverse: `hide = false` means shown). LibDBIcon owns position and the rest of the subtable. Kept in `global` so switching, resetting, or deleting profiles never moves the button.
+### Migration Chain
 
-Defaults live in `Data/Default-Settings.lua` as the single `ns.DATABASE_DEFAULTS` table (a `profile` subtable plus `global.minimap`); AceDB applies them via metatables — there is no hand-rolled merge. **Reset** lives on the Profiles panel: stock **Reset Profile** (active profile only) and the one custom **Reset All Profiles** (`ns:ResetAllProfiles` in `Features/Core.lua`), which snapshots `ns.db.global.minimap`, calls `ns.db:ResetDB()`, then restores the minimap so a reset never moves the button. The General panel carries no settings reset — only the feature action Clear Ignore List. A profile switch/copy/reset rebuilds macros and aura tracking via AceDB's `OnProfileChanged` / `OnProfileCopied` / `OnProfileReset` callbacks (registered in `InitVars`).
+- `ConnoisseurCharDB` (legacy per-character) → AceDB profile; plus legacy root keys on `ConnoisseurDB` → profile/global — remove after 2026-10-06 (tagged in `Core.lua`, `Diagnostics.lua`, TOC).
+- Standalone `RestockerDB` adoption and `RestockerSettings` per-character import → `ConnoisseurRestockerDB`; pre-v5 saved-line tolerances — remove after 2026-08-15 (tagged in `Restocker.lua`).
 
-**Legacy migration (window closes 2026-10-06).** The pre-AceDB build hand-rolled two tables — account-wide `ConnoisseurDB` (root keys `showWelcome`, `enabledMacros`, `minimap`, `itemCache`, `itemCacheVersion`) and per-character `ConnoisseurCharDB` (`settings` + `ignoreList`). A one-shot migration in `InitVars()` folds both into the AceDB profile/global on first login (copying only non-nil values, then clearing each source) and is tagged `-- MIGRATION (remove after 2026-10-06)`. The `## SavedVariablesPerCharacter: ConnoisseurCharDB` TOC line is kept (tagged the same) until the window closes so the old per-character table still loads to be migrated. When the date passes, delete the migration blocks in `Core.lua` and `Diagnostics.lua` and the tagged TOC line. Because settings were account-wide before, every character's old per-character settings collapse into the shared Default profile (last writer wins); a player who wants per-character settings afterward opts into a profile.
+Defaults come from `ns.DATABASE_DEFAULTS` and are applied lazily by AceDB-3.0 via metatables — nothing is copied into the saved table, and explicit user values (including `false`) are never overridden.
 
-When changing the schema, never silently rewrite user data: add a one-shot migration in `InitVars()` gated on the legacy field, tag it with a dated `MIGRATION` comment (90 days out), and delete it after the window.
-
----
+There is no refill-on-empty list logic: Connoisseur ships no user-editable default item lists (the static tables in `Data/` are code, not saved data), and settings maps like `enabledMacros` deliberately survive being all-false. The derived `itemCache` is lazy-initialized outside the defaults table because Core owns its invalidation.
 
 ## Adding a New Consumable Category
 
-1. Add a data file in `Data/` (e.g. `Data/Elixirs.lua`) populating `ns.RawData.Elixirs` — a numeric item-keyed table of restore values, level/skill requirements, vendor prices, and any zone restrictions. Keep the row shape flat and lead with a column-header comment; include the originating SQL query (or a `-- TODO: Add SQL Query` marker).
-2. Add the file to the `# Data` block in `Consumable-Connoisseur.toc`.
-3. Add a `ns.Config` entry in `Data/Data.lua` (macro name from a `MACRO_*` locale key, a `defaultID` for the placeholder tooltip, and a `label` from a `LABEL_*` key). If it stacks ranked fallbacks, add it to `ns.MultiUseMacroTypes`.
-4. In `Features/Item-Cache.lua`: add `ns.RawData.Elixirs = ns.RawData.Elixirs or {}` to the safety-init block, a membership check in `ns.IsKnownConsumable`, and an `itemType` branch in `ns.CacheItemData`.
-5. In `Features/Scanner-Inventory.lua`: add a `best[]` entry (and `ResetBest` handles it generically) plus a branch in the `itemType` dispatch — single-winner via `IsBetter`, or `AddRankedCandidate` for a multi-use type.
-6. Add the macro key to `enabledMacros` in `ns.DATABASE_DEFAULTS.profile` (`Data/Default-Settings.lua`) and a `MacroToggle` row in `Options/Options-General.lua`.
-7. Add the `MACRO_*` and `LABEL_*` keys to `Locales/enUS.lua` (full words — `MACRO_HEALTH_POTION`, not `MACRO_HPOT`).
-8. If the category has conjure semantics, add a resolver in the relevant `Macro-Builder-{Class}.lua`.
+1. Add the static data to a new `Data/<Category>.lua` under `ns.RawData.<Category>`, with the originating SQL query in a comment (or `-- TODO: Add SQL Query`).
+2. List the file in the TOC's `# Data` block and add the defensive `ns.RawData.<Category> = ns.RawData.<Category> or {}` line in `Features/Item-Cache.lua`.
+3. Extend `ns.CacheItemData` with a branch deriving the canonical record (`itemType`, values, requirements).
+4. Create `Features/Macros/<Category>.lua` calling `ns.RegisterMacroType` (see the definition protocol in `Engine.lua`); add the TOC line among the definitions.
+5. Add the macro to `ns.Config` in `Data/Data.lua` (macro name ≤ 16 characters), `enabledMacros` in `Data/Default-Settings.lua`, an Enable Macros toggle in `Options/Options-General.lua`, and `MACRO_*`/`LABEL_*` keys in `Locales/enUS.lua` only.
+6. Mind the 255-character macro limit if the body stacks lines — German and Russian names are the canary. Add a parity fixture in `tools/parity/fixtures/` and refresh `baseline/`.
 
-Walk the worst-case **255-byte** check with the longest localized spell names. ruRU is the current worst case (it overflows the Hunter Feed Pet cascade); deDE and koKR are also long. Switch locale via the client / `Config.wtf` to test.
+## Adding a New Registered Event
 
----
+Add the name to `ns.EVENT_NAMES` in `Features/Core.lua` and a dispatcher branch — registration and the Diagnostics event/registration checks pick it up together. Use `DEFERRED_EVENTS` if it must register conditionally.
 
-## Adding a New Locale
+## Adding a New Scroll Type or Restocker Recipe
 
-Copy `Locales/enUS.lua` to `Locales/<locale>.lua`. Drop the `true` argument from `NewLocale("Connoisseur", "<locale>", true)` — that flag marks the default fallback; only `enUS.lua` sets it. Translate every string. Add the file to the `.toc` immediately after `Locales/enUS.lua`.
+- Scrolls: add the type to `ns.ScrollData` in `Data/Scrolls.lua` (items best-first, `conflictSpells` with base amounts), `ns.SCROLL_CHECK_ORDER`, `scrollTypes` defaults, an options toggle, and enUS keys.
+- Restocker crafted items: add the recipe in `Features/Restocker/BuyIngredients.lua` via `ClassicRecipe`/`TbcRecipe` with itemID + English reagent names.
 
-`esES.lua` and `esMX.lua` are separate files even though the Spanish strings are usually identical. Macro names cap at **16 characters**; macro action lines carrying localized spell names (Mage/Warlock conjure, Hunter pet spells, Shadowmeld) are the most likely to hit the 255-byte cap. The `DIET_*` keys must match `GetPetFoodTypes()` output exactly on that client (verify in-game), and `RANK` must match the client's `/cast Spell(Rank N)` wording.
+## Localization
 
----
+- **Structure** — locale files live in `Locales/<locale>.lua`, each registered through AceLocale-3.0's `NewLocale`. `enUS.lua` is the source of truth and the only file that passes the `true` default-fallback flag; every string originates there.
+- **Keeping locales in sync** — every other locale carries a translation of the same key set; AceLocale falls back to English via `__index` for anything missing at runtime. Aligning the files is the Localization pass's job — don't hand-edit non-enUS locales during ordinary work; new keys go into `enUS.lua` only and fall back until that pass runs.
+- **Placeholders** — `%s`/`%d` count, type, and order must match `enUS` per key in every locale, or the string crashes at runtime.
+- **Spanish** — `esES`/`esMX` are two separate, self-contained files; identical strings in both is correct and expected.
+- **Locale overflow** — German is the usual canary against the 255-character macro limit; the trims in `Engine.lua`, `Integration-Druid-Macro-Helper.lua`, and `Tools-Hunters.lua` exist because of it.
+- Diagnostics strings are developer-facing plain English in `Features/Diagnostics.lua` — never localized.
 
 ## Common Pitfalls
 
-- **Editing macros in combat**: silently fails. Always defer via the dirty flag; the rewrite replays on `PLAYER_REGEN_ENABLED`.
-- **Querying `GetItemInfo` cold**: returns `nil` on first call. Use the `GET_ITEM_INFO_RECEIVED` retry path in `Item-Cache.lua`; don't busy-loop.
-- **Forgetting state encoding**: if you add an input that affects the body, add it to the state key, or the macro won't rewrite when that input changes.
-- **Hardcoding spell names**: always resolve via `GetSpellInfo(spellID)` — names vary by locale and patch.
-- **Counting characters, not bytes**: the limit is 255 *bytes*. Multibyte locales (ruRU/koKR/zhCN) overflow sooner; the Feed Pet builder trims modifier branches to compensate (see its deep-dive), and the consumable/DMH builders drop stacked `/use` lines.
-- **Putting a setting in the wrong AceDB scope**: every user setting lives in `ns.db.profile` (so it follows the active profile); only the minimap subtable lives in `ns.db.global`. Seed new profile defaults into `ns.DATABASE_DEFAULTS.profile`.
-- **Auto-tracking druid form**: don't. `EditMacro` is gated by combat lockdown, so an `UPDATE_SHAPESHIFT_FORM` auto-tracker produces stale macros mid-combat. Use the hard-coded `druidReturnForm` setting.
-
----
+- **Editing macros in combat**: silently blocked by the client. Always route through `ns.RequestUpdate()`; the pending flag replays on `PLAYER_REGEN_ENABLED`.
+- **Appending `(Rank N)` to warlock stones on Era**: the `/cast` silently no-ops. The `rankIsTBCOnly` flag and `ns.GetSmartSpell` own this — don't "simplify" the spell families together.
+- **A body input missing from the state key**: the macro silently goes stale. Lossless keys are the rule; mode overrides use disjoint prefixes so transitions always rewrite.
+- **`GetItemInfo` cold nils**: a fresh login can't resolve uncached items. The scan flags `dataRetry` and re-runs on `GET_ITEM_INFO_RECEIVED` — never assume the first scan is complete.
+- **255-byte macro bodies in multibyte locales**: always assemble-then-trim (see the three trim sites); `#body` measures bytes, which is what the client enforces.
+- **`UseContainerItem` at a merchant sells the item**: the bank restock loop must never run with the merchant window open — guarded in `RunRestockLogic`.
+- **`UIDropDownMenu_SetWidth` padding**: the dropdown's invisible frame is width + padding (620 px in the Restocker footer) — anchor neighbors to the window, not the dropdown frame.
+- **`PLAYER_ENTERING_WORLD` refires on every loading screen**: init is guarded (`ns.db` nil-check, `varsInitialized`, welcome once-flag); keep new login work behind those guards.
+- **Editing non-enUS locale files by hand**: they're owned by the Localization pass; hand edits get overwritten. enUS only.
+- **StyLua**: run `stylua` (default config) over Connoisseur-proper Lua before committing; `Features/Restocker/` keeps its vendored style and `Includes/` is never touched. Verify macro-path changes with `tools/parity/check.sh` and Restocker moves with `lua Features/Restocker/Tests/RestockPlannerTest.lua`.
 
 ## Contributing
 
-Pull requests welcome at https://github.com/Gogo1951/Connoisseur. Open a GitHub issue for bugs or ideas, including:
+- **Issues**: [GitHub Issues](https://github.com/Gogo1951/Connoisseur/issues).
+- **Bug reports**: include game version + locale, class + level, repro steps, and the relevant macro body or chat output. The in-game **Diagnostic Tools** panel (Options → AddOns → Connoisseur) generates pasteable reports — the Event Log and Connoisseur Context sections answer most "my macro didn't update" reports.
+- **Discord**: <https://discord.gg/eh8hKq992Q>.
+- **PR guidelines**: keep PRs scoped to one change; match house style (StyLua defaults; Restocker keeps its vendored style); tag any data migration with a dated `MIGRATION (remove after YYYY-MM-DD)` comment; check the 255-byte limit for any macro-body change (`./tools/parity/check.sh` must report byte-identical or intentionally-changed baselines); update this document when the architecture or file map changes.
+- **Commit and PR descriptions require a User Story.** Don't just say "I changed X." Frame it:
 
-- Game version and locale
-- Class and level
-- Reproduction steps
-- The relevant macro body, copied from the in-game macro window, and any chat output
+  **Format:** *As a [role], I [needed / wanted] [behavior] so that [outcome]. This change [does X].*
 
-Discussion happens on Discord: https://discord.gg/eh8hKq992Q.
+  **Example:** *As a player switching between raid groups with different consumable preferences, I wanted Connoisseur to remember the last-selected food per character so I didn't reset it every login. This change adds a `lastSelected` field to the AceDB profile and restores it when the database loads.*
 
-When opening a PR:
-
-- Keep changes scoped — one concern per PR is easier to review.
-- Match the existing code style (4-space indent, no trailing whitespace, block comments for anything multi-line; run StyLua).
-- If you change saved-variable structure, add a one-shot migration in `InitVars()` (`Features/Core.lua`) gated on the legacy field, and plan its removal.
-- If you change macro composition, walk the worst-case **255-byte** check in the longest locale (ruRU for pet/conjure names).
-- Update this document if the architecture or file map changes.
-- **Commit and PR descriptions require a User Story.** Don't just say "I changed X." Frame it by who it helps and why:
-
-   **Format:** *As a [role], I [needed / wanted] [behavior] so that [outcome]. This change [does X].*
-
-   **Example:** *As a Mage who carries multiple gem ranks, I wanted a second Mana Gem press to conjure a backup instead of failing on the unique-item error. This change passes `checkUnique` through `GetSmartSpell` so the macro downranks to the next gem the player doesn't already hold.*
-
-   The User Story makes review faster and gives future maintainers context the diff alone won't carry.
+  The User Story makes review faster and gives future maintainers context the diff alone won't carry.

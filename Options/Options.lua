@@ -23,28 +23,28 @@ local mainPanel
     each child nests under the root.
 ]]
 local function RegisterChild(appName, builder, displayName)
-    AceConfig:RegisterOptionsTable(appName, builder)
-    AceConfigDialog:AddToBlizOptions(appName, displayName, L["ADDON_TITLE"])
+	AceConfig:RegisterOptionsTable(appName, builder)
+	AceConfigDialog:AddToBlizOptions(appName, displayName, L["ADDON_TITLE"])
 end
 
 function ns.InitializeOptions()
-    AceConfig:RegisterOptionsTable(REGISTRY.General, ns.BuildGeneralOptions)
-    mainPanel = AceConfigDialog:AddToBlizOptions(REGISTRY.General, L["ADDON_TITLE"])
+	AceConfig:RegisterOptionsTable(REGISTRY.General, ns.BuildGeneralOptions)
+	mainPanel = AceConfigDialog:AddToBlizOptions(REGISTRY.General, L["ADDON_TITLE"])
 
-    --[[
-        Profiles panel: the stock AceDBOptions-3.0 table plus Reset All Profiles
+	--[[
+        Profiles panel: the stock AceDBOptions-3.0 table, unmodified
         (Options-Profiles.lua). Its display name comes already-localized from
         AceDBOptions, read off the built table so we neither hardcode it nor add
         a locale key for a stock widget.
     ]]
-    RegisterChild(REGISTRY.Profiles, ns.BuildProfilesOptions, ns.BuildProfilesOptions().name)
+	RegisterChild(REGISTRY.Profiles, ns.BuildProfilesOptions, ns.BuildProfilesOptions().name)
 
-    --[[
+	--[[
         Diagnostic Tools last so it sits at the bottom of the tree. Its display
         name is a plain English string (ns.DiagnosticsStrings.TAB), not a locale
         key -- diagnostics text is never localized.
     ]]
-    RegisterChild(REGISTRY.Diagnostics, ns.BuildDiagnosticsOptions, ns.DiagnosticsStrings.TAB)
+	RegisterChild(REGISTRY.Diagnostics, ns.BuildDiagnosticsOptions, ns.DiagnosticsStrings.TAB)
 end
 
 --------------------------------------------------------------------------------
@@ -52,19 +52,19 @@ end
 --------------------------------------------------------------------------------
 
 function ns:OpenOptionsPanel()
-    if Settings and Settings.GetCategory then
-        local category = Settings.GetCategory(L["ADDON_TITLE"])
-        if category then
-            Settings.OpenToCategory(category.ID)
-            return
-        end
-    end
-    if InterfaceOptionsFrame_OpenToCategory then
-        InterfaceOptionsFrame_OpenToCategory(mainPanel)
-        InterfaceOptionsFrame_OpenToCategory(mainPanel)
-        return
-    end
-    AceConfigDialog:Open(REGISTRY.General)
+	if Settings and Settings.GetCategory then
+		local category = Settings.GetCategory(L["ADDON_TITLE"])
+		if category then
+			Settings.OpenToCategory(category.ID)
+			return
+		end
+	end
+	if InterfaceOptionsFrame_OpenToCategory then
+		InterfaceOptionsFrame_OpenToCategory(mainPanel)
+		InterfaceOptionsFrame_OpenToCategory(mainPanel)
+		return
+	end
+	AceConfigDialog:Open(REGISTRY.General)
 end
 
 --------------------------------------------------------------------------------
@@ -73,7 +73,7 @@ end
 
 SLASH_CONNOISSEUR1 = "/foodie"
 SlashCmdList["CONNOISSEUR"] = function()
-    if ns.OpenOptionsPanel then
-        ns:OpenOptionsPanel()
-    end
+	if ns.OpenOptionsPanel then
+		ns:OpenOptionsPanel()
+	end
 end
