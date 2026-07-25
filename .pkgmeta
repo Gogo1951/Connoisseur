@@ -24,12 +24,10 @@ externals:
 ignore:
   - .DS_Store
   - .git
+  - .gitattributes
   - .github
   - .gitignore
   - .idea
   - .pkgmeta
   - .vscode
   - LICENSE
-  - tools
-  - Features/Restocker/Specs
-  - Features/Restocker/Tests
