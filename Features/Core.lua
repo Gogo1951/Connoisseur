@@ -132,16 +132,18 @@ end
 local function InitVars()
 	if not ns.db then
 		--[[
-            One account-wide SavedVariable managed by AceDB-3.0. The third
-            argument (defaultProfile = true) lands every character on the shared
-            "Default" profile out of the box, so settings behave account-wide
-            until a character opts into its own profile from the Profiles panel.
-            AceDB applies ns.DATABASE_DEFAULTS via metatables -- no hand-merge.
+            One account-wide SavedVariable managed by AceDB-3.0. AceDB:New's
+            third argument (defaultProfile) is deliberately omitted, so every
+            character lands on its own "Name - Realm" profile. That costs
+            nothing: user settings live in ns.db.global and are account-wide
+            regardless of profile, so a per-character profile carries only the
+            Ignore List. AceDB applies ns.DATABASE_DEFAULTS via metatables --
+            no hand-merge.
         ]]
-		ns.db = LibStub("AceDB-3.0"):New("ConnoisseurDB", ns.DATABASE_DEFAULTS, true)
+		ns.db = LibStub("AceDB-3.0"):New("ConnoisseurDB", ns.DATABASE_DEFAULTS)
 
 		--[[
-            MIGRATION (remove after 2026-10-06): move pre-AceDB saved data into
+            MIGRATION (remove after 2026-08-15): move pre-AceDB saved data into
             the AceDB profile/global. Two sources:
               (a) the old per-character ConnoisseurCharDB (settings + ignoreList),
               (b) legacy root keys left on the ConnoisseurDB SavedVariable from
@@ -184,15 +186,88 @@ local function InitVars()
 		end
 
 		--[[
-            Switching, copying, or resetting a profile swaps every user setting
-            at once, so the macros and aura tracking must rebuild to match the
-            newly active profile.
+            MIGRATION (remove after 2026-08-15): move a legacy character off the
+            shared "Default" profile onto its own "Name - Realm" profile. The old
+            Simple model pinned every character to "Default" via
+            AceDB:New(..., true), and AceDB persists that choice in
+            ConnoisseurDB.profileKeys -- so dropping the flag only changes the
+            default for brand-new characters; an existing one stays on "Default"
+            until it is moved here. Capture the shared Ignore List first, so the
+            fresh per-character profile can be seeded from it below. A character
+            that already picked its own profile is left untouched.
+        ]]
+		local sharedIgnoreList
+		if ns.db:GetCurrentProfile() == "Default" then
+			local defaultProfile = ns.db.profiles and ns.db.profiles["Default"]
+			sharedIgnoreList = defaultProfile and defaultProfile.ignoreList
+			ns.db:SetProfile(ns.db.keys.char)
+		end
+
+		--[[
+            MIGRATION (remove after 2026-08-15): move Simple-model profile
+            settings to global. Every character used to share the "Default"
+            profile and user settings lived on it; they are account-wide now.
+            Two sources, in order: the shared "Default" profile the character was
+            just moved off, then this character's own profile, where the pre-AceDB
+            block above deposits its keys. Later source wins. Only keys declared
+            in the global defaults move, so the Ignore List and the derived item
+            cache stay profile-scoped.
+        ]]
+		local function PromoteProfileSettings(source)
+			if type(source) ~= "table" then
+				return
+			end
+			for key in pairs(ns.DATABASE_DEFAULTS.global) do
+				if source[key] ~= nil then
+					ns.db.global[key] = source[key]
+					source[key] = nil
+				end
+			end
+		end
+		PromoteProfileSettings(ns.db.profiles and ns.db.profiles["Default"])
+		PromoteProfileSettings(ns.db.profile)
+
+		--[[
+            MIGRATION (remove after 2026-08-15): seed this character's Ignore
+            List from the shared "Default" profile it was just moved off. The
+            list was effectively account-wide under the Simple model; it is
+            genuinely per-character now, so each character inherits a copy on its
+            first login after the update and diverges from there. The Default
+            profile is left intact so a character that hasn't logged in yet still
+            gets its copy; the flag stops a character that deliberately cleared
+            its list from being re-seeded.
+        ]]
+		if not ns.db.profile.ignoreListSeeded then
+			ns.db.profile.ignoreListSeeded = true
+			if type(sharedIgnoreList) == "table" and sharedIgnoreList ~= ns.db.profile.ignoreList then
+				for itemID in pairs(sharedIgnoreList) do
+					ns.db.profile.ignoreList[itemID] = true
+				end
+			end
+		end
+
+		--[[
+            Switching, copying, or resetting a profile swaps the Ignore List, and
+            a reset clears it, so the macros and aura tracking must rebuild.
+            Reset Profile never touches ns.db.global, so account-wide settings
+            survive it -- but anything applied imperatively (the minimap button's
+            visibility, macro-name text) has to be pushed again from global, and
+            an open options panel has to be told to redraw.
         ]]
 		local function OnProfileChange()
 			ns.ResetMacroState()
 			ns.UpdateAuraTracking()
 			if ns.ApplyMacroNameVisibility then
 				ns.ApplyMacroNameVisibility()
+			end
+			if ns.ToggleMinimapButton and ns.db.global.minimap then
+				ns.ToggleMinimapButton(not ns.db.global.minimap.hide)
+			end
+			local AceConfigRegistry = LibStub("AceConfigRegistry-3.0", true)
+			if AceConfigRegistry then
+				for _, appName in pairs(ns.OPTIONS_REGISTRY) do
+					AceConfigRegistry:NotifyChange(appName)
+				end
 			end
 			ns.RequestUpdate()
 		end
@@ -260,7 +335,7 @@ end
     path) and matches what AceConfig hands back to the set callback.
 ]]
 function ns.UpdateAuraTracking()
-	local settings = ns.db.profile
+	local settings = ns.db.global
 
 	local buffFoodActive = settings.useBuffFood and ns.IsModeActive(settings.buffFoodMode)
 	local scrollsActive = settings.useScrolls and ns.IsModeActive(settings.scrollsMode)
@@ -280,7 +355,7 @@ function ns.UpdateAuraTracking()
 end
 
 function ns.ToggleBuffFood(value)
-	local settings = ns.db.profile
+	local settings = ns.db.global
 	if value == nil then
 		settings.useBuffFood = not settings.useBuffFood
 	else
@@ -294,7 +369,7 @@ function ns.ToggleBuffFood(value)
 end
 
 function ns.ToggleScrollBuffs(value)
-	local settings = ns.db.profile
+	local settings = ns.db.global
 	if value == nil then
 		settings.useScrolls = not settings.useScrolls
 	else
@@ -308,7 +383,7 @@ function ns.ToggleScrollBuffs(value)
 end
 
 function ns.ToggleShadowmeldDrinking(value)
-	local settings = ns.db.profile
+	local settings = ns.db.global
 	if value == nil then
 		settings.enableShadowmeldDrinking = not settings.enableShadowmeldDrinking
 	else
@@ -321,7 +396,7 @@ function ns.ToggleShadowmeldDrinking(value)
 end
 
 function ns.ToggleStealthEating(value)
-	local settings = ns.db.profile
+	local settings = ns.db.global
 	if value == nil then
 		settings.enableStealthEating = not settings.enableStealthEating
 	else
@@ -334,7 +409,7 @@ function ns.ToggleStealthEating(value)
 end
 
 function ns.ToggleDruidMacroHelper(value)
-	local settings = ns.db.profile
+	local settings = ns.db.global
 	if value == nil then
 		settings.enableDruidMacroHelper = not settings.enableDruidMacroHelper
 	else
@@ -480,6 +555,32 @@ frame:SetScript("OnEvent", function(self, event, ...)
 		return
 	end
 
+	--[[
+        PLAYER_LOGOUT runs ahead of the lockdown guard too: a /reload issued
+        mid-combat still fires it, and the guard below would swallow the prune
+        and leave stale entries on the Ignore List. Pruning only reads and
+        rewrites SavedVariables, so it touches nothing protected.
+    ]]
+	if event == "PLAYER_LOGOUT" then
+		if ns.PruneIgnoreList then
+			ns.PruneIgnoreList()
+		end
+		return
+	end
+
+	--[[
+        READY_CHECK is handled ahead of the lockdown guard for the same reason
+        as the events above: a ready check routinely fires with the raid
+        already pulling, and the report only reads auras and the last scan's
+        results before printing, so it touches nothing protected.
+    ]]
+	if event == "READY_CHECK" then
+		if ns.ReportReadiness then
+			ns.ReportReadiness()
+		end
+		return
+	end
+
 	if InCombatLockdown() then
 		isUpdatePending = true
 		return
@@ -553,10 +654,6 @@ frame:SetScript("OnEvent", function(self, event, ...)
 		if ns.HandlePetChanged then
 			ns.HandlePetChanged(...)
 		end
-	elseif event == "PLAYER_LOGOUT" then
-		if ns.PruneIgnoreList then
-			ns.PruneIgnoreList()
-		end
 	end
 end)
 
@@ -582,6 +679,7 @@ ns.EVENT_NAMES = {
 	"PLAYER_REGEN_ENABLED",
 	"PLAYER_TARGET_CHANGED",
 	"PLAYER_UNGHOST",
+	"READY_CHECK",
 	"UI_ERROR_MESSAGE",
 	"ZONE_CHANGED_NEW_AREA",
 	"SKILL_LINES_CHANGED",

@@ -65,6 +65,30 @@ L["CHAT_LOADED"] =
 	"Версия %s. Настройки (включая возможность отключения этого сообщения) находятся в Настройки > Модификации > Connoisseur. Нравится аддон? Расскажите другу! (="
 
 --------------------------------------------------------------------------------
+-- Ready Check
+--------------------------------------------------------------------------------
+
+--[[
+    The ready-check self-audit, printed as one line: either the missing list or
+    the all-clear, then a segment per tracked buff. Item names come from the
+    LABEL_ keys below, so a consumable is named the same here as it is in
+    MSG_NO_ITEM.
+]]
+
+L["READY_ALL_CLEAR"] = "Всё готово"
+-- %s is the comma-separated list of what the character is missing.
+L["READY_MISSING"] = "Не хватает: %s"
+
+L["READY_WELL_FED"] = "Сытость"
+L["READY_SCROLLS"] = "Свитки"
+L["READY_PET_FED"] = "Питомец накормлен"
+
+-- { buff label, whole minutes left }
+L["READY_TIME_MINUTES"] = "%s %d мин"
+-- %s is the buff label; used when under a minute is left.
+L["READY_TIME_EXPIRING"] = "%s меньше 1 мин"
+
+--------------------------------------------------------------------------------
 -- ConnTip Messages
 --------------------------------------------------------------------------------
 
@@ -73,7 +97,7 @@ L["CHAT_LOADED"] =
 L["TIP_PET_NO_FOOD"] =
 	"В данный момент у вас нет подходящей еды для питомца."
 L["TIP_PET_NO_SKILLS"] =
-	"В данный момент вы не знаете способности Кормление питомца, Лечение питомца или Воскрешение питомца."
+	"В данный момент вы не знаете способности Призыв питомца, Отозвать питомца, Кормление питомца или Воскрешение питомца."
 L["TIP_PET_NO_MEND"] =
 	"В данный момент вы не знаете способность Лечение питомца."
 L["TIP_NO_HAND_POISON"] = "Выбранный яд для этого оружия закончился."
@@ -86,6 +110,7 @@ L["TIP_DONT_KNOW_SPELL"] = "В данный момент вы не знаете 
 --------------------------------------------------------------------------------
 
 -- Feature toggles shown in the minimap tooltip, each with a description line.
+L["MENU_BUFF_FOOD"] = "Еда с эффектом"
 L["MENU_BUFF_FOOD_DESCRIPTION"] =
 	'Приоритет еды, дающей эффект "Сытость", если он отсутствует.'
 L["MENU_SCROLL_BUFFS"] = "Баффы от свитков"
@@ -93,8 +118,11 @@ L["MENU_SCROLL_BUFFS_DESCRIPTION"] =
 	"Превращает ваш макрос Еды в аппликатор свитков, когда вам не хватает баффов от свитков."
 
 -- Section titles and ignore-list actions in the minimap tooltip.
-L["UI_BEST_FOOD"] = "Еда"
-L["UI_BEST_PET_FOOD"] = "Еда для питомца"
+L["UI_BEST_FOOD"] = "Текущая еда"
+L["UI_BEST_PET_FOOD"] = "Текущая еда для питомца"
+-- Weapon-slot titles over the rogue's resolved poison, inside the Poisons block.
+L["UI_MAIN_HAND"] = "Правая рука"
+L["UI_OFF_HAND"] = "Левая рука"
 L["UI_IGNORE_LIST"] = "Список игнорирования"
 L["MENU_IGNORE"] = "Игнорировать"
 L["MENU_CLEAR_IGNORE"] = "Очистить игнор-лист"
@@ -115,19 +143,57 @@ L["PREFIX_MAGE"] = "Внимание Маги"
 L["PREFIX_ROGUE"] = "Внимание Разбойники"
 L["PREFIX_WARLOCK"] = "Внимание Чернокнижники"
 
-L["TIP_DOWNRANK"] =
-	"Выбор игрока низкого уровня создаст предметы, подходящие для его уровня."
-L["TIP_HUNTER_FEED_PET"] =
-	"Кормление питомца: универсальная кнопка для вашего питомца! Нажмите, чтобы автоматически призвать, покормить или воскресить питомца. Кликните правой кнопкой мыши или дождитесь боя для Лечения питомца. Удерживайте Shift для принудительного Воскрешения, или Ctrl, чтобы Прогнать."
+--[[
+    Subtitle under each class header, naming the macros the tips below apply
+    to. Each tip below is one instruction, rendered on its own line, and every
+    tip names the macro it belongs to — the blocks cover more than one macro,
+    and a bare "Right-Click" would be ambiguous.
+
+    The verb tracks the real spell names, which differ by class: mages get
+    Conjure Food / Conjure Water, warlocks get Create Healthstone / Create
+    Soulstone.
+]]
+L["TIP_HUNTER_MACROS"] = "О вашем макросе Кормления питомца..."
+L["TIP_MAGE_MACROS"] = "О ваших макросах Еды, Воды и Мана-камня..."
+L["TIP_ROGUE_MACROS"] = "О вашем макросе Ядов..."
+L["TIP_WARLOCK_MACROS"] = "О ваших макросах Камня здоровья и Камня души..."
+
+L["TIP_HUNTER_ALL_IN_ONE"] =
+	"Кормление питомца: универсальная кнопка для питомца!"
+L["TIP_HUNTER_CALL"] =
+	"ЛКМ, чтобы автоматически призвать, накормить или воскресить питомца."
+L["TIP_HUNTER_MEND"] =
+	"ПКМ или дождитесь боя, чтобы применить Лечение питомца."
+L["TIP_HUNTER_MODIFIERS"] =
+	"Удерживайте Shift для принудительного Воскрешения или Ctrl, чтобы отозвать питомца."
+
+--[[
+    Target downranking is per-macro, not block-wide: it applies only to the
+    mage's Food and Water and the warlock's Healthstone. Mana Gems, Soulstones,
+    and both rituals ignore the target (ignoreTarget in the resolvers), so each
+    line names what it actually affects rather than saying "the macro."
+]]
 L["TIP_MAGE_CONJURE"] = "Правый клик по макросу Еды или Воды для сотворения."
+L["TIP_MAGE_DOWNRANK"] =
+	"Если выбрать целью игрока более низкого уровня, будут сотворены Еда или Вода, подходящие его уровню."
+L["TIP_MAGE_TABLE"] =
+	"Средний клик по макросу Еды или Воды для сотворения Ритуала подкрепления."
 L["TIP_MAGE_GEM"] =
 	"Правый клик по макросу Мана-камня для сотворения нового камня. Повторный правый клик для сотворения камня низшего ранга в качестве запасного."
-L["TIP_MAGE_TABLE"] = "Средний клик для сотворения Ритуала подкрепления."
-L["TIP_WARLOCK_CONJURE"] =
-	"Правый клик по макросу Камня здоровья или Камня души для сотворения. Повторный правый клик по макросу Камня здоровья для сотворения камня низшего ранга в качестве запасного."
-L["TIP_WARLOCK_SOUL"] = "Средний клик для сотворения Ритуала душ."
-L["TIP_ROGUE_POISONS"] =
-	"Левый клик наносит яд для левой руки, правый клик наносит яд для правой руки; нанесённые яды заменяются автоматически. Средний клик открывает окно ядов."
+
+L["TIP_WARLOCK_HEALTHSTONE"] =
+	"Правый клик по макросу Камня здоровья, чтобы создать Камень здоровья. Повторный правый клик создаёт камень низшего ранга в качестве запасного."
+L["TIP_WARLOCK_DOWNRANK"] =
+	"Если выбрать целью игрока более низкого уровня, будет создан Камень здоровья, подходящий его уровню."
+L["TIP_WARLOCK_SOULSTONE"] =
+	"Правый клик по макросу Камня души, чтобы создать Камень души."
+L["TIP_WARLOCK_SOUL"] =
+	"Средний клик по макросу Камня здоровья для сотворения Ритуала душ."
+
+L["TIP_ROGUE_OFF_HAND"] = "ЛКМ наносит яд на левую руку."
+L["TIP_ROGUE_MAIN_HAND"] = "ПКМ наносит яд на правую руку."
+L["TIP_ROGUE_REPLACE"] = "Нанесённые яды заменяются автоматически."
+L["TIP_ROGUE_WINDOW"] = "СКМ открывает окно ядов."
 
 --------------------------------------------------------------------------------
 -- Item Labels
@@ -167,7 +233,7 @@ L["UI_SHIFT_LEFT"] = "Shift + ЛКМ"
 --------------------------------------------------------------------------------
 
 L["MODE_ALWAYS"] = "Всегда"
-L["MODE_PARTY"] = "Только в группе"
+L["MODE_PARTY"] = "Только в группе или рейде"
 L["MODE_RAID"] = "Только в рейде"
 
 --------------------------------------------------------------------------------
@@ -175,7 +241,7 @@ L["MODE_RAID"] = "Только в рейде"
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
-	"Автоматически обновляемые макросы для вашей лучшей еды, еды с баффами, воды, свитков, лечебных зелий и зелий маны, камней здоровья, камней души, мана-камней и бинтов. Сотворение в один клик для Магов и Чернокнижников, умное Кормление питомца для Охотников. Оптимальное питание, пиковая эффективность."
+	"Автоматически обновляемые макросы для вашей лучшей еды, еды с баффами, воды, зелий, камней здоровья, свитков, камней души, бинтов, ядов и взрывчатки. Сотворение в один клик, умное Кормление питомца, автоматическое пополнение у торговца и из банка. Оптимальное питание, пиковая эффективность."
 
 -- Welcome Message
 L["OPTIONS_WELCOME_MESSAGE"] = "Включить приветственное сообщение"
@@ -209,11 +275,17 @@ L["OPTIONS_REAPPLY_THRESHOLD"] = "Считать истёкшим, когда"
 L["REAPPLY_THRESHOLD_ONE"] = "< 1 минуты"
 L["REAPPLY_THRESHOLD_N"] = "< %d минут"
 
+-- Ready Check
+L["OPTIONS_READY_CHECK_HEADER"] = "Проверка готовности"
+L["OPTIONS_READY_CHECK"] = "Сообщать о готовности при проверке"
+L["OPTIONS_READY_CHECK_DESCRIPTION"] =
+	"При каждой проверке готовности выводит, чего вам не хватает и сколько времени осталось у отслеживаемых баффов; видно только вам."
+
 -- Buff Food
 L["OPTIONS_BUFF_FOOD_HEADER"] = "Еда с эффектом"
 L["OPTIONS_BUFF_FOOD"] = "Еда с баффами"
 L["OPTIONS_BUFF_FOOD_DESCRIPTION"] =
-	'Приоритет еды, дающей эффект "Сытость", если он отсутствует.'
+	'Приоритет еды, дающей эффект "Сытость", если он отсутствует. Отключено на аренах.'
 L["OPTIONS_BUFF_FOOD_DETAIL"] =
 	"Совет профи: Выбор себя в качестве цели всегда заставляет макрос еды пропускать еду с баффами и свитки."
 
@@ -221,7 +293,7 @@ L["OPTIONS_BUFF_FOOD_DETAIL"] =
 L["OPTIONS_SCROLL_HEADER"] = "Баффы от свитков"
 L["OPTIONS_USE_SCROLLS"] = "Включить баффы от свитков"
 L["OPTIONS_USE_SCROLLS_DESCRIPTION"] =
-	"Превращает ваш макрос Еды в специальный аппликатор свитков всякий раз, когда вам не хватает баффов от свитков. Нажмите один раз, чтобы применить свитки; нажмите еще раз, чтобы поесть. Свитки не зависят от ГКД, применяются к вам, и макрос возвращается к еде в тот момент, когда вы берете в цель другого дружественного игрока."
+	"Нажмите один раз, чтобы применить недостающие свитки, и ещё раз, чтобы поесть. Свитки не зависят от ГКД и применяются к вам; если целью выбран дружественный игрок, они пропускаются. Отключено на аренах."
 L["OPTIONS_SCROLL_TYPES"] = "Включить типы свитков в проверку"
 L["OPTIONS_SCROLL_AGILITY"] = "Ловкость"
 L["OPTIONS_SCROLL_INTELLECT"] = "Интеллект"
@@ -234,14 +306,14 @@ L["OPTIONS_SCROLL_STRENGTH"] = "Сила"
 L["OPTIONS_EXPLOSIVES_HEADER"] = "Взрывчатка"
 L["OPTIONS_EXPLOSIVES_DESCRIPTION"] =
 	"Вариант @player пропускает прицельный круг и подрывает взрывчатку прямо у ваших ног. Идеально, когда цель в ближнем бою."
-L["EXPLOSIVES_MODE_ATPLAYER"] = "ЛКМ @Player, ПКМ Бросок"
-L["EXPLOSIVES_MODE_TOSS"] = "ЛКМ Бросок, ПКМ @Player"
+L["EXPLOSIVES_MODE_ATPLAYER"] = "ЛКМ @player, ПКМ Бросок"
+L["EXPLOSIVES_MODE_TOSS"] = "ЛКМ Бросок, ПКМ @player"
 
 -- Pet Food Buffs
 L["OPTIONS_PET_HEADER"] = "Баффы от еды для питомцев"
 L["OPTIONS_USE_PET_BUFFS"] = "Использовать баффы от еды для питомцев"
 L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] =
-	'Использует еду для питомца как часть макроса еды, если у питомца отсутствует бафф "Сытость".'
+	'Добавляет еду для питомца в макрос еды, если у питомца отсутствует бафф "Сытость". Отключено на аренах.'
 L["OPTIONS_PET_BUFF_TYPES"] = "Включить типы еды для питомцев в проверку"
 L["OPTIONS_PET_BUFF_KIBLERS"] = "Кусочки Киблера"
 L["OPTIONS_PET_BUFF_SPORELING"] = "Закуска из спор"
@@ -257,19 +329,25 @@ L["DRUID_FORM_CAT"] = "Кошка"
 
 -- Night Elves
 L["OPTIONS_NIGHTELF_HEADER"] = "Ночные эльфы"
-L["OPTIONS_SHADOWMELD_DRINKING"] = "Питье со Слиться с тенью"
+L["OPTIONS_SHADOWMELD_DRINKING"] = "Включить незаметность при питье"
 L["OPTIONS_SHADOWMELD_DRINKING_DESCRIPTION"] =
 	'Добавляет способность "Слиться с тенью" в макрос воды, чтобы вы уходили в незаметность во время питья.'
+L["OPTIONS_STEALTH_EATING_NIGHTELF_DESCRIPTION"] =
+	'Добавляет способность "Слиться с тенью" в макрос еды, чтобы вы уходили в незаметность во время еды.'
+L["OPTIONS_STEALTH_PICK_ONE"] =
+	"Совет профи: Выберите что-то одно. Есть и пить можно одновременно, но еда или питьё после ухода в незаметность прервут её."
 
 -- Rogues
-L["OPTIONS_POISONS_HEADER"] = "Яды"
+L["OPTIONS_ROGUES_HEADER"] = "Разбойники"
 L["OPTIONS_POISONS_DESCRIPTION"] =
 	"Держит макрос ядов заряженным лучшим доступным рангом каждого типа яда: левый клик наносит на левую руку, правый клик наносит на правую, а нанесённые яды заменяются автоматически."
-L["OPTIONS_POISON_MAIN_HAND"] = "Правая рука"
-L["OPTIONS_POISON_OFF_HAND"] = "Левая рука"
+L["OPTIONS_POISON_MAIN_HAND"] = "Тип яда для правой руки"
+L["OPTIONS_POISON_OFF_HAND"] = "Тип яда для левой руки"
+L["OPTIONS_STEALTH_EATING"] = "Включить незаметность при еде"
+L["OPTIONS_STEALTH_EATING_ROGUE_DESCRIPTION"] =
+	'Добавляет способность "Скрытность" в макрос еды, чтобы вы уходили в скрытность во время еды.'
 
--- Restocker
-L["OPTIONS_RESTOCKER_HEADER"] = "Restocker"
+-- Restocker. The section header reuses RESTOCKER_WINDOW_TITLE.
 L["OPTIONS_RESTOCKER_DESCRIPTION"] =
 	"Пополняет сумки по списку пополнения для каждого персонажа. Автоматически покупает у торговцев и перемещает предметы между сумками и банком. Введите /crs, чтобы открыть список."
 L["OPTIONS_RESTOCKER_OPEN_BANK"] = "Открывать в банке"
@@ -282,11 +360,9 @@ L["OPTIONS_RESTOCKER_DEBUG"] = "Включить отладочные сообщ
 L["OPTIONS_RESTOCKER_DEBUG_DESCRIPTION"] =
 	"Выводит в чат пошаговые решения Restocker при пополнении из банка и у торговца. Многословно; остаётся включённым между сеансами, пока не выключить."
 
--- /Commands
+-- /Commands. The command literals stay in code; these are the descriptions.
 L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
-L["OPTIONS_COMMANDS_FOODIE"] = "/foodie"
 L["OPTIONS_COMMANDS_FOODIE_DETAIL"] = "Открывает интерфейс настроек Connoisseur."
-L["OPTIONS_COMMANDS_CRS"] = "/crs"
 L["OPTIONS_COMMANDS_CRS_DETAIL"] =
 	"Открывает окно Restocker для управления списком пополнения."
 
@@ -294,12 +370,6 @@ L["OPTIONS_COMMANDS_CRS_DETAIL"] =
 L["OPTIONS_ENABLE_MACROS_HEADER"] = "Включить макросы"
 L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] =
 	"Выбор макросов, которые Connoisseur создает и поддерживает. Отключение макроса также удалит его."
-
--- Ignore List
-L["OPTIONS_RESET_IGNORE_DESCRIPTION"] =
-	"Удалить все предметы из списка игнорирования."
-L["OPTIONS_RESET_IGNORE_CONFIRM"] =
-	"Вы уверены, что хотите очистить список игнорирования?"
 
 -- Feedback & Support
 L["OPTIONS_COMMUNITY_HEADER"] = "Обратная связь и поддержка"
@@ -312,9 +382,13 @@ L["OPTIONS_COMMUNITY_HEADER"] = "Обратная связь и поддержк
 L["RESTOCKER_IMPORTED_LISTS"] = "Ваши списки Restocker импортированы."
 L["RESTOCKER_PROFILE_EXISTS"] = 'Профиль с именем "%s" уже существует.'
 L["RESTOCKER_BANK_NOT_OPEN"] = "Банк не открыт."
--- %s is the /crs slash command, colored at the call site.
+--[[
+    %s is the /crs slash command, colored at the call site. Only the bank flow
+    prints this, so the Shift hint names the bank; Shift is read as the window
+    opens (eventsModule.OnBankOpen), not stored as a preference.
+]]
 L["RESTOCKER_COMPLETE"] =
-	"Пополнение завершено. Удерживайте Shift, чтобы пропустить в следующий раз. Введите %s, чтобы изменить список пополнения."
+	"Пополнение завершено. Удерживайте Shift при открытии банка, чтобы пропустить пополнение. Введите %s, чтобы изменить список пополнения."
 L["RESTOCKER_STOPPED_BOTH_FULL"] =
 	"Пополнение остановлено. Ваши сумки и банк переполнены."
 L["RESTOCKER_STOPPED_BANK_FULL"] =
@@ -350,6 +424,15 @@ L["RESTOCKER_ADD_TOOLTIP_BODY"] =
 L["RESTOCKER_PROFILE_LABEL"] = "Профиль:"
 L["RESTOCKER_RENAME_LABEL"] = "Переименовать:"
 L["RESTOCKER_NEW_PROFILE"] = "Новый профиль"
+L["RESTOCKER_COPY_PROFILE"] = "Копировать"
+L["RESTOCKER_COPY_PROFILE_TOOLTIP"] = "Клонирует этот профиль в новый."
+-- %s becomes "<profile name> Copy"; numbered if that name is taken.
+L["RESTOCKER_PROFILE_COPY_NAME"] = "%s (копия)"
+L["RESTOCKER_DELETE_PROFILE"] = "Удалить"
+L["RESTOCKER_DELETE_PROFILE_TOOLTIP"] = "Удаляет этот профиль."
+-- %s is the profile name, colored at the call site. |n are line breaks.
+L["RESTOCKER_DELETE_PROFILE_CONFIRM"] =
+	"Вы уверены, что хотите удалить этот профиль?|n|n%s|n|nЭто нельзя отменить."
 L["RESTOCKER_GROUP_OTHER"] = "Прочее"
 L["RESTOCKER_REMOVE_TOOLTIP"] = "Убирает этот предмет из списка пополнения."
 L["RESTOCKER_AMOUNT_TOOLTIP_TITLE"] = "Количество для пополнения"
@@ -381,4 +464,4 @@ L["RESTOCKER_REPUTATION_TOOLTIP_STANDING"] =
 	"Покупать только у торговцев, с которыми у вас не ниже этой репутации."
 L["RESTOCKER_REPUTATION_TOOLTIP_DISCOUNTS"] =
 	"Более высокая репутация также означает более низкие цены (Дружелюбие 5%, Уважение 10%, Почтение 15%, Превознесение 20%)."
-L["RESTOCKER_REPUTATION_TOOLTIP_CLICK"] = "Щёлкните, чтобы выбрать репутацию"
+L["RESTOCKER_REPUTATION_TOOLTIP_CLICK"] = "Щёлкните, чтобы выбрать репутацию."

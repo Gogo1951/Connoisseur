@@ -29,12 +29,12 @@ local function ShouldUseDMHMacro(typeName)
 	if not (ns.DMHMacroTypes and ns.DMHMacroTypes[typeName]) then
 		return false
 	end
-	local settings = ns.db and ns.db.profile
+	local settings = ns.db and ns.db.global
 	return settings and settings.enableDruidMacroHelper and true or false
 end
 
 local function GetDruidReturnForm()
-	local settings = ns.db and ns.db.profile
+	local settings = ns.db and ns.db.global
 	local key = settings and settings.druidReturnForm
 	if key ~= "cat" then
 		key = "bear"

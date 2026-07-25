@@ -19,12 +19,8 @@ ns.L = LibStub("AceLocale-3.0"):GetLocale(ns.LOCALE_NAME)
 
 local C_TITLE = "FFD100" -- Gold: Titles, Headers, Section Names
 local C_INFO = "00BBFF" -- Blue: Interactions, Toggles, Links, Keybinds, Slash Commands
---[[
-    BODY deviates from the Style Guide's CCCCCC silver by maintainer ruling
-    (2026-07-16): descriptions and help text render white everywhere so the
-    options panel and tooltips match the plain-white intro paragraph.
-]]
-local C_BODY = "FFFFFF" -- White: Descriptions, Help Text
+local C_BODY = "FFFFFF" -- White: Descriptions, Options Body Text
+local C_HELP = "CCCCCC" -- Silver: Pro Tips, Helper Text
 local C_TEXT = "FFFFFF" -- White: Messages, Values, Spell Names
 local C_ON = "33CC33" -- Green: On
 local C_OFF = "CC3333" -- Red: Off
@@ -39,6 +35,7 @@ ns.PALETTE = {
 	TITLE = C_TITLE,
 	INFO = C_INFO,
 	BODY = C_BODY,
+	HELP = C_HELP,
 	TEXT = C_TEXT,
 	ON = C_ON,
 	OFF = C_OFF,

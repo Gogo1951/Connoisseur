@@ -498,13 +498,3 @@ function RS:UpdateRestockListRow(row, item)
   -- Reputation requirement button label
   row.repBtn:SetText(repStandingByValue(item.reaction).label)
 end
-
-function RS:addListFrames()
-  local settings = restockerModule.settings
-  local profile = --[[---@not nil]] settings.profiles[settings.currentProfile]
-
-  for _, item in pairs(profile) do
-    local frame = RS:CreateRestockListRow(item)
-    RS:UpdateRestockListRow(frame, item)
-  end
-end

@@ -121,7 +121,7 @@ ns.RegisterMacroType({
         tap is not a meal.
     ]]
 	appendBlock = function()
-		local settings = ns.db and ns.db.profile
+		local settings = ns.db and ns.db.global
 		if not settings or not settings.enableStealthEating then
 			return nil
 		end

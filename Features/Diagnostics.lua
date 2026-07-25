@@ -53,6 +53,9 @@ ns.DiagnosticsStrings = {
 	API_BUTTON = "Test WoW API Endpoints",
 	CONTEXT_TITLE = "Connoisseur Context",
 	CONTEXT_BUTTON = "Show Connoisseur Context",
+	SELECTION_TITLE = "Item Selection",
+	SELECTION_BUTTON = "Show Selection Report",
+	SELECTION_HINT = "Shows what each macro picked and which runners-up it beat, naming the ranking step that decided each one. The tool for 'why did it choose that item?' reports. Candidates are only kept while these tools are enabled, so trigger a rescan (loot something, or change zone) after turning them on.",
 	ADDONS_TITLE = "Other Add-ons",
 	ADDONS_BUTTON = "List Installed Add-ons",
 	SAVED_TITLE = "Saved Variables",
@@ -668,6 +671,133 @@ function ns:BuildContextReport()
 end
 
 --------------------------------------------------------------------------------
+-- Item Selection
+--------------------------------------------------------------------------------
+
+--[[
+    The "why did it pick that?" read-out. For every category that goes through
+    the scanner's ranking ladder, prints the winner and the runners-up it beat,
+    each tagged with the RANKING_PRIORITY field that decided the pair (see
+    Features/Scanner-Inventory.lua). Reads only what the last scan left behind;
+    it never rescans, so the report can never disagree with the macros the
+    player is actually looking at.
+]]
+
+local function DescribeItem(itemID)
+	if not itemID then
+		return "(none)"
+	end
+	local name = GetItemInfo(itemID)
+	if name then
+		return string.format("%d (%s)", itemID, name)
+	end
+	return string.format("%d (name not cached)", itemID)
+end
+
+local function AppendCategoryLines(lines, typeName, entry, candidates)
+	lines[#lines + 1] = string.format("%s: %s", typeName, DescribeItem(entry and entry.id))
+
+	if entry and entry.id then
+		lines[#lines + 1] = string.format(
+			"    won with value=%s price=%s count=%s",
+			tostring(entry.value),
+			tostring(entry.price),
+			tostring(entry.count)
+		)
+	end
+
+	if entry and entry.topIDs and #entry.topIDs > 0 then
+		lines[#lines + 1] = "    stacked /use order: " .. table.concat(entry.topIDs, ", ")
+	end
+
+	if not candidates or #candidates < 2 then
+		return
+	end
+
+	for i = 2, #candidates do
+		local candidate = candidates[i]
+		lines[#lines + 1] = string.format(
+			"    beat %s on %s (value=%s price=%s count=%s)",
+			DescribeItem(candidate.id),
+			candidate.decidedBy or "nothing (identical record)",
+			tostring(candidate.value),
+			tostring(candidate.price),
+			tostring(candidate.count)
+		)
+	end
+end
+
+function ns:BuildSelectionReport()
+	local lines = { GetClientHeader(), "" }
+
+	local selection = ns.BestSelection
+	local candidates = ns.DiagnosticCandidates
+
+	if not selection then
+		lines[#lines + 1] = "No scan has completed yet. Trigger one by looting an item or changing zone."
+		return table.concat(lines, "\n")
+	end
+
+	--[[
+        Candidate retention starts when the tools are enabled, so a report run
+        before the next scan has winners but no runners-up. Say so rather than
+        letting an empty list read as "nothing else was in the running."
+    ]]
+	local retained = false
+	for _, list in pairs(candidates) do
+		if #list > 0 then
+			retained = true
+			break
+		end
+	end
+
+	lines[#lines + 1] = string.format("AllowBuffFood (live scan preference): %s", tostring(ns.AllowBuffFood))
+	if not retained then
+		lines[#lines + 1] = ""
+		lines[#lines + 1] =
+			"No candidates were retained: the last scan ran before these tools were enabled. Trigger a rescan (loot something, or change zone) and run this again to see the runners-up."
+	end
+
+	lines[#lines + 1] = ""
+	lines[#lines + 1] = "-- Ranked by the selection ladder --"
+
+	local typeNames = {}
+	for _, def in ipairs(ns.RegisteredMacroDefs or {}) do
+		if def.itemTypes then
+			typeNames[#typeNames + 1] = def.typeName
+		end
+	end
+	table.sort(typeNames)
+
+	for _, typeName in ipairs(typeNames) do
+		AppendCategoryLines(lines, typeName, selection[typeName], candidates[typeName])
+	end
+
+	--[[
+        The custom definitions own their whole update and resolve their item
+        outside the ladder (the Hunter pet-food scan, the Rogue poison walk),
+        so they have no candidate list to show. Naming them keeps the report
+        honest about what it does and does not cover.
+    ]]
+	local customNames = {}
+	for _, def in ipairs(ns.RegisteredCustomMacroDefs or {}) do
+		customNames[#customNames + 1] = def.typeName
+	end
+	table.sort(customNames)
+
+	if #customNames > 0 then
+		lines[#lines + 1] = ""
+		lines[#lines + 1] = "-- Resolved outside the ladder (no candidate ranking) --"
+		for _, typeName in ipairs(customNames) do
+			lines[#lines + 1] = string.format("%s: resolved by its own builder at macro-update time", typeName)
+		end
+		lines[#lines + 1] = string.format("Feed Pet current pick: %s", DescribeItem(ns.BestPetFoodID))
+	end
+
+	return table.concat(lines, "\n")
+end
+
+--------------------------------------------------------------------------------
 -- Other Add-ons
 --------------------------------------------------------------------------------
 
@@ -771,7 +901,7 @@ function ns:BuildSavedVariablesReport()
 	lines[#lines + 1] = "}"
 
 	--[[
-        MIGRATION (remove after 2026-10-06): also dump the legacy per-character
+        MIGRATION (remove after 2026-08-15): also dump the legacy per-character
         table while the migration window is open, so a bug report from a user
         whose ConnoisseurCharDB hasn't been folded into a profile yet still
         carries their old configuration.

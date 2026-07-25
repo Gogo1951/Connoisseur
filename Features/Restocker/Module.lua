@@ -8,7 +8,6 @@
 --   Recipe.lua
 --   BuyIngredients.lua
 --   Events.lua
---   Settings.lua
 --   MainFrame.lua
 --   ListFrame.lua
 --   Bank.lua
@@ -30,7 +29,6 @@
 ---@field merchantModule RsMerchantModule
 ---@field recipeModule RsRecipeModule
 ---@field restockerModule RsRestockerModule
----@field settingsModule RsSettingsModule
 local rsModule = {
   bagModule = {},
   bankModule = {},
@@ -43,7 +41,6 @@ local rsModule = {
   merchantModule = {},
   recipeModule = {},
   restockerModule = {},
-  settingsModule = {},
 }
 CrsModule = rsModule
 

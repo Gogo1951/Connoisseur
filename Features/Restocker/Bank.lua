@@ -6,10 +6,14 @@ local RS = CRS_ADDON ---@type RestockerAddon
 ---@field bankIsOpen boolean
 ---@field currentlyRestocking boolean
 ---@field updateTimer number
+---@field updateInterval number Seconds between move ticks; recomputed once per tick
 ---@field state BankRestockState
 local bankModule = CrsModule.bankModule
 bankModule.bankIsOpen = false
 bankModule.updateTimer = 0
+-- Starts at the floor so the OnUpdate handler never compares against nil; the real
+-- connection-paced value is seeded in RestartRestocking.
+bankModule.updateInterval = 0.140
 
 local restockerModule = CrsModule.restockerModule ---@type RsRestockerModule
 local bagModule = CrsModule.bagModule ---@type RsBagModule
@@ -158,10 +162,6 @@ function stateClass:StuckMessage()
     return L["RESTOCKER_STOPPED_NO_PROGRESS"]
   end
   return string.format(L["RESTOCKER_STOPPED_COULD_NOT_MOVE"], table.concat(parts, ", "))
-end
-
----Called once on Addon creation. Sets up constants for bank bags
-function bankModule.OnModuleInit()
 end
 
 ---Issue one stash move: find the first over-stocked item and send some to the bank. The
@@ -437,6 +437,16 @@ function bankModule:MaintainAndResumeCoro()
   end
 end
 
+-- One move is issued per tick. Pace ticks to the connection so a move has time to be
+-- confirmed by the server before the next one: wait ~3x the round-trip, but never faster
+-- than 0.140s. GetNetStats only refreshes its figures every ~30s, so this is called once
+-- per tick (and once at restock start) rather than on every OnUpdate frame.
+local function computeUpdateInterval()
+  local _down, _up, pingHome, pingWorld = GetNetStats()
+  local maxPing = math.max(pingHome, pingWorld)
+  return math.max(0.140, (maxPing * 3) / 1000)
+end
+
 function bankModule.BankUpdateFn(self, elapsed)
   if bankModule.bankIsOpen == false then
     RS.onUpdateFrame:Hide() -- stop the periodic timer in the update frame
@@ -445,15 +455,9 @@ function bankModule.BankUpdateFn(self, elapsed)
 
   bankModule.updateTimer = bankModule.updateTimer + elapsed
 
-  -- One move is issued per tick. Pace ticks to the connection so a move has time to be
-  -- confirmed by the server before the next one: wait ~3x the round-trip, but never
-  -- faster than 0.140s.
-  local _down, _up, pingHome, pingWorld = GetNetStats()
-  local maxPing = math.max(pingHome, pingWorld)
-  local updateInterval = math.max(0.140, (maxPing * 3) / 1000)
-
-  if bankModule.updateTimer >= updateInterval then
+  if bankModule.updateTimer >= bankModule.updateInterval then
     bankModule.updateTimer = 0
+    bankModule.updateInterval = computeUpdateInterval() -- pace the NEXT tick
 
     if bankModule.currentlyRestocking then
       -- Wait until the previous move has FULLY settled (no slot still locked) before
@@ -472,6 +476,7 @@ end
 function bankModule:RestartRestocking()
   self.state = self:NewState()
   self.currentlyRestocking = true
+  self.updateInterval = computeUpdateInterval() -- pace the first tick off a fresh reading
   theCoroutineObject = coroutine.create(restockCoro) -- fresh run for this bank visit
   RS.onUpdateFrame:Show() -- start the periodic timer in the update frame
 end

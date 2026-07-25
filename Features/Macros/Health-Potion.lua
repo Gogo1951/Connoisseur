@@ -30,7 +30,7 @@ ns.RegisterMacroType({
         255-byte trim.
     ]]
 	getStackIDs = function(best)
-		local settings = ns.db and ns.db.profile
+		local settings = ns.db and ns.db.global
 		if not (settings and settings.combineHealthstones) then
 			return nil
 		end

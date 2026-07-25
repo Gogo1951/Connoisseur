@@ -32,7 +32,7 @@ end
 --[[
     PLAYER_ENTERING_WORLD fires on instance transitions and reloads, not just
     initial login, so a flag keeps the welcome to once per session. Reads
-    ns.db.profile.showWelcome (default on, toggled in Options).
+    ns.db.global.showWelcome (default on, toggled in Options).
 ]]
 local welcomePrinted = false
 
@@ -40,7 +40,7 @@ function ns.PrintWelcome()
 	if welcomePrinted then
 		return
 	end
-	if not (ns.db and ns.db.profile.showWelcome) then
+	if not (ns.db and ns.db.global.showWelcome) then
 		return
 	end
 	welcomePrinted = true
