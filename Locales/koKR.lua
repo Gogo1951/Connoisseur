@@ -65,6 +65,30 @@ L["CHAT_LOADED"] =
 	"버전 %s. 설정(이 메시지 비활성화 옵션 포함)은 설정 > 애드온 > Connoisseur에서 찾을 수 있습니다. 애드온이 마음에 드시나요? 친구에게 알려주세요! (="
 
 --------------------------------------------------------------------------------
+-- Ready Check
+--------------------------------------------------------------------------------
+
+--[[
+    The ready-check self-audit, printed as one line: either the missing list or
+    the all-clear, then a segment per tracked buff. Item names come from the
+    LABEL_ keys below, so a consumable is named the same here as it is in
+    MSG_NO_ITEM.
+]]
+
+L["READY_ALL_CLEAR"] = "준비 완료"
+-- %s is the comma-separated list of what the character is missing.
+L["READY_MISSING"] = "부족: %s"
+
+L["READY_WELL_FED"] = "포만감"
+L["READY_SCROLLS"] = "두루마리"
+L["READY_PET_FED"] = "소환수 포만감"
+
+-- { buff label, whole minutes left }
+L["READY_TIME_MINUTES"] = "%s %d분"
+-- %s is the buff label; used when under a minute is left.
+L["READY_TIME_EXPIRING"] = "%s 1분 미만"
+
+--------------------------------------------------------------------------------
 -- ConnTip Messages
 --------------------------------------------------------------------------------
 
@@ -72,7 +96,7 @@ L["CHAT_LOADED"] =
 
 L["TIP_PET_NO_FOOD"] = "현재 소환수에게 줄 수 있는 적절한 먹이가 없습니다."
 L["TIP_PET_NO_SKILLS"] =
-	"현재 야수 먹이 주기, 야수 치료 또는 야수 되살리기를 배우지 않았습니다."
+	"현재 야수 부르기, 야수 돌려보내기, 야수 먹이 주기 또는 야수 되살리기를 배우지 않았습니다."
 L["TIP_PET_NO_MEND"] = "현재 야수 치료를 배우지 않았습니다."
 L["TIP_NO_HAND_POISON"] = "이 무기에 바를 선택한 독이 없습니다."
 
@@ -84,6 +108,7 @@ L["TIP_DONT_KNOW_SPELL"] = "현재 %s 기술을 배우지 않았습니다."
 --------------------------------------------------------------------------------
 
 -- Feature toggles shown in the minimap tooltip, each with a description line.
+L["MENU_BUFF_FOOD"] = "버프 음식"
 L["MENU_BUFF_FOOD_DESCRIPTION"] =
 	'"포만감" 버프가 없을 때 해당 버프를 주는 음식을 우선 사용합니다.'
 L["MENU_SCROLL_BUFFS"] = "두루마리 버프"
@@ -92,7 +117,10 @@ L["MENU_SCROLL_BUFFS_DESCRIPTION"] =
 
 -- Section titles and ignore-list actions in the minimap tooltip.
 L["UI_BEST_FOOD"] = "현재 음식"
-L["UI_BEST_PET_FOOD"] = "현재 최고 먹이"
+L["UI_BEST_PET_FOOD"] = "현재 소환수 먹이"
+-- Weapon-slot titles over the rogue's resolved poison, inside the Poisons block.
+L["UI_MAIN_HAND"] = "주 무기"
+L["UI_OFF_HAND"] = "보조 무기"
 L["UI_IGNORE_LIST"] = "차단 목록"
 L["MENU_IGNORE"] = "차단"
 L["MENU_CLEAR_IGNORE"] = "차단 목록 초기화"
@@ -113,19 +141,50 @@ L["PREFIX_MAGE"] = "마법사 주의"
 L["PREFIX_ROGUE"] = "도적 주의"
 L["PREFIX_WARLOCK"] = "흑마법사 주의"
 
-L["TIP_DOWNRANK"] =
-	"자신보다 레벨이 낮은 플레이어를 대상으로 하면 해당 레벨에 맞는 아이템을 창조합니다."
-L["TIP_HUNTER_FEED_PET"] =
-	"야수 먹이 주기는 올인원 야수 버튼입니다! 클릭하여 자동으로 야수를 부르거나, 먹이를 주거나, 되살립니다. 우클릭하거나 전투를 기다리면 야수 치료를 시전합니다. Shift 키를 누른 채 클릭하면 강제로 되살리기를 시전하며, Ctrl 키를 누르면 소환을 해제합니다."
+--[[
+    Subtitle under each class header, naming the macros the tips below apply
+    to. Each tip below is one instruction, rendered on its own line, and every
+    tip names the macro it belongs to — the blocks cover more than one macro,
+    and a bare "Right-Click" would be ambiguous.
+
+    The verb tracks the real spell names, which differ by class: mages get
+    Conjure Food / Conjure Water, warlocks get Create Healthstone / Create
+    Soulstone.
+]]
+L["TIP_HUNTER_MACROS"] = "먹이 주기 매크로 안내..."
+L["TIP_MAGE_MACROS"] = "음식, 물, 마나 보석 매크로 안내..."
+L["TIP_ROGUE_MACROS"] = "독 매크로 안내..."
+L["TIP_WARLOCK_MACROS"] = "생명석 및 영혼석 매크로 안내..."
+
+L["TIP_HUNTER_ALL_IN_ONE"] = "먹이 주기는 올인원 소환수 버튼입니다!"
+L["TIP_HUNTER_CALL"] = "좌클릭하면 소환수를 자동으로 부르거나, 먹이를 주거나, 되살립니다."
+L["TIP_HUNTER_MEND"] = "우클릭하거나 전투에 들어가면 야수 치료를 시전합니다."
+L["TIP_HUNTER_MODIFIERS"] = "Shift를 누르면 되살리기를 강제하고, Ctrl을 누르면 돌려보냅니다."
+
+--[[
+    Target downranking is per-macro, not block-wide: it applies only to the
+    mage's Food and Water and the warlock's Healthstone. Mana Gems, Soulstones,
+    and both rituals ignore the target (ignoreTarget in the resolvers), so each
+    line names what it actually affects rather than saying "the macro."
+]]
 L["TIP_MAGE_CONJURE"] = "음식 또는 물 매크로를 우클릭하면 음식 또는 물을 창조합니다."
+L["TIP_MAGE_DOWNRANK"] =
+	"레벨이 낮은 플레이어를 대상으로 지정하면 그 레벨에 맞는 음식이나 물을 창조합니다."
+L["TIP_MAGE_TABLE"] = "음식 또는 물 매크로를 휠클릭하면 재충전의 의식을 시전합니다."
 L["TIP_MAGE_GEM"] =
 	"마나 보석 매크로를 우클릭하여 새 보석을 창조합니다. 다시 우클릭하면 낮은 등급의 보조 보석을 창조합니다."
-L["TIP_MAGE_TABLE"] = "마우스 휠(가운데) 클릭 시 재충전의 의식을 시전합니다."
-L["TIP_WARLOCK_CONJURE"] =
-	"생명석 또는 영혼석 매크로를 우클릭하면 생명석 또는 영혼석을 창조합니다. 생명석 매크로를 다시 우클릭하면 낮은 등급의 보조 생명석을 창조합니다."
-L["TIP_WARLOCK_SOUL"] = "마우스 휠(가운데) 클릭 시 영혼의 의식을 시전합니다."
-L["TIP_ROGUE_POISONS"] =
-	"좌클릭은 보조 무기에, 우클릭은 주 무기에 독을 바릅니다. 기존 독은 자동으로 교체됩니다. 마우스 휠(가운데) 클릭 시 독 제조 창을 엽니다."
+
+L["TIP_WARLOCK_HEALTHSTONE"] =
+	"생명석 매크로를 우클릭하면 생명석을 만듭니다. 다시 우클릭하면 낮은 등급의 예비 생명석을 만듭니다."
+L["TIP_WARLOCK_DOWNRANK"] =
+	"레벨이 낮은 플레이어를 대상으로 지정하면 그 레벨에 맞는 생명석을 만듭니다."
+L["TIP_WARLOCK_SOULSTONE"] = "영혼석 매크로를 우클릭하면 영혼석을 만듭니다."
+L["TIP_WARLOCK_SOUL"] = "생명석 매크로를 휠클릭하면 영혼의 의식을 시전합니다."
+
+L["TIP_ROGUE_OFF_HAND"] = "좌클릭하면 보조 무기에 독을 바릅니다."
+L["TIP_ROGUE_MAIN_HAND"] = "우클릭하면 주 무기에 독을 바릅니다."
+L["TIP_ROGUE_REPLACE"] = "기존 독은 자동으로 교체됩니다."
+L["TIP_ROGUE_WINDOW"] = "휠클릭하면 독 제조 창을 엽니다."
 
 --------------------------------------------------------------------------------
 -- Item Labels
@@ -165,7 +224,7 @@ L["UI_SHIFT_LEFT"] = "Shift + 좌클릭"
 --------------------------------------------------------------------------------
 
 L["MODE_ALWAYS"] = "항상"
-L["MODE_PARTY"] = "파티 중일 때만"
+L["MODE_PARTY"] = "파티 또는 공격대에서만"
 L["MODE_RAID"] = "공격대 중일 때만"
 
 --------------------------------------------------------------------------------
@@ -173,7 +232,7 @@ L["MODE_RAID"] = "공격대 중일 때만"
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
-	"최고의 음식, 버프 음식, 물, 두루마리, 치유 및 마나 물약, 생명석, 영혼석, 마나 보석, 붕대에 대해 자동으로 업데이트되는 매크로입니다. 마법사와 흑마법사를 위한 원클릭 창조, 사냥꾼을 위한 스마트한 야수 먹이 주기 기능. 최적의 영양 상태, 최고의 성능."
+	"최고의 음식, 버프 음식, 물, 물약, 생명석, 두루마리, 영혼석, 붕대, 독, 폭발물에 대해 자동으로 업데이트되는 매크로입니다. 원클릭 창조, 스마트한 야수 먹이 주기, 상인과 은행에서의 자동 보충 기능. 최적의 영양 상태, 최고의 성능."
 
 -- Welcome Message
 L["OPTIONS_WELCOME_MESSAGE"] = "환영 메시지 활성화"
@@ -205,11 +264,17 @@ L["OPTIONS_REAPPLY_THRESHOLD"] = "만료로 간주하는 기준"
 L["REAPPLY_THRESHOLD_ONE"] = "1분 미만 남음"
 L["REAPPLY_THRESHOLD_N"] = "%d분 미만 남음"
 
+-- Ready Check
+L["OPTIONS_READY_CHECK_HEADER"] = "준비 확인"
+L["OPTIONS_READY_CHECK"] = "준비 확인 시 상태 보고"
+L["OPTIONS_READY_CHECK_DESCRIPTION"] =
+	"준비 확인이 시작될 때마다 부족한 것과 추적 중인 버프의 남은 시간을 출력합니다. 자신에게만 보입니다."
+
 -- Buff Food
 L["OPTIONS_BUFF_FOOD_HEADER"] = "버프 음식"
 L["OPTIONS_BUFF_FOOD"] = "버프 음식 우선"
 L["OPTIONS_BUFF_FOOD_DESCRIPTION"] =
-	'"포만감" 버프가 없을 때 해당 버프를 주는 음식을 우선 사용합니다.'
+	'"포만감" 버프가 없을 때 해당 버프를 주는 음식을 우선 사용합니다. 투기장에서는 비활성화됩니다.'
 L["OPTIONS_BUFF_FOOD_DETAIL"] =
 	"프로 팁: 자신을 대상으로 지정하면 음식 매크로가 항상 버프 음식과 두루마리를 건너뜁니다."
 
@@ -217,7 +282,7 @@ L["OPTIONS_BUFF_FOOD_DETAIL"] =
 L["OPTIONS_SCROLL_HEADER"] = "두루마리 버프"
 L["OPTIONS_USE_SCROLLS"] = "두루마리 버프 포함"
 L["OPTIONS_USE_SCROLLS_DESCRIPTION"] =
-	"두루마리 버프가 없을 때마다 음식 매크로를 전용 두루마리 적용기로 전환합니다. 한 번 누르면 두루마리를 적용하고, 다시 누르면 음식을 먹습니다. 두루마리는 전역 재사용 대기시간(GCD)의 영향을 받지 않고 자신을 대상으로 하며, 다른 우호적인 플레이어를 대상으로 지정하는 순간 매크로가 음식으로 되돌아갑니다."
+	"한 번 누르면 부족한 두루마리를 적용하고, 다시 누르면 음식을 먹습니다. 두루마리는 전역 재사용 대기시간(GCD)의 영향을 받지 않고 자신을 대상으로 하며, 우호적인 플레이어를 대상으로 지정하면 건너뜁니다. 투기장에서는 비활성화됩니다."
 L["OPTIONS_SCROLL_TYPES"] = "확인할 두루마리 유형 포함"
 L["OPTIONS_SCROLL_AGILITY"] = "민첩성"
 L["OPTIONS_SCROLL_INTELLECT"] = "지능"
@@ -230,14 +295,14 @@ L["OPTIONS_SCROLL_STRENGTH"] = "힘"
 L["OPTIONS_EXPLOSIVES_HEADER"] = "폭발물"
 L["OPTIONS_EXPLOSIVES_DESCRIPTION"] =
 	"@player 옵션은 조준 원 없이 폭발물을 발밑에서 바로 터뜨립니다. 대상이 근접 거리일 때 이상적입니다."
-L["EXPLOSIVES_MODE_ATPLAYER"] = "좌클릭 @Player, 우클릭 던지기"
-L["EXPLOSIVES_MODE_TOSS"] = "좌클릭 던지기, 우클릭 @Player"
+L["EXPLOSIVES_MODE_ATPLAYER"] = "좌클릭 @player, 우클릭 던지기"
+L["EXPLOSIVES_MODE_TOSS"] = "좌클릭 던지기, 우클릭 @player"
 
 -- Pet Food Buffs
 L["OPTIONS_PET_HEADER"] = "소환수 음식 버프"
 L["OPTIONS_USE_PET_BUFFS"] = "소환수 음식 버프 사용"
 L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] =
-	'소환수에게 "포만감" 버프가 없을 때 음식 매크로의 일부로 소환수 음식을 사용합니다.'
+	'소환수에게 "포만감" 버프가 없을 때 음식 매크로에 소환수 음식을 추가합니다. 투기장에서는 비활성화됩니다.'
 L["OPTIONS_PET_BUFF_TYPES"] = "확인할 소환수 음식 유형 포함"
 L["OPTIONS_PET_BUFF_KIBLERS"] = "키블러의 간식"
 L["OPTIONS_PET_BUFF_SPORELING"] = "스포어가르 간식"
@@ -253,19 +318,25 @@ L["DRUID_FORM_CAT"] = "표범"
 
 -- Night Elves
 L["OPTIONS_NIGHTELF_HEADER"] = "나이트 엘프"
-L["OPTIONS_SHADOWMELD_DRINKING"] = "그림자 숨기 상태로 마시기"
+L["OPTIONS_SHADOWMELD_DRINKING"] = "마실 때 은신 사용"
 L["OPTIONS_SHADOWMELD_DRINKING_DESCRIPTION"] =
 	"물 매크로에 그림자 숨기를 추가하여 물을 마시는 동안 은신합니다."
+L["OPTIONS_STEALTH_EATING_NIGHTELF_DESCRIPTION"] =
+	"음식 매크로에 그림자 숨기를 추가하여 음식을 먹는 동안 은신합니다."
+L["OPTIONS_STEALTH_PICK_ONE"] =
+	"프로 팁: 하나만 선택하세요. 먹기와 마시기는 동시에 할 수 있지만, 은신한 뒤에 먹거나 마시면 은신이 풀립니다."
 
 -- Rogues
-L["OPTIONS_POISONS_HEADER"] = "독"
+L["OPTIONS_ROGUES_HEADER"] = "도적"
 L["OPTIONS_POISONS_DESCRIPTION"] =
 	"독 매크로를 각 독 종류의 사용 가능한 최고 등급으로 유지합니다. 좌클릭은 보조 무기에, 우클릭은 주 무기에 바르며, 기존 독은 자동으로 교체됩니다."
-L["OPTIONS_POISON_MAIN_HAND"] = "주 무기"
-L["OPTIONS_POISON_OFF_HAND"] = "보조 무기"
+L["OPTIONS_POISON_MAIN_HAND"] = "주 무기 독 종류"
+L["OPTIONS_POISON_OFF_HAND"] = "보조 무기 독 종류"
+L["OPTIONS_STEALTH_EATING"] = "먹을 때 은신 사용"
+L["OPTIONS_STEALTH_EATING_ROGUE_DESCRIPTION"] =
+	"음식 매크로에 은신을 추가하여 음식을 먹는 동안 은신합니다."
 
--- Restocker
-L["OPTIONS_RESTOCKER_HEADER"] = "Restocker"
+-- Restocker. The section header reuses RESTOCKER_WINDOW_TITLE.
 L["OPTIONS_RESTOCKER_DESCRIPTION"] =
 	"캐릭터별 보충 목록에 따라 가방을 채워 줍니다. 상인에게서 자동으로 구매하고 가방과 은행 사이에서 아이템을 옮깁니다. /crs 명령어로 목록을 엽니다."
 L["OPTIONS_RESTOCKER_OPEN_BANK"] = "은행에서 열기"
@@ -276,21 +347,15 @@ L["OPTIONS_RESTOCKER_DEBUG"] = "Restocker 디버그 메시지 사용"
 L["OPTIONS_RESTOCKER_DEBUG_DESCRIPTION"] =
 	"Restocker의 은행/상인 보충 결정을 단계별로 대화창에 출력합니다. 메시지가 많으며, 끌 때까지 세션이 바뀌어도 유지됩니다."
 
--- /Commands
+-- /Commands. The command literals stay in code; these are the descriptions.
 L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
-L["OPTIONS_COMMANDS_FOODIE"] = "/foodie"
 L["OPTIONS_COMMANDS_FOODIE_DETAIL"] = "Connoisseur 설정 인터페이스를 엽니다."
-L["OPTIONS_COMMANDS_CRS"] = "/crs"
 L["OPTIONS_COMMANDS_CRS_DETAIL"] = "보충 목록을 관리할 Restocker 창을 엽니다."
 
 -- Enable Macros
 L["OPTIONS_ENABLE_MACROS_HEADER"] = "매크로 활성화"
 L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] =
 	"Connoisseur가 생성하고 관리할 매크로를 선택합니다. 매크로를 비활성화하면 해당 매크로도 삭제됩니다."
-
--- Ignore List
-L["OPTIONS_RESET_IGNORE_DESCRIPTION"] = "차단 목록에서 모든 아이템을 제거합니다."
-L["OPTIONS_RESET_IGNORE_CONFIRM"] = "차단 목록을 지우시겠습니까?"
 
 -- Feedback & Support
 L["OPTIONS_COMMUNITY_HEADER"] = "피드백 및 지원"
@@ -303,9 +368,13 @@ L["OPTIONS_COMMUNITY_HEADER"] = "피드백 및 지원"
 L["RESTOCKER_IMPORTED_LISTS"] = "Restocker 목록을 가져왔습니다."
 L["RESTOCKER_PROFILE_EXISTS"] = '"%s" 이름의 프로필이 이미 있습니다.'
 L["RESTOCKER_BANK_NOT_OPEN"] = "은행이 열려 있지 않습니다."
--- %s is the /crs slash command, colored at the call site.
+--[[
+    %s is the /crs slash command, colored at the call site. Only the bank flow
+    prints this, so the Shift hint names the bank; Shift is read as the window
+    opens (eventsModule.OnBankOpen), not stored as a preference.
+]]
 L["RESTOCKER_COMPLETE"] =
-	"보충이 완료되었습니다. 다음에 건너뛰려면 Shift를 누르고 계세요. 보충 목록을 편집하려면 %s 명령어를 입력하세요."
+	"보충이 완료되었습니다. 은행을 열 때 Shift를 누르고 있으면 보충을 건너뜁니다. 보충 목록을 편집하려면 %s 명령어를 입력하세요."
 L["RESTOCKER_STOPPED_BOTH_FULL"] = "보충이 중단되었습니다. 가방과 은행이 모두 가득 찼습니다."
 L["RESTOCKER_STOPPED_BANK_FULL"] =
 	"보충이 중단되었습니다. 은행이 가득 찼습니다. 칸을 비우고 다시 여세요."
@@ -318,7 +387,7 @@ L["RESTOCKER_STUCK_ITEM_FORMAT"] = "%dx %s"
 L["RESTOCKER_STUCK_ITEM_EXTRA_FORMAT"] = "%dx %s (초과분)"
 L["RESTOCKER_STOPPED_ERROR"] = "오류로 보충이 중단되었습니다: %s"
 L["RESTOCKER_BAGS_FULL_SKIP_MERCHANT"] = "가방이 가득 찼습니다. 상인 보충을 건너뜁니다."
-L["RESTOCKER_FINISHED_RESTOCKING"] = "보충을 마쳤습니다 (구매 %d회)."
+L["RESTOCKER_FINISHED_RESTOCKING"] = "보충을 마쳤습니다 (구매: %d)."
 
 -- /crs help lines. The command literals stay in code; these are the descriptions.
 L["RESTOCKER_HELP_SHOW"] = "Restocker 창을 표시합니다."
@@ -338,6 +407,15 @@ L["RESTOCKER_ADD_TOOLTIP_BODY"] =
 L["RESTOCKER_PROFILE_LABEL"] = "프로필:"
 L["RESTOCKER_RENAME_LABEL"] = "이름 바꾸기:"
 L["RESTOCKER_NEW_PROFILE"] = "새 프로필"
+L["RESTOCKER_COPY_PROFILE"] = "복사"
+L["RESTOCKER_COPY_PROFILE_TOOLTIP"] = "이 프로필을 새 프로필로 복제합니다."
+-- %s becomes "<profile name> Copy"; numbered if that name is taken.
+L["RESTOCKER_PROFILE_COPY_NAME"] = "%s 복사본"
+L["RESTOCKER_DELETE_PROFILE"] = "삭제"
+L["RESTOCKER_DELETE_PROFILE_TOOLTIP"] = "이 프로필을 삭제합니다."
+-- %s is the profile name, colored at the call site. |n are line breaks.
+L["RESTOCKER_DELETE_PROFILE_CONFIRM"] =
+	"이 프로필을 정말 삭제하시겠습니까?|n|n%s|n|n되돌릴 수 없습니다."
 L["RESTOCKER_GROUP_OTHER"] = "기타"
 L["RESTOCKER_REMOVE_TOOLTIP"] = "이 아이템을 보충 목록에서 제거합니다."
 L["RESTOCKER_AMOUNT_TOOLTIP_TITLE"] = "보충할 수량"
@@ -367,4 +445,4 @@ L["RESTOCKER_REPUTATION_TOOLTIP_TITLE"] = "상인에게 필요한 평판"
 L["RESTOCKER_REPUTATION_TOOLTIP_STANDING"] = "평판이 최소 이 단계 이상인 상인에게서만 구매합니다."
 L["RESTOCKER_REPUTATION_TOOLTIP_DISCOUNTS"] =
 	"평판이 높을수록 가격도 저렴해집니다 (우호적 5%, 명예로운 10%, 확고한 15%, 숭배받는 20%)."
-L["RESTOCKER_REPUTATION_TOOLTIP_CLICK"] = "클릭하여 평판 단계를 선택하세요"
+L["RESTOCKER_REPUTATION_TOOLTIP_CLICK"] = "클릭하여 평판 단계를 선택하세요."

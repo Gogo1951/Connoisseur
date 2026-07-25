@@ -9,10 +9,13 @@ local _, ns = ...
     AceDB:New, which applies the defaults via metatables -- there is no
     hand-rolled merge and no per-scope copy step.
 
-    Everything the user configures lives under `profile`, so it follows the
-    active profile (and the shared Default profile keeps settings account-wide
-    until a character opts into its own). The only thing outside the profile is
-    `global.minimap`, which is account-level and profile-independent so
+    Everything the user configures lives under `global`, so it is account-wide:
+    set once on any character, it applies on all of them. Each character still
+    gets its own "Name - Realm" profile, and the only thing that lives there is
+    the Ignore List -- genuinely per-character state, so one character can mute
+    a food item without muting it everywhere.
+
+    `global.minimap` is account-level for the same reason as the settings, so
     switching, resetting, or deleting profiles never moves the minimap button
     (LibDBIcon reads its `hide` flag directly).
 
@@ -22,6 +25,9 @@ local _, ns = ...
 ]]
 ns.DATABASE_DEFAULTS = {
 	profile = {
+		ignoreList = {},
+	},
+	global = {
 		showWelcome = true,
 		--[[
             Macro-name text on the default action bars. Off by default so the
@@ -40,6 +46,12 @@ ns.DATABASE_DEFAULTS = {
         ]]
 		earlyReapply = false,
 		earlyReapplyThreshold = 120,
+		--[[
+            Ready-check self-audit: prints one player-only line naming what is
+            missing and how long the tracked buffs have left. Reports on the
+            same buffs the threshold above governs. See Features/Readiness.lua.
+        ]]
+		readyCheckReport = true,
 		useScrolls = false,
 		scrollsMode = "always",
 		scrollTypes = {
@@ -79,11 +91,11 @@ ns.DATABASE_DEFAULTS = {
 			SporelingSnacks = true,
 		},
 		--[[
-            Macro enablement follows the active profile. The macros live in the
-            shared General macro tab, so which ones Connoisseur maintains is a
-            per-profile choice; unchecking one removes the shared macro. Class-
-            gated macros (Feed Pet, conjures) still build only for the right
-            class regardless of the toggle.
+            Macro enablement is account-wide. The macros live in the shared
+            General macro tab, so which ones Connoisseur maintains is one choice
+            for the whole account; unchecking one removes the shared macro.
+            Class-gated macros (Feed Pet, conjures) still build only for the
+            right class regardless of the toggle.
         ]]
 		enabledMacros = {
 			["Bandage"] = true,
@@ -98,9 +110,6 @@ ns.DATABASE_DEFAULTS = {
 			["Soulstone"] = true,
 			["Water"] = true,
 		},
-		ignoreList = {},
-	},
-	global = {
 		--[[
             Minimap button visibility. LibDBIcon reads `hide` from this subtable,
             so it stays the single source of truth -- the "Enable Minimap Button"

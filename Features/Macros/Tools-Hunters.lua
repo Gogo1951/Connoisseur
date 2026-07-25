@@ -266,7 +266,7 @@ ns.PetBuffOverrideID = nil
     Well Fed and scroll probes.
 ]]
 function ns.FindPetBuffOverride(bagItemCounts)
-	local settings = ns.db and ns.db.profile
+	local settings = ns.db and ns.db.global
 	if not settings or not settings.usePetBuffFood then
 		return nil
 	end

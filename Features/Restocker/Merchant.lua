@@ -83,15 +83,21 @@ function merchantModule:PurchaseMerchantItem(i, purchaseOrders, numPurchases)
   local buyItem = purchaseOrders[itemName]
 
   if buyItem then
-    local itemInfo = RS.GetItemInfo(itemLink)
+    -- Link and cached record are both missing until the client resolves the item, so fall
+    -- back to single-unit buys, which BuyMerchantItem accepts for anything.
+    local itemInfo = itemLink and RS.GetItemInfo(itemLink) or nil
+    local stackCount = itemInfo and itemInfo.itemStackCount or 1
+    if stackCount < 1 then
+      stackCount = 1
+    end
 
     if buyItem.amount > merchantAvailable and merchantAvailable > 0 then
       BuyMerchantItem(i, merchantAvailable)
       numPurchases = numPurchases + 1
     else
-      for n = buyItem.amount, 1, -(--[[---@not nil]] itemInfo).itemStackCount do
-        if n > (--[[---@not nil]] itemInfo).itemStackCount then
-          BuyMerchantItem(i, (--[[---@not nil]] itemInfo).itemStackCount)
+      for n = buyItem.amount, 1, -stackCount do
+        if n > stackCount then
+          BuyMerchantItem(i, stackCount)
           numPurchases = numPurchases + 1
         else
           BuyMerchantItem(i, n)

@@ -65,13 +65,37 @@ L["CHAT_LOADED"] =
 	"Version %s. Settings (including the option to disable this message) can be found under Options > AddOns > Connoisseur. Enjoying the add-on? Tell a friend about it! (="
 
 --------------------------------------------------------------------------------
+-- Ready Check
+--------------------------------------------------------------------------------
+
+--[[
+    The ready-check self-audit, printed as one line: either the missing list or
+    the all-clear, then a segment per tracked buff. Item names come from the
+    LABEL_ keys below, so a consumable is named the same here as it is in
+    MSG_NO_ITEM.
+]]
+
+L["READY_ALL_CLEAR"] = "Ready to go"
+-- %s is the comma-separated list of what the character is missing.
+L["READY_MISSING"] = "Missing: %s"
+
+L["READY_WELL_FED"] = "Well Fed"
+L["READY_SCROLLS"] = "Scrolls"
+L["READY_PET_FED"] = "Pet Fed"
+
+-- { buff label, whole minutes left }
+L["READY_TIME_MINUTES"] = "%s %d min"
+-- %s is the buff label; used when under a minute is left.
+L["READY_TIME_EXPIRING"] = "%s under 1 min"
+
+--------------------------------------------------------------------------------
 -- ConnTip Messages
 --------------------------------------------------------------------------------
 
 -- Printed in chat by macro bodies via /run ConnTip("key"). See Features/Macros/Runtime.lua.
 
 L["TIP_PET_NO_FOOD"] = "You don't currently have any food that is useful for your pet."
-L["TIP_PET_NO_SKILLS"] = "You don't currently know Feed Pet, Mend Pet, or Revive Pet."
+L["TIP_PET_NO_SKILLS"] = "You don't currently know Call Pet, Dismiss Pet, Feed Pet, or Revive Pet."
 L["TIP_PET_NO_MEND"] = "You don't currently know Mend Pet."
 L["TIP_NO_HAND_POISON"] = "You're out of the selected poison for this weapon."
 
@@ -83,6 +107,7 @@ L["TIP_DONT_KNOW_SPELL"] = "You don't currently know %s."
 --------------------------------------------------------------------------------
 
 -- Feature toggles shown in the minimap tooltip, each with a description line.
+L["MENU_BUFF_FOOD"] = "Buff Food"
 L["MENU_BUFF_FOOD_DESCRIPTION"] = 'Prioritizes food that grants "Well Fed" whenever the buff is missing.'
 L["MENU_SCROLL_BUFFS"] = "Scroll Buffs"
 L["MENU_SCROLL_BUFFS_DESCRIPTION"] = "Turns your Food macro into a scroll-applier when you're missing scroll buffs."
@@ -90,6 +115,9 @@ L["MENU_SCROLL_BUFFS_DESCRIPTION"] = "Turns your Food macro into a scroll-applie
 -- Section titles and ignore-list actions in the minimap tooltip.
 L["UI_BEST_FOOD"] = "Current Food"
 L["UI_BEST_PET_FOOD"] = "Current Pet Food"
+-- Weapon-slot titles over the rogue's resolved poison, inside the Poisons block.
+L["UI_MAIN_HAND"] = "Main Hand"
+L["UI_OFF_HAND"] = "Off Hand"
 L["UI_IGNORE_LIST"] = "Ignore List"
 L["MENU_IGNORE"] = "Ignore"
 L["MENU_CLEAR_IGNORE"] = "Clear Ignore List"
@@ -110,18 +138,48 @@ L["PREFIX_MAGE"] = "Attention Mages"
 L["PREFIX_ROGUE"] = "Attention Rogues"
 L["PREFIX_WARLOCK"] = "Attention Warlocks"
 
-L["TIP_DOWNRANK"] = "Targeting a lower-level player will cause the macro to conjure items appropriate for their level."
-L["TIP_HUNTER_FEED_PET"] =
-	"Feed Pet is an All-in-One Pet Button! Click to automatically Call, Feed, or Revive your pet. Right-Click or wait for combat to cast Mend Pet. Hold Shift to force Revive, or Ctrl to Dismiss."
-L["TIP_MAGE_CONJURE"] = "Right-Click on your Food or Water macros to Create Food or Water."
+--[[
+    Subtitle under each class header, naming the macros the tips below apply
+    to. Each tip below is one instruction, rendered on its own line, and every
+    tip names the macro it belongs to — the blocks cover more than one macro,
+    and a bare "Right-Click" would be ambiguous.
+
+    The verb tracks the real spell names, which differ by class: mages get
+    Conjure Food / Conjure Water, warlocks get Create Healthstone / Create
+    Soulstone.
+]]
+L["TIP_HUNTER_MACROS"] = "Regarding your Feed Pet macro..."
+L["TIP_MAGE_MACROS"] = "Regarding your Food, Water, and Mana Gem macros..."
+L["TIP_ROGUE_MACROS"] = "Regarding your Poisons macro..."
+L["TIP_WARLOCK_MACROS"] = "Regarding your Healthstone and Soulstone macros..."
+
+L["TIP_HUNTER_ALL_IN_ONE"] = "Feed Pet is an All-in-One Pet Button!"
+L["TIP_HUNTER_CALL"] = "Left-Click to automatically Call, Feed, or Revive your pet."
+L["TIP_HUNTER_MEND"] = "Right-Click or wait for combat to cast Mend Pet."
+L["TIP_HUNTER_MODIFIERS"] = "Hold Shift to force Revive, or Ctrl to Dismiss."
+
+--[[
+    Target downranking is per-macro, not block-wide: it applies only to the
+    mage's Food and Water and the warlock's Healthstone. Mana Gems, Soulstones,
+    and both rituals ignore the target (ignoreTarget in the resolvers), so each
+    line names what it actually affects rather than saying "the macro."
+]]
+L["TIP_MAGE_CONJURE"] = "Right-Click on your Food or Water macros to Conjure Food or Water."
+L["TIP_MAGE_DOWNRANK"] = "Targeting a lower-level player will conjure Food or Water appropriate for their level."
+L["TIP_MAGE_TABLE"] = "Middle-Click on your Food or Water macros to cast Ritual of Refreshment."
 L["TIP_MAGE_GEM"] =
 	"Right-Click on your Mana Gem macro to conjure a new gem. Right-Click again to conjure a lower-rank backup."
-L["TIP_MAGE_TABLE"] = "Middle-Click to cast Ritual of Refreshment."
-L["TIP_WARLOCK_CONJURE"] =
-	"Right-Click on your Healthstone or Soulstone macros to create a Healthstone or Soulstone. Right-Click your Healthstone macro again to conjure a lower-rank backup."
-L["TIP_WARLOCK_SOUL"] = "Middle-Click to cast Ritual of Souls."
-L["TIP_ROGUE_POISONS"] =
-	"Left-Click applies your Off Hand poison, Right-Click your Main Hand poison. Existing poisons are replaced automatically. Middle-Click opens the Poisons window."
+
+L["TIP_WARLOCK_HEALTHSTONE"] =
+	"Right-Click on your Healthstone macro to Create a Healthstone. Right-Click again to conjure a lower-rank backup."
+L["TIP_WARLOCK_DOWNRANK"] = "Targeting a lower-level player will create a Healthstone appropriate for their level."
+L["TIP_WARLOCK_SOULSTONE"] = "Right-Click on your Soulstone macro to Create a Soulstone."
+L["TIP_WARLOCK_SOUL"] = "Middle-Click on your Healthstone macro to cast Ritual of Souls."
+
+L["TIP_ROGUE_OFF_HAND"] = "Left-Click applies your Off Hand poison."
+L["TIP_ROGUE_MAIN_HAND"] = "Right-Click applies your Main Hand poison."
+L["TIP_ROGUE_REPLACE"] = "Existing poisons are replaced automatically."
+L["TIP_ROGUE_WINDOW"] = "Middle-Click opens the Poisons window."
 
 --------------------------------------------------------------------------------
 -- Item Labels
@@ -197,9 +255,15 @@ L["OPTIONS_REAPPLY_HEADER"] = "Buff Re-Application"
 L["OPTIONS_REAPPLY"] = "Re-Apply Expiring Buffs"
 L["OPTIONS_REAPPLY_DESCRIPTION"] =
 	"Fights often outlast what's left on your buffs. Buffs with less time remaining than your threshold count as already expired, so your macros offer a fresh one before the pull. Applies to Buff Food, Scroll Buffs, and Pet Food Buffs."
-L["OPTIONS_REAPPLY_THRESHOLD"] = "Treat As Expired When"
+L["OPTIONS_REAPPLY_THRESHOLD"] = "Treat as Expired When"
 L["REAPPLY_THRESHOLD_ONE"] = "< 1 Minute Left"
 L["REAPPLY_THRESHOLD_N"] = "< %d Minutes Left"
+
+-- Ready Check
+L["OPTIONS_READY_CHECK_HEADER"] = "Ready Check"
+L["OPTIONS_READY_CHECK"] = "Report Readiness on Ready Check"
+L["OPTIONS_READY_CHECK_DESCRIPTION"] =
+	"Prints what you're missing and how long your tracked buffs have left whenever a ready check starts, where only you can see it."
 
 -- Buff Food
 L["OPTIONS_BUFF_FOOD_HEADER"] = "Buff Food"
@@ -225,8 +289,8 @@ L["OPTIONS_SCROLL_STRENGTH"] = "Strength"
 L["OPTIONS_EXPLOSIVES_HEADER"] = "Explosives"
 L["OPTIONS_EXPLOSIVES_DESCRIPTION"] =
 	"The @player option skips the targeting reticle and sets the explosive off right at your feet, ideal when your target is in melee range."
-L["EXPLOSIVES_MODE_ATPLAYER"] = "Left-Click @Player, Right-Click Toss"
-L["EXPLOSIVES_MODE_TOSS"] = "Left-Click Toss, Right-Click @Player"
+L["EXPLOSIVES_MODE_ATPLAYER"] = "Left-Click @player, Right-Click Toss"
+L["EXPLOSIVES_MODE_TOSS"] = "Left-Click Toss, Right-Click @player"
 
 -- Pet Food Buffs
 L["OPTIONS_PET_HEADER"] = "Pet Food Buffs"
@@ -263,8 +327,7 @@ L["OPTIONS_POISON_OFF_HAND"] = "Off Hand Poison Type"
 L["OPTIONS_STEALTH_EATING"] = "Enable Stealth Eating"
 L["OPTIONS_STEALTH_EATING_ROGUE_DESCRIPTION"] = "Appends Stealth to your Food macro so you stealth while eating."
 
--- Restocker
-L["OPTIONS_RESTOCKER_HEADER"] = "Connoisseur Restocker"
+-- Restocker. The section header reuses RESTOCKER_WINDOW_TITLE.
 L["OPTIONS_RESTOCKER_DESCRIPTION"] =
 	"Keeps your bags stocked from a per-character Restock List, buying from vendors and moving items to and from the bank automatically. Type /crs to open the list."
 L["OPTIONS_RESTOCKER_OPEN_BANK"] = "Open at Bank"
@@ -275,21 +338,15 @@ L["OPTIONS_RESTOCKER_DEBUG"] = "Enable Restocker Debug Messages"
 L["OPTIONS_RESTOCKER_DEBUG_DESCRIPTION"] =
 	"Prints Restocker's step-by-step bank/merchant restocking decisions to chat. Noisy; persists across sessions until turned off."
 
--- /Commands
+-- /Commands. The command literals stay in code; these are the descriptions.
 L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
-L["OPTIONS_COMMANDS_FOODIE"] = "/foodie"
 L["OPTIONS_COMMANDS_FOODIE_DETAIL"] = "Opens the Connoisseur options interface."
-L["OPTIONS_COMMANDS_CRS"] = "/crs"
 L["OPTIONS_COMMANDS_CRS_DETAIL"] = "Opens the Restocker window to manage your Restock List."
 
 -- Enable Macros
 L["OPTIONS_ENABLE_MACROS_HEADER"] = "Enable Macros"
 L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] =
 	"Toggle which macros Connoisseur creates and maintains. Disabling a macro will also remove it."
-
--- Ignore List
-L["OPTIONS_RESET_IGNORE_DESCRIPTION"] = "Remove all items from the ignore list."
-L["OPTIONS_RESET_IGNORE_CONFIRM"] = "Are you sure you want to clear the ignore list?"
 
 -- Feedback & Support
 L["OPTIONS_COMMUNITY_HEADER"] = "Feedback & Support"
@@ -302,8 +359,13 @@ L["OPTIONS_COMMUNITY_HEADER"] = "Feedback & Support"
 L["RESTOCKER_IMPORTED_LISTS"] = "Imported your Restocker lists."
 L["RESTOCKER_PROFILE_EXISTS"] = 'A profile named "%s" already exists.'
 L["RESTOCKER_BANK_NOT_OPEN"] = "The bank is not open."
--- %s is the /crs slash command, colored at the call site.
-L["RESTOCKER_COMPLETE"] = "Restocking complete. Hold Shift to skip next time. Type %s to edit your Restock List."
+--[[
+    %s is the /crs slash command, colored at the call site. Only the bank flow
+    prints this, so the Shift hint names the bank; Shift is read as the window
+    opens (eventsModule.OnBankOpen), not stored as a preference.
+]]
+L["RESTOCKER_COMPLETE"] =
+	"Restocking complete. Hold Shift while opening the bank to skip restocking. Type %s to edit your Restock List."
 L["RESTOCKER_STOPPED_BOTH_FULL"] = "Restocking stopped. Both your bags and your bank are full."
 L["RESTOCKER_STOPPED_BANK_FULL"] = "Restocking stopped. Your bank is full; free a slot and reopen it."
 L["RESTOCKER_STOPPED_BAG_FULL"] = "Restocking stopped. Your bags are full; free a slot and reopen the bank."
@@ -314,7 +376,7 @@ L["RESTOCKER_STUCK_ITEM_FORMAT"] = "%dx %s"
 L["RESTOCKER_STUCK_ITEM_EXTRA_FORMAT"] = "%dx %s (extra)"
 L["RESTOCKER_STOPPED_ERROR"] = "Restocking stopped due to an error: %s"
 L["RESTOCKER_BAGS_FULL_SKIP_MERCHANT"] = "Your bags are full. Skipping merchant restock."
-L["RESTOCKER_FINISHED_RESTOCKING"] = "Finished restocking (%d purchases made)."
+L["RESTOCKER_FINISHED_RESTOCKING"] = "Finished restocking (purchases: %d)."
 
 -- /crs help lines. The command literals stay in code; these are the descriptions.
 L["RESTOCKER_HELP_SHOW"] = "Shows the Restocker window."
@@ -368,4 +430,4 @@ L["RESTOCKER_REPUTATION_TOOLTIP_TITLE"] = "Required Vendor Reputation"
 L["RESTOCKER_REPUTATION_TOOLTIP_STANDING"] = "Only buy from a vendor you are at least this standing with."
 L["RESTOCKER_REPUTATION_TOOLTIP_DISCOUNTS"] =
 	"Higher standing also means a cheaper price (Friendly 5%, Honored 10%, Revered 15%, Exalted 20%)."
-L["RESTOCKER_REPUTATION_TOOLTIP_CLICK"] = "Click to choose a standing"
+L["RESTOCKER_REPUTATION_TOOLTIP_CLICK"] = "Click to choose a standing."

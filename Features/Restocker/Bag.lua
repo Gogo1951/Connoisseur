@@ -8,7 +8,6 @@ local RS = CRS_ADDON ---@type RestockerAddon
 
 local bagModule = CrsModule.bagModule ---@type RsBagModule
 local itemModule = CrsModule.itemModule ---@type RsItemModule
-local kvEnvModule = CrsKvModuleManager.envModule
 local inventoryModule = CrsModule.inventoryModule ---@type RsInventoryModule
 
 bagModule.PLAYER_BAGS = {}
@@ -206,22 +205,6 @@ function bagModule:GetItemsInBags(predicate)
   end
 
   result:SortSlots()
-  return result
-end
-
----@param handler fun(bag: number, slot: number, itemName: string, itemID: number, itemCount: number)
-function bagModule:ForEachBagItem(handler)
-  local result = --[[---@type RsInventoryCountByItemName]] {}
-  for _, bag in ipairs(self.PLAYER_BAGS) do
-    for slot = 1, C_Container.GetContainerNumSlots(bag.bagId) do
-      local itemInfo = C_Container.GetContainerItemInfo(bag.bagId, slot)
-
-      if itemInfo and itemInfo.itemID and itemInfo.hyperlink then
-        local itemName = --[[---@type string]] (string.match(itemInfo.hyperlink, "%[(.*)%]"))
-        handler(bag.bagId, slot, itemName, itemInfo.itemID, itemInfo.stackCount)
-      end
-    end
-  end
   return result
 end
 

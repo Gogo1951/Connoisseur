@@ -90,11 +90,41 @@ end
 
 local KnowsAny = ns.KnowsAny
 
+--[[
+    The class tip blocks render one instruction per line, separated by blank
+    lines. Collecting the lines first and spacing them here keeps the rhythm
+    correct when a tip is gated out — an unknown spell leaves no doubled gap
+    and no trailing blank.
+]]
+local function AddSpacedLines(tooltip, color, lines)
+	for index, text in ipairs(lines) do
+		if index > 1 then
+			tooltip:AddLine(" ")
+		end
+		tooltip:AddLine(color .. text .. "|r", 1, 1, 1, true)
+	end
+end
+
+--[[
+    One "section title + resolved item" block, matching the Current Pet Food
+    and Main Hand / Off Hand sections. Falls back to the standard "no suitable
+    item" line when nothing resolved, or while the item cache is still cold.
+]]
+local function AddItemSection(tooltip, title, itemID, itemLink, missingLabel)
+	tooltip:AddLine(" ")
+	tooltip:AddLine(GetColor("TITLE") .. title .. "|r")
+	if itemID and itemLink then
+		tooltip:AddLine(format("|T%s:14:14|t %s", ns.GetItemIcon(itemID), itemLink))
+	else
+		tooltip:AddLine(GetColor("BODY") .. format(L["MSG_NO_ITEM"], missingLabel) .. "|r", 1, 1, 1, true)
+	end
+end
+
 UpdateTooltip = function(anchor)
-	if not (ns.db and ns.db.profile) then
+	if not (ns.db and ns.db.global and ns.db.profile) then
 		return
 	end
-	local settings = ns.db.profile
+	local settings = ns.db.global
 	local tooltip = GameTooltip
 
 	tooltip:SetOwner(anchor, "ANCHOR_BOTTOMLEFT")
@@ -107,7 +137,7 @@ UpdateTooltip = function(anchor)
 	-- Prioritize Buff Food
 	local buffState = settings.useBuffFood and (GetColor("ON") .. L["UI_ENABLED"] .. "|r")
 		or (GetColor("OFF") .. L["UI_DISABLED"] .. "|r")
-	tooltip:AddDoubleLine(GetColor("TITLE") .. L["OPTIONS_BUFF_FOOD"] .. "|r", buffState)
+	tooltip:AddDoubleLine(GetColor("TITLE") .. L["MENU_BUFF_FOOD"] .. "|r", buffState)
 	tooltip:AddLine(GetColor("BODY") .. L["MENU_BUFF_FOOD_DESCRIPTION"] .. "|r", 1, 1, 1, true)
 	tooltip:AddDoubleLine(GetColor("INFO") .. L["UI_LEFT_CLICK"] .. "|r", GetColor("INFO") .. L["UI_TOGGLE"] .. "|r")
 	tooltip:AddLine(" ")
@@ -183,19 +213,20 @@ UpdateTooltip = function(anchor)
 		if knowsFood or knowsWater or knowsTable or knowsManaGem then
 			tooltip:AddLine(" ")
 			tooltip:AddLine(classColor .. L["PREFIX_MAGE"] .. "|r")
+			tooltip:AddLine(" ")
+
+			local tips = { L["TIP_MAGE_MACROS"] }
 			if knowsFood or knowsWater then
-				tooltip:AddLine(descriptionColor .. L["TIP_MAGE_CONJURE"] .. "|r", 1, 1, 1, true)
+				tinsert(tips, L["TIP_MAGE_CONJURE"])
+				tinsert(tips, L["TIP_MAGE_DOWNRANK"])
 			end
 			if knowsTable then
-				tooltip:AddLine(" ")
-				tooltip:AddLine(descriptionColor .. L["TIP_MAGE_TABLE"] .. "|r", 1, 1, 1, true)
+				tinsert(tips, L["TIP_MAGE_TABLE"])
 			end
-			tooltip:AddLine(" ")
-			tooltip:AddLine(descriptionColor .. L["TIP_DOWNRANK"] .. "|r", 1, 1, 1, true)
 			if knowsManaGem then
-				tooltip:AddLine(" ")
-				tooltip:AddLine(descriptionColor .. L["TIP_MAGE_GEM"] .. "|r", 1, 1, 1, true)
+				tinsert(tips, L["TIP_MAGE_GEM"])
 			end
+			AddSpacedLines(tooltip, descriptionColor, tips)
 		end
 	elseif playerClass == "WARLOCK" and ns.ConjureSpells then
 		local classColor = GetClassColorStr("WARLOCK")
@@ -206,15 +237,20 @@ UpdateTooltip = function(anchor)
 		if knowsHealthstone or knowsSoulstone or knowsSoulwell then
 			tooltip:AddLine(" ")
 			tooltip:AddLine(classColor .. L["PREFIX_WARLOCK"] .. "|r")
-			if knowsHealthstone or knowsSoulstone then
-				tooltip:AddLine(descriptionColor .. L["TIP_WARLOCK_CONJURE"] .. "|r", 1, 1, 1, true)
+			tooltip:AddLine(" ")
+
+			local tips = { L["TIP_WARLOCK_MACROS"] }
+			if knowsHealthstone then
+				tinsert(tips, L["TIP_WARLOCK_HEALTHSTONE"])
+				tinsert(tips, L["TIP_WARLOCK_DOWNRANK"])
+			end
+			if knowsSoulstone then
+				tinsert(tips, L["TIP_WARLOCK_SOULSTONE"])
 			end
 			if knowsSoulwell then
-				tooltip:AddLine(" ")
-				tooltip:AddLine(descriptionColor .. L["TIP_WARLOCK_SOUL"] .. "|r", 1, 1, 1, true)
+				tinsert(tips, L["TIP_WARLOCK_SOUL"])
 			end
-			tooltip:AddLine(" ")
-			tooltip:AddLine(descriptionColor .. L["TIP_DOWNRANK"] .. "|r", 1, 1, 1, true)
+			AddSpacedLines(tooltip, descriptionColor, tips)
 		end
 	elseif playerClass == "ROGUE" and ns.POISONS_SPELL_ID then
 		local knowsPoisons = IsSpellKnown(ns.POISONS_SPELL_ID)
@@ -225,23 +261,35 @@ UpdateTooltip = function(anchor)
 			local classColor = GetClassColorStr("ROGUE")
 			tooltip:AddLine(" ")
 			tooltip:AddLine(classColor .. L["PREFIX_ROGUE"] .. "|r")
-			tooltip:AddLine(descriptionColor .. L["TIP_ROGUE_POISONS"] .. "|r", 1, 1, 1, true)
+			tooltip:AddLine(" ")
+			AddSpacedLines(tooltip, descriptionColor, {
+				L["TIP_ROGUE_MACROS"],
+				L["TIP_ROGUE_OFF_HAND"],
+				L["TIP_ROGUE_MAIN_HAND"],
+				L["TIP_ROGUE_REPLACE"],
+				L["TIP_ROGUE_WINDOW"],
+			})
+
+			local mainID, mainLink = ns.GetBestPoisonForHand("main")
+			local offID, offLink = ns.GetBestPoisonForHand("off")
+			AddItemSection(tooltip, L["UI_MAIN_HAND"], mainID, mainLink, L["LABEL_POISONS"])
+			AddItemSection(tooltip, L["UI_OFF_HAND"], offID, offLink, L["LABEL_POISONS"])
 		end
 	elseif playerClass == "HUNTER" and ns.FeedPetSpellName then
 		local classColor = GetClassColorStr("HUNTER")
 
 		tooltip:AddLine(" ")
 		tooltip:AddLine(classColor .. L["PREFIX_HUNTER"] .. "|r")
-		tooltip:AddLine(descriptionColor .. L["TIP_HUNTER_FEED_PET"] .. "|r", 1, 1, 1, true)
-
 		tooltip:AddLine(" ")
-		tooltip:AddLine(GetColor("TITLE") .. L["UI_BEST_PET_FOOD"] .. "|r")
-		if ns.BestPetFoodID and ns.BestPetFoodLink then
-			local foodIcon = ns.GetItemIcon(ns.BestPetFoodID)
-			tooltip:AddLine(format("|T%s:14:14|t %s", foodIcon, ns.BestPetFoodLink))
-		else
-			tooltip:AddLine(GetColor("BODY") .. format(L["MSG_NO_ITEM"], L["LABEL_PET_FOOD"]) .. "|r", 1, 1, 1, true)
-		end
+		AddSpacedLines(tooltip, descriptionColor, {
+			L["TIP_HUNTER_MACROS"],
+			L["TIP_HUNTER_ALL_IN_ONE"],
+			L["TIP_HUNTER_CALL"],
+			L["TIP_HUNTER_MEND"],
+			L["TIP_HUNTER_MODIFIERS"],
+		})
+
+		AddItemSection(tooltip, L["UI_BEST_PET_FOOD"], ns.BestPetFoodID, ns.BestPetFoodLink, L["LABEL_PET_FOOD"])
 	end
 
 	-- Options block (always the last thing in the tooltip; no hint line below it)

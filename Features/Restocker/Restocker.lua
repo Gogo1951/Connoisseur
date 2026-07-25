@@ -77,13 +77,13 @@ end
 
 RS.commands = {
   show = rsSlashHelpLine("/crs show", L["RESTOCKER_HELP_SHOW"]),
+  config = rsSlashHelpLine("/crs config", L["OPTIONS_COMMANDS_FOODIE_DETAIL"]),
   profile = --[[---@type {[string]: string}]] {
     add = rsSlashHelpLine("/crs profile add [name]", L["RESTOCKER_HELP_PROFILE_ADD"]),
     delete = rsSlashHelpLine("/crs profile delete [name]", L["RESTOCKER_HELP_PROFILE_DELETE"]),
     rename = rsSlashHelpLine("/crs profile rename [name]", L["RESTOCKER_HELP_PROFILE_RENAME"]),
     copy = rsSlashHelpLine("/crs profile copy [name]", L["RESTOCKER_HELP_PROFILE_COPY"]),
-    use = rsSlashHelpLine("/crs profile use [name]", L["RESTOCKER_HELP_PROFILE_USE"]),
-    config = rsSlashHelpLine("/crs config", L["OPTIONS_COMMANDS_FOODIE_DETAIL"])
+    use = rsSlashHelpLine("/crs profile use [name]", L["RESTOCKER_HELP_PROFILE_USE"])
   }
 }
 
@@ -136,7 +136,6 @@ function RS:SlashCommand(args)
     end
     return
   elseif command == "config" then
-    -- Restocker's own options are ported to Connoisseur's panel in pass R3
     if ns.OpenOptionsPanel then
       ns:OpenOptionsPanel()
     end
@@ -781,7 +780,6 @@ function RS:OnEnable()
 
   restockerModule.settings = ConnoisseurRestockerDB
 
-  self.restockedItems = false
   self.framepool = --[[---@type RsRestockingListRow[] ]] {}
   self.headerpool = --[[---@type RsControl[] ]] {} -- section-header rows (sort by type)
   self.hiddenFrame = CreateFrame("Frame", nil, --[[---@type WowControl]] UIParent)
@@ -802,9 +800,6 @@ function RS:OnEnable()
 
   RS:RegisterSlashCommands()
 
-  RS:Show()
-  RS:Hide()
-
   eventsModule:InitEvents()
 
   CrsModule:CallInEachModule("OnModuleInit", nil)
@@ -814,10 +809,6 @@ function RS:OnEnable()
   end -- setup the UI
 
   RS.loaded = true
-end
-
----AceAddon handler
-function RS:OnDisable()
 end
 
 function restockerModule:Color(hex, text)

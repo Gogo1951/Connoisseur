@@ -12,9 +12,6 @@ local restockerModule = CrsModule.restockerModule ---@type RsRestockerModule
 RS.loaded = false
 RS.addItemWait = {}
 
-function eventsModule.OnEnteringWorld(login, reloadui)
-end
-
 function eventsModule.OnMerchantShow()
   -- prevents double init but sometimes does not init when entering world too soon?
   buyiModule:SetupAutobuyIngredients()
@@ -115,6 +112,5 @@ function eventsModule:InitEvents()
   RS:RegisterEvent("BANKFRAME_CLOSED", self.OnBankClose);
   RS:RegisterEvent("GET_ITEM_INFO_RECEIVED", self.OnItemInfoReceived);
   RS:RegisterEvent("PLAYER_LOGOUT", self.OnLogout);
-  RS:RegisterEvent("PLAYER_ENTERING_WORLD", self.OnEnteringWorld);
   RS:RegisterEvent("UI_ERROR_MESSAGE", self.OnUiErrorMessage);
 end

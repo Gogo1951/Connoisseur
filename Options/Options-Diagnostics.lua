@@ -150,19 +150,40 @@ function ns.BuildDiagnosticsOptions()
 			},
 			outputContext = ReportOutput("contextReport", 27),
 
+			-- Item Selection
+			headerSelection = SectionHeader(D.SELECTION_TITLE, 28),
+			buttonSelection = {
+				type = "execute",
+				name = D.SELECTION_BUTTON,
+				order = 29,
+				hidden = Hidden,
+				func = function()
+					ns.diagnostics.selectionReport = ns:BuildSelectionReport()
+					Refresh()
+				end,
+			},
+			outputSelection = ReportOutput("selectionReport", 30),
+			descSelectionHint = {
+				type = "description",
+				name = GetColor("BODY") .. D.SELECTION_HINT .. "|r",
+				fontSize = "medium",
+				order = 31,
+				hidden = Hidden,
+			},
+
 			-- Other Add-ons
-			headerAddons = SectionHeader(D.ADDONS_TITLE, 30),
+			headerAddons = SectionHeader(D.ADDONS_TITLE, 35),
 			buttonAddons = {
 				type = "execute",
 				name = D.ADDONS_BUTTON,
-				order = 31,
+				order = 36,
 				hidden = Hidden,
 				func = function()
 					ns.diagnostics.addOnReport = ns:BuildAddOnReport()
 					Refresh()
 				end,
 			},
-			outputAddons = ReportOutput("addOnReport", 32),
+			outputAddons = ReportOutput("addOnReport", 37),
 
 			-- Saved Variables
 			headerSaved = SectionHeader(D.SAVED_TITLE, 40),

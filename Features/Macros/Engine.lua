@@ -93,6 +93,14 @@ local customDefs = {}
 ]]
 ns.RegisteredMacroDefs = macroDefs
 
+--[[
+    The custom definitions, exposed on the same terms for diagnostics only.
+    They own their whole update and never reach the scanner's ranking ladder,
+    so the Selection Report names them as resolved elsewhere rather than
+    leaving the reader to wonder why Feed Pet and Poisons are missing from it.
+]]
+ns.RegisteredCustomMacroDefs = customDefs
+
 function ns.RegisterMacroType(def)
 	if def.customUpdate then
 		customDefs[#customDefs + 1] = def
@@ -242,7 +250,7 @@ end
 --------------------------------------------------------------------------------
 
 function ns.IsMacroEnabled(typeName)
-	local enabled = ns.db and ns.db.profile.enabledMacros
+	local enabled = ns.db and ns.db.global.enabledMacros
 	if not enabled then
 		return true
 	end
@@ -772,5 +780,8 @@ function ns.ResetMacroState()
 	end
 	if ns.ResetPoisonMacroState then
 		ns.ResetPoisonMacroState()
+	end
+	if ns.ResetScrollBuffTracking then
+		ns.ResetScrollBuffTracking()
 	end
 end

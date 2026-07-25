@@ -10,6 +10,7 @@ local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 
 local REGISTRY = ns.OPTIONS_REGISTRY
 local mainPanel
+local mainCategoryID
 
 --[[
     Registration is deferred to ns.InitializeOptions, called once from
@@ -29,7 +30,7 @@ end
 
 function ns.InitializeOptions()
 	AceConfig:RegisterOptionsTable(REGISTRY.General, ns.BuildGeneralOptions)
-	mainPanel = AceConfigDialog:AddToBlizOptions(REGISTRY.General, L["ADDON_TITLE"])
+	mainPanel, mainCategoryID = AceConfigDialog:AddToBlizOptions(REGISTRY.General, L["ADDON_TITLE"])
 
 	--[[
         Profiles panel: the stock AceDBOptions-3.0 table, unmodified
@@ -52,12 +53,9 @@ end
 --------------------------------------------------------------------------------
 
 function ns:OpenOptionsPanel()
-	if Settings and Settings.GetCategory then
-		local category = Settings.GetCategory(L["ADDON_TITLE"])
-		if category then
-			Settings.OpenToCategory(category.ID)
-			return
-		end
+	if Settings and Settings.OpenToCategory and mainCategoryID then
+		Settings.OpenToCategory(mainCategoryID)
+		return
 	end
 	if InterfaceOptionsFrame_OpenToCategory then
 		InterfaceOptionsFrame_OpenToCategory(mainPanel)

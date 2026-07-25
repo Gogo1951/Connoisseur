@@ -65,6 +65,30 @@ L["CHAT_LOADED"] =
 	"Version %s. Les paramètres (y compris l'option pour désactiver ce message) se trouvent dans Options > AddOns > Connoisseur. Vous aimez l'addon ? Parlez-en à un ami ! (="
 
 --------------------------------------------------------------------------------
+-- Ready Check
+--------------------------------------------------------------------------------
+
+--[[
+    The ready-check self-audit, printed as one line: either the missing list or
+    the all-clear, then a segment per tracked buff. Item names come from the
+    LABEL_ keys below, so a consumable is named the same here as it is in
+    MSG_NO_ITEM.
+]]
+
+L["READY_ALL_CLEAR"] = "Prêt"
+-- %s is the comma-separated list of what the character is missing.
+L["READY_MISSING"] = "Manquant : %s"
+
+L["READY_WELL_FED"] = "Bien nourri"
+L["READY_SCROLLS"] = "Parchemins"
+L["READY_PET_FED"] = "Familier nourri"
+
+-- { buff label, whole minutes left }
+L["READY_TIME_MINUTES"] = "%s %d min"
+-- %s is the buff label; used when under a minute is left.
+L["READY_TIME_EXPIRING"] = "%s moins d'1 min"
+
+--------------------------------------------------------------------------------
 -- ConnTip Messages
 --------------------------------------------------------------------------------
 
@@ -72,7 +96,7 @@ L["CHAT_LOADED"] =
 
 L["TIP_PET_NO_FOOD"] = "Vous n'avez actuellement aucune nourriture utile pour votre familier."
 L["TIP_PET_NO_SKILLS"] =
-	"Vous ne connaissez actuellement pas Nourrir le familier, Guérison du familier ou Ressusciter le familier."
+	"Vous ne connaissez actuellement pas Appeler le familier, Renvoyer le familier, Nourrir le familier ou Ressusciter le familier."
 L["TIP_PET_NO_MEND"] = "Vous ne connaissez actuellement pas Guérison du familier."
 L["TIP_NO_HAND_POISON"] = "Vous n'avez plus le poison choisi pour cette arme."
 
@@ -84,6 +108,7 @@ L["TIP_DONT_KNOW_SPELL"] = "Vous ne connaissez actuellement pas %s."
 --------------------------------------------------------------------------------
 
 -- Feature toggles shown in the minimap tooltip, each with a description line.
+L["MENU_BUFF_FOOD"] = "Nourriture à amélioration"
 L["MENU_BUFF_FOOD_DESCRIPTION"] =
 	'Priorise la nourriture conférant l\'amélioration "Bien nourri" si elle est absente.'
 L["MENU_SCROLL_BUFFS"] = "Améliorations de parchemins"
@@ -91,8 +116,11 @@ L["MENU_SCROLL_BUFFS_DESCRIPTION"] =
 	"Transforme votre macro Nourriture en applicateur de parchemins lorsqu'il vous manque des améliorations de parchemins."
 
 -- Section titles and ignore-list actions in the minimap tooltip.
-L["UI_BEST_FOOD"] = "Nourriture"
-L["UI_BEST_PET_FOOD"] = "Nourriture pour familier"
+L["UI_BEST_FOOD"] = "Nourriture actuelle"
+L["UI_BEST_PET_FOOD"] = "Nourriture actuelle du familier"
+-- Weapon-slot titles over the rogue's resolved poison, inside the Poisons block.
+L["UI_MAIN_HAND"] = "Main droite"
+L["UI_OFF_HAND"] = "Main gauche"
 L["UI_IGNORE_LIST"] = "Liste d'exclusion"
 L["MENU_IGNORE"] = "Ignorer"
 L["MENU_CLEAR_IGNORE"] = "Vider la liste d'exclusion"
@@ -113,18 +141,49 @@ L["PREFIX_MAGE"] = "Attention Mages"
 L["PREFIX_ROGUE"] = "Attention Voleurs"
 L["PREFIX_WARLOCK"] = "Attention Démonistes"
 
-L["TIP_DOWNRANK"] = "Cibler un joueur de bas niveau adaptera le rang des objets créés par la macro."
-L["TIP_HUNTER_FEED_PET"] =
-	"Nourrir le familier est un bouton tout-en-un ! Cliquez pour appeler, nourrir ou ressusciter automatiquement votre familier. Faites un clic droit ou utilisez-le en combat pour lancer Guérison du familier. Maintenez Maj pour forcer la Résurrection, ou Ctrl pour le Renvoyer."
+--[[
+    Subtitle under each class header, naming the macros the tips below apply
+    to. Each tip below is one instruction, rendered on its own line, and every
+    tip names the macro it belongs to — the blocks cover more than one macro,
+    and a bare "Right-Click" would be ambiguous.
+
+    The verb tracks the real spell names, which differ by class: mages get
+    Conjure Food / Conjure Water, warlocks get Create Healthstone / Create
+    Soulstone.
+]]
+L["TIP_HUNTER_MACROS"] = "À propos de votre macro Nourrir le familier..."
+L["TIP_MAGE_MACROS"] = "À propos de vos macros Nourriture, Eau et Gemme de mana..."
+L["TIP_ROGUE_MACROS"] = "À propos de votre macro Poisons..."
+L["TIP_WARLOCK_MACROS"] = "À propos de vos macros Pierre de soins et Pierre d'âme..."
+
+L["TIP_HUNTER_ALL_IN_ONE"] = "Nourrir le familier est un bouton tout-en-un !"
+L["TIP_HUNTER_CALL"] = "Clic gauche pour appeler, nourrir ou ressusciter automatiquement votre familier."
+L["TIP_HUNTER_MEND"] = "Clic droit ou attendez le combat pour lancer Guérison du familier."
+L["TIP_HUNTER_MODIFIERS"] = "Maintenez Maj pour forcer la Résurrection, ou Ctrl pour le Renvoyer."
+
+--[[
+    Target downranking is per-macro, not block-wide: it applies only to the
+    mage's Food and Water and the warlock's Healthstone. Mana Gems, Soulstones,
+    and both rituals ignore the target (ignoreTarget in the resolvers), so each
+    line names what it actually affects rather than saying "the macro."
+]]
 L["TIP_MAGE_CONJURE"] = "Clic droit sur vos macros Nourriture ou Eau pour en créer."
+L["TIP_MAGE_DOWNRANK"] =
+	"Cibler un joueur de niveau inférieur créera de la nourriture ou de l'eau adaptée à son niveau."
+L["TIP_MAGE_TABLE"] = "Clic milieu sur vos macros Nourriture ou Eau pour lancer Rituel de rafraîchissement."
 L["TIP_MAGE_GEM"] =
 	"Clic droit sur votre macro Gemme de mana pour en créer une nouvelle. Cliquez à nouveau avec le bouton droit pour créer une gemme de rang inférieur en secours."
-L["TIP_MAGE_TABLE"] = "Clic milieu pour lancer Rituel de rafraîchissement."
-L["TIP_WARLOCK_CONJURE"] =
-	"Clic droit sur vos macros Pierre de soins ou Pierre d'âme pour en créer une. Cliquez à nouveau avec le bouton droit sur votre macro Pierre de soins pour créer une pierre de rang inférieur en secours."
-L["TIP_WARLOCK_SOUL"] = "Clic milieu pour lancer Rituel des âmes."
-L["TIP_ROGUE_POISONS"] =
-	"Clic gauche applique votre poison de main gauche, clic droit celui de main droite. Les poisons existants sont remplacés automatiquement. Clic milieu ouvre la fenêtre Poisons."
+
+L["TIP_WARLOCK_HEALTHSTONE"] =
+	"Clic droit sur votre macro Pierre de soins pour créer une Pierre de soins. Cliquez à nouveau avec le bouton droit pour créer une pierre de rang inférieur en secours."
+L["TIP_WARLOCK_DOWNRANK"] = "Cibler un joueur de niveau inférieur créera une Pierre de soins adaptée à son niveau."
+L["TIP_WARLOCK_SOULSTONE"] = "Clic droit sur votre macro Pierre d'âme pour créer une Pierre d'âme."
+L["TIP_WARLOCK_SOUL"] = "Clic milieu sur votre macro Pierre de soins pour lancer Rituel des âmes."
+
+L["TIP_ROGUE_OFF_HAND"] = "Clic gauche applique votre poison de main gauche."
+L["TIP_ROGUE_MAIN_HAND"] = "Clic droit applique votre poison de main droite."
+L["TIP_ROGUE_REPLACE"] = "Les poisons existants sont remplacés automatiquement."
+L["TIP_ROGUE_WINDOW"] = "Clic milieu ouvre la fenêtre Poisons."
 
 --------------------------------------------------------------------------------
 -- Item Labels
@@ -164,7 +223,7 @@ L["UI_SHIFT_LEFT"] = "Maj + Clic Gauche"
 --------------------------------------------------------------------------------
 
 L["MODE_ALWAYS"] = "Toujours"
-L["MODE_PARTY"] = "Uniquement en groupe"
+L["MODE_PARTY"] = "Uniquement en groupe ou en raid"
 L["MODE_RAID"] = "Uniquement en raid"
 
 --------------------------------------------------------------------------------
@@ -172,7 +231,7 @@ L["MODE_RAID"] = "Uniquement en raid"
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
-	"Des macros à mise à jour automatique pour votre meilleure nourriture, nourriture avec amélioration, eau, parchemins, potions de soins et de mana, pierres de soins, pierres d'âme, gemmes de mana et bandages. Invocation en un clic pour les Mages et Démonistes, Nourrir le familier intelligent pour les Chasseurs. Nutrition optimale, performances maximales."
+	"Des macros à mise à jour automatique pour votre meilleure nourriture, nourriture avec amélioration, eau, potions, pierres de soins, parchemins, pierres d'âme, bandages, poisons et explosifs. Invocation en un clic, Nourrir le familier intelligent, réapprovisionnement automatique chez le marchand et à la banque. Nutrition optimale, performances maximales."
 
 -- Welcome Message
 L["OPTIONS_WELCOME_MESSAGE"] = "Activer le message de bienvenue"
@@ -204,19 +263,25 @@ L["OPTIONS_REAPPLY_THRESHOLD"] = "Considérer comme expirée quand"
 L["REAPPLY_THRESHOLD_ONE"] = "< 1 minute restante"
 L["REAPPLY_THRESHOLD_N"] = "< %d minutes restantes"
 
+-- Ready Check
+L["OPTIONS_READY_CHECK_HEADER"] = "Vérification de préparation"
+L["OPTIONS_READY_CHECK"] = "Signaler l'état lors d'une vérification de préparation"
+L["OPTIONS_READY_CHECK_DESCRIPTION"] =
+	"Affiche ce qu'il vous manque et le temps restant sur vos améliorations suivies à chaque vérification de préparation ; vous seul pouvez le voir."
+
 -- Buff Food
 L["OPTIONS_BUFF_FOOD_HEADER"] = "Nourriture à amélioration"
 L["OPTIONS_BUFF_FOOD"] = "Priorité : Bien nourri"
 L["OPTIONS_BUFF_FOOD_DESCRIPTION"] =
-	'Priorise la nourriture conférant l\'amélioration "Bien nourri" si elle est absente.'
+	'Priorise la nourriture conférant l\'amélioration "Bien nourri" si elle est absente. Désactivé en arène.'
 L["OPTIONS_BUFF_FOOD_DETAIL"] =
 	"Astuce de pro : Vous cibler vous-même forcera toujours la macro Nourriture à ignorer la nourriture avec amélioration et les parchemins."
 
 -- Scroll Buffs
 L["OPTIONS_SCROLL_HEADER"] = "Améliorations de parchemins"
-L["OPTIONS_USE_SCROLLS"] = "Incluir les parchemins"
+L["OPTIONS_USE_SCROLLS"] = "Inclure les parchemins"
 L["OPTIONS_USE_SCROLLS_DESCRIPTION"] =
-	"Transforme votre macro Nourriture en applicateur de parchemins dédié lorsqu'il vous manque des améliorations de parchemins. Appuyez une fois pour appliquer les parchemins ; appuyez à nouveau pour manger. Les parchemins sont hors du GCD, vous ciblent, et la macro redevient de la nourriture dès que vous ciblez un autre joueur amical."
+	"Appuyez une fois pour appliquer les parchemins manquants, à nouveau pour manger. Les parchemins sont hors du GCD et vous ciblent ; cibler un joueur amical les ignore. Désactivé en arène."
 L["OPTIONS_SCROLL_TYPES"] = "Types de parchemins à vérifier"
 L["OPTIONS_SCROLL_AGILITY"] = "Agilité"
 L["OPTIONS_SCROLL_INTELLECT"] = "Intelligence"
@@ -229,14 +294,14 @@ L["OPTIONS_SCROLL_STRENGTH"] = "Force"
 L["OPTIONS_EXPLOSIVES_HEADER"] = "Explosifs"
 L["OPTIONS_EXPLOSIVES_DESCRIPTION"] =
 	"L'option @player ignore le réticule de ciblage et déclenche l'explosif à vos pieds. Idéal quand votre cible est au corps à corps."
-L["EXPLOSIVES_MODE_ATPLAYER"] = "Clic Gauche @Player, Clic Droit Lancer"
-L["EXPLOSIVES_MODE_TOSS"] = "Clic Gauche Lancer, Clic Droit @Player"
+L["EXPLOSIVES_MODE_ATPLAYER"] = "Clic Gauche @player, Clic Droit Lancer"
+L["EXPLOSIVES_MODE_TOSS"] = "Clic Gauche Lancer, Clic Droit @player"
 
 -- Pet Food Buffs
 L["OPTIONS_PET_HEADER"] = "Améliorations de nourriture pour familier"
 L["OPTIONS_USE_PET_BUFFS"] = "Utiliser les améliorations de nourriture pour familier"
 L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] =
-	"Utilise de la nourriture pour familier dans votre macro Nourriture lorsque votre familier n'a pas l'amélioration \"Bien nourri\"."
+	"Ajoute de la nourriture pour familier à votre macro Nourriture lorsque votre familier n'a pas l'amélioration \"Bien nourri\". Désactivé en arène."
 L["OPTIONS_PET_BUFF_TYPES"] = "Inclure les types de nourriture pour familier à vérifier"
 L["OPTIONS_PET_BUFF_KIBLERS"] = "Morceaux de Kibler"
 L["OPTIONS_PET_BUFF_SPORELING"] = "Casse-croûte sporélin"
@@ -252,19 +317,25 @@ L["DRUID_FORM_CAT"] = "Chat"
 
 -- Night Elves
 L["OPTIONS_NIGHTELF_HEADER"] = "Elfes de la nuit"
-L["OPTIONS_SHADOWMELD_DRINKING"] = "Boire avec Camouflage dans l'ombre"
+L["OPTIONS_SHADOWMELD_DRINKING"] = "Activer le camouflage en buvant"
 L["OPTIONS_SHADOWMELD_DRINKING_DESCRIPTION"] =
 	"Ajoute Camouflage dans l'ombre à votre macro d'Eau pour vous camoufler pendant que vous buvez."
+L["OPTIONS_STEALTH_EATING_NIGHTELF_DESCRIPTION"] =
+	"Ajoute Camouflage dans l'ombre à votre macro Nourriture pour vous camoufler pendant que vous mangez."
+L["OPTIONS_STEALTH_PICK_ONE"] =
+	"Astuce de pro : Choisissez-en un. Vous pouvez manger et boire en même temps, mais manger ou boire après vous être camouflé rompra le camouflage."
 
 -- Rogues
-L["OPTIONS_POISONS_HEADER"] = "Poisons"
+L["OPTIONS_ROGUES_HEADER"] = "Voleurs"
 L["OPTIONS_POISONS_DESCRIPTION"] =
 	"Garde la macro Poisons chargée avec le meilleur rang utilisable de chaque type de poison. Clic gauche pour la main gauche, clic droit pour la main droite ; les poisons existants sont remplacés automatiquement."
-L["OPTIONS_POISON_MAIN_HAND"] = "Main droite"
-L["OPTIONS_POISON_OFF_HAND"] = "Main gauche"
+L["OPTIONS_POISON_MAIN_HAND"] = "Type de poison de main droite"
+L["OPTIONS_POISON_OFF_HAND"] = "Type de poison de main gauche"
+L["OPTIONS_STEALTH_EATING"] = "Activer le camouflage en mangeant"
+L["OPTIONS_STEALTH_EATING_ROGUE_DESCRIPTION"] =
+	"Ajoute Camouflage à votre macro Nourriture pour vous camoufler pendant que vous mangez."
 
--- Restocker
-L["OPTIONS_RESTOCKER_HEADER"] = "Restocker"
+-- Restocker. The section header reuses RESTOCKER_WINDOW_TITLE.
 L["OPTIONS_RESTOCKER_DESCRIPTION"] =
 	"Garde vos sacs approvisionnés selon une liste de réapprovisionnement par personnage. Achète automatiquement chez les marchands et déplace les objets entre les sacs et la banque. Tapez /crs pour ouvrir la liste."
 L["OPTIONS_RESTOCKER_OPEN_BANK"] = "Ouvrir à la banque"
@@ -275,21 +346,15 @@ L["OPTIONS_RESTOCKER_DEBUG"] = "Activer les messages de débogage de Restocker"
 L["OPTIONS_RESTOCKER_DEBUG_DESCRIPTION"] =
 	"Affiche dans le chat les décisions de réapprovisionnement de Restocker, étape par étape (banque et marchand). Verbeux ; reste actif d'une session à l'autre jusqu'à désactivation."
 
--- /Commands
+-- /Commands. The command literals stay in code; these are the descriptions.
 L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
-L["OPTIONS_COMMANDS_FOODIE"] = "/foodie"
 L["OPTIONS_COMMANDS_FOODIE_DETAIL"] = "Ouvre l'interface des options de Connoisseur."
-L["OPTIONS_COMMANDS_CRS"] = "/crs"
 L["OPTIONS_COMMANDS_CRS_DETAIL"] = "Ouvre la fenêtre Restocker pour gérer votre liste de réapprovisionnement."
 
 -- Enable Macros
 L["OPTIONS_ENABLE_MACROS_HEADER"] = "Activer les macros"
 L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] =
 	"Permet d'activer ou de désactiver les macros créées et gérées par Connoisseur. La désactivation d'une macro la supprimera également."
-
--- Ignore List
-L["OPTIONS_RESET_IGNORE_DESCRIPTION"] = "Retire tous les objets de la liste d'exclusion."
-L["OPTIONS_RESET_IGNORE_CONFIRM"] = "Voulez-vous vraiment vider la liste d'exclusion ?"
 
 -- Feedback & Support
 L["OPTIONS_COMMUNITY_HEADER"] = "Commentaires et Assistance"
@@ -302,9 +367,13 @@ L["OPTIONS_COMMUNITY_HEADER"] = "Commentaires et Assistance"
 L["RESTOCKER_IMPORTED_LISTS"] = "Vos listes Restocker ont été importées."
 L["RESTOCKER_PROFILE_EXISTS"] = 'Un profil nommé "%s" existe déjà.'
 L["RESTOCKER_BANK_NOT_OPEN"] = "La banque n'est pas ouverte."
--- %s is the /crs slash command, colored at the call site.
+--[[
+    %s is the /crs slash command, colored at the call site. Only the bank flow
+    prints this, so the Shift hint names the bank; Shift is read as the window
+    opens (eventsModule.OnBankOpen), not stored as a preference.
+]]
 L["RESTOCKER_COMPLETE"] =
-	"Réapprovisionnement terminé. Maintenez Maj pour l'ignorer la prochaine fois. Tapez %s pour modifier votre liste de réapprovisionnement."
+	"Réapprovisionnement terminé. Maintenez Maj en ouvrant la banque pour ignorer le réapprovisionnement. Tapez %s pour modifier votre liste de réapprovisionnement."
 L["RESTOCKER_STOPPED_BOTH_FULL"] = "Réapprovisionnement arrêté. Vos sacs et votre banque sont pleins."
 L["RESTOCKER_STOPPED_BANK_FULL"] =
 	"Réapprovisionnement arrêté. Votre banque est pleine ; libérez un emplacement et rouvrez-la."
@@ -317,7 +386,7 @@ L["RESTOCKER_STUCK_ITEM_FORMAT"] = "%dx %s"
 L["RESTOCKER_STUCK_ITEM_EXTRA_FORMAT"] = "%dx %s (en trop)"
 L["RESTOCKER_STOPPED_ERROR"] = "Réapprovisionnement arrêté à cause d'une erreur : %s"
 L["RESTOCKER_BAGS_FULL_SKIP_MERCHANT"] = "Vos sacs sont pleins. Réapprovisionnement chez le marchand ignoré."
-L["RESTOCKER_FINISHED_RESTOCKING"] = "Réapprovisionnement effectué (%d achats réalisés)."
+L["RESTOCKER_FINISHED_RESTOCKING"] = "Réapprovisionnement effectué (achats : %d)."
 
 -- /crs help lines. The command literals stay in code; these are the descriptions.
 L["RESTOCKER_HELP_SHOW"] = "Affiche la fenêtre Restocker."
@@ -336,6 +405,15 @@ L["RESTOCKER_ADD_TOOLTIP_BODY"] = "Déposez un objet depuis vos sacs, ou saisiss
 L["RESTOCKER_PROFILE_LABEL"] = "Profil :"
 L["RESTOCKER_RENAME_LABEL"] = "Renommer :"
 L["RESTOCKER_NEW_PROFILE"] = "Nouveau profil"
+L["RESTOCKER_COPY_PROFILE"] = "Copier"
+L["RESTOCKER_COPY_PROFILE_TOOLTIP"] = "Clone ce profil dans un nouveau."
+-- %s becomes "<profile name> Copy"; numbered if that name is taken.
+L["RESTOCKER_PROFILE_COPY_NAME"] = "%s Copie"
+L["RESTOCKER_DELETE_PROFILE"] = "Supprimer"
+L["RESTOCKER_DELETE_PROFILE_TOOLTIP"] = "Supprime ce profil."
+-- %s is the profile name, colored at the call site. |n are line breaks.
+L["RESTOCKER_DELETE_PROFILE_CONFIRM"] =
+	"Voulez-vous vraiment supprimer ce profil ?|n|n%s|n|nCette action est irréversible."
 L["RESTOCKER_GROUP_OTHER"] = "Autre"
 L["RESTOCKER_REMOVE_TOOLTIP"] = "Retire cet objet de la liste de réapprovisionnement."
 L["RESTOCKER_AMOUNT_TOOLTIP_TITLE"] = "Quantité à maintenir"
@@ -364,4 +442,4 @@ L["RESTOCKER_REPUTATION_TOOLTIP_STANDING"] =
 	"N'achète qu'auprès d'un marchand dont vous avez au moins ce niveau de réputation."
 L["RESTOCKER_REPUTATION_TOOLTIP_DISCOUNTS"] =
 	"Une meilleure réputation signifie aussi des prix plus bas (Amical 5%, Honoré 10%, Révéré 15%, Exalté 20%)."
-L["RESTOCKER_REPUTATION_TOOLTIP_CLICK"] = "Cliquez pour choisir un niveau de réputation"
+L["RESTOCKER_REPUTATION_TOOLTIP_CLICK"] = "Cliquez pour choisir un niveau de réputation."

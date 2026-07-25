@@ -189,7 +189,15 @@ local RANKING_PRIORITY = {
 	{ field = "id", kind = "lower" },
 }
 
--- Returns true when record `a` outranks record `b` under RANKING_PRIORITY.
+--[[
+    Returns true when record `a` outranks record `b` under RANKING_PRIORITY,
+    plus the field name of the step that decided it (nil when every step
+    compared equal). Only the diagnostics Selection Report reads the second
+    value -- it is what turns "this item lost" into "it lost on price" -- and
+    returning it costs nothing on the hot path, but every other caller must
+    take the first value alone so the extra return can never leak into a
+    boolean or a table constructor.
+]]
 local function CompareRecords(a, b, allowBuffFood, preferHybrid)
 	for i = 1, #RANKING_PRIORITY do
 		local step = RANKING_PRIORITY[i]
@@ -197,18 +205,18 @@ local function CompareRecords(a, b, allowBuffFood, preferHybrid)
 			local av, bv = a[step.field], b[step.field]
 			if av ~= bv then
 				if step.kind == "higher" then
-					return av > bv
+					return av > bv, step.field
 				elseif step.kind == "lower" then
-					return av < bv
+					return av < bv, step.field
 				elseif step.truthyWinsWhenPreferHybrid and not preferHybrid then
-					return not av
+					return not av, step.field
 				else
-					return av and true or false
+					return (av and true or false), step.field
 				end
 			end
 		end
 	end
-	return false
+	return false, nil
 end
 
 --[[
@@ -221,12 +229,12 @@ end
 ]]
 local candidateRecord = {}
 
-local function IsBetter(candidate, candidateCount, candidatePrice, currentBest, score, allowBuffFood, preferHybrid)
-	if not currentBest.id then
-		return true
-	end
-
-	local record = candidateRecord
+--[[
+    Normalizes a bag item into the field names CompareRecords reads. Split out
+    so the diagnostics retention below compares exactly the record the
+    selection itself compared, rather than a second reading of the same item.
+]]
+local function FillCandidateRecord(record, candidate, candidateCount, candidatePrice, score)
 	record.isBuffFood = candidate.isBuffFood
 	record.isPercent = candidate.isPercent
 	record.value = score
@@ -235,8 +243,22 @@ local function IsBetter(candidate, candidateCount, candidatePrice, currentBest, 
 	record.isHybrid = (candidate.healthValue > 0 and candidate.manaValue > 0)
 	record.count = candidateCount
 	record.id = candidate.id
+	return record
+end
 
-	return CompareRecords(record, currentBest, allowBuffFood, preferHybrid)
+local function IsBetter(candidate, candidateCount, candidatePrice, currentBest, score, allowBuffFood, preferHybrid)
+	if not currentBest.id then
+		return true
+	end
+
+	-- First value only: CompareRecords also returns the deciding field.
+	local better = CompareRecords(
+		FillCandidateRecord(candidateRecord, candidate, candidateCount, candidatePrice, score),
+		currentBest,
+		allowBuffFood,
+		preferHybrid
+	)
+	return better
 end
 
 --------------------------------------------------------------------------------
@@ -272,7 +294,9 @@ end
     compare nil-to-nil and pass through.
 ]]
 local function CompareRankedCandidates(a, b)
-	return CompareRecords(a, b, false, false)
+	-- First value only: table.sort must see a plain boolean comparator.
+	local outranks = CompareRecords(a, b, false, false)
+	return outranks
 end
 
 local function RankCandidates()
@@ -289,6 +313,126 @@ local function RankCandidates()
 		end
 		for rank = 1, math.min(#list, ns.MULTI_USE_MAX_ITEMS) do
 			entry.topIDs[rank] = list[rank].id
+		end
+	end
+end
+
+--------------------------------------------------------------------------------
+-- Diagnostic Candidate Retention
+--------------------------------------------------------------------------------
+
+--[[
+    Feeds the Diagnostic Tools Selection Report, which answers "why that item
+    and not this one." Every category keeps its top few candidates with the
+    RANKING_PRIORITY step that separated each from the winner.
+
+    Retention runs only while ns.diagnostics.enabled is true, so normal play
+    pays one boolean test per candidate and nothing else. The table is runtime
+    only: it hangs off ns, is wiped at the start of every scan, and is never
+    declared in the defaults or written to SavedVariables.
+
+    Ranked categories need no retention of their own -- RankCandidates already
+    sorts their full candidate list into final order, so the runners-up are the
+    entries below the winner and CaptureDiagnosticCandidates just copies them.
+    Only the single-winner categories, which keep no list, retain as they scan.
+
+    One invariant this leans on: retention ranks candidates against each other,
+    while the selection ranks each candidate against the winner record in
+    `best`. The two agree only because every category whose isBuffFood /
+    isPercent / isHybrid / isConjured can actually vary (Food and Water) copies
+    those onto the winner through winnerExtras, and they are constant-false for
+    every other category's item types. A future single-winner category with a
+    varying flag and no winnerExtras would surface here as a runner-up ranked
+    above the winner -- which is a real selection bug, not a reporting one.
+]]
+local DIAGNOSTIC_CANDIDATE_LIMIT = 5
+
+local diagnosticCandidates = {}
+ns.DiagnosticCandidates = diagnosticCandidates
+
+local function CopyCandidateRecord(record)
+	return {
+		id = record.id,
+		value = record.value,
+		price = record.price,
+		count = record.count,
+		isBuffFood = record.isBuffFood,
+		isPercent = record.isPercent,
+		isConjured = record.isConjured,
+		isHybrid = record.isHybrid,
+	}
+end
+
+local function GetCandidateList(typeName)
+	local list = diagnosticCandidates[typeName]
+	if not list then
+		list = {}
+		diagnosticCandidates[typeName] = list
+	end
+	return list
+end
+
+--[[
+    Ordered insert capped at DIAGNOSTIC_CANDIDATE_LIMIT, ranked by the same
+    comparator the selection ran, so entry 1 is always the category's winner
+    and the entries below it are the real runners-up rather than whichever
+    items the bag walk happened to reach first.
+]]
+local function RetainCandidate(typeName, record, allowBuffFood, preferHybrid)
+	local list = GetCandidateList(typeName)
+
+	local position = #list + 1
+	for i = 1, #list do
+		local outranks = CompareRecords(record, list[i], allowBuffFood, preferHybrid)
+		if outranks then
+			position = i
+			break
+		end
+	end
+
+	if position > DIAGNOSTIC_CANDIDATE_LIMIT then
+		return
+	end
+
+	table.insert(list, position, CopyCandidateRecord(record))
+	list[DIAGNOSTIC_CANDIDATE_LIMIT + 1] = nil
+end
+
+--[[
+    Runs once per scan, after RankCandidates has settled the ranked lists:
+    copies the ranked categories' runners-up, then annotates every retained
+    runner-up with the step that separated it from its category's winner.
+    Ranked categories always compare with buff food and hybrid preference off,
+    matching CompareRankedCandidates.
+]]
+local function CaptureDiagnosticCandidates()
+	if not ns.diagnostics.enabled then
+		return
+	end
+
+	for _, def in ipairs(ns.RegisteredMacroDefs) do
+		local list
+		local allowBuffFood, preferHybrid
+
+		if def.ranked then
+			local source = rankedCandidates[def.typeName]
+			list = GetCandidateList(def.typeName)
+			for i = 1, math.min(#source, DIAGNOSTIC_CANDIDATE_LIMIT) do
+				list[i] = CopyCandidateRecord(source[i])
+			end
+			allowBuffFood, preferHybrid = false, false
+		else
+			list = diagnosticCandidates[def.typeName]
+			allowBuffFood = def.allowBuffFood and ns.AllowBuffFood
+			preferHybrid = def.preferHybrid
+		end
+
+		if list then
+			local winner = list[1]
+			for i = 2, #list do
+				local _, decidedBy = CompareRecords(winner, list[i], allowBuffFood, preferHybrid)
+				list[i].decidedBy = decidedBy
+			end
 		end
 	end
 end
@@ -334,7 +478,7 @@ function ns.ScanBags()
 	local firstAidSkill = ns.CurrentFirstAidSkill or 0
 	local alchemySkill = ns.CurrentAlchemySkill or 0
 	local engineeringSkill = ns.CurrentEngineeringSkill or 0
-	local settings = (ns.db and ns.db.profile) or {}
+	local settings = (ns.db and ns.db.global) or {}
 	local itemCache = (ns.db and ns.db.profile.itemCache) or {}
 
 	--[[
@@ -365,6 +509,15 @@ function ns.ScanBags()
 	end
 
 	for _, list in pairs(rankedCandidates) do
+		wipe(list)
+	end
+
+	--[[
+	    Wiped unconditionally, not just while diagnostics are enabled, so
+	    turning the panel off leaves no stale candidate list behind for the
+	    next report to present as current.
+	]]
+	for _, list in pairs(diagnosticCandidates) do
 		wipe(list)
 	end
 
@@ -549,6 +702,15 @@ function ns.ScanBags()
 											def.winnerExtras(entry, data, hyperlink)
 										end
 									end
+
+									if ns.diagnostics.enabled then
+										RetainCandidate(
+											def.typeName,
+											FillCandidateRecord(candidateRecord, data, totalCount, data.price, score),
+											allowBuffFood,
+											def.preferHybrid
+										)
+									end
 								end
 							end
 						end
@@ -559,6 +721,7 @@ function ns.ScanBags()
 	end
 
 	RankCandidates()
+	CaptureDiagnosticCandidates()
 
 	ns.BestFoodID = best["Food"].id
 	ns.BestFoodLink = best["Food"].link

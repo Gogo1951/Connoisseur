@@ -13,18 +13,18 @@ local Spacer = ns.OptionsSpacer
 --[[
     Each feature's mode dropdown and option sub-controls are hidden until the
     feature toggle is on, mirroring the guide's "hide unavailable controls"
-    rule. These read the per-character settings table that InitVars guarantees.
+    rule. These read the account-wide settings table that InitVars guarantees.
 ]]
 
-local function GetCharSettings()
-	return ns.db and ns.db.profile
+local function GetSettings()
+	return ns.db and ns.db.global
 end
 
 --[[
     Restocker keeps its own account-wide SavedVariable (ConnoisseurRestockerDB),
     bound to CrsModule.restockerModule.settings at PLAYER_LOGIN — it is not part
-    of the AceDB profile, so its controls read and write through this accessor
-    instead of ns.db.profile.
+    of the AceDB database, so its controls read and write through this accessor
+    instead of ns.db.global.
 ]]
 local function GetRestockerSettings()
 	local restockerModule = CrsModule and CrsModule.restockerModule
@@ -32,17 +32,17 @@ local function GetRestockerSettings()
 end
 
 local function BuffFoodActive()
-	local s = GetCharSettings()
+	local s = GetSettings()
 	return s and s.useBuffFood
 end
 
 local function ScrollsActive()
-	local s = GetCharSettings()
+	local s = GetSettings()
 	return s and s.useScrolls
 end
 
 local function PetBuffActive()
-	local s = GetCharSettings()
+	local s = GetSettings()
 	return s and s.usePetBuffFood
 end
 
@@ -69,10 +69,10 @@ local function FeatureMode(settingKey, activeFn, order)
 			return not activeFn()
 		end,
 		get = function()
-			return ns.db.profile[settingKey] or "always"
+			return ns.db.global[settingKey] or "always"
 		end,
 		set = function(_, value)
-			ns.db.profile[settingKey] = value
+			ns.db.global[settingKey] = value
 			if ns.ResetMacroState then
 				ns.ResetMacroState()
 			end
@@ -81,18 +81,18 @@ local function FeatureMode(settingKey, activeFn, order)
 	}
 end
 
--- Toggle for one entry inside a per-character settings subtable (scroll/pet types).
+-- Toggle for one entry inside an account-wide settings subtable (scroll/pet types).
 local function SubsetToggle(subtable, key, label, order)
 	return {
 		type = "toggle",
 		name = label,
 		order = order,
 		get = function()
-			local t = ns.db.profile[subtable]
+			local t = ns.db.global[subtable]
 			return t and t[key]
 		end,
 		set = function(_, value)
-			ns.db.profile[subtable][key] = value
+			ns.db.global[subtable][key] = value
 			if ns.ResetMacroState then
 				ns.ResetMacroState()
 			end
@@ -125,10 +125,10 @@ local function PoisonHandDropdown(label, settingKey, order)
 			return not ns.IsRogue
 		end,
 		get = function()
-			return ns.db.profile[settingKey] or 4
+			return ns.db.global[settingKey] or 4
 		end,
 		set = function(_, value)
-			ns.db.profile[settingKey] = value
+			ns.db.global[settingKey] = value
 			if ns.ResetMacroState then
 				ns.ResetMacroState()
 			end
@@ -149,10 +149,10 @@ local function MacroToggle(label, key, order, hiddenFn)
 		width = "normal",
 		hidden = hiddenFn,
 		get = function()
-			return ns.db.profile.enabledMacros[key]
+			return ns.IsMacroEnabled(key)
 		end,
 		set = function(_, value)
-			ns.db.profile.enabledMacros[key] = value
+			ns.db.global.enabledMacros[key] = value
 			if ns.ResetMacroState then
 				ns.ResetMacroState()
 			end
@@ -168,13 +168,13 @@ end
 --[[
     The single settings page. Per the guide's Main Page Layout, all
     feature-specific settings live here rather than as separate Blizzard
-    sub-panels: general settings, the Buff Food / Scroll / Explosives / Pet
-    Food tuning sections, Enable Macros, the class/race-gated Druid and Night
-    Elf sections (hidden for other characters), reset, feedback links, and
-    version. Only
-    Diagnostic Tools is a separate panel. Order values are grouped in blocks
-    (100s per section) so sections can be reordered or extended without
-    renumbering their neighbors.
+    sub-panels, in order: intro and general toggles, /Commands, Potions &
+    Healthstones, Buff Re-Application, Buff Food, Ready Check, Scroll Buffs,
+    Pet Food Buffs, Explosives, the class/race-gated Druids, Rogues, and Night
+    Elves sections (hidden for other characters), Enable Macros, Restocker,
+    Feedback & Support, and version. Only Diagnostic Tools is a separate
+    panel. Order values are grouped in spaced blocks so sections can be
+    reordered or extended without renumbering their neighbors.
 ]]
 
 function ns.BuildGeneralOptions()
@@ -193,11 +193,11 @@ function ns.BuildGeneralOptions()
 				order = 11,
 				width = "full",
 				get = function()
-					return ns.db and ns.db.profile.showWelcome
+					return ns.db and ns.db.global.showWelcome
 				end,
 				set = function(_, value)
 					if ns.db then
-						ns.db.profile.showWelcome = value
+						ns.db.global.showWelcome = value
 					end
 				end,
 			},
@@ -227,7 +227,7 @@ function ns.BuildGeneralOptions()
 				order = 14,
 				width = "full",
 				get = function()
-					return ns.db and ns.db.profile.showMacroNames
+					return ns.db and ns.db.global.showMacroNames
 				end,
 				set = function(_, value)
 					if ns.ToggleMacroNames then
@@ -241,14 +241,11 @@ function ns.BuildGeneralOptions()
 			headerCommands = Header(L["OPTIONS_COMMANDS_HEADER"], 21),
 			spaceCommands1 = Spacer(22),
 			descCommands = Desc(
-				GetColor("INFO") .. L["OPTIONS_COMMANDS_FOODIE"] .. "|r" .. "  " .. L["OPTIONS_COMMANDS_FOODIE_DETAIL"],
+				GetColor("INFO") .. "/foodie" .. "|r" .. "  " .. L["OPTIONS_COMMANDS_FOODIE_DETAIL"],
 				23
 			),
 			spaceCommands2 = Spacer(24),
-			descCommandsCrs = Desc(
-				GetColor("INFO") .. L["OPTIONS_COMMANDS_CRS"] .. "|r" .. "  " .. L["OPTIONS_COMMANDS_CRS_DETAIL"],
-				25
-			),
+			descCommandsCrs = Desc(GetColor("INFO") .. "/crs" .. "|r" .. "  " .. L["OPTIONS_COMMANDS_CRS_DETAIL"], 25),
 
 			-- Potions & Healthstones
 			spacePotions0 = Spacer(30),
@@ -263,11 +260,11 @@ function ns.BuildGeneralOptions()
 				order = 35,
 				width = "full",
 				get = function()
-					local s = GetCharSettings()
+					local s = GetSettings()
 					return s and s.combineHealthstones
 				end,
 				set = function(_, value)
-					ns.db.profile.combineHealthstones = value
+					ns.db.global.combineHealthstones = value
 					if ns.ResetMacroState then
 						ns.ResetMacroState()
 					end
@@ -293,11 +290,11 @@ function ns.BuildGeneralOptions()
 				order = 95,
 				width = "double",
 				get = function()
-					local s = GetCharSettings()
+					local s = GetSettings()
 					return s and s.earlyReapply
 				end,
 				set = function(_, value)
-					ns.db.profile.earlyReapply = value
+					ns.db.global.earlyReapply = value
 					if ns.ResetMacroState then
 						ns.ResetMacroState()
 					end
@@ -318,14 +315,14 @@ function ns.BuildGeneralOptions()
 				},
 				sorting = { 60, 120, 180, 240, 300 },
 				hidden = function()
-					local s = GetCharSettings()
+					local s = GetSettings()
 					return not (s and s.earlyReapply)
 				end,
 				get = function()
-					return ns.db.profile.earlyReapplyThreshold or 120
+					return ns.db.global.earlyReapplyThreshold or 120
 				end,
 				set = function(_, value)
-					ns.db.profile.earlyReapplyThreshold = value
+					ns.db.global.earlyReapplyThreshold = value
 					if ns.ResetMacroState then
 						ns.ResetMacroState()
 					end
@@ -356,7 +353,32 @@ function ns.BuildGeneralOptions()
 			},
 			buffFoodMode = FeatureMode("buffFoodMode", BuffFoodActive, 106),
 			spaceBuff3 = Spacer(107),
-			detailBuff = Desc(GetColor("BODY") .. L["OPTIONS_BUFF_FOOD_DETAIL"] .. "|r", 108),
+			detailBuff = Desc(GetColor("HELP") .. L["OPTIONS_BUFF_FOOD_DETAIL"] .. "|r", 108),
+
+			--[[
+                Ready Check -- sits with the buff sections because it reports
+                on the same buffs Buff Re-Application governs, in its own
+                order block so neither neighbor has to be renumbered.
+            ]]
+			spaceReady0 = Spacer(150),
+			headerReady = Header(L["OPTIONS_READY_CHECK_HEADER"], 151),
+			spaceReady1 = Spacer(152),
+			descReady = Desc(GetColor("BODY") .. L["OPTIONS_READY_CHECK_DESCRIPTION"] .. "|r", 153),
+			spaceReady2 = Spacer(154),
+			toggleReadyCheck = {
+				type = "toggle",
+				name = L["OPTIONS_READY_CHECK"],
+				desc = L["OPTIONS_READY_CHECK_DESCRIPTION"],
+				order = 155,
+				width = "full",
+				get = function()
+					local s = GetSettings()
+					return s and s.readyCheckReport
+				end,
+				set = function(_, value)
+					ns.db.global.readyCheckReport = value
+				end,
+			},
 
 			-- Scroll Buffs
 			spaceScroll0 = Spacer(200),
@@ -380,9 +402,14 @@ function ns.BuildGeneralOptions()
 				end,
 			},
 			scrollsMode = FeatureMode("scrollsMode", ScrollsActive, 206),
-			spaceScrollTypes0 = Spacer(207, function()
-				return not ScrollsActive()
-			end),
+			spaceScrollTypes0 = {
+				type = "description",
+				name = " ",
+				order = 207,
+				hidden = function()
+					return not ScrollsActive()
+				end,
+			},
 			scrollTypesGroup = {
 				type = "group",
 				name = L["OPTIONS_SCROLL_TYPES"],
@@ -417,7 +444,7 @@ function ns.BuildGeneralOptions()
 					return PetBuffActive()
 				end,
 				set = function(_, value)
-					ns.db.profile.usePetBuffFood = value
+					ns.db.global.usePetBuffFood = value
 					if ns.UpdateAuraTracking then
 						ns.UpdateAuraTracking()
 					end
@@ -428,9 +455,14 @@ function ns.BuildGeneralOptions()
 				end,
 			},
 			petBuffFoodMode = FeatureMode("petBuffFoodMode", PetBuffActive, 306),
-			spacePetTypes0 = Spacer(307, function()
-				return not PetBuffActive()
-			end),
+			spacePetTypes0 = {
+				type = "description",
+				name = " ",
+				order = 307,
+				hidden = function()
+					return not PetBuffActive()
+				end,
+			},
 			petTypesGroup = {
 				type = "group",
 				name = L["OPTIONS_PET_BUFF_TYPES"],
@@ -462,10 +494,10 @@ function ns.BuildGeneralOptions()
 				},
 				sorting = { "atplayer", "toss" },
 				get = function()
-					return ns.db.profile.explosivesClickMode or "atplayer"
+					return ns.db.global.explosivesClickMode or "atplayer"
 				end,
 				set = function(_, value)
-					ns.db.profile.explosivesClickMode = value
+					ns.db.global.explosivesClickMode = value
 					if ns.ResetMacroState then
 						ns.ResetMacroState()
 					end
@@ -530,7 +562,7 @@ function ns.BuildGeneralOptions()
 					return not ns.IsDruid
 				end,
 				get = function()
-					return ns.db and ns.db.profile and ns.db.profile.enableDruidMacroHelper
+					return ns.db and ns.db.global and ns.db.global.enableDruidMacroHelper
 				end,
 				set = function(_, value)
 					if ns.ToggleDruidMacroHelper then
@@ -552,14 +584,14 @@ function ns.BuildGeneralOptions()
 					if not ns.IsDruid then
 						return true
 					end
-					local settings = ns.db and ns.db.profile
+					local settings = ns.db and ns.db.global
 					return not (settings and settings.enableDruidMacroHelper)
 				end,
 				get = function()
-					return ns.db.profile.druidReturnForm or "bear"
+					return ns.db.global.druidReturnForm or "bear"
 				end,
 				set = function(_, value)
-					ns.db.profile.druidReturnForm = value
+					ns.db.global.druidReturnForm = value
 					if ns.ResetMacroState then
 						ns.ResetMacroState()
 					end
@@ -602,7 +634,7 @@ function ns.BuildGeneralOptions()
 					return not ns.IsNightElf or ns.IsRogue
 				end,
 				get = function()
-					return ns.db and ns.db.profile and ns.db.profile.enableShadowmeldDrinking
+					return ns.db and ns.db.global and ns.db.global.enableShadowmeldDrinking
 				end,
 				set = function(_, value)
 					if ns.ToggleShadowmeldDrinking then
@@ -620,7 +652,7 @@ function ns.BuildGeneralOptions()
 					return not ns.IsNightElf or ns.IsRogue
 				end,
 				get = function()
-					return ns.db and ns.db.profile and ns.db.profile.enableStealthEating
+					return ns.db and ns.db.global and ns.db.global.enableStealthEating
 				end,
 				set = function(_, value)
 					if ns.ToggleStealthEating then
@@ -638,7 +670,7 @@ function ns.BuildGeneralOptions()
 			},
 			descStealthPickOne = {
 				type = "description",
-				name = GetColor("BODY") .. L["OPTIONS_STEALTH_PICK_ONE"] .. "|r",
+				name = GetColor("HELP") .. L["OPTIONS_STEALTH_PICK_ONE"] .. "|r",
 				fontSize = "medium",
 				order = 606,
 				hidden = function()
@@ -747,7 +779,7 @@ function ns.BuildGeneralOptions()
 					return not ns.IsRogue
 				end,
 				get = function()
-					return ns.db and ns.db.profile and ns.db.profile.enableStealthEating
+					return ns.db and ns.db.global and ns.db.global.enableStealthEating
 				end,
 				set = function(_, value)
 					if ns.ToggleStealthEating then
@@ -758,7 +790,7 @@ function ns.BuildGeneralOptions()
 
 			-- Restocker
 			spaceRestocker0 = Spacer(700),
-			headerRestocker = Header(L["OPTIONS_RESTOCKER_HEADER"], 701),
+			headerRestocker = Header(L["RESTOCKER_WINDOW_TITLE"], 701),
 			spaceRestocker1 = Spacer(702),
 			descRestocker = Desc(GetColor("BODY") .. L["OPTIONS_RESTOCKER_DESCRIPTION"] .. "|r", 703),
 			spaceRestocker2 = Spacer(704),
@@ -813,32 +845,6 @@ function ns.BuildGeneralOptions()
 					end
 				end,
 			},
-			--[[
-                Ignore List -- clearing it is a feature action, not a settings
-                reset, so it stays on the General panel. Settings reset is the
-                stock Reset Profile on the Profiles panel per the guide.
-            ]]
-			spaceIgnore0 = Spacer(800),
-			headerIgnore = Header(L["UI_IGNORE_LIST"], 801),
-			spaceIgnore1 = Spacer(802),
-			resetIgnore = {
-				type = "execute",
-				name = L["MENU_CLEAR_IGNORE"],
-				desc = L["OPTIONS_RESET_IGNORE_DESCRIPTION"],
-				order = 803,
-				width = "normal",
-				confirm = true,
-				confirmText = L["OPTIONS_RESET_IGNORE_CONFIRM"],
-				func = function()
-					if ns.db and ns.db.profile.ignoreList then
-						wipe(ns.db.profile.ignoreList)
-					end
-					if ns.UpdateMacros then
-						ns.UpdateMacros(true)
-					end
-				end,
-			},
-
 			-- Feedback & Support
 			spaceCommunity0 = Spacer(900),
 			headerCommunity = Header(L["OPTIONS_COMMUNITY_HEADER"], 901),

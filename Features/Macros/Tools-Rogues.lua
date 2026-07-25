@@ -9,7 +9,7 @@ local Config = ns.Config
     Rogue-only, and like Feed Pet it owns its whole update cycle: the body
     doesn't fit the engine's standard tooltip+conjure+/use shape.
 
-    Click layout (see TIP_ROGUE_POISONS):
+    Click layout (see the TIP_ROGUE_* strings):
       Left-Click   → apply the Off Hand poison group's best rank to slot 17
       Right-Click  → apply the Main Hand poison group's best rank to slot 16
       Middle-Click → open the Poisons crafting window (if known)
@@ -80,6 +80,31 @@ local function FindBestPoison(groupID)
 		end
 	end
 	return nil
+end
+
+--[[
+    The player's group pick for one hand, resolved to its best usable item.
+    hand is "main" or "off"; the group falls back to Instant Poison (4),
+    matching ns.DATABASE_DEFAULTS.
+]]
+local function BestPoisonForHand(hand)
+	local settings = ns.db and ns.db.global
+	local key = (hand == "off") and "offHandPoisonGroup" or "mainHandPoisonGroup"
+	return FindBestPoison((settings and settings[key]) or 4)
+end
+
+--[[
+    Resolved poison for one hand as (itemID, itemLink), for the minimap
+    tooltip. Resolved on demand rather than published the way ns.BestPetFoodID
+    is: the answer tracks bag contents, which change without a macro rebuild,
+    and there is no rebuild at all while the Poisons macro is disabled.
+]]
+function ns.GetBestPoisonForHand(hand)
+	local id = BestPoisonForHand(hand)
+	if not id then
+		return nil, nil
+	end
+	return id, select(2, GetItemInfo(id))
 end
 
 local function KnowsPoisons()
@@ -171,13 +196,9 @@ local function UpdatePoisonsMacro(forced)
 		return
 	end
 
-	local settings = ns.db and ns.db.profile
-	local mainGroup = (settings and settings.mainHandPoisonGroup) or 4
-	local offGroup = (settings and settings.offHandPoisonGroup) or 4
-
 	local knows = KnowsPoisons()
-	local mainID = knows and FindBestPoison(mainGroup) or nil
-	local offID = knows and FindBestPoison(offGroup) or nil
+	local mainID = knows and BestPoisonForHand("main") or nil
+	local offID = knows and BestPoisonForHand("off") or nil
 
 	--[[
         Every input that affects the body: skill knowledge, and the resolved

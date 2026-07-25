@@ -7,9 +7,11 @@ local _, ns = ...
 
     Exposes: ns.UpdateFirstAidSkill, ns.UpdateAlchemySkill,
     ns.UpdateEngineeringSkill, ns.CurrentFirstAidSkill,
-    ns.CurrentAlchemySkill, ns.CurrentEngineeringSkill, ns.HasWellFedBuff,
-    ns.HasScrollBuff, ns.HasPetFoodBuff, ns.FindScrollOverrides,
-    ns.HandleUnitAura, ns.ScrollItemLookup, ns.ScrollOverrideIDs.
+    ns.CurrentAlchemySkill, ns.CurrentEngineeringSkill,
+    ns.GetPlayerBuffSnapshot, ns.HasWellFedBuff, ns.HasScrollBuff,
+    ns.GetPetFoodBuffExpiration, ns.HasPetFoodBuff, ns.FindScrollOverrides,
+    ns.HandleUnitAura, ns.ResetScrollBuffTracking, ns.ScrollItemLookup,
+    ns.ScrollOverrideIDs.
 ]]
 
 --------------------------------------------------------------------------------
@@ -35,6 +37,17 @@ ns.CurrentEngineeringSkill = 0
     only needs to finish before the first scan.
 ]]
 ns.ScrollItemLookup = {}
+
+--[[
+    Reverse maps from a spell ID back to the scroll type(s) it covers, so the
+    aura walk below resolves each aura in one lookup instead of testing every
+    type. Both hold lists: no spell covers two stats in the current data, but a
+    group buff that did (a Gift of the Wild style spell) has to register
+    against every type it covers rather than silently claiming one.
+]]
+local scrollBuffOwners = {}
+local scrollConflictOwners = {}
+
 for scrollType, data in pairs(ns.ScrollData) do
 	local buffIDs = {}
 	for _, entry in ipairs(data.items) do
@@ -42,6 +55,17 @@ for scrollType, data in pairs(ns.ScrollData) do
 		buffIDs[entry[2]] = true
 	end
 	data.buffIDs = buffIDs
+
+	for spellID in pairs(buffIDs) do
+		local owners = scrollBuffOwners[spellID] or {}
+		owners[#owners + 1] = scrollType
+		scrollBuffOwners[spellID] = owners
+	end
+	for spellID, amount in pairs(data.conflictSpells) do
+		local owners = scrollConflictOwners[spellID] or {}
+		owners[#owners + 1] = { scrollType = scrollType, amount = amount }
+		scrollConflictOwners[spellID] = owners
+	end
 end
 
 --------------------------------------------------------------------------------
@@ -137,7 +161,7 @@ local function ScheduleExpiryRecheck(delay)
 end
 
 local function BuffCountsAsActive(expirationTime)
-	local settings = ns.db and ns.db.profile
+	local settings = ns.db and ns.db.global
 	if not (settings and settings.earlyReapply) then
 		return true
 	end
@@ -154,28 +178,115 @@ local function BuffCountsAsActive(expirationTime)
 end
 
 --------------------------------------------------------------------------------
--- Well Fed
+-- Player Aura Snapshot
 --------------------------------------------------------------------------------
 
-function ns.HasWellFedBuff()
-	local TARGET_ICON_ID = 136000
-	local TARGET_ICON_ID_2 = 133943
+--[[
+    One walk of the player's helpful auras, shared by the Well Fed and scroll
+    probes below and by the readiness report (Features/Readiness.lua). The
+    snapshot holds raw expiration times, never a verdict: the probes apply
+    BuffCountsAsActive, which owns the early re-application threshold and its
+    rebuild timer, while the report reads the same numbers with no side
+    effects of its own.
+
+    Expiration convention, shared with the pet probe below: nil means the buff
+    is absent, 0 means the aura carries no duration.
+
+    Per buff we keep the longest-lasting match, and a 0 outranks any timed one.
+    BuffCountsAsActive is monotonic in remaining time, so testing the longest
+    match answers "does any match count as active" exactly as the old per-aura
+    loops did. Neither Well Fed nor a scroll buff stacks with itself, so in
+    practice there is only ever one match to choose from.
+
+    Scroll entries also keep the largest conflicting class-buff amount seen, so
+    the scroll probe can settle "is a class buff already at least as good as
+    the scroll I would use" without a second pass; that comparison needs the
+    scroll's own amount, which is per-call.
+
+    The table is reused in place rather than rebuilt, because UNIT_AURA is a
+    firehose and the Well Fed probe runs on every tick.
+]]
+local WELL_FED_ICON_ID = 136000
+local WELL_FED_ICON_ID_2 = 133943
+
+local snapshot = { scrolls = {} }
+for scrollType in pairs(ns.ScrollData) do
+	snapshot.scrolls[scrollType] = {}
+end
+
+local function IsLongerExpiration(candidate, current)
+	if current == nil then
+		return true
+	end
+	if current == 0 then
+		return false
+	end
+	return candidate == 0 or candidate > current
+end
+
+function ns.GetPlayerBuffSnapshot()
+	snapshot.wellFedExpiration = nil
+	for _, entry in pairs(snapshot.scrolls) do
+		entry.expiration = nil
+		entry.conflictAmount = nil
+	end
+
 	for i = 1, 40 do
 		local name, icon, _, _, _, expirationTime, _, _, _, spellID = UnitAura("player", i, "HELPFUL")
 		if not name then
 			break
 		end
-		if icon == TARGET_ICON_ID or icon == TARGET_ICON_ID_2 then
-			if BuffCountsAsActive(expirationTime) then
-				return true
+		expirationTime = expirationTime or 0
+
+		if
+			icon == WELL_FED_ICON_ID
+			or icon == WELL_FED_ICON_ID_2
+			or (ns.WellFedBuffIDs and ns.WellFedBuffIDs[spellID])
+		then
+			if IsLongerExpiration(expirationTime, snapshot.wellFedExpiration) then
+				snapshot.wellFedExpiration = expirationTime
 			end
-		elseif ns.WellFedBuffIDs and ns.WellFedBuffIDs[spellID] then
-			if BuffCountsAsActive(expirationTime) then
-				return true
+		end
+
+		local buffOwners = scrollBuffOwners[spellID]
+		if buffOwners then
+			for _, scrollType in ipairs(buffOwners) do
+				local entry = snapshot.scrolls[scrollType]
+				if IsLongerExpiration(expirationTime, entry.expiration) then
+					entry.expiration = expirationTime
+				end
+			end
+		end
+
+		local conflictOwners = scrollConflictOwners[spellID]
+		if conflictOwners then
+			for _, owner in ipairs(conflictOwners) do
+				local entry = snapshot.scrolls[owner.scrollType]
+				if not entry.conflictAmount or owner.amount > entry.conflictAmount then
+					entry.conflictAmount = owner.amount
+				end
 			end
 		end
 	end
-	return false
+
+	return snapshot
+end
+
+--------------------------------------------------------------------------------
+-- Well Fed
+--------------------------------------------------------------------------------
+
+--[[
+    Split out so the aura handler can settle Well Fed and the scroll diff from
+    ONE snapshot pass instead of walking the player's auras twice per event.
+]]
+local function WellFedFromSnapshot(currentSnapshot)
+	local expiration = currentSnapshot.wellFedExpiration
+	return expiration ~= nil and BuffCountsAsActive(expiration)
+end
+
+function ns.HasWellFedBuff()
+	return WellFedFromSnapshot(ns.GetPlayerBuffSnapshot())
 end
 
 --------------------------------------------------------------------------------
@@ -193,36 +304,21 @@ function ns.HasScrollBuff(scrollType, scrollAmount)
 		return true
 	end
 
-	local data = ns.ScrollData[scrollType]
+	local entry = ns.GetPlayerBuffSnapshot().scrolls[scrollType]
 
-	-- Per-type buff-ID set, precomputed once in this file's Derived Scroll Lookups block
-	local scrollBuffIDs = data.buffIDs
-
-	for i = 1, 40 do
-		local name, _, _, _, _, expirationTime, _, _, _, spellID = UnitAura("player", i, "HELPFUL")
-		if not name then
-			break
-		end
-
-		-- Already have a scroll buff active for this stat
-		if scrollBuffIDs[spellID] and BuffCountsAsActive(expirationTime) then
-			return true
-		end
-
-		--[[
-            Check conflict spells — only block the scroll if the class buff
-            provides at least as much stat as our best scroll would. Exempt
-            from the early re-application threshold: a still-active stronger
-            class buff cannot be overwritten, so treating it as expired would
-            build a scroll line that errors on use.
-        ]]
-		local conflictAmount = data.conflictSpells[spellID]
-		if conflictAmount and conflictAmount >= (scrollAmount or 0) then
-			return true
-		end
+	-- Already have a scroll buff active for this stat
+	if entry.expiration ~= nil and BuffCountsAsActive(entry.expiration) then
+		return true
 	end
 
-	return false
+	--[[
+        Check conflict spells — only block the scroll if the class buff
+        provides at least as much stat as our best scroll would. Exempt
+        from the early re-application threshold: a still-active stronger
+        class buff cannot be overwritten, so treating it as expired would
+        build a scroll line that errors on use.
+    ]]
+	return entry.conflictAmount ~= nil and entry.conflictAmount >= (scrollAmount or 0)
 end
 
 --[[
@@ -254,7 +350,7 @@ end
     can use that priority when truncating to fit the 255-char macro limit.
 ]]
 function ns.FindScrollOverrides(bagItemCounts)
-	local settings = ns.db and ns.db.profile
+	local settings = ns.db and ns.db.global
 	if not settings or not settings.useScrolls then
 		return nil
 	end
@@ -286,24 +382,37 @@ end
 -- Pet Food Buffs
 --------------------------------------------------------------------------------
 
--- Consumed by ns.FindPetBuffOverride (Macros/Tools-Hunters.lua); the probe
--- lives here because BuffCountsAsActive is private to this file.
-function ns.HasPetFoodBuff()
+--[[
+    The pet is a separate unit and so a separate walk from the player snapshot
+    above, but it follows the same expiration convention: nil when the buff is
+    absent, 0 when the aura carries no duration. Consumed by
+    ns.FindPetBuffOverride (Macros/Tools-Hunters.lua) and by the readiness
+    report; the probe lives here because BuffCountsAsActive is private to this
+    file.
+]]
+function ns.GetPetFoodBuffExpiration()
 	if not UnitExists("pet") then
-		return false
+		return nil
 	end
+	local best
 	for i = 1, 40 do
 		local name, _, _, _, _, expirationTime, _, _, _, spellID = UnitAura("pet", i, "HELPFUL")
 		if not name then
 			break
 		end
 		if spellID == ns.KIBLERS_BUFF_ID or spellID == ns.SPORELING_BUFF_ID then
-			if BuffCountsAsActive(expirationTime) then
-				return true
+			expirationTime = expirationTime or 0
+			if IsLongerExpiration(expirationTime, best) then
+				best = expirationTime
 			end
 		end
 	end
-	return false
+	return best
+end
+
+function ns.HasPetFoodBuff()
+	local expiration = ns.GetPetFoodBuffExpiration()
+	return expiration ~= nil and BuffCountsAsActive(expiration)
 end
 
 --------------------------------------------------------------------------------
@@ -311,27 +420,81 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-    UNIT_AURA handler routed from Core's dispatcher. Diffs the Well Fed state so
-    a buff gain or loss triggers exactly one rebuild, and flags an update while
-    scroll (player) or pet-buff (pet) tracking is active.
+    Last-seen aura inputs to the scroll decision, one entry per scroll type.
+    ns.HasScrollBuff answers from exactly two snapshot fields -- the scroll's own
+    expiration and the largest conflicting class-buff amount -- so tracking those
+    two is what separates an aura change that could flip a scroll line from the
+    firehose of unrelated ones. The verdict itself is deliberately not recomputed
+    here: it needs the scroll amount from the bag scan, which this path has no
+    access to, and the early-reapply threshold it applies moves with time rather
+    than with any event (ScheduleExpiryRecheck owns that case).
+]]
+local lastScrollExpiration = {}
+local lastScrollConflict = {}
+local scrollStateKnown = false
+
+--[[
+    Called from ns.ResetMacroState: a forced rebuild drops the baseline so the
+    next aura event is treated as a change rather than compared against readings
+    taken under the old settings.
+]]
+function ns.ResetScrollBuffTracking()
+	wipe(lastScrollExpiration)
+	wipe(lastScrollConflict)
+	scrollStateKnown = false
+end
+
+--[[
+    Records this pass's values and reports whether any moved. The loop always
+    runs to completion -- returning early on the first difference would leave the
+    remaining types holding stale values and report a phantom change next call.
+]]
+local function ScrollAurasChanged(currentSnapshot, scrollTypes)
+	local changed = not scrollStateKnown
+	scrollStateKnown = true
+
+	for _, scrollType in ipairs(ns.SCROLL_CHECK_ORDER) do
+		local entry = scrollTypes[scrollType] and currentSnapshot.scrolls[scrollType]
+		local expiration = entry and entry.expiration or nil
+		local conflictAmount = entry and entry.conflictAmount or nil
+		if expiration ~= lastScrollExpiration[scrollType] or conflictAmount ~= lastScrollConflict[scrollType] then
+			changed = true
+		end
+		lastScrollExpiration[scrollType] = expiration
+		lastScrollConflict[scrollType] = conflictAmount
+	end
+
+	return changed
+end
+
+--[[
+    UNIT_AURA handler routed from Core's dispatcher. One snapshot pass settles
+    both player-side features, and each requests a rebuild only on a real change:
+    Well Fed diffs its own state, scrolls diff the two inputs above. UNIT_AURA is
+    a firehose and a rebuild is a full bag rescan, so an unconditional request
+    here costs one of those per unrelated buff. The pet branch keeps its
+    unconditional request: pet auras change rarely and carry no such traffic.
 ]]
 function ns.HandleUnitAura(unit)
 	local needsUpdate = false
 
 	if unit == "player" then
-		if ns.HasWellFedBuff then
-			local currentState = ns.HasWellFedBuff()
-			if currentState ~= ns.WellFedState then
-				ns.WellFedState = currentState
+		local currentSnapshot = ns.GetPlayerBuffSnapshot()
+
+		local wellFedState = WellFedFromSnapshot(currentSnapshot)
+		if wellFedState ~= ns.WellFedState then
+			ns.WellFedState = wellFedState
+			needsUpdate = true
+		end
+
+		local settings = ns.db and ns.db.global
+		if settings and settings.useScrolls and settings.scrollTypes then
+			if ScrollAurasChanged(currentSnapshot, settings.scrollTypes) then
 				needsUpdate = true
 			end
 		end
-
-		if ns.db and ns.db.profile and ns.db.profile.useScrolls then
-			needsUpdate = true
-		end
 	elseif unit == "pet" then
-		if ns.db and ns.db.profile and ns.db.profile.usePetBuffFood then
+		if ns.db and ns.db.global and ns.db.global.usePetBuffFood then
 			needsUpdate = true
 		end
 	end

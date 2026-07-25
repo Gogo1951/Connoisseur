@@ -25,7 +25,6 @@
 ---@field merchantIsOpen boolean
 ---@field onUpdateFrame table Hidden frame for addon events
 ---@field Print function
----@field restockedItems boolean
 ---@field framepool table[]
 ---@field profileSelectedForDeletion string
 ---@field ICON_FORMAT string
