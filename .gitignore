@@ -1,0 +1,7 @@
+.DS_Store
+.claude/
+.release/
+*.zip
+.idea/
+.vscode/
+CHANGELOG.md    # packager-generated; your pipeline deletes the dev copy anyway
