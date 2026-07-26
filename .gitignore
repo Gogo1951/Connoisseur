@@ -4,4 +4,6 @@
 *.zip
 .idea/
 .vscode/
-CHANGELOG.md    # packager-generated; your pipeline deletes the dev copy anyway
+
+# Packager-generated; pipeline deletes the dev copy anyway
+CHANGELOG.md
