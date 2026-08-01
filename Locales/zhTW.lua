@@ -75,7 +75,7 @@ L["CHAT_LOADED"] =
     MSG_NO_ITEM.
 ]]
 
-L["READY_ALL_CLEAR"] = "準備就緒"
+L["READY_ALL_CLEAR"] = "準備就緒！"
 -- %s is the comma-separated list of what the character is missing.
 L["READY_MISSING"] = "缺少：%s"
 

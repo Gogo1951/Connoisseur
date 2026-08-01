@@ -9,7 +9,7 @@ Consumable-Connoisseur/
 ├── Consumable-Connoisseur.toc          Load order; single TOC for Era + TBC Anniversary
 ├── Data/
 │   ├── Data.lua                        Locale init, palette, ns.Config, conjure spell lists, constants
-│   ├── Default-Settings.lua            ns.DATABASE_DEFAULTS (AceDB profile + global.minimap)
+│   ├── Default-Settings.lua            ns.DATABASE_DEFAULTS (settings on the AceDB profile; 3 account keys on global)
 │   └── *.lua                           Static item data, one file per category (SQL-sourced)
 ├── Features/
 │   ├── Core.lua                        Central event dispatcher, AceDB lifecycle, update throttle
@@ -25,6 +25,7 @@ Consumable-Connoisseur/
 │   │   ├── <Category>.lua              One RegisterMacroType definition per macro
 │   │   └── Integration-Druid-Macro-Helper.lua  DMH powershift wrapping (HP/MP/HS)
 │   ├── Action-Button-Text.lua          Macro-name visibility on default bars
+│   ├── Readiness.lua                   Ready-check self-audit (buffs + Healthstone when a Warlock is present)
 │   ├── Restocker/                      Bag/bank/vendor restocking (/crs); vendored architecture
 │   │   ├── Restocker.lua               Lifecycle, profiles, one-line saved format (v5), slash
 │   │   ├── Bank.lua                    Coroutine restock loop, watchdogs, in-flight gate
@@ -33,7 +34,7 @@ Consumable-Connoisseur/
 │   │   ├── BuyIngredients.lua          Crafting reagent auto-buy (rogue poisons)
 │   │   ├── MainFrame.lua / ListFrame.lua   The /crs window
 │   │   ├── Specs/ · Tests/             Dev-only: headless API stubs + planner test (not in TOC)
-│   │   └── ...                         Module/KvEnv/Events/Settings/Item/Cache/Inventory plumbing
+│   │   └── ...                         Module/KvEnv/Events/Item/Cache/Inventory plumbing
 │   ├── Diagnostics.lua                 Runtime-only probes/reports (never persisted)
 │   └── Minimap-Button.lua              LDB object, tooltip, click handlers
 ├── Options/                            AceConfig panels (General, Profiles, Diagnostics)
@@ -42,7 +43,7 @@ Consumable-Connoisseur/
 └── tools/parity/                       Dev-only offline macro-parity harness (not in TOC)
 ```
 
-Deprecated files that must stay gone: the pre-restructure `Features/Macro-*.lua` layout and `Features/Restocker/RestockerConf.lua` (deleted; superseded by `RestockerClass.lua` annotations).
+Deprecated files that must stay gone: the pre-restructure `Features/Macro-*.lua` layout, `Features/Restocker/RestockerConf.lua` (deleted; superseded by `RestockerClass.lua` annotations), and `Features/Restocker/Settings.lua` (deleted; profile add/delete live on `RS` in `Restocker.lua`, and `CrsModule.settingsModule` does not exist).
 
 ## Architecture
 
@@ -117,12 +118,12 @@ Runtime-only (`ns.diagnostics`, never saved; everything defaults off each login)
 
 ## Saved Variables
 
-- **`ConnoisseurDB`** — the AceDB-3.0 table. `profiles.<name>` holds every user setting (toggles, modes, `enabledMacros`, `scrollTypes`, `petBuffTypes`, poison groups, `ignoreList`, plus the derived `itemCache`/`itemCacheVersion`); `global.minimap` is the LibDBIcon subtable, profile-independent so profile operations never move the button; `profileKeys` maps characters to profiles (shared "Default" out of the box via `AceDB:New(..., true)`).
+- **`ConnoisseurDB`** — the AceDB-3.0 table. `profiles.<name>` holds every user setting (toggles, modes, `scrollTypes`, `petBuffTypes`, poison groups, `ignoreList`, plus the derived `itemCache`/`itemCacheVersion`), so each character configures its own consumables and the stock Profiles panel moves real settings. `global` holds the five genuinely account-wide keys — `showWelcome`, `showMacroNames`, `readyCheckReport` (a behaviour preference rather than a consumable choice, though the buffs it reports on are per-character), `enabledMacros` (account-wide to match the macros themselves, which live in the shared General macro tab, so a character switch only ever rewrites macro bodies, never adds or removes a macro), and `minimap` (the LibDBIcon subtable, which also carries `minimapPos`/`lock`, kept off the profile so profile operations never move the button). `profileKeys` maps characters to profiles; `AceDB:New` omits the `defaultProfile` argument, so each character lands on its own "Name - Realm" profile.
 - **`ConnoisseurRestockerDB`** — Restocker's account-wide table (accepted interim; an AceDB merge is planned): `profiles` (one-line item strings keyed by itemID), `profileKeys` ("Name-Realm" → active profile), `currentProfile`, `framePos`, `autoOpenAtBank`, `autoOpenAtMerchant`, `debugMessages`, `dataVersion`.
 
 ### Migration Chain
 
-- `ConnoisseurCharDB` (legacy per-character) → AceDB profile; plus legacy root keys on `ConnoisseurDB` → profile/global — remove after 2026-10-06 (tagged in `Core.lua`, `Diagnostics.lua`, TOC).
+- All `ConnoisseurDB` conversions live in `ns.RunDatabaseMigrations` (`Core.lua`), one block to delete: `ConnoisseurCharDB` (legacy per-character) → AceDB profile; legacy root keys → profile/global; a legacy character moved off the shared "Default" profile onto its own; the five account-wide keys promoted to `global`; and every other setting demoted from `global` back down to each character's profile. The demotion reads leftovers on `global` directly — once a key is no longer declared in the global defaults, AceDB neither fills it in nor strips it, so `ns.db.global[key]` is exactly what the user saved. Characters are seeded once each, recorded in `global.migrationSeeded[charKey]` (on `global`, not the profile, so Reset Profile isn't undone by the next login). Remove after 2026-08-15 (tagged in `Core.lua`, `Default-Settings.lua`, `Diagnostics.lua`, TOC).
 - Standalone `RestockerDB` adoption and `RestockerSettings` per-character import → `ConnoisseurRestockerDB`; pre-v5 saved-line tolerances — remove after 2026-08-15 (tagged in `Restocker.lua`).
 
 Defaults come from `ns.DATABASE_DEFAULTS` and are applied lazily by AceDB-3.0 via metatables — nothing is copied into the saved table, and explicit user values (including `false`) are never overridden.

@@ -108,6 +108,10 @@ This feature started life as a separate add-on: Connoisseur ships an updated ver
 
 Type `/foodie` or open **Options > AddOns > Connoisseur** to configure the add-on.
 
+Settings are **per character**, so your raiding 60 and your level-15 alt each keep their own consumable choices — buff food, scrolls, pet food, poisons, and the rest. The **Profiles** tab lets you copy a setup from one character to another, or reset one back to defaults.
+
+Five options stay account-wide: the welcome message, the minimap button, macro names on buttons, **Ready Check**, and **Enable Macros**. Ready Check is a behaviour preference — whether Connoisseur speaks up at all — so you answer it once, though what it reports on still follows each character's own settings. Enable Macros is shared because the macros themselves are: they live in your General macro tab, which every character shares, so turning one off removes it everywhere. Switching characters never adds or removes a macro; it just rewrites the bodies to that character's best items.
+
 <img src="https://github.com/user-attachments/assets/c0e8e916-b3b9-4ce1-a5ff-d4b023a8ee20" width="800">
 
 **Prioritize Buff Food** // The Food macro prefers items that grant the Well Fed buff, but only when you don't already have it. Can be restricted to party or raid only.

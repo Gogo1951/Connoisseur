@@ -43,6 +43,37 @@ function ns.ResetPoisonMacroState()
 end
 
 --------------------------------------------------------------------------------
+-- Derived Poison Lookups
+--------------------------------------------------------------------------------
+
+--[[
+    Per-group candidate lists sorted best-first (highest required level =
+    highest rank), precomputed once from ns.PoisonData (Data/Poisons.lua, which
+    loads before this file) so the per-update scan is a plain walk. Same pattern
+    as the derived scroll lookups in Features/Scanner-Character.lua. Every
+    consumer reads ns.PoisonsByGroup from inside a function, so the build only
+    needs to finish before the first macro update.
+]]
+ns.PoisonsByGroup = {}
+for itemID, row in pairs(ns.PoisonData) do
+	local group = row[2]
+	local list = ns.PoisonsByGroup[group]
+	if not list then
+		list = {}
+		ns.PoisonsByGroup[group] = list
+	end
+	list[#list + 1] = { itemID, row[1] }
+end
+for _, list in pairs(ns.PoisonsByGroup) do
+	table.sort(list, function(a, b)
+		if a[2] ~= b[2] then
+			return a[2] > b[2]
+		end
+		return a[1] > b[1]
+	end)
+end
+
+--------------------------------------------------------------------------------
 -- Poison Resolution
 --------------------------------------------------------------------------------
 
@@ -88,7 +119,7 @@ end
     matching ns.DATABASE_DEFAULTS.
 ]]
 local function BestPoisonForHand(hand)
-	local settings = ns.db and ns.db.global
+	local settings = ns.db and ns.db.profile
 	local key = (hand == "off") and "offHandPoisonGroup" or "mainHandPoisonGroup"
 	return FindBestPoison((settings and settings[key]) or 4)
 end

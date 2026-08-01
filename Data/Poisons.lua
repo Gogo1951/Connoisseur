@@ -74,31 +74,3 @@ ns.PoisonData = {
 	[43234] = { 72, 6 }, -- Wound Poison VI
 	[43235] = { 78, 6 }, -- Wound Poison VII
 }
-
---------------------------------------------------------------------------------
--- Derived Poison Lookups
---------------------------------------------------------------------------------
-
---[[
-    Per-group candidate lists sorted best-first (highest required level =
-    highest rank), precomputed once so the per-update scan is a plain walk.
-    Same pattern as the derived scroll lookups in Data/Scrolls.lua.
-]]
-ns.PoisonsByGroup = {}
-for itemID, row in pairs(ns.PoisonData) do
-	local group = row[2]
-	local list = ns.PoisonsByGroup[group]
-	if not list then
-		list = {}
-		ns.PoisonsByGroup[group] = list
-	end
-	list[#list + 1] = { itemID, row[1] }
-end
-for _, list in pairs(ns.PoisonsByGroup) do
-	table.sort(list, function(a, b)
-		if a[2] ~= b[2] then
-			return a[2] > b[2]
-		end
-		return a[1] > b[1]
-	end)
-end

@@ -42,12 +42,14 @@ ns.RawData.FoodAndWater = {
 	[29449] = { 0, 0, 7500, 0, 0 }, -- Bladespire Bagel
 	[17404] = { 0, 0, 0, 0, 437 }, -- Blended Bean Brew
 	[13810] = { 1, 0, 1933, 0, 0 }, -- Blessed Sunfruit
+	-- Deliberately never selected; its Well Fed buff is still recognized via ns.WellFedBuffIDs in Data/Data.lua.
 	-- [13813] = {1, 0, 0, 0, 4410}, -- Blessed Sunfruit Juice
 	[3220] = { 1, 0, 243, 0, 0 }, -- Blood Sausage
 	[13546] = { 0, 0, 1392, 0, 0 }, -- Bloodbelly Fish
 	[20516] = { 1, 2, 0, 0, 0 }, -- Bobbing Apple
 	[5525] = { 1, 0, 243, 0, 0 }, -- Boiled Clams
 	[29293] = { 1, 0, 2148, 0, 0 }, -- Bonestripper Buzzard Hotwings
+	-- Deliberately never selected; its Well Fed buff is still recognized via ns.WellFedBuffIDs in Data/Data.lua.
 	-- [19318] = {1, 0, 0, 0, 4410}, -- Bottled Alterac Spring Water
 	[1119] = { 0, 0, 552, 0, 0 }, -- Bottled Spirits
 	[19300] = { 0, 0, 0, 0, 1992 }, -- Bottled Winterspring Water

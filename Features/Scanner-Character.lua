@@ -161,7 +161,7 @@ local function ScheduleExpiryRecheck(delay)
 end
 
 local function BuffCountsAsActive(expirationTime)
-	local settings = ns.db and ns.db.global
+	local settings = ns.db and ns.db.profile
 	if not (settings and settings.earlyReapply) then
 		return true
 	end
@@ -350,7 +350,7 @@ end
     can use that priority when truncating to fit the 255-char macro limit.
 ]]
 function ns.FindScrollOverrides(bagItemCounts)
-	local settings = ns.db and ns.db.global
+	local settings = ns.db and ns.db.profile
 	if not settings or not settings.useScrolls then
 		return nil
 	end
@@ -381,6 +381,37 @@ end
 --------------------------------------------------------------------------------
 -- Pet Food Buffs
 --------------------------------------------------------------------------------
+
+-- Kibler's Bits and Sporeling Snacks both require level 55.
+local PET_BUFF_FOOD_MIN_LEVEL = 55
+
+--[[
+    Whether pet buff food applies to this character right now: the feature is
+    on, its group restriction is satisfied, the player is high enough level for
+    the food to exist, and there is a live pet to feed.
+
+    Single source of truth on purpose. Both ns.FindPetBuffOverride
+    (Macros/Tools-Hunters.lua), which decides whether to splice the feed line
+    into the Food macro, and the readiness report (Features/Readiness.lua) have
+    to agree -- when they drifted, the report asked a level-30 Hunter for a
+    buff its own macro would never apply, with no way to satisfy it.
+]]
+function ns.ShouldTrackPetFood()
+	local settings = ns.db and ns.db.profile
+	if not settings or not settings.usePetBuffFood then
+		return false
+	end
+	if not ns.IsModeActive(settings.petBuffFoodMode) then
+		return false
+	end
+	if (ns.CachedPlayerLevel or 1) < PET_BUFF_FOOD_MIN_LEVEL then
+		return false
+	end
+	if not UnitExists("pet") or UnitIsDead("pet") or UnitIsGhost("pet") then
+		return false
+	end
+	return true
+end
 
 --[[
     The pet is a separate unit and so a separate walk from the player snapshot
@@ -487,14 +518,14 @@ function ns.HandleUnitAura(unit)
 			needsUpdate = true
 		end
 
-		local settings = ns.db and ns.db.global
+		local settings = ns.db and ns.db.profile
 		if settings and settings.useScrolls and settings.scrollTypes then
 			if ScrollAurasChanged(currentSnapshot, settings.scrollTypes) then
 				needsUpdate = true
 			end
 		end
 	elseif unit == "pet" then
-		if ns.db and ns.db.global and ns.db.global.usePetBuffFood then
+		if ns.db and ns.db.profile and ns.db.profile.usePetBuffFood then
 			needsUpdate = true
 		end
 	end

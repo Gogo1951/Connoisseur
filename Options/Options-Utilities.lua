@@ -11,19 +11,10 @@ local GetColor = ns.GetColor
     dot invocation (ns.OptionsHeader(...)), matching the panel builders.
 ]]
 
-function ns.OptionsHeader(text, order)
+function ns.OptionsHeader(text, order, hidden)
 	return {
 		type = "header",
 		name = GetColor("TITLE") .. text .. "|r",
-		order = order,
-	}
-end
-
-function ns.OptionsSubHeader(text, order, hidden)
-	return {
-		type = "description",
-		name = "\n" .. GetColor("TITLE") .. text .. "|r",
-		fontSize = "medium",
 		order = order,
 		hidden = hidden,
 	}

@@ -10,9 +10,10 @@ local AceConfigRegistry = LibStub("AceConfigRegistry-3.0")
 
 --[[
     A single runtime toggle gates the whole panel. When off, only the warning
-    text and the enable toggle are visible; everything below is hidden. The
-    OptionsHeader / OptionsSpacer helpers do not support `hidden`, so the
-    gated sections inline their header widgets with `hidden` functions.
+    text and the enable toggle are visible; everything below is hidden. Every
+    gated section hides on that one condition, so the local SectionHeader
+    builder bakes it in rather than repeating it per widget; ns.OptionsSpacer
+    takes no `hidden`, so a gated spacer is inlined as its own description.
 ]]
 
 local function DiagnosticsOn()

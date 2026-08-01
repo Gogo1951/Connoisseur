@@ -266,20 +266,12 @@ ns.PetBuffOverrideID = nil
     Well Fed and scroll probes.
 ]]
 function ns.FindPetBuffOverride(bagItemCounts)
-	local settings = ns.db and ns.db.global
-	if not settings or not settings.usePetBuffFood then
-		return nil
-	end
-	if not ns.IsModeActive(settings.petBuffFoodMode) then
-		return nil
-	end
-
-	local playerLevel = ns.CachedPlayerLevel or 1
-	if playerLevel < 55 then
-		return nil
-	end
-
-	if not UnitExists("pet") or UnitIsDead("pet") or UnitIsGhost("pet") then
+	--[[
+        Feature toggle, group restriction, level, and a live pet all live in
+        ns.ShouldTrackPetFood (Scanner-Character.lua) so the readiness report
+        applies exactly the same gate.
+    ]]
+	if not ns.ShouldTrackPetFood() then
 		return nil
 	end
 
@@ -287,7 +279,7 @@ function ns.FindPetBuffOverride(bagItemCounts)
 		return nil
 	end
 
-	local petTypes = settings.petBuffTypes
+	local petTypes = ns.db.profile.petBuffTypes
 
 	if
 		petTypes.KiblersBits
