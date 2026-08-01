@@ -6,13 +6,13 @@ Auto-updating macros for your best food, buff food, water, potions, healthstones
 
 ## Features
 
-🧞‍♂️ **Auto-Updating Macros** // Always picks your best food, water, potions, healthstones, mana gems, and bandages — rescans your bags whenever loot, level, or zone changes.
+🧞‍♂️ **Auto-Updating Macros** // Always picks your best food, water, potions, healthstones, mana gems, bandages, and explosives — rescans your bags whenever loot, level, or zone changes.
 
 🎯 **Smart Conjuring** // Mages and Warlocks right-click their food, water, healthstone, or soulstone macros to conjure the item on the spot. Middle-click casts Ritual of Refreshment (Mage) or Ritual of Souls (Warlock) for the whole group. The rank auto-matches your target, so a lower-level friend always gets something they can actually use.
 
 🦄 **Class Buttons** // Hunters get an all-in-one `- Feed Pet` macro that calls, feeds, mends, revives, and dismisses from a single button. Rogues get a dual-hand `- Poisons` applier. Druids can enable DruidMacroHelper powershifting. Night Elves and Rogues can stealth while eating or drinking.
 
-📜 **Scroll Buff Stacking** // When you're missing scroll buffs, your Food macro turns into a one-tap scroll applier — fires every missing scroll on you, then flips back to food on the next press.
+📜 **Raid-Ready Buffs** // When you're missing scroll buffs, your Food macro turns into a one-tap scroll applier. Buffs about to fall off count as already gone, so you top up before the pull instead of ten seconds into it — and every ready check prints exactly what you're still missing, where only you can see it.
 
 🛒 **Restocker** // Keep a per-character Restock List and Connoisseur runs the errands: buys from vendors and moves items to and from the bank automatically. It never sells anything. Type `/crs`.
 
@@ -33,7 +33,7 @@ Auto-updating macros for your best food, buff food, water, potions, healthstones
 | --------------- |----------------------------------------------------------------------- |
 | <code>- Food</code> |Best food (with optional buff food, scroll stacking, and pet buff food) |
 | <code>- Water</code> |Best drink                                                              |
-| <code>- Health Potion</code> |Best healing potion                                                     |
+| <code>- Health Potion</code> |Best healing potion (optionally with your best Healthstone stacked underneath) |
 | <code>- Mana Potion</code> |Best mana potion                                                        |
 | <code>- Bandage</code> |Best bandage (requires First Aid skill)                                 |
 | <code>- Explosives</code> |Highest-damage bomb, grenade, or sapper (requires Engineering skill; Ez-Thro usable by anyone) |
@@ -82,7 +82,7 @@ Items are filtered out if you don't meet the level requirement, lack the require
 
 Open the Restock List with `/crs`, drop items in from your bags, and set how many of each you want to carry. At a vendor, Connoisseur buys you back up to your target — with an optional reputation requirement per item, since better standing means better prices. At the bank, it tops up your bags from your stash and deposits the extra. Each item has its own Withdraw, Deposit, and Buy toggles, so one list runs your whole consumable logistics chain.
 
-Every character keeps its own list, and you can copy, rename, or delete profiles right from the window — handy for raid-night versus farming loadouts. Restocker never sells anything: too many of an item is left untouched.
+Every character keeps its own list, and you can copy, rename, or delete profiles right from the window — handy for raid-night versus farming loadouts. Restocker never sells anything: too many of an item is left untouched. The window can open itself when you reach a bank or a merchant, so the errands run without you thinking about them.
 
 This feature started life as a separate add-on: Connoisseur ships an updated version with bug fixes and UX improvements that couldn't get rolled into the upstream builds — see History below.
 
@@ -118,6 +118,12 @@ Five options stay account-wide: the welcome message, the minimap button, macro n
 
 **Scroll Buffs** // Your `- Food` macro doubles as a scroll-buff button. When you're missing scroll buffs, the macro turns into a dedicated scroll-applier — one tap fires every missing scroll on you, off the global cooldown, then flips back to food on the next press. Scrolls always target you, are skipped when a class buff already covers the same stat at equal or greater value, and the macro reverts to food mode immediately when you target a friendly player so it stays safe for Mages conjuring for friends. Firing order: Agility, Strength, Protection, Intellect, Spirit, Stamina.
 
+**Buff Re-Application** // Fights outlast buffs. Set a threshold and anything with less time left counts as already expired, so your macros offer a fresh one before the pull rather than halfway through the fight. Applies to Buff Food, Scroll Buffs, and Pet Food Buffs.
+
+**Ready Check** // When a ready check starts, Connoisseur prints what you're still missing and how long your tracked buffs have left. Only you see it — nothing is ever sent to group chat. It reports only what you can fix in those few seconds: Well Fed, scrolls, pet food, and a Healthstone when there's a Warlock around to ask.
+
+**Combine Healthstones** // Adds your best Healthstone to the bottom of the Health Potion macro, so one press uses a potion and a stone.
+
 **Explosives** // Choose the click layout for the `- Explosives` macro. The `@player` option skips the targeting reticle and sets the explosive off right at your feet — ideal when your target is in melee range — while Toss uses the normal targeting reticle. Default: Left-Click @Player, Right-Click Toss. (Keybind presses count as left-click.)
 
 **Pet Food Buffs** // Uses Kibler's Bits or Sporeling Snacks on your pet when its Well Fed buff is missing. Requires level 55+. Can be restricted to party or raid. Pet food only fires in food mode — if you're missing scroll buffs, scrolls go first.
@@ -126,7 +132,7 @@ Five options stay account-wide: the welcome message, the minimap button, macro n
 
 ## Testing & Localization Status
 
-🟢 World of Warcraft Classic (🔴 Season of Discovery) // WoW 1.15.9
+🟢 World of Warcraft Classic (🟡 Season of Discovery) // WoW 1.15.9
 
 🟢 Burning Crusade Anniversary // WoW 2.5.6
 
@@ -140,8 +146,8 @@ Please reach out if you would like to be involved!
 
 ## Links
 
-*   [GitHub](https://github.com/Gogo1951/Connoisseur)
-*   [Discord](https://discord.gg/eh8hKq992Q)
+- [GitHub](https://github.com/Gogo1951/Connoisseur)
+- [Discord](https://discord.gg/eh8hKq992Q)
 
 ## History
 
@@ -161,28 +167,32 @@ Please reach out if you would like to be involved!
 
 🟢 Pairs With // ykiigor's [Method Raid Tools](https://www.curseforge.com/wow/addons/method-raid-tools)
 
-🟢 Pairs With // oscarucb's [RaidBuffStatus](https://www.curseforge.com/wow/addons/raidbuffstatus)
+🟡 Some Overlap // Varesch36's [Auto Restock for TBC](https://www.curseforge.com/wow/addons/auto-restock-for-tbc)
 
-🟡 Some Overlap // Galeina's [Consumable Checker](https://www.curseforge.com/wow/addons/consumable-checker)
+🟡 Some Overlap // wumatic1's [BuffBuddy](https://www.curseforge.com/wow/addons/buffbuddy)
 
-🟡 Some Overlap // terijaki's [Poisoner](https://www.curseforge.com/wow/addons/poisoner)
+🟡 Some Overlap // nyxito's [Consumable Tracker Classic/TBC](https://www.curseforge.com/wow/addons/consumabletracker)
 
-🟡 Some Overlap // Anonomit's [RestockReady](https://www.curseforge.com/wow/addons/restockready)
+🟡 Some Overlap // humfras's [Poisoner](https://www.curseforge.com/wow/addons/poisoner)
 
-🟡 Some Overlap // aeldra\_'s [SmartBuff (Classic)](https://www.curseforge.com/wow/addons/smartbuff-classic)
+🟡 Some Overlap // GildedFool's [RestockReady](https://www.curseforge.com/wow/addons/restockready)
 
 🔴 Direct Alternative // ollidiemaus's [Auto Potion](https://www.curseforge.com/wow/addons/auto-potion)
 
-🔴 Direct Alternative // Wutname1's [AutoPotionPlus](https://www.curseforge.com/wow/addons/autopotionplus)
+🔴 Direct Alternative // HerrHaseGermany's [Automated-Consumables](https://www.curseforge.com/wow/addons/automated-consumables)
 
-🔴 Direct Alternative // ayjaycoding's [Automated Eat Drink Macro Changer](https://www.curseforge.com/wow/addons/automated-eat-drink-macro-changer)
+🔴 Direct Alternative // Abengs84's [AutoPotionPlus](https://www.curseforge.com/wow/addons/autopotionplus)
 
 🔴 Direct Alternative // mZHg's [Buffet](https://www.curseforge.com/wow/addons/buffet)
 
 🔴 Direct Alternative // funki's [DrinkBot](https://www.curseforge.com/wow/addons/drinkbot)
 
-🔴 Direct Alternative // FubarVS's [Eat Drink AI](https://www.curseforge.com/wow/addons/eatdrinkai)
-
 🔴 Direct Alternative // executedpoorly's [Feed Me](https://www.curseforge.com/wow/addons/feed-me)
+
+🔴 Direct Alternative // noobsgonewild's [Feed Pet Plus Macro](https://www.curseforge.com/wow/addons/feed-pet-plus-macro)
+
+🔴 Direct Alternative // Heypriesto's [PotionPal](https://www.curseforge.com/wow/addons/potionpal-tbc)
+
+🔴 Direct Alternative // noobsgonewild's [PotUP Healing potion](https://www.curseforge.com/wow/addons/potup)
 
 🔴 Direct Alternative // Aryax's [Well Feed](https://www.curseforge.com/wow/addons/well-feed)

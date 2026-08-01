@@ -6,41 +6,56 @@ This document combines architecture notes and contribution guidance for develope
 
 ```
 Consumable-Connoisseur/
-├── Consumable-Connoisseur.toc          Load order; single TOC for Era + TBC Anniversary
+├── .github/workflows/package.yml       CurseForge/Wago release + library vendoring (repo only)
+├── .gitattributes                      LF normalization (repo only)
+├── .pkgmeta                            Externals and ignore list (repo only)
+├── LICENSE                             MIT (repo only)
+├── Consumable-Connoisseur.toc          Load order; one TOC for Era + TBC Anniversary
 ├── Data/
-│   ├── Data.lua                        Locale init, palette, ns.Config, conjure spell lists, constants
-│   ├── Default-Settings.lua            ns.DATABASE_DEFAULTS (settings on the AceDB profile; 3 account keys on global)
-│   └── *.lua                           Static item data, one file per category (SQL-sourced)
+│   ├── Data.lua                        Locale init, palette, ns.Config, ns.OPTIONS_REGISTRY, conjure spells, constants
+│   ├── Default-Settings.lua            ns.DATABASE_DEFAULTS — settings on the AceDB profile, five keys on global
+│   └── Bandages … Scrolls.lua          Static item data, one file per category (SQL-sourced)
 ├── Features/
-│   ├── Core.lua                        Central event dispatcher, AceDB lifecycle, update throttle
+│   ├── Core.lua                        Central event dispatcher, AceDB lifecycle, migrations, update throttle
 │   ├── Utilities.lua                   ns.GetColor, API shims, ns.IsEra/IsTBC, small predicates
-│   ├── Announcements.lua               ns.PrintMessage + once-per-session welcome
+│   ├── Announcements.lua               ns.PrintMessage + once-per-session welcome (player prints only)
 │   ├── Item-Cache.lua                  Derives/caches per-item data; ignore-list pruning
 │   ├── Scanner-Character.lua           Skills, aura probes (Well Fed / scrolls / pet), early re-apply
 │   ├── Scanner-Inventory.lua           Bag scan, RANKING_PRIORITY ladder, per-category winners
 │   ├── Macros/
-│   │   ├── Engine.lua                  Definition registry, body/state-key builders, 255-byte trim
+│   │   ├── Engine.lua                  Definition registry, body/state-key builders, the 255 trim, WriteMacro
 │   │   ├── Runtime.lua                 ConnFire/ConnTip/ConnIf/ConnNoItem macro globals
 │   │   ├── Tools-<Class>.lua           What each class KNOWS (resolvers, Feed Pet, Poisons)
-│   │   ├── <Category>.lua              One RegisterMacroType definition per macro
+│   │   ├── <Category>.lua              One ns.RegisterMacroType definition per macro
 │   │   └── Integration-Druid-Macro-Helper.lua  DMH powershift wrapping (HP/MP/HS)
 │   ├── Action-Button-Text.lua          Macro-name visibility on default bars
-│   ├── Readiness.lua                   Ready-check self-audit (buffs + Healthstone when a Warlock is present)
+│   ├── Readiness.lua                   Ready-check self-audit (buffs, plus Healthstone when a Warlock is present)
 │   ├── Restocker/                      Bag/bank/vendor restocking (/crs); vendored architecture
-│   │   ├── Restocker.lua               Lifecycle, profiles, one-line saved format (v5), slash
+│   │   ├── Restocker.lua               Lifecycle, profiles, one-line saved format (v5), slash command
+│   │   ├── RestockerClass.lua          Type annotations for the RS class surface
 │   │   ├── Bank.lua                    Coroutine restock loop, watchdogs, in-flight gate
-│   │   ├── Bag.lua                     Container moves; split/merge; specialty-bag gating
-│   │   ├── Merchant.lua                Purchase orders, reputation gate
-│   │   ├── BuyIngredients.lua          Crafting reagent auto-buy (rogue poisons)
+│   │   ├── Bag.lua / Inventory.lua     Container moves; split/merge; specialty-bag gating
+│   │   ├── Merchant.lua / BuyCommand.lua   Purchase orders, reputation gate
+│   │   ├── Recipe.lua / BuyIngredients.lua Crafting reagent auto-buy (rogue poisons)
 │   │   ├── MainFrame.lua / ListFrame.lua   The /crs window
-│   │   ├── Specs/ · Tests/             Dev-only: headless API stubs + planner test (not in TOC)
-│   │   └── ...                         Module/KvEnv/Events/Item/Cache/Inventory plumbing
+│   │   ├── Module.lua / KvEnv.lua / Events.lua / Item.lua / Cache.lua  Plumbing
+│   │   ├── Specs/                      Dev-only headless WoW API stubs (not in TOC)
+│   │   └── Tests/                      Dev-only offline planner test (not in TOC)
 │   ├── Diagnostics.lua                 Runtime-only probes/reports (never persisted)
 │   └── Minimap-Button.lua              LDB object, tooltip, click handlers
-├── Options/                            AceConfig panels (General, Profiles, Diagnostics)
-├── Locales/                            AceLocale files; enUS.lua is source of truth
-├── Includes/                           Vendored libraries — never edited by hand
-└── tools/parity/                       Dev-only offline macro-parity harness (not in TOC)
+├── Includes/
+│   ├── Images/Connoisseur.tga          Add-on icon (## IconTexture)
+│   └── Libraries/                      Vendored libraries — never edited by hand
+├── Locales/                            AceLocale files, 11 locales; enUS.lua is source of truth
+├── Options/
+│   ├── Options-Utilities.lua           Shared widget constructors (ns.OptionsHeader/Desc/Spacer)
+│   ├── Options-General.lua             Root General panel
+│   ├── Options-Profiles.lua            Stock AceDBOptions-3.0 panel
+│   ├── Options-Diagnostics.lua         Diagnostic Tools panel
+│   └── Options.lua                     Registration only, plus the /foodie slash command
+├── tools/parity/                       Dev-only offline macro-parity harness (repo only, not in TOC)
+├── README.md
+└── README-Technical.md
 ```
 
 Deprecated files that must stay gone: the pre-restructure `Features/Macro-*.lua` layout, `Features/Restocker/RestockerConf.lua` (deleted; superseded by `RestockerClass.lua` annotations), and `Features/Restocker/Settings.lua` (deleted; profile add/delete live on `RS` in `Restocker.lua`, and `CrsModule.settingsModule` does not exist).
@@ -49,19 +64,29 @@ Deprecated files that must stay gone: the pre-restructure `Features/Macro-*.lua`
 
 ### Event Loop
 
-`Features/Core.lua` owns one frame and one dispatcher; feature files never register their own events — with one accepted exception, Restocker (below). The full event list is exported as `ns.EVENT_NAMES` so the dispatcher and Diagnostics' Event Registration check can never drift. Unit-filtered events (`UNIT_PET`, `UNIT_SPELLCAST_SUCCEEDED`) register via `RegisterUnitEvent`; `UNIT_AURA` registers only while a buff-tracking feature is active; `QUEST_LOG_UPDATE` registers for Hunters only; `GET_ITEM_INFO_RECEIVED` registers only while a scan is waiting on item data.
+`Features/Core.lua` owns one frame and one dispatcher; feature files never register their own events — with one accepted exception, Restocker (below). The full event list is exported as `ns.EVENT_NAMES` so the dispatcher and Diagnostics' Event Registration check can never drift. Unit-filtered events (`UNIT_PET`, `UNIT_SPELLCAST_SUCCEEDED`) register via `RegisterUnitEvent`; `UNIT_AURA` registers only while a buff-tracking feature is active; `QUEST_LOG_UPDATE` registers for Hunters only; `GET_ITEM_INFO_RECEIVED` registers only while a scan is waiting on item data. Those five names live in `DEFERRED_EVENTS`, which is what the plain registration loop skips.
 
 Rebuilds funnel through `ns.RequestUpdate()`: a two-flag throttle (`isUpdatePending` / `isTickScheduled`) arms a 0.5 s `OnUpdate` tick. The flags are separate so a pending update can never strand — any out-of-combat request re-arms a disarmed tick.
 
 ### Combat Lockdown
 
-Macros cannot be written in combat. Every path defers: the dispatcher swallows most events under `InCombatLockdown()` (setting `isUpdatePending`), the throttle tick disarms itself, and `PLAYER_REGEN_ENABLED` replays the pending work. Three things still run mid-combat because they are read-only and matter there: init on `PLAYER_LOGIN`, `UI_ERROR_MESSAGE` (zone-restriction reporting, dead-pet detection), and `PLAYER_LEVEL_UP` cache refreshes.
+Macros cannot be written in combat. Every path defers: the dispatcher swallows most events under `InCombatLockdown()` (setting `isUpdatePending`), the throttle tick disarms itself, and `PLAYER_REGEN_ENABLED` replays the pending work.
+
+Five events are handled *above* that guard, because each must work mid-combat and none touches a protected function:
+
+| Event | Why it runs in combat |
+|---|---|
+| `PLAYER_LOGIN` | `InitVars` must create `ns.db` even when the player enters the world already fighting (zoning into a running battleground). |
+| `UI_ERROR_MESSAGE` | Zone-restriction reporting fires exactly when a zone-locked potion is pressed mid-fight; the dead-pet branch only flips a flag. |
+| `PLAYER_LEVEL_UP` | A ding from a killing blow fires in combat; `UnitLevel`/`GetSpellInfo` are safe combat reads. The macro *write* still defers. |
+| `PLAYER_LOGOUT` | A mid-combat `/reload` still fires it, and the guard would swallow the Ignore List prune. |
+| `READY_CHECK` | Ready checks routinely land with the raid already pulling; the report only reads auras and the last scan. |
 
 ### Scan → Compose → Write
 
-1. **Scan** — `ns.ScanBags()` (`Scanner-Inventory.lua`) walks bags once, dispatches every usable item to each registered definition claiming its cached `itemType`, and ranks candidates through the single `RANKING_PRIORITY` ladder (buff food → percent → value → conjured → price → hybrid → count → itemID; the last step makes picks deterministic across reloads).
+1. **Scan** — `ns.ScanBags()` (`Scanner-Inventory.lua`) walks bags once, dispatches every usable item to each registered definition claiming its cached `itemType`, and ranks candidates through the single `RANKING_PRIORITY` ladder: buff food (gated on `ns.AllowBuffFood`) → percent restores → value → conjured → price → hybrid → count → itemID. Both comparator forms — the single-winner test and the ranked lists' pairwise sort — are generated from that one ordered list, so reordering a step there changes ranking everywhere. The final itemID step makes picks deterministic across reloads.
 2. **Compose** — `Features/Macros/Engine.lua` builds each macro body from the definition's hooks (`conjure`, `buildUseLine`, `getStackIDs`, `buildModeOverride`, `appendBlock`, `stateExtras`); `Data/Data.lua`'s `ns.Config` supplies names and default icons.
-3. **Write** — `WriteMacro` creates or edits the shared General-tab macro only when the state key changed. Creation respects `ns.MACRO_SLOT_CUSHION` and warns once per session when the book is full, then self-heals when a slot frees.
+3. **Write** — `WriteMacro` creates or edits the shared General-tab macro only when the state key changed. Creation respects `ns.MACRO_SLOT_CUSHION` (currently `0`, so creation pauses only when the General book is completely full) and warns once per session when it pauses, then self-heals when a slot frees.
 
 ### Item Data Caching
 
@@ -69,7 +94,7 @@ Macros cannot be written in combat. Every path defers: the dispatcher swallows m
 
 ### State Encoding
 
-Every input that affects a macro body must appear in its state key, or the macro goes stale. Namespaces are disjoint by prefix so any mode transition forces a rewrite: standard keys are item-ID-led (`ITEMIDS(_C…)(_EX:mode)?(_SM|_SE)?`), Food's scroll mode uses `SCROLLS:`, and the Druid override uses `DMH:`. The Poisons and Feed Pet builders keep their own keys with the same lossless-key rule.
+Every input that affects a macro body must appear in its state key, or the macro goes stale. Namespaces are disjoint by prefix so any mode transition forces a rewrite: standard keys are item-ID-led (`ITEMIDS(_C…)(_EX:mode)?(_SM|_SE)?`), Food's scroll mode uses `SCROLLS:`, and the Druid override uses `DMH:`. The Poisons and Feed Pet builders keep their own keys under the same lossless-key rule.
 
 ## Food Macro: Modes and Overrides
 
@@ -87,9 +112,13 @@ The Food definition (`Features/Macros/Food.lua`) is the busiest:
 - **Pet-buff override** — `modifyItem` swaps the food for Kibler's Bits / Sporeling Snacks and `buildUseLine` targets `[@pet]`.
 - **Stealth Eating** — `appendBlock` adds `/cast [nostealth] Stealth` (Rogues) or Shadowmeld (other Night Elves) under the food line, flag `SE`. Water does the same for drinking (`SM`), Night Elves only, never Rogues.
 
-## Multi-Use Macros and the 255-Byte Trim
+## Multi-Use Macros and the 255 Trim
 
-Health Potion, Mana Potion, and Healthstone are `ranked` definitions: up to `ns.MULTI_USE_MAX_ITEMS` (3) `/use` lines, best first — safe because each category shares an item cooldown, so one press consumes one item and the extra lines are combat fallbacks. Optional Healthstone stacking appends the stone list under the potion lines. The client truncates macro bodies at 255 bytes; `BuildStandardBody` sheds stacked stone lines first, then fallback lines bottom-up — the rank-1 line never drops. Localized spell names make this real: a body that fits in enUS can overflow in ruRU or deDE.
+Health Potion, Mana Potion, and Healthstone are the `ns.MultiUseMacroTypes`: up to `ns.MULTI_USE_MAX_ITEMS` (3) `/use` lines, best first — safe because each category shares an item cooldown, so one press consumes one item and the extra lines are combat fallbacks. Optional Healthstone stacking appends the stone list under the potion lines.
+
+Macro bodies are capped at 255 (Style Guide → MESSAGES → Message Length). Connoisseur measures that ceiling in **bytes**: every trim site tests `#body > 255`, which is the conservative reading — a body inside 255 bytes is inside 255 characters in every locale, so the macro can never be truncated by the client. `BuildStandardBody` sheds stacked stone lines first, then fallback lines bottom-up; the rank-1 line never drops. Two more sites trim the same way, `Integration-Druid-Macro-Helper.lua` and `Tools-Hunters.lua`. Localized spell names make this real: a body that fits in enUS can overflow in ruRU, which is the widest-encoding locale the add-on ships and therefore the canary.
+
+Connoisseur never calls `SendChatMessage` — it has no cross-player chat path and defines no `ns.TARGET_MARKER` — so the separate 255-*byte* chat ceiling does not apply anywhere in this codebase.
 
 ## Era vs TBC: Warlock Rank Pinning (recurring bug)
 
@@ -101,34 +130,43 @@ A custom-update definition in `Tools-Hunters.lua` with three knowledge tiers: pr
 
 ## Poisons (Rogue)
 
-Also custom-update: left-click poisons the off hand (slot 17), right-click the main hand (slot 16), middle-click opens the crafting window. The body `/use`s the poison then the slot, `/click StaticPopup1Button1` to confirm replacement, and clears UI errors. Poison groups per hand come from the profile; group names resolve from the client's own item names, so they localize for free.
+Also custom-update: left-click poisons the off hand (slot 17), right-click (`[btn:2]`) the main hand (slot 16), middle-click (`[btn:3]`) casts Poisons to open the crafting window and stops the macro there. The body `/use`s the poison then the slot, `/click StaticPopup1Button1` to confirm replacement, and clears UI errors. Poison groups per hand come from the profile; group names resolve from the client's own item names, so they localize for free.
 
 ## Restocker
 
-Vendored subsystem (accepted interim architecture) behind `/crs`: per-character shopping profiles stored in its own `ConnoisseurRestockerDB`, its own event frame, and `CrsModule`/`CRS_ADDON` globals. Key mechanics:
+Vendored subsystem (accepted interim architecture) behind `/crs`: account-wide shopping profiles stored in its own `ConnoisseurRestockerDB`, its own event frame, and `CrsModule`/`CRS_ADDON` globals. Key mechanics:
 
 - **Bank restocking** is a coroutine stepped by a ping-paced `OnUpdate` timer. Every step re-scans reality (never optimistic bookkeeping), issues at most one move, and waits for item locks to settle. A no-progress watchdog stops with an honest report; an in-flight gate ignores scans taken while a move is mid-air; a bounced exact split escalates to a whole-stack pull whose overshoot is stashed back.
 - **Hard invariant: never sell.** `C_Container.UseContainerItem` sells when a merchant window is open, so the bank loop refuses to run while `merchantIsOpen`.
-- **Saved format v5** — each profile is keyed by itemID; items deflate to one comma-separated line per item at logout and inflate at login (`rsItemToString` / `rsItemFromString`).
+- **Saved format v5** (`RS_DATA_VERSION`) — each profile is keyed by itemID; items deflate to one comma-separated line per item at logout and inflate at login (`rsItemToString` / `rsItemFromString`).
 - Chat/UI strings are localized (`RESTOCKER_*` keys); pacing lives in `Bank.lua`; the offline planner test covers the move logic.
 
 ## Diagnostics
 
-Runtime-only (`ns.diagnostics`, never saved; everything defaults off each login). The panel builds reports on button press only: API/event probes driven by `ns.DIAGNOSTIC_API_CHECKS` and `ns.EVENT_NAMES`, an event log tapped in Core's dispatcher, saved-variable dumps of both tables, library versions, and the taintLog CVar buttons — the only thing it ever writes.
+Runtime-only (`ns.diagnostics`, never saved; everything defaults off each login). The panel builds reports on button press only, seven of them: Event Registration and API endpoint probes driven by `ns.EVENT_NAMES` and `ns.DIAGNOSTIC_API_CHECKS`, an event log tapped at the top of Core's dispatcher (guarded by a boolean so logging-off costs one check), a Connoisseur Context dump, a Selection Report that names which `RANKING_PRIORITY` step decided each pick, an Other Add-ons list, saved-variable dumps of both tables, and library versions. The taintLog CVar buttons are the only thing Diagnostics ever writes. Its strings are developer-facing plain English and are never localized.
 
 ## Saved Variables
 
-- **`ConnoisseurDB`** — the AceDB-3.0 table. `profiles.<name>` holds every user setting (toggles, modes, `scrollTypes`, `petBuffTypes`, poison groups, `ignoreList`, plus the derived `itemCache`/`itemCacheVersion`), so each character configures its own consumables and the stock Profiles panel moves real settings. `global` holds the five genuinely account-wide keys — `showWelcome`, `showMacroNames`, `readyCheckReport` (a behaviour preference rather than a consumable choice, though the buffs it reports on are per-character), `enabledMacros` (account-wide to match the macros themselves, which live in the shared General macro tab, so a character switch only ever rewrites macro bodies, never adds or removes a macro), and `minimap` (the LibDBIcon subtable, which also carries `minimapPos`/`lock`, kept off the profile so profile operations never move the button). `profileKeys` maps characters to profiles; `AceDB:New` omits the `defaultProfile` argument, so each character lands on its own "Name - Realm" profile.
+Connoisseur uses the **Per-Character** saved-variables model (Style Guide → SAVED VARIABLES → The Two Models): `AceDB:New`'s third argument is omitted in `Features/Core.lua`, so every character lands on its own `"Name - Realm"` profile. **Reset Profile therefore clears only the active character's profile** — its consumable settings, poison groups, Ignore List, and derived item cache — while the five account-wide keys on `ns.db.global` survive untouched.
+
+- **`ConnoisseurDB`** — the AceDB-3.0 table. `profiles.<name>` holds the user settings that legitimately differ per character (macro behaviour toggles and modes, `scrollTypes`, `petBuffTypes`, poison groups, `ignoreList`, plus the derived `itemCache`/`itemCacheVersion`), so a level-15 alt and a raiding 60 can run different consumables and the stock Profiles panel moves real settings. `global` holds the five genuinely account-wide keys, each for a concrete reason spelled out in `Data/Default-Settings.lua`:
+    - `showWelcome` — one login greeting per account.
+    - `showMacroNames` — a client-wide action-bar appearance tweak.
+    - `readyCheckReport` — a behaviour preference (does Connoisseur speak up?) rather than a consumable choice.
+    - `enabledMacros` — account-wide to match the macros themselves, which live in the shared General macro tab, so a character switch only ever rewrites macro bodies, never adds or removes a macro.
+    - `minimap` — the LibDBIcon subtable, kept off the profile so profile operations never move the button.
+
+  `profileKeys` maps characters to profiles. `OnProfileChanged` / `OnProfileCopied` / `OnProfileReset` all run one `OnProfileChange` handler that resets macro state, re-pushes the two imperatively-applied global settings (minimap visibility, macro-name text), notifies every panel in `ns.OPTIONS_REGISTRY`, and requests a rebuild — so a reset or switch takes effect immediately rather than at the next `/reload`.
 - **`ConnoisseurRestockerDB`** — Restocker's account-wide table (accepted interim; an AceDB merge is planned): `profiles` (one-line item strings keyed by itemID), `profileKeys` ("Name-Realm" → active profile), `currentProfile`, `framePos`, `autoOpenAtBank`, `autoOpenAtMerchant`, `debugMessages`, `dataVersion`.
 
 ### Migration Chain
 
-- All `ConnoisseurDB` conversions live in `ns.RunDatabaseMigrations` (`Core.lua`), one block to delete: `ConnoisseurCharDB` (legacy per-character) → AceDB profile; legacy root keys → profile/global; a legacy character moved off the shared "Default" profile onto its own; the five account-wide keys promoted to `global`; and every other setting demoted from `global` back down to each character's profile. The demotion reads leftovers on `global` directly — once a key is no longer declared in the global defaults, AceDB neither fills it in nor strips it, so `ns.db.global[key]` is exactly what the user saved. Characters are seeded once each, recorded in `global.migrationSeeded[charKey]` (on `global`, not the profile, so Reset Profile isn't undone by the next login). Remove after 2026-08-15 (tagged in `Core.lua`, `Default-Settings.lua`, `Diagnostics.lua`, TOC).
+- All `ConnoisseurDB` conversions live in `ns.RunDatabaseMigrations` (`Core.lua`), one block to delete: `ConnoisseurCharDB` (legacy per-character) → AceDB profile; legacy root keys → profile/global; a legacy character moved off the shared "Default" profile onto its own; the five account-wide keys promoted to `global`; and every other setting demoted from `global` back down to each character's profile. The demotion reads leftovers on `global` directly — once a key is no longer declared in the global defaults, AceDB neither fills it in nor strips it, so `ns.db.global[key]` is exactly what the user saved. Characters are seeded once each, recorded in `global.migrationSeeded[charKey]` (on `global`, not the profile, so Reset Profile isn't undone by the next login). Remove after 2026-08-15 (tagged in `Core.lua`, `Default-Settings.lua`, and the TOC's `ConnoisseurCharDB` line).
 - Standalone `RestockerDB` adoption and `RestockerSettings` per-character import → `ConnoisseurRestockerDB`; pre-v5 saved-line tolerances — remove after 2026-08-15 (tagged in `Restocker.lua`).
 
-Defaults come from `ns.DATABASE_DEFAULTS` and are applied lazily by AceDB-3.0 via metatables — nothing is copied into the saved table, and explicit user values (including `false`) are never overridden.
+Defaults come from `ns.DATABASE_DEFAULTS` and are applied by AceDB-3.0 when a scope is first accessed — explicit user values, including `false`, are never overridden. Note that scalar and table defaults are physically copied into the saved table (`copyDefaults` via `rawset`); only `*`/`**` wildcard defaults resolve through metatables.
 
-There is no refill-on-empty list logic: Connoisseur ships no user-editable default item lists (the static tables in `Data/` are code, not saved data), and settings maps like `enabledMacros` deliberately survive being all-false. The derived `itemCache` is lazy-initialized outside the defaults table because Core owns its invalidation.
+There is no refill-on-empty list logic: Connoisseur ships no user-editable default item lists (the static tables in `Data/` are code, not saved data), and settings maps like `enabledMacros` deliberately survive being all-false. The derived `itemCache` is lazy-initialized outside the defaults table because Core owns its invalidation, and the same goes for the migration bookkeeping flags.
 
 ## Adding a New Consumable Category
 
@@ -137,11 +175,11 @@ There is no refill-on-empty list logic: Connoisseur ships no user-editable defau
 3. Extend `ns.CacheItemData` with a branch deriving the canonical record (`itemType`, values, requirements).
 4. Create `Features/Macros/<Category>.lua` calling `ns.RegisterMacroType` (see the definition protocol in `Engine.lua`); add the TOC line among the definitions.
 5. Add the macro to `ns.Config` in `Data/Data.lua` (macro name ≤ 16 characters), `enabledMacros` in `Data/Default-Settings.lua`, an Enable Macros toggle in `Options/Options-General.lua`, and `MACRO_*`/`LABEL_*` keys in `Locales/enUS.lua` only.
-6. Mind the 255-character macro limit if the body stacks lines — German and Russian names are the canary. Add a parity fixture in `tools/parity/fixtures/` and refresh `baseline/`.
+6. Mind the 255 macro ceiling if the body stacks lines — ruRU is the canary. Add a parity fixture in `tools/parity/fixtures/` and refresh `baseline/`.
 
 ## Adding a New Registered Event
 
-Add the name to `ns.EVENT_NAMES` in `Features/Core.lua` and a dispatcher branch — registration and the Diagnostics event/registration checks pick it up together. Use `DEFERRED_EVENTS` if it must register conditionally.
+Add the name to `ns.EVENT_NAMES` in `Features/Core.lua` and a dispatcher branch — registration and the Diagnostics event/registration checks pick it up together. Add it to `DEFERRED_EVENTS` too if it must register conditionally or via `RegisterUnitEvent`.
 
 ## Adding a New Scroll Type or Restocker Recipe
 
@@ -150,11 +188,11 @@ Add the name to `ns.EVENT_NAMES` in `Features/Core.lua` and a dispatcher branch 
 
 ## Localization
 
-- **Structure** — locale files live in `Locales/<locale>.lua`, each registered through AceLocale-3.0's `NewLocale`. `enUS.lua` is the source of truth and the only file that passes the `true` default-fallback flag; every string originates there.
-- **Keeping locales in sync** — every other locale carries a translation of the same key set; AceLocale falls back to English via `__index` for anything missing at runtime. Aligning the files is the Localization pass's job — don't hand-edit non-enUS locales during ordinary work; new keys go into `enUS.lua` only and fall back until that pass runs.
+- **Structure** — locale files live in `Locales/<locale>.lua`, each registered through AceLocale-3.0's `NewLocale`. `enUS.lua` is the source of truth and the only file that passes the `true` default-fallback flag; every string originates there and the other ten locales translate from it.
+- **Keeping locales in sync** — every other locale carries a translation of the same key set; AceLocale falls back to English via `__index` for anything missing at runtime. Aligning the files is the Localization pass's job — don't hand-edit non-enUS locales during ordinary work; new keys go into `enUS.lua` only and fall back until that pass runs. WoW ships a fixed locale set and every supported locale file already exists, so there is no "add a new locale" step.
 - **Placeholders** — `%s`/`%d` count, type, and order must match `enUS` per key in every locale, or the string crashes at runtime.
 - **Spanish** — `esES`/`esMX` are two separate, self-contained files; identical strings in both is correct and expected.
-- **Locale overflow** — German is the usual canary against the 255-character macro limit; the trims in `Engine.lua`, `Integration-Druid-Macro-Helper.lua`, and `Tools-Hunters.lua` exist because of it.
+- **Locale overflow** — ruRU encodes widest, so it is the canary against the 255 macro ceiling; the trims in `Engine.lua`, `Integration-Druid-Macro-Helper.lua`, and `Tools-Hunters.lua` exist because of it. Macro *names* have their own hard cap of 16 characters, noted in `enUS.lua` above the `MACRO_*` block.
 - Diagnostics strings are developer-facing plain English in `Features/Diagnostics.lua` — never localized.
 
 ## Common Pitfalls
@@ -163,19 +201,20 @@ Add the name to `ns.EVENT_NAMES` in `Features/Core.lua` and a dispatcher branch 
 - **Appending `(Rank N)` to warlock stones on Era**: the `/cast` silently no-ops. The `rankIsTBCOnly` flag and `ns.GetSmartSpell` own this — don't "simplify" the spell families together.
 - **A body input missing from the state key**: the macro silently goes stale. Lossless keys are the rule; mode overrides use disjoint prefixes so transitions always rewrite.
 - **`GetItemInfo` cold nils**: a fresh login can't resolve uncached items. The scan flags `dataRetry` and re-runs on `GET_ITEM_INFO_RECEIVED` — never assume the first scan is complete.
-- **255-byte macro bodies in multibyte locales**: always assemble-then-trim (see the three trim sites); `#body` measures bytes, which is what the client enforces.
+- **Overflowing macro bodies in wide locales**: always assemble-then-trim (see the three trim sites). `#body` measures bytes, which is the conservative side of the 255 ceiling — don't loosen it to a character count without proving what the client actually enforces.
 - **`UseContainerItem` at a merchant sells the item**: the bank restock loop must never run with the merchant window open — guarded in `RunRestockLogic`.
 - **`UIDropDownMenu_SetWidth` padding**: the dropdown's invisible frame is width + padding (620 px in the Restocker footer) — anchor neighbors to the window, not the dropdown frame.
 - **`PLAYER_ENTERING_WORLD` refires on every loading screen**: init is guarded (`ns.db` nil-check, `varsInitialized`, welcome once-flag); keep new login work behind those guards.
+- **Putting a new setting on the wrong scope**: the profile is the default under this add-on's Per-Character model, because consumable choices genuinely differ per character. Only add to `global` when the setting is account-wide for a concrete reason — and document that reason in `Data/Default-Settings.lua` alongside the existing five.
 - **Editing non-enUS locale files by hand**: they're owned by the Localization pass; hand edits get overwritten. enUS only.
 - **StyLua**: run `stylua` (default config) over Connoisseur-proper Lua before committing; `Features/Restocker/` keeps its vendored style and `Includes/` is never touched. Verify macro-path changes with `tools/parity/check.sh` and Restocker moves with `lua Features/Restocker/Tests/RestockPlannerTest.lua`.
 
 ## Contributing
 
 - **Issues**: [GitHub Issues](https://github.com/Gogo1951/Connoisseur/issues).
-- **Bug reports**: include game version + locale, class + level, repro steps, and the relevant macro body or chat output. The in-game **Diagnostic Tools** panel (Options → AddOns → Connoisseur) generates pasteable reports — the Event Log and Connoisseur Context sections answer most "my macro didn't update" reports.
+- **Bug reports**: include game version + locale, class + level, repro steps, and the relevant macro body or chat output. The in-game **Diagnostic Tools** panel (Options → AddOns → Connoisseur, or `/foodie`) generates pasteable reports — the Event Log, Connoisseur Context, and Selection Report sections answer most "my macro didn't update" reports.
 - **Discord**: <https://discord.gg/eh8hKq992Q>.
-- **PR guidelines**: keep PRs scoped to one change; match house style (StyLua defaults; Restocker keeps its vendored style); tag any data migration with a dated `MIGRATION (remove after YYYY-MM-DD)` comment; check the 255-byte limit for any macro-body change (`./tools/parity/check.sh` must report byte-identical or intentionally-changed baselines); update this document when the architecture or file map changes.
+- **PR guidelines**: keep PRs scoped to one change; match house style (StyLua defaults; Restocker keeps its vendored style); tag any data migration with a dated `MIGRATION (remove after 2026-08-15)` comment; check the 255 macro ceiling for any macro-body change (`./tools/parity/check.sh` must report byte-identical or intentionally-changed baselines); update this document when the architecture or file map changes.
 - **Commit and PR descriptions require a User Story.** Don't just say "I changed X." Frame it:
 
   **Format:** *As a [role], I [needed / wanted] [behavior] so that [outcome]. This change [does X].*
