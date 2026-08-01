@@ -13,7 +13,7 @@ local _, ns = ...
     also makes keybinds drop at the player's feet.
 ]]
 local function GetExplosiveClickMode()
-	local settings = ns.db and ns.db.global
+	local settings = ns.db and ns.db.profile
 	if settings and settings.explosivesClickMode == "toss" then
 		return "toss"
 	end

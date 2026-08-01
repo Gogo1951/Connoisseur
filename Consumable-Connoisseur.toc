@@ -74,11 +74,6 @@ Features/Announcements.lua
 Features/Item-Cache.lua
 Features/Scanner-Character.lua
 Features/Scanner-Inventory.lua
-
-# Macro system: shared machinery first (Engine before the definitions that
-# call ns.RegisterMacroType; Runtime after Announcements + Data and before the
-# definitions), then class tools, then one definition per macro type, then the
-# DruidMacroHelper integration hook (consulted by Engine at update time).
 Features/Macros/Engine.lua
 Features/Macros/Runtime.lua
 Features/Macros/Tools-Mages.lua
@@ -95,11 +90,10 @@ Features/Macros/Mana-Potion.lua
 Features/Macros/Soulstone.lua
 Features/Macros/Water.lua
 Features/Macros/Integration-Druid-Macro-Helper.lua
-
 Features/Action-Button-Text.lua
 Features/Readiness.lua
 
-# Restocker (list-based bag/bank/vendor restocking; /crs)
+# Restocker
 Features/Restocker/Module.lua
 Features/Restocker/KvEnv.lua
 Features/Restocker/Restocker.lua

@@ -249,6 +249,12 @@ end
 -- Macro Enablement
 --------------------------------------------------------------------------------
 
+--[[
+    Which macros the account wants. Account-wide to match the macros themselves,
+    which live in the shared General tab (see the CreateMacro wrapper below), so
+    a character switch never adds or removes a macro -- it only rewrites the
+    shared bodies to that character's best items.
+]]
 function ns.IsMacroEnabled(typeName)
 	local enabled = ns.db and ns.db.global.enabledMacros
 	if not enabled then

@@ -51,7 +51,7 @@ ns.RegisterMacroType({
 		if not ns.IsNightElf or ns.IsRogue then
 			return nil
 		end
-		local settings = ns.db and ns.db.global
+		local settings = ns.db and ns.db.profile
 		if not settings or not settings.enableShadowmeldDrinking then
 			return nil
 		end

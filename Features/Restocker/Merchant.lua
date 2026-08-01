@@ -140,7 +140,8 @@ function merchantModule:Restock()
   local craftingPurchaseOrder = buyIngredientsModule:CraftingPurchaseOrder() or {}
   local purchaseOrders = --[[---@type RsTradeCommandsByName]] {}
   local restockList = settings.profiles[settings.currentProfile]
-  local vendorReaction = UnitReaction("target", "player") or 0
+  -- "npc" is the unit we are actually interacting with; the vendor is usually not targeted.
+  local vendorReaction = UnitReaction("npc", "player") or UnitReaction("target", "player") or 0
 
   -- Build the Purchase Orders table used for buying items
   for _, eachRestockRecord in pairs(--[[---@not nil]] restockList) do

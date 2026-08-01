@@ -478,7 +478,7 @@ function ns.ScanBags()
 	local firstAidSkill = ns.CurrentFirstAidSkill or 0
 	local alchemySkill = ns.CurrentAlchemySkill or 0
 	local engineeringSkill = ns.CurrentEngineeringSkill or 0
-	local settings = (ns.db and ns.db.global) or {}
+	local settings = (ns.db and ns.db.profile) or {}
 	local itemCache = (ns.db and ns.db.profile.itemCache) or {}
 
 	--[[

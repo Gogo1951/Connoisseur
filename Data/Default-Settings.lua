@@ -9,35 +9,39 @@ local _, ns = ...
     AceDB:New, which applies the defaults via metatables -- there is no
     hand-rolled merge and no per-scope copy step.
 
-    Everything the user configures lives under `global`, so it is account-wide:
-    set once on any character, it applies on all of them. Each character still
-    gets its own "Name - Realm" profile, and the only thing that lives there is
-    the Ignore List -- genuinely per-character state, so one character can mute
-    a food item without muting it everywhere.
+    Almost everything the user configures lives under `profile`, so it is
+    per-character: each character gets its own "Name - Realm" profile and can
+    run a different set of consumables. That is the point -- a level-15 alt and
+    a raiding 60 want different buff food, and two Rogues want their own poison
+    pairs. The stock Profiles panel (Options/Options-Profiles.lua) is therefore
+    meaningful: switching, copying, or resetting a profile moves real settings.
 
-    `global.minimap` is account-level for the same reason as the settings, so
-    switching, resetting, or deleting profiles never moves the minimap button
-    (LibDBIcon reads its `hide` flag directly).
+    Five things stay under `global` (account-wide), each for a concrete reason
+    rather than convenience:
+      * showWelcome    -- one login greeting per account, not per character.
+      * showMacroNames -- a client-wide action-bar appearance tweak.
+      * readyCheckReport -- a behaviour preference (does Connoisseur speak up on
+                          a ready check?) rather than a consumable choice.
+      * enabledMacros  -- the macros themselves are account-wide: they live in
+                          the shared General macro tab, so which ones exist has
+                          to be one choice for the whole account. Keeping the
+                          setting here means the two agree -- a character switch
+                          never adds or removes a macro, it only rewrites the
+                          shared bodies to that character's best items.
+      * minimap        -- LibDBIcon reads this subtable directly and owns its
+                          contents (position etc.), so keeping it off the
+                          profile means switching, resetting, or deleting a
+                          profile never moves the minimap button.
 
     The derived item cache (itemCache / itemCacheVersion) is deliberately NOT
     declared here: Core lazy-inits it on the profile and owns its version-stamp
-    invalidation, so it never needs a default.
+    invalidation, so it never needs a default. The same goes for the migration
+    bookkeeping flag (ignoreListSeeded).
 ]]
 ns.DATABASE_DEFAULTS = {
 	profile = {
 		ignoreList = {},
-	},
-	global = {
-		showWelcome = true,
-		--[[
-            Macro-name text on the default action bars. Off by default so the
-            add-on hides the names Blizzard recently began showing again; the
-            "Enable Macro Names on Buttons" toggle is its inverse (see
-            Features/Action-Button-Text.lua).
-        ]]
-		showMacroNames = false,
-		useBuffFood = false,
-		buffFoodMode = "always",
+		combineHealthstones = false,
 		--[[
             Early re-application: with earlyReapply on, a food/scroll/pet buff
             whose remaining time is under earlyReapplyThreshold (seconds)
@@ -46,12 +50,8 @@ ns.DATABASE_DEFAULTS = {
         ]]
 		earlyReapply = false,
 		earlyReapplyThreshold = 120,
-		--[[
-            Ready-check self-audit: prints one player-only line naming what is
-            missing and how long the tracked buffs have left. Reports on the
-            same buffs the threshold above governs. See Features/Readiness.lua.
-        ]]
-		readyCheckReport = true,
+		useBuffFood = false,
+		buffFoodMode = "always",
 		useScrolls = false,
 		scrollsMode = "always",
 		scrollTypes = {
@@ -63,39 +63,64 @@ ns.DATABASE_DEFAULTS = {
 			Strength = true,
 		},
 		--[[
+            Off by default, like every other opt-in feature here. Pet buff food
+            is a min-maxer's tool -- it needs level 55+, a live pet, and a
+            steady supply of Kibler's Bits or Sporeling Snacks -- so a new user
+            should never meet it uninvited. Leave this false.
+        ]]
+		usePetBuffFood = false,
+		petBuffFoodMode = "always",
+		petBuffTypes = {
+			KiblersBits = true,
+			SporelingSnacks = true,
+		},
+		--[[
             Explosive macro click layout: "atplayer" fires [@player] on
             left-click and the standard toss on right-click; "toss" swaps
             the buttons. See BuildExplosiveUseLine in Features/Macros/Explosive.lua.
         ]]
 		explosivesClickMode = "atplayer",
+		enableDruidMacroHelper = false,
+		druidReturnForm = "bear",
 		enableShadowmeldDrinking = false,
 		--[[
             Stealth Eating appends the character's stealth ability to the Food
             macro -- Stealth for Rogues, Shadowmeld for other Night Elves. One
             key serves both; the class/race gate lives in Food.lua's appendBlock.
+            Per-character, so a Night Elf Druid enabling it no longer switches
+            it on for the account's Rogues.
         ]]
 		enableStealthEating = false,
-		combineHealthstones = false,
-		enableDruidMacroHelper = false,
-		druidReturnForm = "bear",
-		usePetBuffFood = false,
-		petBuffFoodMode = "always",
 		--[[
             Rogue poison groups per weapon slot, keyed by ns.PoisonGroupBaseItems
             group IDs (4 = Instant Poison). See Data/Poisons.lua.
         ]]
 		mainHandPoisonGroup = 4,
 		offHandPoisonGroup = 4,
-		petBuffTypes = {
-			KiblersBits = true,
-			SporelingSnacks = true,
-		},
+	},
+	global = {
+		showWelcome = true,
 		--[[
-            Macro enablement is account-wide. The macros live in the shared
-            General macro tab, so which ones Connoisseur maintains is one choice
-            for the whole account; unchecking one removes the shared macro.
-            Class-gated macros (Feed Pet, conjures) still build only for the
-            right class regardless of the toggle.
+            Macro-name text on the default action bars. Off by default so the
+            add-on hides the names Blizzard recently began showing again; the
+            "Enable Macro Names on Buttons" toggle is its inverse (see
+            Features/Action-Button-Text.lua).
+        ]]
+		showMacroNames = false,
+		--[[
+            Ready-check self-audit: prints one player-only line naming what is
+            missing and how long the tracked buffs have left. Reports on the
+            same buffs earlyReapplyThreshold governs, but is itself a behaviour
+            preference -- whether you want Connoisseur speaking up at all -- so
+            it is answered once for the account rather than per character.
+        ]]
+		readyCheckReport = true,
+		--[[
+            Which macros Connoisseur maintains. Account-wide because the macros
+            are: they live in the shared General macro tab, so unchecking one
+            removes the shared macro for every character. Class-gated macros
+            (Feed Pet, conjures) still build only for the right class regardless
+            of the toggle.
         ]]
 		enabledMacros = {
 			["Bandage"] = true,
@@ -121,4 +146,16 @@ ns.DATABASE_DEFAULTS = {
 			hide = false,
 		},
 	},
+}
+
+--[[
+    MIGRATION (remove after 2026-08-15): declared profile keys that are not user
+    settings, so the settings migration in Core.lua skips them. Only ignoreList
+    is actually reachable -- the migration walks DATABASE_DEFAULTS.profile, and
+    the item cache and bookkeeping flags are deliberately undeclared -- but it
+    is listed by name rather than special-cased so the intent survives a future
+    key being added here.
+]]
+ns.PROFILE_NON_SETTINGS = {
+	ignoreList = true,
 }

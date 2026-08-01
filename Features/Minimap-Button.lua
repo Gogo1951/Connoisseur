@@ -10,9 +10,10 @@ local LDBIcon = LibStub("LibDBIcon-1.0")
 --------------------------------------------------------------------------------
 
 --[[
-    Reads the class's display color from Blizzard's RAID_CLASS_COLORS.
-    colorStr is an 8-char "ffRRGGBB" prefix-ready string. Falls back to
-    white if the table isn't available (extremely old Classic builds).
+    The class's display color as a ready-to-use "|cffRRGGBB" prefix. Prefers
+    ns.CLASS_COLORS (Data/Data.lua) so the tooltip matches the add-on's own
+    palette, falls back to Blizzard's RAID_CLASS_COLORS (whose colorStr is an
+    8-char "ffRRGGBB" string), then to white if neither is available.
 ]]
 local function GetClassColorStr(classToken)
 	local localHex = ns.CLASS_COLORS and ns.CLASS_COLORS[classToken]
@@ -121,10 +122,10 @@ local function AddItemSection(tooltip, title, itemID, itemLink, missingLabel)
 end
 
 UpdateTooltip = function(anchor)
-	if not (ns.db and ns.db.global and ns.db.profile) then
+	if not (ns.db and ns.db.profile) then
 		return
 	end
-	local settings = ns.db.global
+	local settings = ns.db.profile
 	local tooltip = GameTooltip
 
 	tooltip:SetOwner(anchor, "ANCHOR_BOTTOMLEFT")

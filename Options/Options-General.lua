@@ -13,18 +13,25 @@ local Spacer = ns.OptionsSpacer
 --[[
     Each feature's mode dropdown and option sub-controls are hidden until the
     feature toggle is on, mirroring the guide's "hide unavailable controls"
-    rule. These read the account-wide settings table that InitVars guarantees.
+    rule. These read the per-character settings table that InitVars guarantees.
+
+    Settings live on the AceDB profile, so every character configures its own
+    consumables. The five exceptions are account-wide and read ns.db.global
+    directly: Welcome Message, Minimap Button, Macro Names on Buttons, Ready
+    Check, and the Enable Macros toggles (see Data/Default-Settings.lua for why
+    each one stays there).
 ]]
 
 local function GetSettings()
-	return ns.db and ns.db.global
+	return ns.db and ns.db.profile
 end
 
 --[[
     Restocker keeps its own account-wide SavedVariable (ConnoisseurRestockerDB),
     bound to CrsModule.restockerModule.settings at PLAYER_LOGIN — it is not part
     of the AceDB database, so its controls read and write through this accessor
-    instead of ns.db.global.
+    instead of ns.db.profile. Its scoping is unchanged: the toggles below are
+    account-wide, while each character defaults to its own restock list.
 ]]
 local function GetRestockerSettings()
 	local restockerModule = CrsModule and CrsModule.restockerModule
@@ -69,10 +76,10 @@ local function FeatureMode(settingKey, activeFn, order)
 			return not activeFn()
 		end,
 		get = function()
-			return ns.db.global[settingKey] or "always"
+			return ns.db.profile[settingKey] or "always"
 		end,
 		set = function(_, value)
-			ns.db.global[settingKey] = value
+			ns.db.profile[settingKey] = value
 			if ns.ResetMacroState then
 				ns.ResetMacroState()
 			end
@@ -81,18 +88,18 @@ local function FeatureMode(settingKey, activeFn, order)
 	}
 end
 
--- Toggle for one entry inside an account-wide settings subtable (scroll/pet types).
+-- Toggle for one entry inside a per-character settings subtable (scroll/pet types).
 local function SubsetToggle(subtable, key, label, order)
 	return {
 		type = "toggle",
 		name = label,
 		order = order,
 		get = function()
-			local t = ns.db.global[subtable]
+			local t = ns.db.profile[subtable]
 			return t and t[key]
 		end,
 		set = function(_, value)
-			ns.db.global[subtable][key] = value
+			ns.db.profile[subtable][key] = value
 			if ns.ResetMacroState then
 				ns.ResetMacroState()
 			end
@@ -125,10 +132,10 @@ local function PoisonHandDropdown(label, settingKey, order)
 			return not ns.IsRogue
 		end,
 		get = function()
-			return ns.db.global[settingKey] or 4
+			return ns.db.profile[settingKey] or 4
 		end,
 		set = function(_, value)
-			ns.db.global[settingKey] = value
+			ns.db.profile[settingKey] = value
 			if ns.ResetMacroState then
 				ns.ResetMacroState()
 			end
@@ -264,7 +271,7 @@ function ns.BuildGeneralOptions()
 					return s and s.combineHealthstones
 				end,
 				set = function(_, value)
-					ns.db.global.combineHealthstones = value
+					ns.db.profile.combineHealthstones = value
 					if ns.ResetMacroState then
 						ns.ResetMacroState()
 					end
@@ -294,7 +301,7 @@ function ns.BuildGeneralOptions()
 					return s and s.earlyReapply
 				end,
 				set = function(_, value)
-					ns.db.global.earlyReapply = value
+					ns.db.profile.earlyReapply = value
 					if ns.ResetMacroState then
 						ns.ResetMacroState()
 					end
@@ -319,10 +326,10 @@ function ns.BuildGeneralOptions()
 					return not (s and s.earlyReapply)
 				end,
 				get = function()
-					return ns.db.global.earlyReapplyThreshold or 120
+					return ns.db.profile.earlyReapplyThreshold or 120
 				end,
 				set = function(_, value)
-					ns.db.global.earlyReapplyThreshold = value
+					ns.db.profile.earlyReapplyThreshold = value
 					if ns.ResetMacroState then
 						ns.ResetMacroState()
 					end
@@ -372,8 +379,7 @@ function ns.BuildGeneralOptions()
 				order = 155,
 				width = "full",
 				get = function()
-					local s = GetSettings()
-					return s and s.readyCheckReport
+					return ns.db and ns.db.global.readyCheckReport
 				end,
 				set = function(_, value)
 					ns.db.global.readyCheckReport = value
@@ -444,7 +450,7 @@ function ns.BuildGeneralOptions()
 					return PetBuffActive()
 				end,
 				set = function(_, value)
-					ns.db.global.usePetBuffFood = value
+					ns.db.profile.usePetBuffFood = value
 					if ns.UpdateAuraTracking then
 						ns.UpdateAuraTracking()
 					end
@@ -494,10 +500,10 @@ function ns.BuildGeneralOptions()
 				},
 				sorting = { "atplayer", "toss" },
 				get = function()
-					return ns.db.global.explosivesClickMode or "atplayer"
+					return ns.db.profile.explosivesClickMode or "atplayer"
 				end,
 				set = function(_, value)
-					ns.db.global.explosivesClickMode = value
+					ns.db.profile.explosivesClickMode = value
 					if ns.ResetMacroState then
 						ns.ResetMacroState()
 					end
@@ -536,14 +542,9 @@ function ns.BuildGeneralOptions()
 					return not ns.IsDruid
 				end,
 			},
-			headerDruid = {
-				type = "header",
-				name = GetColor("TITLE") .. L["OPTIONS_DRUIDS_HEADER"] .. "|r",
-				order = 501,
-				hidden = function()
-					return not ns.IsDruid
-				end,
-			},
+			headerDruid = Header(L["OPTIONS_DRUIDS_HEADER"], 501, function()
+				return not ns.IsDruid
+			end),
 			spaceDruid1 = {
 				type = "description",
 				name = " ",
@@ -562,7 +563,7 @@ function ns.BuildGeneralOptions()
 					return not ns.IsDruid
 				end,
 				get = function()
-					return ns.db and ns.db.global and ns.db.global.enableDruidMacroHelper
+					return ns.db and ns.db.profile and ns.db.profile.enableDruidMacroHelper
 				end,
 				set = function(_, value)
 					if ns.ToggleDruidMacroHelper then
@@ -584,14 +585,14 @@ function ns.BuildGeneralOptions()
 					if not ns.IsDruid then
 						return true
 					end
-					local settings = ns.db and ns.db.global
+					local settings = ns.db and ns.db.profile
 					return not (settings and settings.enableDruidMacroHelper)
 				end,
 				get = function()
-					return ns.db.global.druidReturnForm or "bear"
+					return ns.db.profile.druidReturnForm or "bear"
 				end,
 				set = function(_, value)
-					ns.db.global.druidReturnForm = value
+					ns.db.profile.druidReturnForm = value
 					if ns.ResetMacroState then
 						ns.ResetMacroState()
 					end
@@ -608,14 +609,9 @@ function ns.BuildGeneralOptions()
 					return not ns.IsNightElf or ns.IsRogue
 				end,
 			},
-			headerNightElf = {
-				type = "header",
-				name = GetColor("TITLE") .. L["OPTIONS_NIGHTELF_HEADER"] .. "|r",
-				order = 601,
-				hidden = function()
-					return not ns.IsNightElf or ns.IsRogue
-				end,
-			},
+			headerNightElf = Header(L["OPTIONS_NIGHTELF_HEADER"], 601, function()
+				return not ns.IsNightElf or ns.IsRogue
+			end),
 			spaceNightElf1 = {
 				type = "description",
 				name = " ",
@@ -634,7 +630,7 @@ function ns.BuildGeneralOptions()
 					return not ns.IsNightElf or ns.IsRogue
 				end,
 				get = function()
-					return ns.db and ns.db.global and ns.db.global.enableShadowmeldDrinking
+					return ns.db and ns.db.profile and ns.db.profile.enableShadowmeldDrinking
 				end,
 				set = function(_, value)
 					if ns.ToggleShadowmeldDrinking then
@@ -652,7 +648,7 @@ function ns.BuildGeneralOptions()
 					return not ns.IsNightElf or ns.IsRogue
 				end,
 				get = function()
-					return ns.db and ns.db.global and ns.db.global.enableStealthEating
+					return ns.db and ns.db.profile and ns.db.profile.enableStealthEating
 				end,
 				set = function(_, value)
 					if ns.ToggleStealthEating then
@@ -693,14 +689,9 @@ function ns.BuildGeneralOptions()
 					return not ns.IsRogue
 				end,
 			},
-			headerRogue = {
-				type = "header",
-				name = GetColor("TITLE") .. L["OPTIONS_ROGUES_HEADER"] .. "|r",
-				order = 521,
-				hidden = function()
-					return not ns.IsRogue
-				end,
-			},
+			headerRogue = Header(L["OPTIONS_ROGUES_HEADER"], 521, function()
+				return not ns.IsRogue
+			end),
 			spaceRogue1 = {
 				type = "description",
 				name = " ",
@@ -779,7 +770,7 @@ function ns.BuildGeneralOptions()
 					return not ns.IsRogue
 				end,
 				get = function()
-					return ns.db and ns.db.global and ns.db.global.enableStealthEating
+					return ns.db and ns.db.profile and ns.db.profile.enableStealthEating
 				end,
 				set = function(_, value)
 					if ns.ToggleStealthEating then
