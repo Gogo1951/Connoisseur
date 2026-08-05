@@ -53,7 +53,7 @@ end
 function mainFrameModule:CreateScrollFrame(addonFrame, listInset)
   local scrollFrame = --[[---@type RsControl]] CreateFrame("ScrollFrame", nil, addonFrame, "UIPanelScrollFrameTemplate")
   scrollFrame.width = addonFrame.listInset.width - 4
-  -- Leave 22px at the top for the sortable column-header bar
+  -- Leave 22px at the top for the filter box (CreateFilterBox)
   scrollFrame.height = addonFrame.listInset.height - 32 - 22
   scrollFrame:SetSize(scrollFrame.width - 30, scrollFrame.height);
   scrollFrame:SetPoint("TOPLEFT", listInset, "TOPLEFT", 8, -28);

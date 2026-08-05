@@ -138,7 +138,7 @@ UpdateTooltip = function(anchor)
 	-- Prioritize Buff Food
 	local buffState = settings.useBuffFood and (GetColor("ON") .. L["UI_ENABLED"] .. "|r")
 		or (GetColor("OFF") .. L["UI_DISABLED"] .. "|r")
-	tooltip:AddDoubleLine(GetColor("TITLE") .. L["MENU_BUFF_FOOD"] .. "|r", buffState)
+	tooltip:AddDoubleLine(GetColor("TITLE") .. L["FEATURE_BUFF_FOOD"] .. "|r", buffState)
 	tooltip:AddLine(GetColor("BODY") .. L["MENU_BUFF_FOOD_DESCRIPTION"] .. "|r", 1, 1, 1, true)
 	tooltip:AddDoubleLine(GetColor("INFO") .. L["UI_LEFT_CLICK"] .. "|r", GetColor("INFO") .. L["UI_TOGGLE"] .. "|r")
 	tooltip:AddLine(" ")
@@ -146,7 +146,7 @@ UpdateTooltip = function(anchor)
 	-- Include Scroll Buffs
 	local scrollState = settings.useScrolls and (GetColor("ON") .. L["UI_ENABLED"] .. "|r")
 		or (GetColor("OFF") .. L["UI_DISABLED"] .. "|r")
-	tooltip:AddDoubleLine(GetColor("TITLE") .. L["MENU_SCROLL_BUFFS"] .. "|r", scrollState)
+	tooltip:AddDoubleLine(GetColor("TITLE") .. L["FEATURE_SCROLL_BUFFS"] .. "|r", scrollState)
 	tooltip:AddLine(GetColor("BODY") .. L["MENU_SCROLL_BUFFS_DESCRIPTION"] .. "|r", 1, 1, 1, true)
 	tooltip:AddDoubleLine(GetColor("INFO") .. L["UI_SHIFT_LEFT"] .. "|r", GetColor("INFO") .. L["UI_TOGGLE"] .. "|r")
 

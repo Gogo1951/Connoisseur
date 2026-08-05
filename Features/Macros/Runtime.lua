@@ -70,7 +70,7 @@ function ns.ReportZoneRestriction(msg)
 		end
 	end
 
-	ns.PrintMessage(string.format(L["MSG_BUG_REPORT"], link, itemID, zone, subzone, mapID))
+	ns.PrintMessage(string.format(L["MSG_BUG_REPORT"], link, itemID, zone, subzone, mapID, ns.DISCORD_URL))
 	ConnoisseurState.lastTime = 0
 end
 

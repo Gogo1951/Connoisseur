@@ -56,13 +56,15 @@ L["DIET_MEAT"] = "고기"
 --------------------------------------------------------------------------------
 
 L["MSG_BUG_REPORT"] =
-	"버그를 발견한 것 같습니다! %s (%s) 아이템은 %s > %s (%s)에서 사용할 수 없습니다. 수정할 수 있도록 제보해 주세요. 감사합니다! https://discord.gg/eh8hKq992Q"
+	"버그를 발견한 것 같습니다! %s (%s) 아이템은 %s > %s (%s)에서 사용할 수 없습니다. 수정할 수 있도록 제보해 주세요. 감사합니다! %s"
 L["MSG_NO_ITEM"] = "가방에 적합한 %s(이)가 없습니다."
 L["MSG_MACRO_SLOTS_FULL"] =
 	"매크로 슬롯이 가득 차서 일부 Connoisseur 매크로를 생성할 수 없습니다. 더 이상 사용하지 않는 매크로를 삭제하여 슬롯을 비우거나 설정 > 애드온 > Connoisseur에서 필요 없는 매크로를 끄십시오."
 
 L["CHAT_LOADED"] =
 	"버전 %s. 설정(이 메시지 비활성화 옵션 포함)은 설정 > 애드온 > Connoisseur에서 찾을 수 있습니다. 애드온이 마음에 드시나요? 친구에게 알려주세요! (="
+
+L["CHAT_OPTIONS_IN_COMBAT"] = "안전을 위해 전투 중에는 설정 인터페이스를 열 수 없습니다."
 
 --------------------------------------------------------------------------------
 -- Ready Check
@@ -108,10 +110,10 @@ L["TIP_DONT_KNOW_SPELL"] = "현재 %s 기술을 배우지 않았습니다."
 --------------------------------------------------------------------------------
 
 -- Feature toggles shown in the minimap tooltip, each with a description line.
-L["MENU_BUFF_FOOD"] = "버프 음식"
+L["FEATURE_BUFF_FOOD"] = "버프 음식"
 L["MENU_BUFF_FOOD_DESCRIPTION"] =
 	'"포만감" 버프가 없을 때 해당 버프를 주는 음식을 우선 사용합니다.'
-L["MENU_SCROLL_BUFFS"] = "두루마리 버프"
+L["FEATURE_SCROLL_BUFFS"] = "두루마리 버프"
 L["MENU_SCROLL_BUFFS_DESCRIPTION"] =
 	"두루마리 버프가 없을 때 음식 매크로를 두루마리 적용기로 전환합니다."
 
@@ -260,9 +262,12 @@ L["OPTIONS_REAPPLY_HEADER"] = "버프 재적용"
 L["OPTIONS_REAPPLY"] = "만료 임박 버프 재적용"
 L["OPTIONS_REAPPLY_DESCRIPTION"] =
 	"전투는 종종 버프의 남은 시간보다 오래 지속됩니다. 남은 시간이 기준보다 적은 버프는 이미 만료된 것으로 간주되어, 전투 전에 매크로가 새 버프를 제안합니다. 버프 음식, 두루마리 버프, 소환수 음식 버프에 적용됩니다."
-L["OPTIONS_REAPPLY_THRESHOLD"] = "만료로 간주하는 기준"
-L["REAPPLY_THRESHOLD_ONE"] = "1분 미만 남음"
-L["REAPPLY_THRESHOLD_N"] = "%d분 미만 남음"
+--[[
+    Threshold dropdown, shown beside the Re-Apply toggle. The values carry the
+    "when" themselves, so the row reads as one sentence and needs no caption.
+]]
+L["REAPPLY_THRESHOLD_ONE"] = "1분 미만 남았을 때"
+L["REAPPLY_THRESHOLD_N"] = "%d분 미만 남았을 때"
 
 -- Ready Check
 L["OPTIONS_READY_CHECK_HEADER"] = "준비 확인"
@@ -270,16 +275,14 @@ L["OPTIONS_READY_CHECK"] = "준비 확인 시 상태 보고"
 L["OPTIONS_READY_CHECK_DESCRIPTION"] =
 	"준비 확인이 시작될 때마다 부족한 것과 추적 중인 버프의 남은 시간을 출력합니다. 자신에게만 보입니다."
 
--- Buff Food
-L["OPTIONS_BUFF_FOOD_HEADER"] = "버프 음식"
+-- Buff Food. The section header reuses FEATURE_BUFF_FOOD.
 L["OPTIONS_BUFF_FOOD"] = "버프 음식 우선"
 L["OPTIONS_BUFF_FOOD_DESCRIPTION"] =
 	'"포만감" 버프가 없을 때 해당 버프를 주는 음식을 우선 사용합니다. 투기장에서는 비활성화됩니다.'
 L["OPTIONS_BUFF_FOOD_DETAIL"] =
 	"프로 팁: 자신을 대상으로 지정하면 음식 매크로가 항상 버프 음식과 두루마리를 건너뜁니다."
 
--- Scroll Buffs
-L["OPTIONS_SCROLL_HEADER"] = "두루마리 버프"
+-- Scroll Buffs. The section header reuses FEATURE_SCROLL_BUFFS.
 L["OPTIONS_USE_SCROLLS"] = "두루마리 버프 포함"
 L["OPTIONS_USE_SCROLLS_DESCRIPTION"] =
 	"한 번 누르면 부족한 두루마리를 적용하고, 다시 누르면 음식을 먹습니다. 두루마리는 전역 재사용 대기시간(GCD)의 영향을 받지 않고 자신을 대상으로 하며, 우호적인 플레이어를 대상으로 지정하면 건너뜁니다. 투기장에서는 비활성화됩니다."
@@ -312,14 +315,18 @@ L["OPTIONS_DRUIDS_HEADER"] = "드루이드"
 L["OPTIONS_DRUID_MACRO_HELPER"] = "DruidMacroHelper 연동 활성화"
 L["OPTIONS_DRUID_MACRO_HELPER_DESCRIPTION"] =
 	"DruidMacroHelper(/dmh)를 사용하여 치유 물약, 마나 물약, 생명석에 대한 변신 매크로를 생성합니다."
-L["OPTIONS_DRUID_RETURN_FORM"] = "소모품 사용 후 변신"
-L["DRUID_FORM_BEAR"] = "곰"
-L["DRUID_FORM_CAT"] = "표범"
+--[[
+    Return-form dropdown, shown beside the DruidMacroHelper toggle. The macro
+    powershifts out of form, uses the consumable, then returns to this one, so
+    the values name that return and the row needs no caption.
+]]
+L["DRUID_FORM_BEAR"] = "곰으로 복귀"
+L["DRUID_FORM_CAT"] = "표범으로 복귀"
 
 -- Night Elves
 L["OPTIONS_NIGHTELF_HEADER"] = "나이트 엘프"
-L["OPTIONS_SHADOWMELD_DRINKING"] = "마실 때 은신 사용"
-L["OPTIONS_SHADOWMELD_DRINKING_DESCRIPTION"] =
+L["OPTIONS_STEALTH_DRINKING"] = "마실 때 은신 사용"
+L["OPTIONS_STEALTH_DRINKING_DESCRIPTION"] =
 	"물 매크로에 그림자 숨기를 추가하여 물을 마시는 동안 은신합니다."
 L["OPTIONS_STEALTH_EATING_NIGHTELF_DESCRIPTION"] =
 	"음식 매크로에 그림자 숨기를 추가하여 음식을 먹는 동안 은신합니다."
@@ -338,7 +345,7 @@ L["OPTIONS_STEALTH_EATING_ROGUE_DESCRIPTION"] =
 
 -- Restocker. The section header reuses RESTOCKER_WINDOW_TITLE.
 L["OPTIONS_RESTOCKER_DESCRIPTION"] =
-	"캐릭터별 보충 목록에 따라 가방을 채워 줍니다. 상인에게서 자동으로 구매하고 가방과 은행 사이에서 아이템을 옮깁니다. /crs 명령어로 목록을 엽니다."
+	"캐릭터별 보충 목록에 따라 가방을 채워 줍니다. 상인에게서 자동으로 구매하고 가방과 은행 사이에서 아이템을 옮깁니다. %s 명령어로 목록을 엽니다."
 L["OPTIONS_RESTOCKER_OPEN_BANK"] = "은행에서 열기"
 L["OPTIONS_RESTOCKER_OPEN_BANK_DESCRIPTION"] = "은행 방문 시 Restocker 창을 엽니다."
 L["OPTIONS_RESTOCKER_OPEN_MERCHANT"] = "상인에게서 열기"
@@ -347,18 +354,31 @@ L["OPTIONS_RESTOCKER_DEBUG"] = "Restocker 디버그 메시지 사용"
 L["OPTIONS_RESTOCKER_DEBUG_DESCRIPTION"] =
 	"Restocker의 은행/상인 보충 결정을 단계별로 대화창에 출력합니다. 메시지가 많으며, 끌 때까지 세션이 바뀌어도 유지됩니다."
 
--- /Commands. The command literals stay in code; these are the descriptions.
+--[[
+    /Commands. Both halves of each line are locale keys: the literal, which stays
+    identical in every locale (localization allowlist), and its description.
+]]
 L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
-L["OPTIONS_COMMANDS_FOODIE_DETAIL"] = "Connoisseur 설정 인터페이스를 엽니다."
-L["OPTIONS_COMMANDS_CRS_DETAIL"] = "보충 목록을 관리할 Restocker 창을 엽니다."
+L["OPTIONS_COMMAND"] = "/foodie"
+L["OPTIONS_COMMAND_DESCRIPTION"] = "이 애드온의 설정 인터페이스를 엽니다."
+L["RESTOCKER_COMMAND"] = "/crs"
+L["RESTOCKER_COMMAND_DESCRIPTION"] = "보충 목록을 관리할 Restocker 창을 엽니다."
 
 -- Enable Macros
 L["OPTIONS_ENABLE_MACROS_HEADER"] = "매크로 활성화"
 L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] =
 	"Connoisseur가 생성하고 관리할 매크로를 선택합니다. 매크로를 비활성화하면 해당 매크로도 삭제됩니다."
 
--- Feedback & Support
+--[[
+    Feedback & Support. The four service names are brand names and stay English
+    in every locale (localization allowlist); VERSION_LABEL translates.
+]]
 L["OPTIONS_COMMUNITY_HEADER"] = "피드백 및 지원"
+L["DISCORD"] = "Discord"
+L["GITHUB"] = "GitHub"
+L["CURSEFORGE"] = "CurseForge"
+L["WAGO"] = "Wago"
+L["VERSION_LABEL"] = "버전"
 
 --------------------------------------------------------------------------------
 -- Restocker Window & Chat

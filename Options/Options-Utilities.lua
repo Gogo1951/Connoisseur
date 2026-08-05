@@ -37,6 +37,21 @@ function ns.OptionsSpacer(order)
 	}
 end
 
+--[[
+    The left half of a label-beside-control row: this cell, then the control
+    with name = "" ordered immediately after it. A caption left on the control
+    would put the label back above the widget and break the row.
+]]
+function ns.OptionsRowLabel(text, order, width)
+	return {
+		type = "description",
+		name = text,
+		fontSize = "medium",
+		width = width or ns.OPTIONS_LABEL_WIDTH,
+		order = order,
+	}
+end
+
 --------------------------------------------------------------------------------
 -- Shared Values
 --------------------------------------------------------------------------------

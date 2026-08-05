@@ -77,7 +77,7 @@ end
 
 RS.commands = {
   show = rsSlashHelpLine("/crs show", L["RESTOCKER_HELP_SHOW"]),
-  config = rsSlashHelpLine("/crs config", L["OPTIONS_COMMANDS_FOODIE_DETAIL"]),
+  config = rsSlashHelpLine("/crs config", L["OPTIONS_COMMAND_DESCRIPTION"]),
   profile = --[[---@type {[string]: string}]] {
     add = rsSlashHelpLine("/crs profile add [name]", L["RESTOCKER_HELP_PROFILE_ADD"]),
     delete = rsSlashHelpLine("/crs profile delete [name]", L["RESTOCKER_HELP_PROFILE_DELETE"]),

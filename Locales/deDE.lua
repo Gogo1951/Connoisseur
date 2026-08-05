@@ -56,13 +56,15 @@ L["DIET_MEAT"] = "Fleisch"
 --------------------------------------------------------------------------------
 
 L["MSG_BUG_REPORT"] =
-	"Du hast einen Bug gefunden! %s (%s) kann nicht in %s > %s (%s) benutzt werden. Bitte melde dies, damit wir es beheben können. Danke! https://discord.gg/eh8hKq992Q"
+	"Du hast einen Bug gefunden! %s (%s) kann nicht in %s > %s (%s) benutzt werden. Bitte melde dies, damit wir es beheben können. Danke! %s"
 L["MSG_NO_ITEM"] = "Kein geeignetes %s in deinen Taschen gefunden."
 L["MSG_MACRO_SLOTS_FULL"] =
 	"Einige Connoisseur-Makros konnten nicht erstellt werden, da deine Makroplätze voll sind. Gib einen Platz frei, indem du Makros löschst, die du nicht mehr benötigst, oder deaktiviere nicht benötigte Connoisseur-Makros unter Optionen > AddOns > Connoisseur."
 
 L["CHAT_LOADED"] =
 	"Version %s. Einstellungen (einschließlich der Option, diese Nachricht zu deaktivieren) finden sich unter Optionen > AddOns > Connoisseur. Gefällt dir das Addon? Erzähle einem Freund davon! (="
+
+L["CHAT_OPTIONS_IN_COMBAT"] = "Aus Sicherheitsgründen kann das Optionsmenü im Kampf nicht geöffnet werden."
 
 --------------------------------------------------------------------------------
 -- Ready Check
@@ -107,9 +109,9 @@ L["TIP_DONT_KNOW_SPELL"] = "Du kennst derzeit nicht %s."
 --------------------------------------------------------------------------------
 
 -- Feature toggles shown in the minimap tooltip, each with a description line.
-L["MENU_BUFF_FOOD"] = "Buff-Essen"
+L["FEATURE_BUFF_FOOD"] = "Buff-Essen"
 L["MENU_BUFF_FOOD_DESCRIPTION"] = 'Bevorzugt Essen, das den "Satt"-Buff gewährt, wenn der Buff fehlt.'
-L["MENU_SCROLL_BUFFS"] = "Schriftrollen-Buffs"
+L["FEATURE_SCROLL_BUFFS"] = "Schriftrollen-Buffs"
 L["MENU_SCROLL_BUFFS_DESCRIPTION"] =
 	"Verwandelt dein Essen-Makro in einen Schriftrollen-Anwender, wenn dir Schriftrollen-Buffs fehlen."
 
@@ -258,9 +260,12 @@ L["OPTIONS_REAPPLY_HEADER"] = "Buff-Erneuerung"
 L["OPTIONS_REAPPLY"] = "Ablaufende Buffs erneuern"
 L["OPTIONS_REAPPLY_DESCRIPTION"] =
 	"Kämpfe dauern oft länger, als deine Buffs noch halten. Buffs mit weniger Restzeit als dem Schwellenwert gelten als bereits abgelaufen, sodass deine Makros vor dem Pull einen frischen anbieten. Gilt für Buff-Essen, Schriftrollen-Buffs und Tierfutter-Buffs."
-L["OPTIONS_REAPPLY_THRESHOLD"] = "Als abgelaufen behandeln bei"
-L["REAPPLY_THRESHOLD_ONE"] = "< 1 Minute übrig"
-L["REAPPLY_THRESHOLD_N"] = "< %d Minuten übrig"
+--[[
+    Threshold dropdown, shown beside the Re-Apply toggle. The values carry the
+    "when" themselves, so the row reads as one sentence and needs no caption.
+]]
+L["REAPPLY_THRESHOLD_ONE"] = "Wenn < 1 Minute übrig"
+L["REAPPLY_THRESHOLD_N"] = "Wenn < %d Minuten übrig"
 
 -- Ready Check
 L["OPTIONS_READY_CHECK_HEADER"] = "Bereitschaftsprüfung"
@@ -268,16 +273,14 @@ L["OPTIONS_READY_CHECK"] = "Bereitschaft bei Bereitschaftsprüfung melden"
 L["OPTIONS_READY_CHECK_DESCRIPTION"] =
 	"Gibt bei jeder Bereitschaftsprüfung aus, was dir fehlt und wie lange deine verfolgten Buffs noch halten. Nur für dich sichtbar."
 
--- Buff Food
-L["OPTIONS_BUFF_FOOD_HEADER"] = "Buff-Essen"
+-- Buff Food. The section header reuses FEATURE_BUFF_FOOD.
 L["OPTIONS_BUFF_FOOD"] = "Buff-Essen bevorzugen"
 L["OPTIONS_BUFF_FOOD_DESCRIPTION"] =
 	'Bevorzugt Essen, das den "Satt"-Buff gewährt, wenn der Buff fehlt. In Arenen deaktiviert.'
 L["OPTIONS_BUFF_FOOD_DETAIL"] =
 	"Profi-Tipp: Wenn du dich selbst anvisierst, lässt das Essen-Makro Buff-Essen und Schriftrollen immer aus."
 
--- Scroll Buffs
-L["OPTIONS_SCROLL_HEADER"] = "Schriftrollen-Buffs"
+-- Scroll Buffs. The section header reuses FEATURE_SCROLL_BUFFS.
 L["OPTIONS_USE_SCROLLS"] = "Schriftrollen-Buffs einschließen"
 L["OPTIONS_USE_SCROLLS_DESCRIPTION"] =
 	"Einmal tippen, um fehlende Schriftrollen anzuwenden, erneut tippen zum Essen. Schriftrollen unterliegen nicht dem GCD und zielen auf dich selbst; wer einen befreundeten Spieler anvisiert, überspringt sie. In Arenen deaktiviert."
@@ -310,14 +313,18 @@ L["OPTIONS_DRUIDS_HEADER"] = "Druiden"
 L["OPTIONS_DRUID_MACRO_HELPER"] = "DruidMacroHelper-Integration aktivieren"
 L["OPTIONS_DRUID_MACRO_HELPER_DESCRIPTION"] =
 	"Erstellt Powershifting-Makros für Heiltränke, Manatränke und Gesundheitssteine mithilfe von DruidMacroHelper (/dmh)."
-L["OPTIONS_DRUID_RETURN_FORM"] = "Nach Verbrauchsgut wechseln in"
-L["DRUID_FORM_BEAR"] = "Bär"
-L["DRUID_FORM_CAT"] = "Katze"
+--[[
+    Return-form dropdown, shown beside the DruidMacroHelper toggle. The macro
+    powershifts out of form, uses the consumable, then returns to this one, so
+    the values name that return and the row needs no caption.
+]]
+L["DRUID_FORM_BEAR"] = "Zurück zu Bär"
+L["DRUID_FORM_CAT"] = "Zurück zu Katze"
 
 -- Night Elves
 L["OPTIONS_NIGHTELF_HEADER"] = "Nachtelfen"
-L["OPTIONS_SHADOWMELD_DRINKING"] = "Verstohlenes Trinken aktivieren"
-L["OPTIONS_SHADOWMELD_DRINKING_DESCRIPTION"] =
+L["OPTIONS_STEALTH_DRINKING"] = "Verstohlenes Trinken aktivieren"
+L["OPTIONS_STEALTH_DRINKING_DESCRIPTION"] =
 	"Fügt Schattenmimik zu deinem Wasser-Makro hinzu, damit du beim Trinken unsichtbar wirst."
 L["OPTIONS_STEALTH_EATING_NIGHTELF_DESCRIPTION"] =
 	"Fügt Schattenmimik zu deinem Essen-Makro hinzu, damit du beim Essen unsichtbar wirst."
@@ -336,7 +343,7 @@ L["OPTIONS_STEALTH_EATING_ROGUE_DESCRIPTION"] =
 
 -- Restocker. The section header reuses RESTOCKER_WINDOW_TITLE.
 L["OPTIONS_RESTOCKER_DESCRIPTION"] =
-	"Hält die Taschen anhand einer charakterbezogenen Nachschubliste gefüllt. Kauft automatisch bei Händlern ein und verschiebt Gegenstände zwischen Taschen und Bank. /crs öffnet die Liste."
+	"Hält die Taschen anhand einer charakterbezogenen Nachschubliste gefüllt. Kauft automatisch bei Händlern ein und verschiebt Gegenstände zwischen Taschen und Bank. %s öffnet die Liste."
 L["OPTIONS_RESTOCKER_OPEN_BANK"] = "Bei der Bank öffnen"
 L["OPTIONS_RESTOCKER_OPEN_BANK_DESCRIPTION"] = "Öffnet das Restocker-Fenster beim Besuch der Bank."
 L["OPTIONS_RESTOCKER_OPEN_MERCHANT"] = "Beim Händler öffnen"
@@ -345,18 +352,31 @@ L["OPTIONS_RESTOCKER_DEBUG"] = "Restocker-Debugmeldungen aktivieren"
 L["OPTIONS_RESTOCKER_DEBUG_DESCRIPTION"] =
 	"Gibt Restockers schrittweise Bank- und Händlerentscheidungen im Chat aus. Gesprächig; bleibt über Sitzungen hinweg aktiv, bis es abgeschaltet wird."
 
--- /Commands. The command literals stay in code; these are the descriptions.
+--[[
+    /Commands. Both halves of each line are locale keys: the literal, which stays
+    identical in every locale (localization allowlist), and its description.
+]]
 L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
-L["OPTIONS_COMMANDS_FOODIE_DETAIL"] = "Öffnet das Connoisseur-Optionsmenü."
-L["OPTIONS_COMMANDS_CRS_DETAIL"] = "Öffnet das Restocker-Fenster zum Verwalten deiner Nachschubliste."
+L["OPTIONS_COMMAND"] = "/foodie"
+L["OPTIONS_COMMAND_DESCRIPTION"] = "Öffnet das Optionsmenü dieses Add-ons."
+L["RESTOCKER_COMMAND"] = "/crs"
+L["RESTOCKER_COMMAND_DESCRIPTION"] = "Öffnet das Restocker-Fenster zum Verwalten deiner Nachschubliste."
 
 -- Enable Macros
 L["OPTIONS_ENABLE_MACROS_HEADER"] = "Makros aktivieren"
 L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] =
 	"Schaltet um, welche Makros Connoisseur erstellt und pflegt. Wenn du ein Makro deaktivierst, wird es auch entfernt."
 
--- Feedback & Support
+--[[
+    Feedback & Support. The four service names are brand names and stay English
+    in every locale (localization allowlist); VERSION_LABEL translates.
+]]
 L["OPTIONS_COMMUNITY_HEADER"] = "Feedback & Unterstützung"
+L["DISCORD"] = "Discord"
+L["GITHUB"] = "GitHub"
+L["CURSEFORGE"] = "CurseForge"
+L["WAGO"] = "Wago"
+L["VERSION_LABEL"] = "Version"
 
 --------------------------------------------------------------------------------
 -- Restocker Window & Chat

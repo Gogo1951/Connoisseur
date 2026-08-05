@@ -56,13 +56,16 @@ L["DIET_MEAT"] = "Carne"
 --------------------------------------------------------------------------------
 
 L["MSG_BUG_REPORT"] =
-	"Sembra che tu abbia trovato un bug! %s (%s) non può essere usato in %s > %s (%s). Segnalalo per aiutarci a risolverlo. Grazie! https://discord.gg/eh8hKq992Q"
+	"Sembra che tu abbia trovato un bug! %s (%s) non può essere usato in %s > %s (%s). Segnalalo per aiutarci a risolverlo. Grazie! %s"
 L["MSG_NO_ITEM"] = "Nessun %s adatto trovato nelle tue borse."
 L["MSG_MACRO_SLOTS_FULL"] =
 	"Alcune macro di Connoisseur non sono state create perché gli slot delle macro sono pieni. Libera uno slot eliminando le macro che non usi più, oppure disattiva le macro di Connoisseur che non ti servono in Opzioni > Addon > Connoisseur."
 
 L["CHAT_LOADED"] =
 	"Versione %s. Le impostazioni (inclusa l'opzione per disabilitare questo messaggio) si trovano in Opzioni > Addon > Connoisseur. Ti piace l'addon? Parlane a un amico! (="
+
+L["CHAT_OPTIONS_IN_COMBAT"] =
+	"Per sicurezza, l'interfaccia delle opzioni non può essere aperta durante il combattimento."
 
 --------------------------------------------------------------------------------
 -- Ready Check
@@ -108,9 +111,9 @@ L["TIP_DONT_KNOW_SPELL"] = "Al momento non conosci %s."
 --------------------------------------------------------------------------------
 
 -- Feature toggles shown in the minimap tooltip, each with a description line.
-L["MENU_BUFF_FOOD"] = "Cibo con Buff"
+L["FEATURE_BUFF_FOOD"] = "Cibo con Buff"
 L["MENU_BUFF_FOOD_DESCRIPTION"] = 'Dà priorità al cibo che fornisce il buff "Ben Nutrito", quando il buff è assente.'
-L["MENU_SCROLL_BUFFS"] = "Buff Pergamena"
+L["FEATURE_SCROLL_BUFFS"] = "Buff Pergamena"
 L["MENU_SCROLL_BUFFS_DESCRIPTION"] =
 	"Trasforma la tua macro Cibo in un applicatore di pergamene quando ti mancano i buff delle pergamene."
 
@@ -258,9 +261,12 @@ L["OPTIONS_REAPPLY_HEADER"] = "Rinnovo Buff"
 L["OPTIONS_REAPPLY"] = "Rinnova i Buff in scadenza"
 L["OPTIONS_REAPPLY_DESCRIPTION"] =
 	"I combattimenti spesso durano più di quanto resta ai tuoi buff. I buff con meno tempo rimanente della soglia contano come già scaduti, così le macro ne offrono uno nuovo prima del pull. Si applica a Cibo con Buff, Buff Pergamena e Buff Cibo Famiglio."
-L["OPTIONS_REAPPLY_THRESHOLD"] = "Considera scaduto quando"
-L["REAPPLY_THRESHOLD_ONE"] = "< 1 minuto rimanente"
-L["REAPPLY_THRESHOLD_N"] = "< %d minuti rimanenti"
+--[[
+    Threshold dropdown, shown beside the Re-Apply toggle. The values carry the
+    "when" themselves, so the row reads as one sentence and needs no caption.
+]]
+L["REAPPLY_THRESHOLD_ONE"] = "Quando rimane < 1 minuto"
+L["REAPPLY_THRESHOLD_N"] = "Quando rimangono < %d minuti"
 
 -- Ready Check
 L["OPTIONS_READY_CHECK_HEADER"] = "Controllo Preparazione"
@@ -268,16 +274,14 @@ L["OPTIONS_READY_CHECK"] = "Segnala lo stato al controllo preparazione"
 L["OPTIONS_READY_CHECK_DESCRIPTION"] =
 	"Mostra cosa ti manca e quanto tempo resta ai buff monitorati a ogni controllo di preparazione; lo vedi solo tu."
 
--- Buff Food
-L["OPTIONS_BUFF_FOOD_HEADER"] = "Cibo con Buff"
+-- Buff Food. The section header reuses FEATURE_BUFF_FOOD.
 L["OPTIONS_BUFF_FOOD"] = "Priorità Cibo con Buff"
 L["OPTIONS_BUFF_FOOD_DESCRIPTION"] =
 	'Dà priorità al cibo che fornisce il buff "Ben Nutrito", quando il buff è assente. Disattivato nelle Arene.'
 L["OPTIONS_BUFF_FOOD_DETAIL"] =
 	"Suggerimento pro: Avere te stesso come bersaglio fa sì che la macro Cibo ignori sempre il cibo con buff e le pergamene."
 
--- Scroll Buffs
-L["OPTIONS_SCROLL_HEADER"] = "Buff Pergamena"
+-- Scroll Buffs. The section header reuses FEATURE_SCROLL_BUFFS.
 L["OPTIONS_USE_SCROLLS"] = "Includi Buff Pergamena"
 L["OPTIONS_USE_SCROLLS_DESCRIPTION"] =
 	"Tocca una volta per applicare le pergamene mancanti, di nuovo per mangiare. Le pergamene ignorano il GCD e hanno te come bersaglio; selezionare un giocatore amico le salta. Disattivato nelle Arene."
@@ -310,14 +314,18 @@ L["OPTIONS_DRUIDS_HEADER"] = "Druidi"
 L["OPTIONS_DRUID_MACRO_HELPER"] = "Abilita l'integrazione DruidMacroHelper"
 L["OPTIONS_DRUID_MACRO_HELPER_DESCRIPTION"] =
 	"Crea macro di mutaforma per Pozioni di Salute, Pozioni di Mana e Pietre della Salute utilizzando DruidMacroHelper (/dmh)."
-L["OPTIONS_DRUID_RETURN_FORM"] = "Dopo il consumabile, passa a"
-L["DRUID_FORM_BEAR"] = "Orso"
-L["DRUID_FORM_CAT"] = "Gatto"
+--[[
+    Return-form dropdown, shown beside the DruidMacroHelper toggle. The macro
+    powershifts out of form, uses the consumable, then returns to this one, so
+    the values name that return and the row needs no caption.
+]]
+L["DRUID_FORM_BEAR"] = "Torna a Orso"
+L["DRUID_FORM_CAT"] = "Torna a Gatto"
 
 -- Night Elves
 L["OPTIONS_NIGHTELF_HEADER"] = "Elfi della Notte"
-L["OPTIONS_SHADOWMELD_DRINKING"] = "Abilita furtività mentre bevi"
-L["OPTIONS_SHADOWMELD_DRINKING_DESCRIPTION"] =
+L["OPTIONS_STEALTH_DRINKING"] = "Abilita furtività mentre bevi"
+L["OPTIONS_STEALTH_DRINKING_DESCRIPTION"] =
 	"Aggiunge Fondersi con l'Ombra alla tua macro Acqua per renderti furtivo mentre bevi."
 L["OPTIONS_STEALTH_EATING_NIGHTELF_DESCRIPTION"] =
 	"Aggiunge Fondersi con l'Ombra alla tua macro Cibo per renderti furtivo mentre mangi."
@@ -336,7 +344,7 @@ L["OPTIONS_STEALTH_EATING_ROGUE_DESCRIPTION"] =
 
 -- Restocker. The section header reuses RESTOCKER_WINDOW_TITLE.
 L["OPTIONS_RESTOCKER_DESCRIPTION"] =
-	"Mantiene le borse rifornite in base a una lista di rifornimento per personaggio. Compra automaticamente dai mercanti e sposta gli oggetti tra le borse e la banca. Digita /crs per aprire la lista."
+	"Mantiene le borse rifornite in base a una lista di rifornimento per personaggio. Compra automaticamente dai mercanti e sposta gli oggetti tra le borse e la banca. Digita %s per aprire la lista."
 L["OPTIONS_RESTOCKER_OPEN_BANK"] = "Apri in banca"
 L["OPTIONS_RESTOCKER_OPEN_BANK_DESCRIPTION"] = "Apre la finestra di Restocker quando visiti la banca."
 L["OPTIONS_RESTOCKER_OPEN_MERCHANT"] = "Apri dal mercante"
@@ -345,18 +353,31 @@ L["OPTIONS_RESTOCKER_DEBUG"] = "Attiva i messaggi di debug di Restocker"
 L["OPTIONS_RESTOCKER_DEBUG_DESCRIPTION"] =
 	"Stampa in chat le decisioni di rifornimento di Restocker passo per passo (banca e mercante). Prolisso; resta attivo tra le sessioni finché non viene disattivato."
 
--- /Commands. The command literals stay in code; these are the descriptions.
+--[[
+    /Commands. Both halves of each line are locale keys: the literal, which stays
+    identical in every locale (localization allowlist), and its description.
+]]
 L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
-L["OPTIONS_COMMANDS_FOODIE_DETAIL"] = "Apre l'interfaccia delle opzioni di Connoisseur."
-L["OPTIONS_COMMANDS_CRS_DETAIL"] = "Apre la finestra di Restocker per gestire la tua lista di rifornimento."
+L["OPTIONS_COMMAND"] = "/foodie"
+L["OPTIONS_COMMAND_DESCRIPTION"] = "Apre l'interfaccia delle opzioni di questo add-on."
+L["RESTOCKER_COMMAND"] = "/crs"
+L["RESTOCKER_COMMAND_DESCRIPTION"] = "Apre la finestra di Restocker per gestire la tua lista di rifornimento."
 
 -- Enable Macros
 L["OPTIONS_ENABLE_MACROS_HEADER"] = "Abilita Macro"
 L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] =
 	"Scegli quali macro Connoisseur deve creare e mantenere. Disabilitare una macro la rimuoverà anche."
 
--- Feedback & Support
+--[[
+    Feedback & Support. The four service names are brand names and stay English
+    in every locale (localization allowlist); VERSION_LABEL translates.
+]]
 L["OPTIONS_COMMUNITY_HEADER"] = "Feedback e Supporto"
+L["DISCORD"] = "Discord"
+L["GITHUB"] = "GitHub"
+L["CURSEFORGE"] = "CurseForge"
+L["WAGO"] = "Wago"
+L["VERSION_LABEL"] = "Versione"
 
 --------------------------------------------------------------------------------
 -- Restocker Window & Chat

@@ -56,13 +56,15 @@ L["DIET_MEAT"] = "肉"
 --------------------------------------------------------------------------------
 
 L["MSG_BUG_REPORT"] =
-	"看来你发现了一个BUG！%s (%s) 无法在 %s > %s (%s) 使用。请报告给我们以便修复。谢谢！ https://discord.gg/eh8hKq992Q"
+	"看来你发现了一个BUG！%s (%s) 无法在 %s > %s (%s) 使用。请报告给我们以便修复。谢谢！ %s"
 L["MSG_NO_ITEM"] = "背包中未找到合适的 %s。"
 L["MSG_MACRO_SLOTS_FULL"] =
 	"由于你的宏空位已满，部分 Connoisseur 宏无法创建。请删除不再使用的宏以释放空位，或在 选项 > 插件 > Connoisseur 中关闭不需要的宏。"
 
 L["CHAT_LOADED"] =
 	"版本 %s。设置（包括禁用此消息的选项）可以在 选项 > 插件 > Connoisseur 中找到。喜欢这个插件吗？告诉朋友吧！(="
+
+L["CHAT_OPTIONS_IN_COMBAT"] = "出于安全考虑，战斗中无法打开选项界面。"
 
 --------------------------------------------------------------------------------
 -- Ready Check
@@ -107,9 +109,9 @@ L["TIP_DONT_KNOW_SPELL"] = "你目前还没有学会%s。"
 --------------------------------------------------------------------------------
 
 -- Feature toggles shown in the minimap tooltip, each with a description line.
-L["MENU_BUFF_FOOD"] = "增益食物"
+L["FEATURE_BUFF_FOOD"] = "增益食物"
 L["MENU_BUFF_FOOD_DESCRIPTION"] = '当缺少 "进食充分" BUFF时，优先使用提供该BUFF的食物。'
-L["MENU_SCROLL_BUFFS"] = "卷轴增益"
+L["FEATURE_SCROLL_BUFFS"] = "卷轴增益"
 L["MENU_SCROLL_BUFFS_DESCRIPTION"] = "当你缺少卷轴增益时，将你的食物宏转变为卷轴施放器。"
 
 -- Section titles and ignore-list actions in the minimap tooltip.
@@ -255,9 +257,12 @@ L["OPTIONS_REAPPLY_HEADER"] = "增益重新应用"
 L["OPTIONS_REAPPLY"] = "提前补充即将到期的增益"
 L["OPTIONS_REAPPLY_DESCRIPTION"] =
 	"战斗时长常常超过增益的剩余时间。剩余时间低于阈值的增益将视为已过期，宏会在开怪前提供新的增益。适用于增益食物、卷轴增益和宠物食物增益。"
-L["OPTIONS_REAPPLY_THRESHOLD"] = "视为过期的条件"
-L["REAPPLY_THRESHOLD_ONE"] = "剩余不足 1 分钟"
-L["REAPPLY_THRESHOLD_N"] = "剩余不足 %d 分钟"
+--[[
+    Threshold dropdown, shown beside the Re-Apply toggle. The values carry the
+    "when" themselves, so the row reads as one sentence and needs no caption.
+]]
+L["REAPPLY_THRESHOLD_ONE"] = "当剩余不足 1 分钟时"
+L["REAPPLY_THRESHOLD_N"] = "当剩余不足 %d 分钟时"
 
 -- Ready Check
 L["OPTIONS_READY_CHECK_HEADER"] = "准备确认"
@@ -265,15 +270,13 @@ L["OPTIONS_READY_CHECK"] = "在准备确认时报告状态"
 L["OPTIONS_READY_CHECK_DESCRIPTION"] =
 	"每次开始准备确认时，输出你缺少什么以及所追踪增益的剩余时间，仅你自己可见。"
 
--- Buff Food
-L["OPTIONS_BUFF_FOOD_HEADER"] = "增益食物"
+-- Buff Food. The section header reuses FEATURE_BUFF_FOOD.
 L["OPTIONS_BUFF_FOOD"] = "优先增益食物"
 L["OPTIONS_BUFF_FOOD_DESCRIPTION"] =
 	'当缺少 "进食充分" BUFF时，优先使用提供该BUFF的食物。在竞技场中禁用。'
 L["OPTIONS_BUFF_FOOD_DETAIL"] = "专业提示：以自己为目标总是会让食物宏跳过增益食物和卷轴。"
 
--- Scroll Buffs
-L["OPTIONS_SCROLL_HEADER"] = "卷轴增益"
+-- Scroll Buffs. The section header reuses FEATURE_SCROLL_BUFFS.
 L["OPTIONS_USE_SCROLLS"] = "包含卷轴增益"
 L["OPTIONS_USE_SCROLLS_DESCRIPTION"] =
 	"按一次施放缺少的卷轴，再按一次进食。卷轴不占用GCD且以你自己为目标；以友方玩家为目标时会跳过卷轴。在竞技场中禁用。"
@@ -306,14 +309,18 @@ L["OPTIONS_DRUIDS_HEADER"] = "德鲁伊"
 L["OPTIONS_DRUID_MACRO_HELPER"] = "启用 DruidMacroHelper 整合"
 L["OPTIONS_DRUID_MACRO_HELPER_DESCRIPTION"] =
 	"使用 DruidMacroHelper (/dmh) 为治疗药水、法力药水和治疗石构建变形宏。"
-L["OPTIONS_DRUID_RETURN_FORM"] = "使用消耗品后，切换至"
-L["DRUID_FORM_BEAR"] = "熊"
-L["DRUID_FORM_CAT"] = "猎豹"
+--[[
+    Return-form dropdown, shown beside the DruidMacroHelper toggle. The macro
+    powershifts out of form, uses the consumable, then returns to this one, so
+    the values name that return and the row needs no caption.
+]]
+L["DRUID_FORM_BEAR"] = "返回熊形态"
+L["DRUID_FORM_CAT"] = "返回猎豹形态"
 
 -- Night Elves
 L["OPTIONS_NIGHTELF_HEADER"] = "暗夜精灵"
-L["OPTIONS_SHADOWMELD_DRINKING"] = "启用喝水时潜行"
-L["OPTIONS_SHADOWMELD_DRINKING_DESCRIPTION"] = "将影遁添加到你的水宏中，以便你在喝水时潜行。"
+L["OPTIONS_STEALTH_DRINKING"] = "启用喝水时潜行"
+L["OPTIONS_STEALTH_DRINKING_DESCRIPTION"] = "将影遁添加到你的水宏中，以便你在喝水时潜行。"
 L["OPTIONS_STEALTH_EATING_NIGHTELF_DESCRIPTION"] =
 	"将影遁添加到你的食物宏中，以便你在进食时潜行。"
 L["OPTIONS_STEALTH_PICK_ONE"] =
@@ -330,7 +337,7 @@ L["OPTIONS_STEALTH_EATING_ROGUE_DESCRIPTION"] = "将潜行添加到你的食物�
 
 -- Restocker. The section header reuses RESTOCKER_WINDOW_TITLE.
 L["OPTIONS_RESTOCKER_DESCRIPTION"] =
-	"根据每个角色的补货清单保持背包补给充足。自动向商人购买，并在背包与银行之间搬运物品。输入 /crs 打开清单。"
+	"根据每个角色的补货清单保持背包补给充足。自动向商人购买，并在背包与银行之间搬运物品。输入 %s 打开清单。"
 L["OPTIONS_RESTOCKER_OPEN_BANK"] = "在银行打开"
 L["OPTIONS_RESTOCKER_OPEN_BANK_DESCRIPTION"] = "访问银行时打开 Restocker 窗口。"
 L["OPTIONS_RESTOCKER_OPEN_MERCHANT"] = "在商人处打开"
@@ -339,18 +346,31 @@ L["OPTIONS_RESTOCKER_DEBUG"] = "启用 Restocker 调试信息"
 L["OPTIONS_RESTOCKER_DEBUG_DESCRIPTION"] =
 	"在聊天框中逐步输出 Restocker 的银行/商人补货决策。信息较多；在关闭前会跨会话保持开启。"
 
--- /Commands. The command literals stay in code; these are the descriptions.
+--[[
+    /Commands. Both halves of each line are locale keys: the literal, which stays
+    identical in every locale (localization allowlist), and its description.
+]]
 L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
-L["OPTIONS_COMMANDS_FOODIE_DETAIL"] = "打开 Connoisseur 选项界面。"
-L["OPTIONS_COMMANDS_CRS_DETAIL"] = "打开 Restocker 窗口以管理你的补货清单。"
+L["OPTIONS_COMMAND"] = "/foodie"
+L["OPTIONS_COMMAND_DESCRIPTION"] = "打开此插件的选项界面。"
+L["RESTOCKER_COMMAND"] = "/crs"
+L["RESTOCKER_COMMAND_DESCRIPTION"] = "打开 Restocker 窗口以管理你的补货清单。"
 
 -- Enable Macros
 L["OPTIONS_ENABLE_MACROS_HEADER"] = "启用宏"
 L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] =
 	"切换 Connoisseur 创建和维护哪些宏。禁用一个宏也会将其移除。"
 
--- Feedback & Support
+--[[
+    Feedback & Support. The four service names are brand names and stay English
+    in every locale (localization allowlist); VERSION_LABEL translates.
+]]
 L["OPTIONS_COMMUNITY_HEADER"] = "反馈与支持"
+L["DISCORD"] = "Discord"
+L["GITHUB"] = "GitHub"
+L["CURSEFORGE"] = "CurseForge"
+L["WAGO"] = "Wago"
+L["VERSION_LABEL"] = "版本"
 
 --------------------------------------------------------------------------------
 -- Restocker Window & Chat

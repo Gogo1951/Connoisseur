@@ -167,32 +167,24 @@ Please reach out if you would like to be involved!
 
 🟢 Pairs With // ykiigor's [Method Raid Tools](https://www.curseforge.com/wow/addons/method-raid-tools)
 
-🟡 Some Overlap // Varesch36's [Auto Restock for TBC](https://www.curseforge.com/wow/addons/auto-restock-for-tbc)
+🟢 Pairs With // Gogo1951's [Water Dispenser](https://www.curseforge.com/wow/addons/water-dispenser-revisited)
 
 🟡 Some Overlap // wumatic1's [BuffBuddy](https://www.curseforge.com/wow/addons/buffbuddy)
 
 🟡 Some Overlap // nyxito's [Consumable Tracker Classic/TBC](https://www.curseforge.com/wow/addons/consumabletracker)
 
+🟡 Some Overlap // zac12's [Consumables Checker](https://www.curseforge.com/wow/addons/consumables-checker-classic-wow-raid-tracker)
+
 🟡 Some Overlap // humfras's [Poisoner](https://www.curseforge.com/wow/addons/poisoner)
 
-🟡 Some Overlap // GildedFool's [RestockReady](https://www.curseforge.com/wow/addons/restockready)
+🟡 Some Overlap // zac12's [Readycheck](https://www.curseforge.com/wow/addons/ready-check)
 
 🔴 Direct Alternative // ollidiemaus's [Auto Potion](https://www.curseforge.com/wow/addons/auto-potion)
 
-🔴 Direct Alternative // HerrHaseGermany's [Automated-Consumables](https://www.curseforge.com/wow/addons/automated-consumables)
-
-🔴 Direct Alternative // Abengs84's [AutoPotionPlus](https://www.curseforge.com/wow/addons/autopotionplus)
-
 🔴 Direct Alternative // mZHg's [Buffet](https://www.curseforge.com/wow/addons/buffet)
-
-🔴 Direct Alternative // funki's [DrinkBot](https://www.curseforge.com/wow/addons/drinkbot)
 
 🔴 Direct Alternative // executedpoorly's [Feed Me](https://www.curseforge.com/wow/addons/feed-me)
 
 🔴 Direct Alternative // noobsgonewild's [Feed Pet Plus Macro](https://www.curseforge.com/wow/addons/feed-pet-plus-macro)
 
-🔴 Direct Alternative // Heypriesto's [PotionPal](https://www.curseforge.com/wow/addons/potionpal-tbc)
-
-🔴 Direct Alternative // noobsgonewild's [PotUP Healing potion](https://www.curseforge.com/wow/addons/potup)
-
-🔴 Direct Alternative // Aryax's [Well Feed](https://www.curseforge.com/wow/addons/well-feed)
+🔴 Direct Alternative // IzC's [IzC Auto Consumables](https://www.curseforge.com/wow/addons/izc-auto-consumables)
