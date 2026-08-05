@@ -5,6 +5,14 @@ local GetColor = ns.GetColor
 local Header = ns.OptionsHeader
 local Desc = ns.OptionsDesc
 local Spacer = ns.OptionsSpacer
+local RowLabel = ns.OptionsRowLabel
+
+--[[
+    Feedback & Support rows use a narrower label than the default split so the
+    URL box is wide enough to show a full address without truncating it.
+]]
+local LINK_LABEL_WIDTH = 0.6
+local LINK_URL_WIDTH = ns.OPTIONS_ROW_WIDTH - LINK_LABEL_WIDTH
 
 --------------------------------------------------------------------------------
 -- Active-State Predicates
@@ -51,6 +59,23 @@ end
 local function PetBuffActive()
 	local s = GetSettings()
 	return s and s.usePetBuffFood
+end
+
+--[[
+    Gates for the dropdowns that sit beside their feature toggle: each is hidden
+    until its toggle is on, matching the mode dropdowns above.
+]]
+local function ReapplyThresholdHidden()
+	local s = GetSettings()
+	return not (s and s.earlyReapply)
+end
+
+local function DruidReturnFormHidden()
+	if not ns.IsDruid then
+		return true
+	end
+	local s = GetSettings()
+	return not (s and s.enableDruidMacroHelper)
 end
 
 --------------------------------------------------------------------------------
@@ -248,11 +273,14 @@ function ns.BuildGeneralOptions()
 			headerCommands = Header(L["OPTIONS_COMMANDS_HEADER"], 21),
 			spaceCommands1 = Spacer(22),
 			descCommands = Desc(
-				GetColor("INFO") .. "/foodie" .. "|r" .. "  " .. L["OPTIONS_COMMANDS_FOODIE_DETAIL"],
+				GetColor("INFO") .. L["OPTIONS_COMMAND"] .. "|r" .. "  " .. L["OPTIONS_COMMAND_DESCRIPTION"],
 				23
 			),
 			spaceCommands2 = Spacer(24),
-			descCommandsCrs = Desc(GetColor("INFO") .. "/crs" .. "|r" .. "  " .. L["OPTIONS_COMMANDS_CRS_DETAIL"], 25),
+			descCommandsCrs = Desc(
+				GetColor("INFO") .. L["RESTOCKER_COMMAND"] .. "|r" .. "  " .. L["RESTOCKER_COMMAND_DESCRIPTION"],
+				25
+			),
 
 			-- Potions & Healthstones
 			spacePotions0 = Spacer(30),
@@ -310,7 +338,7 @@ function ns.BuildGeneralOptions()
 			},
 			reapplyThreshold = {
 				type = "select",
-				name = L["OPTIONS_REAPPLY_THRESHOLD"],
+				name = "",
 				order = 96,
 				width = "normal",
 				values = {
@@ -321,10 +349,7 @@ function ns.BuildGeneralOptions()
 					[300] = string.format(L["REAPPLY_THRESHOLD_N"], 5),
 				},
 				sorting = { 60, 120, 180, 240, 300 },
-				hidden = function()
-					local s = GetSettings()
-					return not (s and s.earlyReapply)
-				end,
+				hidden = ReapplyThresholdHidden,
 				get = function()
 					return ns.db.profile.earlyReapplyThreshold or 120
 				end,
@@ -339,7 +364,7 @@ function ns.BuildGeneralOptions()
 
 			-- Buff Food
 			spaceBuff0 = Spacer(100),
-			headerBuff = Header(L["OPTIONS_BUFF_FOOD_HEADER"], 101),
+			headerBuff = Header(L["FEATURE_BUFF_FOOD"], 101),
 			spaceBuff1 = Spacer(102),
 			descBuff = Desc(GetColor("BODY") .. L["OPTIONS_BUFF_FOOD_DESCRIPTION"] .. "|r", 103),
 			spaceBuff2 = Spacer(104),
@@ -388,7 +413,7 @@ function ns.BuildGeneralOptions()
 
 			-- Scroll Buffs
 			spaceScroll0 = Spacer(200),
-			headerScroll = Header(L["OPTIONS_SCROLL_HEADER"], 201),
+			headerScroll = Header(L["FEATURE_SCROLL_BUFFS"], 201),
 			spaceScroll1 = Spacer(202),
 			descScroll = Desc(GetColor("BODY") .. L["OPTIONS_USE_SCROLLS_DESCRIPTION"] .. "|r", 203),
 			spaceScroll2 = Spacer(204),
@@ -573,7 +598,7 @@ function ns.BuildGeneralOptions()
 			},
 			druidReturnForm = {
 				type = "select",
-				name = L["OPTIONS_DRUID_RETURN_FORM"],
+				name = "",
 				order = 504,
 				width = "normal",
 				values = {
@@ -581,13 +606,7 @@ function ns.BuildGeneralOptions()
 					cat = L["DRUID_FORM_CAT"],
 				},
 				sorting = { "bear", "cat" },
-				hidden = function()
-					if not ns.IsDruid then
-						return true
-					end
-					local settings = ns.db and ns.db.profile
-					return not (settings and settings.enableDruidMacroHelper)
-				end,
+				hidden = DruidReturnFormHidden,
 				get = function()
 					return ns.db.profile.druidReturnForm or "bear"
 				end,
@@ -622,8 +641,8 @@ function ns.BuildGeneralOptions()
 			},
 			toggleShadowmeldDrinking = {
 				type = "toggle",
-				name = L["OPTIONS_SHADOWMELD_DRINKING"],
-				desc = L["OPTIONS_SHADOWMELD_DRINKING_DESCRIPTION"],
+				name = L["OPTIONS_STEALTH_DRINKING"],
+				desc = L["OPTIONS_STEALTH_DRINKING_DESCRIPTION"],
 				order = 603,
 				width = "full",
 				hidden = function()
@@ -783,7 +802,15 @@ function ns.BuildGeneralOptions()
 			spaceRestocker0 = Spacer(700),
 			headerRestocker = Header(L["RESTOCKER_WINDOW_TITLE"], 701),
 			spaceRestocker1 = Spacer(702),
-			descRestocker = Desc(GetColor("BODY") .. L["OPTIONS_RESTOCKER_DESCRIPTION"] .. "|r", 703),
+			descRestocker = Desc(
+				GetColor("BODY")
+					.. string.format(
+						L["OPTIONS_RESTOCKER_DESCRIPTION"],
+						GetColor("INFO") .. L["RESTOCKER_COMMAND"] .. "|r" .. GetColor("BODY")
+					)
+					.. "|r",
+				703
+			),
 			spaceRestocker2 = Spacer(704),
 			toggleRestockerBank = {
 				type = "toggle",
@@ -840,48 +867,48 @@ function ns.BuildGeneralOptions()
 			spaceCommunity0 = Spacer(900),
 			headerCommunity = Header(L["OPTIONS_COMMUNITY_HEADER"], 901),
 			spaceCommunity1 = Spacer(902),
-			discordLabel = Desc(GetColor("TITLE") .. "Discord" .. "|r", 903),
+			discordLabel = RowLabel(GetColor("TITLE") .. L["DISCORD"] .. "|r", 903, LINK_LABEL_WIDTH),
 			discordURL = {
 				type = "input",
 				name = "",
 				order = 904,
-				width = "double",
+				width = LINK_URL_WIDTH,
 				get = function()
 					return ns.DISCORD_URL
 				end,
 				set = function() end,
 			},
 			spaceCommunity2 = Spacer(905),
-			githubLabel = Desc(GetColor("TITLE") .. "GitHub" .. "|r", 906),
+			githubLabel = RowLabel(GetColor("TITLE") .. L["GITHUB"] .. "|r", 906, LINK_LABEL_WIDTH),
 			githubURL = {
 				type = "input",
 				name = "",
 				order = 907,
-				width = "double",
+				width = LINK_URL_WIDTH,
 				get = function()
 					return ns.GITHUB_URL
 				end,
 				set = function() end,
 			},
 			spaceCommunity3 = Spacer(908),
-			curseforgeLabel = Desc(GetColor("TITLE") .. "CurseForge" .. "|r", 909),
+			curseforgeLabel = RowLabel(GetColor("TITLE") .. L["CURSEFORGE"] .. "|r", 909, LINK_LABEL_WIDTH),
 			curseforgeURL = {
 				type = "input",
 				name = "",
 				order = 910,
-				width = "double",
+				width = LINK_URL_WIDTH,
 				get = function()
 					return ns.CURSEFORGE_URL
 				end,
 				set = function() end,
 			},
 			spaceCommunity4 = Spacer(911),
-			wagoLabel = Desc(GetColor("TITLE") .. "Wago" .. "|r", 912),
+			wagoLabel = RowLabel(GetColor("TITLE") .. L["WAGO"] .. "|r", 912, LINK_LABEL_WIDTH),
 			wagoURL = {
 				type = "input",
 				name = "",
 				order = 913,
-				width = "double",
+				width = LINK_URL_WIDTH,
 				get = function()
 					return ns.WAGO_URL
 				end,
@@ -897,7 +924,7 @@ function ns.BuildGeneralOptions()
 			},
 			versionLine = {
 				type = "description",
-				name = GetColor("MUTED") .. "Version " .. ns.Version .. "|r",
+				name = GetColor("MUTED") .. L["VERSION_LABEL"] .. " " .. ns.Version .. "|r",
 				fontSize = "medium",
 				order = 999,
 			},

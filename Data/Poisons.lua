@@ -39,6 +39,7 @@ ns.PoisonGroupFallbackNames = {
 	[6] = "Wound Poison",
 }
 
+-- TODO: Add SQL Query
 -- [ID] = {Required Level, Poison Group}, -- Item Name
 ns.PoisonData = {
 	[21835] = { 68, 1 }, -- Anesthetic Poison

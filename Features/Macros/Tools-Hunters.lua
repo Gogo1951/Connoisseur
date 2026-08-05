@@ -95,7 +95,7 @@ end
     wastefully — better than letting the pet go hungry.
 
     Note: there is no upper cap on how far above pet level the fallback can
-    reach. Confirmed empirically on Anniversary (1.15.x): a level-8 cat will
+    reach. Confirmed empirically on Classic Era (1.15.x): a level-8 cat will
     happily eat level-70 meat. The fallback ranks by lowest food level first,
     so the *least* wasteful option still wins when multiple are available.
 

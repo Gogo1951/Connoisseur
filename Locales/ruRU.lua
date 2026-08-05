@@ -56,13 +56,16 @@ L["DIET_MEAT"] = "Мясо"
 --------------------------------------------------------------------------------
 
 L["MSG_BUG_REPORT"] =
-	"Похоже, вы нашли ошибку! %s (%s) нельзя использовать в %s > %s (%s). Пожалуйста, сообщите об этом, чтобы мы могли исправить. Спасибо! https://discord.gg/eh8hKq992Q"
+	"Похоже, вы нашли ошибку! %s (%s) нельзя использовать в %s > %s (%s). Пожалуйста, сообщите об этом, чтобы мы могли исправить. Спасибо! %s"
 L["MSG_NO_ITEM"] = "Подходящий %s не найден в сумках."
 L["MSG_MACRO_SLOTS_FULL"] =
 	"Некоторые макросы Connoisseur не удалось создать, так как ячейки макросов заполнены. Освободите место, удалив макросы, которые вы больше не используете, или отключите ненужные макросы Connoisseur в меню Настройки > Модификации > Connoisseur."
 
 L["CHAT_LOADED"] =
 	"Версия %s. Настройки (включая возможность отключения этого сообщения) находятся в Настройки > Модификации > Connoisseur. Нравится аддон? Расскажите другу! (="
+
+L["CHAT_OPTIONS_IN_COMBAT"] =
+	"В целях безопасности интерфейс настроек нельзя открыть в бою."
 
 --------------------------------------------------------------------------------
 -- Ready Check
@@ -110,10 +113,10 @@ L["TIP_DONT_KNOW_SPELL"] = "В данный момент вы не знаете 
 --------------------------------------------------------------------------------
 
 -- Feature toggles shown in the minimap tooltip, each with a description line.
-L["MENU_BUFF_FOOD"] = "Еда с эффектом"
+L["FEATURE_BUFF_FOOD"] = "Еда с эффектом"
 L["MENU_BUFF_FOOD_DESCRIPTION"] =
 	'Приоритет еды, дающей эффект "Сытость", если он отсутствует.'
-L["MENU_SCROLL_BUFFS"] = "Баффы от свитков"
+L["FEATURE_SCROLL_BUFFS"] = "Баффы от свитков"
 L["MENU_SCROLL_BUFFS_DESCRIPTION"] =
 	"Превращает ваш макрос Еды в аппликатор свитков, когда вам не хватает баффов от свитков."
 
@@ -271,9 +274,12 @@ L["OPTIONS_REAPPLY_HEADER"] = "Обновление баффов"
 L["OPTIONS_REAPPLY"] = "Обновлять истекающие баффы"
 L["OPTIONS_REAPPLY_DESCRIPTION"] =
 	"Бои часто длятся дольше, чем осталось вашим баффам. Баффы, у которых осталось меньше времени, чем порог, считаются уже истёкшими, и макросы предлагают новый перед боем. Действует для еды с эффектом, баффов от свитков и еды для питомцев."
-L["OPTIONS_REAPPLY_THRESHOLD"] = "Считать истёкшим, когда"
-L["REAPPLY_THRESHOLD_ONE"] = "< 1 минуты"
-L["REAPPLY_THRESHOLD_N"] = "< %d минут"
+--[[
+    Threshold dropdown, shown beside the Re-Apply toggle. The values carry the
+    "when" themselves, so the row reads as one sentence and needs no caption.
+]]
+L["REAPPLY_THRESHOLD_ONE"] = "Когда осталось < 1 минуты"
+L["REAPPLY_THRESHOLD_N"] = "Когда осталось < %d минут"
 
 -- Ready Check
 L["OPTIONS_READY_CHECK_HEADER"] = "Проверка готовности"
@@ -281,16 +287,14 @@ L["OPTIONS_READY_CHECK"] = "Сообщать о готовности при пр
 L["OPTIONS_READY_CHECK_DESCRIPTION"] =
 	"При каждой проверке готовности выводит, чего вам не хватает и сколько времени осталось у отслеживаемых баффов; видно только вам."
 
--- Buff Food
-L["OPTIONS_BUFF_FOOD_HEADER"] = "Еда с эффектом"
+-- Buff Food. The section header reuses FEATURE_BUFF_FOOD.
 L["OPTIONS_BUFF_FOOD"] = "Еда с баффами"
 L["OPTIONS_BUFF_FOOD_DESCRIPTION"] =
 	'Приоритет еды, дающей эффект "Сытость", если он отсутствует. Отключено на аренах.'
 L["OPTIONS_BUFF_FOOD_DETAIL"] =
 	"Совет профи: Выбор себя в качестве цели всегда заставляет макрос еды пропускать еду с баффами и свитки."
 
--- Scroll Buffs
-L["OPTIONS_SCROLL_HEADER"] = "Баффы от свитков"
+-- Scroll Buffs. The section header reuses FEATURE_SCROLL_BUFFS.
 L["OPTIONS_USE_SCROLLS"] = "Включить баффы от свитков"
 L["OPTIONS_USE_SCROLLS_DESCRIPTION"] =
 	"Нажмите один раз, чтобы применить недостающие свитки, и ещё раз, чтобы поесть. Свитки не зависят от ГКД и применяются к вам; если целью выбран дружественный игрок, они пропускаются. Отключено на аренах."
@@ -323,14 +327,18 @@ L["OPTIONS_DRUIDS_HEADER"] = "Друиды"
 L["OPTIONS_DRUID_MACRO_HELPER"] = "Включить интеграцию DruidMacroHelper"
 L["OPTIONS_DRUID_MACRO_HELPER_DESCRIPTION"] =
 	"Создает макросы смены облика для лечебных зелий, зелий маны и камней здоровья с помощью DruidMacroHelper (/dmh)."
-L["OPTIONS_DRUID_RETURN_FORM"] = "После расходуемого предмета сменить на"
-L["DRUID_FORM_BEAR"] = "Медведь"
-L["DRUID_FORM_CAT"] = "Кошка"
+--[[
+    Return-form dropdown, shown beside the DruidMacroHelper toggle. The macro
+    powershifts out of form, uses the consumable, then returns to this one, so
+    the values name that return and the row needs no caption.
+]]
+L["DRUID_FORM_BEAR"] = "Вернуться в облик медведя"
+L["DRUID_FORM_CAT"] = "Вернуться в облик кошки"
 
 -- Night Elves
 L["OPTIONS_NIGHTELF_HEADER"] = "Ночные эльфы"
-L["OPTIONS_SHADOWMELD_DRINKING"] = "Включить незаметность при питье"
-L["OPTIONS_SHADOWMELD_DRINKING_DESCRIPTION"] =
+L["OPTIONS_STEALTH_DRINKING"] = "Включить незаметность при питье"
+L["OPTIONS_STEALTH_DRINKING_DESCRIPTION"] =
 	'Добавляет способность "Слиться с тенью" в макрос воды, чтобы вы уходили в незаметность во время питья.'
 L["OPTIONS_STEALTH_EATING_NIGHTELF_DESCRIPTION"] =
 	'Добавляет способность "Слиться с тенью" в макрос еды, чтобы вы уходили в незаметность во время еды.'
@@ -349,7 +357,7 @@ L["OPTIONS_STEALTH_EATING_ROGUE_DESCRIPTION"] =
 
 -- Restocker. The section header reuses RESTOCKER_WINDOW_TITLE.
 L["OPTIONS_RESTOCKER_DESCRIPTION"] =
-	"Пополняет сумки по списку пополнения для каждого персонажа. Автоматически покупает у торговцев и перемещает предметы между сумками и банком. Введите /crs, чтобы открыть список."
+	"Пополняет сумки по списку пополнения для каждого персонажа. Автоматически покупает у торговцев и перемещает предметы между сумками и банком. Введите %s, чтобы открыть список."
 L["OPTIONS_RESTOCKER_OPEN_BANK"] = "Открывать в банке"
 L["OPTIONS_RESTOCKER_OPEN_BANK_DESCRIPTION"] =
 	"Открывает окно Restocker при посещении банка."
@@ -360,10 +368,15 @@ L["OPTIONS_RESTOCKER_DEBUG"] = "Включить отладочные сообщ
 L["OPTIONS_RESTOCKER_DEBUG_DESCRIPTION"] =
 	"Выводит в чат пошаговые решения Restocker при пополнении из банка и у торговца. Многословно; остаётся включённым между сеансами, пока не выключить."
 
--- /Commands. The command literals stay in code; these are the descriptions.
+--[[
+    /Commands. Both halves of each line are locale keys: the literal, which stays
+    identical in every locale (localization allowlist), and its description.
+]]
 L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
-L["OPTIONS_COMMANDS_FOODIE_DETAIL"] = "Открывает интерфейс настроек Connoisseur."
-L["OPTIONS_COMMANDS_CRS_DETAIL"] =
+L["OPTIONS_COMMAND"] = "/foodie"
+L["OPTIONS_COMMAND_DESCRIPTION"] = "Открывает интерфейс настроек этого аддона."
+L["RESTOCKER_COMMAND"] = "/crs"
+L["RESTOCKER_COMMAND_DESCRIPTION"] =
 	"Открывает окно Restocker для управления списком пополнения."
 
 -- Enable Macros
@@ -371,8 +384,16 @@ L["OPTIONS_ENABLE_MACROS_HEADER"] = "Включить макросы"
 L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] =
 	"Выбор макросов, которые Connoisseur создает и поддерживает. Отключение макроса также удалит его."
 
--- Feedback & Support
+--[[
+    Feedback & Support. The four service names are brand names and stay English
+    in every locale (localization allowlist); VERSION_LABEL translates.
+]]
 L["OPTIONS_COMMUNITY_HEADER"] = "Обратная связь и поддержка"
+L["DISCORD"] = "Discord"
+L["GITHUB"] = "GitHub"
+L["CURSEFORGE"] = "CurseForge"
+L["WAGO"] = "Wago"
+L["VERSION_LABEL"] = "Версия"
 
 --------------------------------------------------------------------------------
 -- Restocker Window & Chat

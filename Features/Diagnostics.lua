@@ -127,14 +127,100 @@ ns.DIAGNOSTIC_EVENT_EXCLUDE = {
 	UNIT_AURA = true,
 }
 
+--------------------------------------------------------------------------------
+-- Event Log Noise
+--------------------------------------------------------------------------------
+
+--[[
+    UI_ERROR_MESSAGE is a firehose the add-on genuinely acts on some of the time,
+    so it is never excluded wholesale: the client raises it for every red combat
+    error, and against a 500-entry buffer that traffic silently evicts the
+    entries the log exists to carry -- the report comes back looking complete
+    while the signal has already been trimmed away.
+
+    The value is the argument position carrying the field the filter classifies
+    by. UI_ERROR_MESSAGE fires as (messageID, message); this add-on's handlers
+    all correlate on the message TEXT rather than the numeric id, so position 2
+    is the field the filter has to read to classify the same way they do.
+]]
+ns.MESSAGE_ID_FILTERED_EVENTS = {
+	UI_ERROR_MESSAGE = 2,
+}
+
+--[[
+    The log's allowlist: the messages this add-on actually acts on. Every entry
+    is the exact global its live handler compares against -- ERR_ITEM_WRONG_ZONE
+    (ns.ReportZoneRestriction, Macros/Runtime.lua), SPELL_FAILED_TARGETS_DEAD
+    (ns.HandleHunterPetError, Macros/Tools-Hunters.lua), and ERR_INV_FULL /
+    ERR_BANK_FULL (eventsModule.OnUiErrorMessage, Restocker/Events.lua) -- read
+    live on every call and never persisted, so the filter cannot drift from the
+    handlers and start making the log lie about what fired.
+
+    Never invert this into a denylist of noise: noise is unbounded, varies by
+    class and activity, and renumbers across client patches. The allowlist is
+    finite and already in the code.
+]]
+local function IsCorrelatedMessage(text)
+	return text == ERR_ITEM_WRONG_ZONE
+		or text == SPELL_FAILED_TARGETS_DEAD
+		or text == ERR_INV_FULL
+		or text == ERR_BANK_FULL
+end
+
+--[[
+    Decides, per firing, whether the entry is logged in full or folded into a
+    counter. Suppressed traffic aggregates per message text (first-seen text plus
+    a count) and renders as one compact block at the end of the report, so the
+    report still proves what fired and how often -- and a tester can spot a
+    message the add-on should be correlating and isn't.
+]]
+function ns:SuppressUncorrelatedMessage(event, ...)
+	local position = ns.MESSAGE_ID_FILTERED_EVENTS[event]
+	if not position then
+		return false
+	end
+
+	--[[
+        Unclassifiable is signal: a firing that doesn't carry the field we
+        classify by is exactly the unexpected shape a bug report needs to show,
+        so it is logged verbatim rather than suppressed.
+    ]]
+	local text = select(position, ...)
+	if type(text) ~= "string" then
+		return false
+	end
+
+	if IsCorrelatedMessage(text) then
+		return false
+	end
+
+	local suppressed = ns.diagnostics.suppressed
+	if not suppressed then
+		suppressed = {}
+		ns.diagnostics.suppressed = suppressed
+	end
+
+	local key = event .. "\0" .. text
+	local entry = suppressed[key]
+	if entry then
+		entry.count = entry.count + 1
+	else
+		suppressed[key] = { event = event, text = text, count = 1 }
+	end
+
+	return true
+end
+
 function ns:StartEventLog()
 	ns.diagnostics.log = {}
+	ns.diagnostics.suppressed = {}
 	ns.diagnostics.logging = true
 end
 
 function ns:StopEventLog()
 	ns.diagnostics.logging = false
 	ns.diagnostics.log = nil
+	ns.diagnostics.suppressed = nil
 end
 
 --[[
@@ -152,6 +238,14 @@ function ns:LogEvent(event, ...)
 	if ns.DIAGNOSTIC_EVENT_EXCLUDE[event] then
 		return
 	end
+	--[[
+        Filtered at capture, never at render: folding the spam only at display
+        time would still let it push the add-on's own events out of the bounded
+        buffer, and the report would come back clean and empty.
+    ]]
+	if ns:SuppressUncorrelatedMessage(event, ...) then
+		return
+	end
 	local parts = {}
 	for index = 1, select("#", ...) do
 		if index > EVENT_LOG_MAX_ARGS then
@@ -167,6 +261,40 @@ function ns:LogEvent(event, ...)
 	end
 end
 
+--[[
+    The suppressed-traffic block, appended after the log itself: one line per
+    folded message, biggest offender first. Pipes are escaped here for the same
+    reason the log entries escape them -- so the text shows verbatim in the
+    report editbox instead of rendering as an escape.
+]]
+local function AppendSuppressedSummary(lines)
+	local suppressed = ns.diagnostics.suppressed
+	if not suppressed then
+		return
+	end
+
+	local rows = {}
+	for _, entry in pairs(suppressed) do
+		rows[#rows + 1] = entry
+	end
+	if #rows == 0 then
+		return
+	end
+
+	table.sort(rows, function(a, b)
+		if a.count ~= b.count then
+			return a.count > b.count
+		end
+		return a.text < b.text
+	end)
+
+	lines[#lines + 1] = ""
+	lines[#lines + 1] = "-- Suppressed (uncorrelated) traffic --"
+	for _, entry in ipairs(rows) do
+		lines[#lines + 1] = string.format("%s(%s) x%d", entry.event, (entry.text:gsub("|", "||")), entry.count)
+	end
+end
+
 function ns:BuildEventLogReport()
 	local lines = { GetClientHeader(), "" }
 	local log = ns.diagnostics.log
@@ -177,6 +305,7 @@ function ns:BuildEventLogReport()
 			lines[#lines + 1] = entry
 		end
 	end
+	AppendSuppressedSummary(lines)
 	return table.concat(lines, "\n")
 end
 

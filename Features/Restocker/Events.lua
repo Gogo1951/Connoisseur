@@ -95,8 +95,11 @@ function eventsModule.OnLogout()
 end
 
 function eventsModule.OnUiErrorMessage(id, message)
-  if id == 2 or id == 3 then
-    -- "Inventory is full" / "Bank is full". Do NOT hard-stop restocking here: this error
+  if message == ERR_INV_FULL or message == ERR_BANK_FULL then
+    -- Matched against the client's own ERR_INV_FULL / ERR_BANK_FULL globals rather than
+    -- the numeric message ids, which can renumber between client builds and would fail
+    -- silently -- the same text comparison Core's dispatcher uses for ERR_ITEM_WRONG_ZONE.
+    -- Do NOT hard-stop restocking here: this error
     -- can fire on a transient race, and silently killing the whole run is what left later
     -- items untouched. The restock loop re-scans every step and stops itself with a clear
     -- message when it's genuinely out of room (see RunRestockLogic / StuckMessage). Buying,

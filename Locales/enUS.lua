@@ -56,13 +56,15 @@ L["DIET_MEAT"] = "Meat"
 --------------------------------------------------------------------------------
 
 L["MSG_BUG_REPORT"] =
-	"Looks like you found a bug! %s (%s) can't be used in %s > %s (%s). Please report this so we can get it fixed. Thanks! https://discord.gg/eh8hKq992Q"
+	"Looks like you found a bug! %s (%s) can't be used in %s > %s (%s). Please report this so we can get it fixed. Thanks! %s"
 L["MSG_NO_ITEM"] = "No suitable %s found in your bags."
 L["MSG_MACRO_SLOTS_FULL"] =
 	"Some Connoisseur macros couldn't be created because your macro slots are full. Free up a slot by deleting macros you no longer use, or turn off any Connoisseur macros you don't need under Options > AddOns > Connoisseur."
 
 L["CHAT_LOADED"] =
 	"Version %s. Settings (including the option to disable this message) can be found under Options > AddOns > Connoisseur. Enjoying the add-on? Tell a friend about it! (="
+
+L["CHAT_OPTIONS_IN_COMBAT"] = "As a safety precaution, the Options Interface cannot be opened during combat."
 
 --------------------------------------------------------------------------------
 -- Ready Check
@@ -107,9 +109,9 @@ L["TIP_DONT_KNOW_SPELL"] = "You don't currently know %s."
 --------------------------------------------------------------------------------
 
 -- Feature toggles shown in the minimap tooltip, each with a description line.
-L["MENU_BUFF_FOOD"] = "Buff Food"
+L["FEATURE_BUFF_FOOD"] = "Buff Food"
 L["MENU_BUFF_FOOD_DESCRIPTION"] = 'Prioritizes food that grants "Well Fed" whenever the buff is missing.'
-L["MENU_SCROLL_BUFFS"] = "Scroll Buffs"
+L["FEATURE_SCROLL_BUFFS"] = "Scroll Buffs"
 L["MENU_SCROLL_BUFFS_DESCRIPTION"] = "Turns your Food macro into a scroll-applier when you're missing scroll buffs."
 
 -- Section titles and ignore-list actions in the minimap tooltip.
@@ -255,9 +257,12 @@ L["OPTIONS_REAPPLY_HEADER"] = "Buff Re-Application"
 L["OPTIONS_REAPPLY"] = "Re-Apply Expiring Buffs"
 L["OPTIONS_REAPPLY_DESCRIPTION"] =
 	"Fights often outlast what's left on your buffs. Buffs with less time remaining than your threshold count as already expired, so your macros offer a fresh one before the pull. Applies to Buff Food, Scroll Buffs, and Pet Food Buffs."
-L["OPTIONS_REAPPLY_THRESHOLD"] = "Treat as Expired When"
-L["REAPPLY_THRESHOLD_ONE"] = "< 1 Minute Left"
-L["REAPPLY_THRESHOLD_N"] = "< %d Minutes Left"
+--[[
+    Threshold dropdown, shown beside the Re-Apply toggle. The values carry the
+    "when" themselves, so the row reads as one sentence and needs no caption.
+]]
+L["REAPPLY_THRESHOLD_ONE"] = "When < 1 Minute Left"
+L["REAPPLY_THRESHOLD_N"] = "When < %d Minutes Left"
 
 -- Ready Check
 L["OPTIONS_READY_CHECK_HEADER"] = "Ready Check"
@@ -265,15 +270,13 @@ L["OPTIONS_READY_CHECK"] = "Report Readiness on Ready Check"
 L["OPTIONS_READY_CHECK_DESCRIPTION"] =
 	"Prints what you're missing and how long your tracked buffs have left whenever a ready check starts, where only you can see it."
 
--- Buff Food
-L["OPTIONS_BUFF_FOOD_HEADER"] = "Buff Food"
+-- Buff Food. The section header reuses FEATURE_BUFF_FOOD.
 L["OPTIONS_BUFF_FOOD"] = "Prioritize Buff Food"
 L["OPTIONS_BUFF_FOOD_DESCRIPTION"] =
 	'Prioritizes food that grants "Well Fed" whenever the buff is missing. Disabled in Arenas.'
 L["OPTIONS_BUFF_FOOD_DETAIL"] = "Pro Tip: Targeting yourself always makes the Food macro skip buff food and scrolls."
 
--- Scroll Buffs
-L["OPTIONS_SCROLL_HEADER"] = "Scroll Buffs"
+-- Scroll Buffs. The section header reuses FEATURE_SCROLL_BUFFS.
 L["OPTIONS_USE_SCROLLS"] = "Include Scroll Buffs"
 L["OPTIONS_USE_SCROLLS_DESCRIPTION"] =
 	"Tap once to apply missing scrolls, again to eat. Scrolls are off the GCD and self-cast; targeting a friendly player skips them. Disabled in Arenas."
@@ -306,14 +309,18 @@ L["OPTIONS_DRUIDS_HEADER"] = "Druids"
 L["OPTIONS_DRUID_MACRO_HELPER"] = "Enable DruidMacroHelper Integration"
 L["OPTIONS_DRUID_MACRO_HELPER_DESCRIPTION"] =
 	"Builds powershifting macros for Health Potions, Mana Potions, and Healthstones using DruidMacroHelper (/dmh)."
-L["OPTIONS_DRUID_RETURN_FORM"] = "After Consumable, Switch to"
-L["DRUID_FORM_BEAR"] = "Bear"
-L["DRUID_FORM_CAT"] = "Cat"
+--[[
+    Return-form dropdown, shown beside the DruidMacroHelper toggle. The macro
+    powershifts out of form, uses the consumable, then returns to this one, so
+    the values name that return and the row needs no caption.
+]]
+L["DRUID_FORM_BEAR"] = "Return to Bear"
+L["DRUID_FORM_CAT"] = "Return to Cat"
 
 -- Night Elves
 L["OPTIONS_NIGHTELF_HEADER"] = "Night Elves"
-L["OPTIONS_SHADOWMELD_DRINKING"] = "Enable Stealth Drinking"
-L["OPTIONS_SHADOWMELD_DRINKING_DESCRIPTION"] = "Appends Shadowmeld to your Water macro so you stealth while drinking."
+L["OPTIONS_STEALTH_DRINKING"] = "Enable Stealth Drinking"
+L["OPTIONS_STEALTH_DRINKING_DESCRIPTION"] = "Appends Shadowmeld to your Water macro so you stealth while drinking."
 L["OPTIONS_STEALTH_EATING_NIGHTELF_DESCRIPTION"] = "Appends Shadowmeld to your Food macro so you stealth while eating."
 L["OPTIONS_STEALTH_PICK_ONE"] =
 	"Pro Tip: Pick one. You can eat and drink at the same time, but eating or drinking after you stealth will break your stealth."
@@ -329,7 +336,7 @@ L["OPTIONS_STEALTH_EATING_ROGUE_DESCRIPTION"] = "Appends Stealth to your Food ma
 
 -- Restocker. The section header reuses RESTOCKER_WINDOW_TITLE.
 L["OPTIONS_RESTOCKER_DESCRIPTION"] =
-	"Keeps your bags stocked from a per-character Restock List, buying from vendors and moving items to and from the bank automatically. Type /crs to open the list."
+	"Keeps your bags stocked from a per-character Restock List, buying from vendors and moving items to and from the bank automatically. Type %s to open the list."
 L["OPTIONS_RESTOCKER_OPEN_BANK"] = "Open at Bank"
 L["OPTIONS_RESTOCKER_OPEN_BANK_DESCRIPTION"] = "Open the Restocker window when you visit the bank."
 L["OPTIONS_RESTOCKER_OPEN_MERCHANT"] = "Open at Merchant"
@@ -338,18 +345,31 @@ L["OPTIONS_RESTOCKER_DEBUG"] = "Enable Restocker Debug Messages"
 L["OPTIONS_RESTOCKER_DEBUG_DESCRIPTION"] =
 	"Prints Restocker's step-by-step bank/merchant restocking decisions to chat. Noisy; persists across sessions until turned off."
 
--- /Commands. The command literals stay in code; these are the descriptions.
+--[[
+    /Commands. Both halves of each line are locale keys: the literal, which stays
+    identical in every locale (localization allowlist), and its description.
+]]
 L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
-L["OPTIONS_COMMANDS_FOODIE_DETAIL"] = "Opens the Connoisseur options interface."
-L["OPTIONS_COMMANDS_CRS_DETAIL"] = "Opens the Restocker window to manage your Restock List."
+L["OPTIONS_COMMAND"] = "/foodie"
+L["OPTIONS_COMMAND_DESCRIPTION"] = "Opens the Options Interface for this add-on."
+L["RESTOCKER_COMMAND"] = "/crs"
+L["RESTOCKER_COMMAND_DESCRIPTION"] = "Opens the Restocker window to manage your Restock List."
 
 -- Enable Macros
 L["OPTIONS_ENABLE_MACROS_HEADER"] = "Enable Macros"
 L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] =
 	"Toggle which macros Connoisseur creates and maintains. Disabling a macro will also remove it."
 
--- Feedback & Support
+--[[
+    Feedback & Support. The four service names are brand names and stay English
+    in every locale (localization allowlist); VERSION_LABEL translates.
+]]
 L["OPTIONS_COMMUNITY_HEADER"] = "Feedback & Support"
+L["DISCORD"] = "Discord"
+L["GITHUB"] = "GitHub"
+L["CURSEFORGE"] = "CurseForge"
+L["WAGO"] = "Wago"
+L["VERSION_LABEL"] = "Version"
 
 --------------------------------------------------------------------------------
 -- Restocker Window & Chat

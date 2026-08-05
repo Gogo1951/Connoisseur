@@ -42,7 +42,8 @@ function merchantModule:BuildPurchaseOrder(purchaseOrders, eachRestockRecord, ve
   local requiredReaction = eachRestockRecord.reaction or 0
 
   if requiredReaction > vendorReaction then
-    -- (spammy) RS:Print(string.format("Not buying: %s (too low reputation)", item.itemName))
+    -- Deliberately silent: this vendor is below the item's required standing, and
+    -- announcing every skipped item at every vendor would flood chat.
   elseif amount > 0 then
     local toBuy = amount - haveInBag
 

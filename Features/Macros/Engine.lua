@@ -70,7 +70,9 @@ local Config = ns.Config
 
     The macro-callback globals (ConnFire, ConnTip, ConnIf, ConnNoItem) and the
     ConnoisseurState transport live in Features/Macros/Runtime.lua, which loads
-    before this file. This file emits the `/run Conn...` lines that invoke them.
+    immediately after this file. This file only emits `/run Conn...` lines into
+    macro bodies at update time, long after load, so the later load order is
+    safe -- nothing here calls those globals while the file is being read.
 ]]
 
 --------------------------------------------------------------------------------
@@ -629,17 +631,63 @@ end
 -- Macro Update Loop
 --------------------------------------------------------------------------------
 
+--[[
+    One-time OnHide hook on the Blizzard Macro UI. The frame is load-on-demand,
+    so the hook can only be installed once the frame exists -- the deferral
+    guard in UpdateMacros is the first code to see it shown. MacroFrame saves
+    its edit box back over the selected macro when the selection changes and
+    when it hides, so a Connoisseur macro the user had selected may just have
+    been reverted to the text from when the frame opened. The state keys can't
+    see that -- they track what WE last wrote, and after a revert they match a
+    body that is no longer there -- so drop them all and rebuild from scratch.
+]]
+local macroUIHooked = false
+
+local function EnsureMacroUIHook()
+	if macroUIHooked or not MacroFrame then
+		return
+	end
+	macroUIHooked = true
+	MacroFrame:HookScript("OnHide", function()
+		ns.ResetMacroState()
+		ns.RequestUpdate()
+	end)
+end
+
 function ns.UpdateMacros(forced)
+	--[[
+        The wipe runs ahead of the deferral guards so a forced rebuild that
+        arrives in combat or with the Macro UI open keeps its force: the
+        deferred pass runs unforced, and only the wiped state guarantees it
+        rewrites bodies whose state key did not change.
+    ]]
+	if forced then
+		wipe(currentMacroState)
+	end
+
 	if InCombatLockdown() then
 		ns.RequestUpdate()
 		return
 	end
-	if not ns.ConjureSpells then
+
+	--[[
+        Writing while the Blizzard Macro UI is open is worse than useless: the
+        open frame never refreshes (the user stares at the old body and
+        concludes the rebuild is broken), and its save-back then reverts the
+        write -- leaving currentMacroState recording a body the macro no longer
+        has, which blocks every later rewrite whose state key matches (the
+        "stale macros until something else changes" failure). Defer exactly
+        like combat: leave the work pending and let the throttle retry; the
+        OnHide hook above forces the full rebuild the moment the frame closes.
+    ]]
+	if MacroFrame and MacroFrame:IsShown() then
+		EnsureMacroUIHook()
+		ns.RequestUpdate()
 		return
 	end
 
-	if forced then
-		wipe(currentMacroState)
+	if not ns.ConjureSpells then
+		return
 	end
 
 	local best, dataRetry = ns.ScanBags()

@@ -92,6 +92,27 @@ ns.OPTIONS_REGISTRY = {
 ns.QUESTION_MARK_ICON = 134400
 
 --------------------------------------------------------------------------------
+-- Options Layout Grid
+--------------------------------------------------------------------------------
+
+--[[
+    Widths for the label-beside-control rows in Options/. A row is an
+    ns.OptionsRowLabel cell plus its control, and the two always total
+    ns.OPTIONS_ROW_WIDTH, so every row ends where every other row ends. A row
+    whose control needs more room passes its own width to ns.OptionsRowLabel and
+    gives the control the remainder.
+]]
+ns.OPTIONS_ROW_WIDTH = 2.6
+ns.OPTIONS_LABEL_WIDTH = 1.3
+ns.OPTIONS_CONTROL_WIDTH = ns.OPTIONS_ROW_WIDTH - ns.OPTIONS_LABEL_WIDTH
+
+-- The item lists' remove column, sized to its icon rather than a caption.
+ns.OPTIONS_REMOVE_ICON_WIDTH = 0.25
+
+-- The blank cell a sub-option row leads with, sized to the parent's checkbox.
+ns.OPTIONS_SUB_INDENT_WIDTH = 0.115
+
+--------------------------------------------------------------------------------
 -- Macro Configuration
 --------------------------------------------------------------------------------
 
