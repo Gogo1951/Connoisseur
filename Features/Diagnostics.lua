@@ -117,11 +117,14 @@ local EVENT_LOG_MAX_ARGS = 8
 local EVENT_LOG_MAX_ARG_LENGTH = 255
 
 --[[
-    Firehose events flood the log in milliseconds and bury the signal, so the
-    logger skips them. UNIT_AURA is the one firehose this add-on registers (Well
-    Fed / scroll / pet-buff tracking). The log only sees events routed through
-    Core's central dispatcher, so an event the add-on never registers can't
-    appear here regardless.
+    Firehose events flood the log in milliseconds and bury the signal, so they
+    are kept out of the buffer -- but counted into the suppressed-traffic summary
+    rather than dropped silently, so the report still proves the event fired and
+    how often. UNIT_AURA is the one firehose this add-on registers (Well Fed /
+    scroll / pet-buff tracking), and "did the aura event arrive at all" is the
+    first question a stale-macro report has to answer. The log only sees events
+    routed through Core's central dispatcher, so an event the add-on never
+    registers can't appear here regardless.
 ]]
 ns.DIAGNOSTIC_EVENT_EXCLUDE = {
 	UNIT_AURA = true,
@@ -168,6 +171,28 @@ local function IsCorrelatedMessage(text)
 end
 
 --[[
+    Fold one firing into the suppressed-traffic tally, keyed by event plus the
+    text that distinguishes firings worth telling apart. Shared by both routes
+    into the summary: the excluded firehoses above, and the uncorrelated messages
+    below.
+]]
+local function CountSuppressed(event, text)
+	local suppressed = ns.diagnostics.suppressed
+	if not suppressed then
+		suppressed = {}
+		ns.diagnostics.suppressed = suppressed
+	end
+
+	local key = event .. "\0" .. text
+	local entry = suppressed[key]
+	if entry then
+		entry.count = entry.count + 1
+	else
+		suppressed[key] = { event = event, text = text, count = 1 }
+	end
+end
+
+--[[
     Decides, per firing, whether the entry is logged in full or folded into a
     counter. Suppressed traffic aggregates per message text (first-seen text plus
     a count) and renders as one compact block at the end of the report, so the
@@ -194,19 +219,7 @@ function ns:SuppressUncorrelatedMessage(event, ...)
 		return false
 	end
 
-	local suppressed = ns.diagnostics.suppressed
-	if not suppressed then
-		suppressed = {}
-		ns.diagnostics.suppressed = suppressed
-	end
-
-	local key = event .. "\0" .. text
-	local entry = suppressed[key]
-	if entry then
-		entry.count = entry.count + 1
-	else
-		suppressed[key] = { event = event, text = text, count = 1 }
-	end
+	CountSuppressed(event, text)
 
 	return true
 end
@@ -236,6 +249,13 @@ end
 ]]
 function ns:LogEvent(event, ...)
 	if ns.DIAGNOSTIC_EVENT_EXCLUDE[event] then
+		--[[
+	        Excluded from the buffer, not from the report: the first argument is
+	        what distinguishes these firings from each other (UNIT_AURA's unit),
+	        so it is what the tally is keyed by -- "UNIT_AURA(player) x319".
+	    ]]
+		local first = select("#", ...) > 0 and tostring((select(1, ...))) or ""
+		CountSuppressed(event, first)
 		return
 	end
 	--[[
@@ -433,10 +453,44 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(C_Map) == "table" and type(C_Map.GetBestMapForUnit) == "function"
 		end,
 	},
+	--[[
+        Frame methods, read off UIParent because every frame shares one
+        metatable. The Restocker window's resize grip prefers SetResizeBounds
+        and falls back to the SetMinResize/SetMaxResize pair it replaced; if
+        both rows FAIL the window still opens, it just cannot be resized.
+    ]]
+	{
+		"Frame:SetResizeBounds",
+		function()
+			return type(UIParent.SetResizeBounds) == "function"
+		end,
+	},
+	{
+		"Frame:SetMinResize (legacy)",
+		function()
+			return type(UIParent.SetMinResize) == "function"
+		end,
+	},
 	{
 		"IsInInstance",
 		function()
 			return type(IsInInstance) == "function"
+		end,
+	},
+	--[[
+        Both load-bearing for the Restocker's entering-town reminder: IsResting
+        is the signal it keys off, PlaySoundFile plays the optional alert.
+    ]]
+	{
+		"IsResting",
+		function()
+			return type(IsResting) == "function"
+		end,
+	},
+	{
+		"PlaySoundFile",
+		function()
+			return type(PlaySoundFile) == "function"
 		end,
 	},
 	{
@@ -467,6 +521,17 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		"GetItemInfo",
 		function()
 			return type(GetItemInfo) == "function"
+		end,
+	},
+	--[[
+        Guarded in ns.WarmItemCache (Options/Options-Utilities.lua): without it
+        an options item list can only show ids the client already cached, so the
+        rows sit on their loading text until something else pulls the data.
+    ]]
+	{
+		"C_Item.RequestLoadItemDataByID",
+		function()
+			return type(C_Item) == "table" and type(C_Item.RequestLoadItemDataByID) == "function"
 		end,
 	},
 	{

@@ -80,6 +80,10 @@ ns.WAGO_URL = "https://addons.wago.io/addons/connoisseur"
 ]]
 ns.OPTIONS_REGISTRY = {
 	General = ADDON_NAME .. "_General",
+	Macros = ADDON_NAME .. "_Macros",
+	Restocker = ADDON_NAME .. "_Restocker",
+	-- Registered but never added to the Blizzard tree: it opens as its own window.
+	StarterListPopup = ADDON_NAME .. "_StarterListPopup",
 	Profiles = ADDON_NAME .. "_Profiles",
 	Diagnostics = ADDON_NAME .. "_Diagnostics",
 }
@@ -111,6 +115,18 @@ ns.OPTIONS_REMOVE_ICON_WIDTH = 0.25
 
 -- The blank cell a sub-option row leads with, sized to the parent's checkbox.
 ns.OPTIONS_SUB_INDENT_WIDTH = 0.115
+
+--------------------------------------------------------------------------------
+-- Item List Widget
+--------------------------------------------------------------------------------
+
+--[[
+    dialogControl name for the small AceGUI widget each player-managed item-list
+    row draws itself with (icon, colored link, tooltip on hover). Registered in
+    Options/Options-Utilities.lua. Derived from ADDON_NAME so it can never
+    collide with another add-on's widget of the same shape.
+]]
+ns.ITEM_LINK_WIDGET_TYPE = ADDON_NAME .. "_ItemLink"
 
 --------------------------------------------------------------------------------
 -- Macro Configuration

@@ -293,6 +293,30 @@ UpdateTooltip = function(anchor)
 		AddItemSection(tooltip, L["UI_BEST_PET_FOOD"], ns.BestPetFoodID, ns.BestPetFoodLink, L["LABEL_PET_FOOD"])
 	end
 
+	--[[
+        Restocker Report -- a count, not a list. Spelling out every shortfall
+        made the tooltip taller than the screen on a real restock list, and the
+        only question this section answers is "do I need to shop?". The
+        Restocker window itself (/crs) is where the items live.
+
+        Read straight off RS.BuildGroceryList so the tooltip and the
+        entering-town reminder can never disagree, and rendered even when
+        empty: "fully stocked" is an answer, a missing section is not.
+    ]]
+	local restocker = CRS_ADDON
+	if restocker and restocker.BuildGroceryList then
+		local shortCount = #restocker.BuildGroceryList()
+		tooltip:AddLine(" ")
+		tooltip:AddLine(GetColor("TITLE") .. L["UI_RESTOCKER_REPORT"] .. "|r")
+		if shortCount == 0 then
+			tooltip:AddLine(GetColor("ON") .. L["UI_RESTOCKER_STOCKED"] .. "|r", 1, 1, 1, true)
+		elseif shortCount == 1 then
+			tooltip:AddLine(GetColor("BODY") .. L["UI_RESTOCKER_NEEDED_ONE"] .. "|r", 1, 1, 1, true)
+		else
+			tooltip:AddLine(GetColor("BODY") .. format(L["UI_RESTOCKER_NEEDED"], shortCount) .. "|r", 1, 1, 1, true)
+		end
+	end
+
 	-- Options block (always the last thing in the tooltip; no hint line below it)
 	tooltip:AddLine(" ")
 	tooltip:AddLine(GetColor("TITLE") .. L["MENU_OPTIONS"] .. "|r")

@@ -6,8 +6,11 @@ local _, ns = ...
 
 --[[
     The single AceDB-3.0 defaults table. Features/Core.lua passes this to
-    AceDB:New, which applies the defaults via metatables -- there is no
-    hand-rolled merge and no per-scope copy step.
+    AceDB:New, which applies the defaults itself -- there is no hand-rolled
+    merge. Scalar and table defaults are physically copied into the saved
+    table (copyDefaults via rawset) when a scope is first accessed; only
+    */** wildcard defaults resolve through a metatable. An explicit user
+    value, including false, is never overridden either way.
 
     Almost everything the user configures lives under `profile`, so it is
     per-character: each character gets its own "Name - Realm" profile and can
@@ -118,9 +121,11 @@ ns.DATABASE_DEFAULTS = {
 		--[[
             Which macros Connoisseur maintains. Account-wide because the macros
             are: they live in the shared General macro tab, so unchecking one
-            removes the shared macro for every character. Class-gated macros
-            (Feed Pet, conjures) still build only for the right class regardless
-            of the toggle.
+            removes the shared macro for every character. Feed Pet and Poisons
+            are class-gated on top of this toggle and build only for Hunters and
+            Rogues; the conjure-capable macros (Healthstone, Mana Gem,
+            Soulstone) are built for every class, with only their conjure clicks
+            class-gated.
         ]]
 		enabledMacros = {
 			["Bandage"] = true,

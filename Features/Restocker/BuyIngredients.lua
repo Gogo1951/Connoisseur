@@ -237,20 +237,29 @@ function buyIngredientsModule:CraftingPurchaseOrder()
   for _, item in pairs(--[[---@not nil]] profile) do
     if buyIngredientsModule.buyIngredients[item.itemName] ~= nil then
       local craftedName = item.itemName
-      local craftedRestockAmount = item.amount
-      local haveCrafted = GetItemCount(item.itemID, true)
-      local inBags = GetItemCount(item.itemID, false)
+      local craftedRestockAmount = item.amount or 0
+      --[[
+        Bags only, matching BuildPurchaseOrder and BuildGroceryList. Bank stock
+        deliberately does not count: you are standing at a vendor, and the
+        tradeskill can only consume what is in your bags, so poisons sitting in
+        the bank must not cancel reagents for crafts you still have to make.
+
+        Counting it was self-defeating as well. That bank pile is one this addon
+        creates -- Bank.lua stashes everything above `amount` -- so a full run
+        would bank the excess and then refuse to buy reagents for it. It also
+        made the same vendor visit buy different amounts depending on whether
+        the bank had been opened that session, which is when the client learns
+        bank contents.
+
+        The old gate that rode along with the bank count is gone with it: any
+        shortfall is worth buying for. It raised the threshold to half the
+        target whenever anything sat in the bank, so wanting 40 with 21 banked
+        was 19 short against a floor of 20 and silently bought nothing.
+      ]]
+      local haveCrafted = GetItemCount(item.itemID, false, false) or 0
       local craftedMissing = craftedRestockAmount - haveCrafted
-      local inBank = haveCrafted - inBags
-      local minDifference
 
-      if inBank == 0 then
-        minDifference = 1
-      else
-        minDifference = craftedRestockAmount / 2
-      end
-
-      if craftedMissing >= minDifference and craftedMissing > 0 then
+      if craftedMissing > 0 then
         local recipe = buyIngredientsModule.buyIngredients[craftedName]
 
         ---@param i RsIngredient|nil
@@ -270,10 +279,18 @@ function buyIngredientsModule:CraftingPurchaseOrder()
     end
   end
 
-  for reagent, val in pairs(purchaseOrder) do
-    local inBags = GetItemCount(reagent, false)
+  --[[
+    Reagents already in the bags come off the order. The floor matters because
+    these numbers do not stay in this table: Restock() folds them into
+    purchaseOrders alongside the merchant restock amounts, keyed by the same
+    localized name. A surplus of vials left a negative here, and a negative
+    added to a vial line the player actually asked for would quietly shrink it.
+  ]]
+  for reagent, _ in pairs(purchaseOrder) do
+    local inBags = GetItemCount(reagent, false) or 0
     if inBags > 0 then
-      purchaseOrder[reagent] = purchaseOrder[reagent] - inBags
+      local remaining = purchaseOrder[reagent] - inBags
+      purchaseOrder[reagent] = remaining > 0 and remaining or 0
     end
   end
 

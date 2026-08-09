@@ -6,7 +6,7 @@ local Config = ns.Config
     Engine -- the shared macro-writing machinery. Owns the definition
     registry, macro create/edit/delete plumbing, the conjure-block builder,
     smart spell resolution, the standard-body and state-key builders, the
-    255-byte trim, and the update loop that drives one registered
+    macro-length trim, and the update loop that drives one registered
     definition per macro.
 
     Per-macro behavior lives in Features/Macros/<Name>.lua files, each of
@@ -63,7 +63,8 @@ local Config = ns.Config
       stateExtras(parts, id) -- append extra state-key parts (Explosive's
                            "EX:mode" click layout)
       appendBlock()     -- returns (text, stateFlag) appended after the action
-                           block (Water's Shadowmeld line, flag "SM")
+                           block: Water's Shadowmeld line (flag "SM") and
+                           Food's Stealth Eating line (flag "SE")
       customUpdate(forced) -- the definition owns its whole update; it is
                            skipped by the standard loop (Feed Pet, which
                            routes to the Hunter builder)
@@ -356,7 +357,7 @@ end
 
     Using the global helper instead of an inline /run snippet keeps the macro
     body short — important for the Food macro when stacking scroll uses
-    against the 255-character limit. The helper name is deliberately short
+    against the 255 macro-body ceiling. The helper name is deliberately short
     but distinctive (Conn... prefix) to minimize collision risk with other
     addons while saving characters in every consumable macro.
 ]]
@@ -482,7 +483,7 @@ end
 
     With no item in bags the action line becomes /run ConnTip("<noItemMiss>")
     when the class can learn the conjure, else /run ConnNoItem("<typeName>").
-    Ends with the 255-byte trim, which sheds stacked healthstone lines and
+    Ends with the macro-length trim, which sheds stacked healthstone lines and
     then ranked fallback /use lines from the bottom up.
 ]]
 local function BuildStandardBody(def, config, itemID, useIDs, stackIDs, conjureInfo, appendText)
@@ -529,12 +530,17 @@ local function BuildStandardBody(def, config, itemID, useIDs, stackIDs, conjureI
 	local body = tooltipLine .. conjureBlock .. actionBlock .. appendedBlock
 
 	--[[
-        The client truncates macro bodies at 255 bytes, which would corrupt
-        the last /use line — the warlock Healthstone conjure block plus
-        three /use lines can overflow in multibyte locales (e.g. ruRU spell
-        names), and Health Potion stacking adds the Healthstone lines on
-        top. Shed the stacked Healthstone lines from the bottom first, then
-        potion fallback lines; the rank-1 potion line is never dropped.
+        The client caps macro bodies at 255 and the unit of that cap is
+        unconfirmed, so the guard measures #body (bytes) — never smaller than
+        a character count, so it holds under either reading. See
+        README-Technical; never convert this to a character count.
+
+        Overflow corrupts the last /use line: the warlock Healthstone conjure
+        block plus three /use lines can overflow in multibyte locales (e.g.
+        ruRU spell names), and Health Potion stacking adds the Healthstone
+        lines on top. Shed the stacked Healthstone lines from the bottom
+        first, then potion fallback lines; the rank-1 potion line is never
+        dropped.
     ]]
 	if useIDs then
 		local keepUse = #useIDs
@@ -571,12 +577,14 @@ end
 --[[
     State encoding — captures every input that affects the written body.
     Format:
-      ITEMIDS(_C(_M:mid)?(_R:rid)?(_MR:key)?(_MM:key)?(_NI:key)?)?(_EX:mode)?(_SM)?
+      ITEMIDS(+HS:stackIDs)?(_C(_M:mid)?(_R:rid)?(_MR:key)?(_MM:key)?(_NI:key)?)?(_EX:mode)?(_SM|_SE)?
     where ITEMIDS is the single itemID, or a comma-joined ranked list for
     multi-use types so a change in any fallback rank also triggers a
-    rewrite. _EX:mode comes from Explosive's stateExtras hook (its click
-    layout), so flipping the dropdown rewrites the macro; _SM is the
-    append-block flag (Shadowmeld). Mode overrides use their own prefix
+    rewrite. +HS: carries the stacked Healthstone ids (Health Potion's
+    getStackIDs hook). _EX:mode comes from Explosive's stateExtras hook (its
+    click layout), so flipping the dropdown rewrites the macro; _SM and _SE
+    are the append-block flags (Water's Shadowmeld line and Food's Stealth
+    Eating line). Mode overrides use their own prefix
     ("SCROLLS:...") instead, so the key spaces never collide and a
     transition between modes always triggers a rewrite. Every input that
     affects the body MUST appear in the key — a lossy key causes stale

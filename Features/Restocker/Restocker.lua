@@ -45,7 +45,71 @@ function RS:Print(...)
   ns.PrintMessage(table.concat(parts, " "))
 end
 
-RS.BAG_ICON = "Interface\\ICONS\\INV_Misc_Bag_10_Green" -- bag icon for add tooltip
+--[[
+  Items added during this viewing of the window, keyed by itemID.
+
+  A long Restock List buries a just-added item in whatever type group it
+  belongs to, so newly added items are pulled into a "New" group at the top
+  where their Withdraw/Deposit/Buy/reputation controls can be set straight
+  away.
+
+  "New" is a note about THIS list, THIS sitting -- so it clears the moment
+  either becomes untrue: when the Restocker window closes (MainFrame.lua's
+  OnHide), when the Starter List popup closes (its host's OnHide in
+  Options-Starter-List-Popup.lua), and on every profile event -- create,
+  switch, clone, copy, delete -- via RS:UseProfile plus the two direct sites
+  in DeleteProfile and CopyProfile that never pass through it.
+
+  Deliberately a plain field on RS rather than anything under settings: this is
+  view state for one sitting and must never reach SavedVariables.
+]]
+RS.newItems = {}
+
+function RS.ClearNewItems()
+  wipe(RS.newItems)
+end
+
+--[[
+  REMINDER DETAIL
+
+  Every restock reminder is either a headline on its own or a headline plus one
+  line per item you are short of. Stored as a mode rather than a boolean so the
+  option reads as a choice ("Simple" or "Verbose") instead of an unlabelled
+  switch, and so a third level could be added without another setting.
+]]
+RS.REMINDER_SIMPLE = "simple"
+RS.REMINDER_VERBOSE = "verbose"
+
+---Print a reminder: the headline, then in verbose mode a line per short item.
+---Callers pass the list they already built, so nothing is counted twice.
+---@param headline string
+---@param mode string RS.REMINDER_SIMPLE or RS.REMINDER_VERBOSE
+---@param groceries table[] From RS.BuildGroceryList
+function RS.PrintShortfall(headline, mode, groceries)
+  RS:Print(headline)
+  if mode ~= RS.REMINDER_VERBOSE then
+    return
+  end
+  for _, entry in ipairs(groceries) do
+    RS:Print(string.format(L["RESTOCKER_REMINDER_ITEM"],
+      entry.have, entry.wanted, RS.GetItemLink(entry.itemID, entry.itemName)))
+  end
+end
+
+---The "orders outstanding" headline, singular or plural. The count is of
+---grocery-list rows, not of missing units, which is what the wording says.
+---@param count number Short rows, i.e. #RS.BuildGroceryList()
+---@return string
+function RS.ShortfallHeadline(count)
+  if count == 1 then
+    return L["RESTOCKER_STILL_SHORT_ONE"]
+  end
+  return string.format(L["RESTOCKER_STILL_SHORT_MANY"], count)
+end
+
+-- Alert played when you reach an inn or city with something left to restock.
+-- Built from _TOCNAME so renaming the add-on folder cannot break the path.
+RS.RESTOCK_ALERT_SOUND = "Interface\\AddOns\\" .. _TOCNAME .. "\\Includes\\Sounds\\Low-Battery.ogg"
 
 function RS:Show()
   if RS.loaded then
@@ -175,25 +239,48 @@ function RS:Update()
     h:Hide()
   end
 
-  -- Position each entry by absolute row index so headers and items can interleave
+  --[[
+    Position each entry by a running offset rather than by row index: an
+    expanded row is taller than its neighbours, so index * ROW_HEIGHT would
+    overlap everything below it. The same accumulator gives the scroll child
+    its height, which is what keeps the scroll bar's range honest.
+  ]]
   local scrollChild = RS.MainFrame.scrollChild
-  for i, entry in ipairs(renderList) do
-    local y = -(i - 1) * RS.ROW_HEIGHT
+  local offset = 0
+  for _, entry in ipairs(renderList) do
     local f = entry.header and self:GetHeaderRow() or self:GetFirstEmpty(entry.item)
+    local expanded = not entry.header and RS.IsRowExpanded(entry.item)
+    local height = expanded and RS.ROW_HEIGHT_EXPANDED or RS.ROW_HEIGHT
+
+    --[[
+      An empty row's worth of air on BOTH sides of an expanded row, so the
+      open item and its detail controls read as one block lifted out of the
+      list. Pure layout: no frame fills the gaps, and the accumulator carries
+      them into the scroll child's height like real rows.
+    ]]
+    if expanded then
+      offset = offset + RS.ROW_HEIGHT
+    end
+
     f.isInUse = true
     f:SetParent(scrollChild)
     f:ClearAllPoints()
-    f:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 0, y)
-    f:SetSize(scrollChild:GetWidth(), RS.ROW_HEIGHT)
+    f:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 0, -offset)
+    f:SetSize(scrollChild:GetWidth(), height)
     if entry.header then
       f.text:SetText(entry.header)
     else
       self:UpdateRestockListRow(f, entry.item)
     end
     f:Show()
+    offset = offset + height
+
+    if expanded then
+      offset = offset + RS.ROW_HEIGHT
+    end
   end
 
-  scrollChild:SetHeight(math.max(1, #renderList) * RS.ROW_HEIGHT)
+  scrollChild:SetHeight(math.max(1, offset))
 end
 
 --[[
@@ -216,6 +303,15 @@ end
 ---@param newProfile string
 function RS:AddProfile(newProfile)
   local settings = restockerModule.settings
+
+  -- Never overwrite an existing list: an unguarded add replaced it with an empty
+  -- one and the items were unrecoverable. Same refusal RenameCurrentProfile makes.
+  -- CreateNewProfile and CloneCurrentProfile pick a free name before calling in.
+  if settings.profiles[newProfile] ~= nil then
+    RS:Print(string.format(L["RESTOCKER_PROFILE_EXISTS"], newProfile))
+    return
+  end
+
   settings.profiles[newProfile] = {} ---@type RsTradeCommand
   RS:UseProfile(newProfile)
 
@@ -235,6 +331,9 @@ function RS:DeleteProfile(profile)
   if profile == nil or settings.profiles[profile] == nil then
     return
   end
+  -- Deleting the CURRENT profile clears via the UseProfile fallback below;
+  -- this covers deleting any other profile, which UseProfile never sees.
+  RS.ClearNewItems()
   local currentProfile = settings.currentProfile
 
   if currentProfile == profile then
@@ -404,6 +503,9 @@ function RS:CopyProfile(profileToCopy)
   local copyProfile = CopyTable(settings.profiles[profileToCopy])
   settings.profiles[settings.currentProfile] = copyProfile
 
+  -- The copy replaced this list's contents wholesale, so the "New" notes no
+  -- longer describe anything in it -- and no UseProfile runs to clear them.
+  RS.ClearNewItems()
   RS:Update()
 end
 
@@ -429,7 +531,12 @@ end
 -- so the SavedVariables file has exactly one physical line per item (a real Lua
 -- table would be expanded across many lines by WoW's serializer).
 -- Field order: itemType, itemName, amount, stashTobank, restockFromBank,
---              buyFromMerchant [, reaction].  Booleans are 1 (true) / 0 (false).
+--              buyFromMerchant, reaction, upgrade.  Booleans are 1 / 0.
+-- reaction and upgrade are always written, where reaction alone used to be
+-- written only when set. Reading stayed backward compatible without a version
+-- bump because the parser already treats a missing trailing field as absent:
+-- an old line with no reaction reads reaction 0 and upgrade nil, and nil is
+-- the "on" default.
 -- itemType is the human-readable class from GetItemInfo (e.g. "Consumable",
 -- "Quest", "Trade Goods") and leads so the file sorts into groups. It is purely a
 -- convenience label (re-derived from the itemID); only the name is used at runtime.
@@ -463,9 +570,14 @@ local function rsItemToString(item)
   parts[#parts + 1] = item.restockFromBank and 1 or 0
   -- buyFromMerchant defaults to true (nil), so only false is "off"
   parts[#parts + 1] = (item.buyFromMerchant == false) and 0 or 1
-  if item.reaction and item.reaction > 0 then
-    parts[#parts + 1] = item.reaction
-  end
+  --[[
+    Both trailing fields go out every time now. Writing reaction only when set
+    worked while it was last, but upgrade sits behind it, and an optional field
+    in the middle would shift the one after it.
+  ]]
+  parts[#parts + 1] = (item.reaction and item.reaction > 0) and item.reaction or 0
+  -- upgrade defaults to true (nil), so only false is "off"
+  parts[#parts + 1] = (item.upgrade == false) and 0 or 1
   return table.concat(parts, ", ")
 end
 
@@ -504,6 +616,7 @@ local function rsItemFromString(s, key)
   local fromBank = tonumber(f[dataStart + 2])
   local buy = tonumber(f[dataStart + 3])
   local rxn = tonumber(f[dataStart + 4]) or 0
+  local upg = tonumber(f[dataStart + 5])
 
   -- Name is the last label field; an optional type leads it.
   local itemName = (labelEnd >= 1) and f[labelEnd] or ""
@@ -526,6 +639,8 @@ local function rsItemFromString(s, key)
     restockFromBank = (fromBank == 1) or nil,
     buyFromMerchant = buyFromMerchant,
     reaction = rxn > 0 and rxn or nil,
+    -- Same nil-is-on rule as buyFromMerchant; only an explicit 0 means off.
+    upgrade = (upg == 0) and false or nil,
   }
 end
 
@@ -668,6 +783,11 @@ function RS:UseProfile(name)
   if name == nil or name == "" then
     return
   end
+  -- Any profile event stales the "New" group, and every one of them --
+  -- create, switch, clone, delete-with-fallback, login init -- passes
+  -- through here. (A rename lands here too and clears; a note about "what
+  -- I just added" does not outrank keeping this the single choke point.)
+  RS.ClearNewItems()
   local settings = restockerModule.settings
   settings.currentProfile = name
   settings.profileKeys = settings.profileKeys or {}
@@ -701,6 +821,39 @@ function RS:loadSettings()
   settings.framePos = settings.framePos or {}
   settings.autoOpenAtBank = settings.autoOpenAtBank or false
   settings.autoOpenAtMerchant = settings.autoOpenAtMerchant or false
+
+  --[[
+    The `or false` idiom above cannot express a default of true -- it would
+    rewrite a deliberate false on every login -- so the town reminders test for
+    nil instead. All three ship on: the reminder is the feature, and a reminder
+    nobody configured should still tell them what they are short of and make a
+    noise about it.
+
+    Only an unset value is filled in, so a player who turned one off keeps it
+    off through every future login.
+  ]]
+  if settings.restockReminderChat == nil then
+    settings.restockReminderChat = true
+  end
+  if settings.restockReminderSound == nil then
+    settings.restockReminderSound = true
+  end
+  if settings.merchantReminder == nil then
+    settings.merchantReminder = true
+  end
+  if settings.bankReminder == nil then
+    settings.bankReminder = true
+  end
+
+  --[[
+    In town you are away from your bags and the detail is the whole point, so
+    that one defaults to the full list. At a merchant or a bank you are already
+    looking at the window that can fix it, so those two default to the count
+    alone and stay out of the way.
+  ]]
+  settings.restockReminderMode = settings.restockReminderMode or RS.REMINDER_VERBOSE
+  settings.merchantReminderMode = settings.merchantReminderMode or RS.REMINDER_SIMPLE
+  settings.bankReminderMode = settings.bankReminderMode or RS.REMINDER_SIMPLE
 end
 
 --[[
@@ -735,6 +888,54 @@ RS.ICON_FORMAT = "|T%s:0:0:0:0:64:64:4:60:4:60|t"
 ---  GetContainerItemInfo(bag, slot) or spell info etc
 function RS.FormatTexture(texture)
   return string.format(RS.ICON_FORMAT, texture)
+end
+
+--[[
+  TOOLTIPS
+
+  Every explanatory tooltip in the Restocker window routes through here, so the
+  colors, the spacing, and the wrap all live in one place.
+
+  Shape: a gold title, then white body lines with a blank line before each, so
+  a multi-line tooltip reads as paragraphs instead of one wall. Same spacing
+  idiom as AddSpacedLines in Minimap-Button.lua. Single-body tooltips are
+  unaffected -- they get the one spacer under the title either way.
+
+  Colors are passed explicitly rather than left to default, because the two
+  defaults disagree -- SetText falls back to gold and AddLine to white -- which
+  is how titles ended up white and body text gold. Callers pass plain strings
+  now; no |cff escapes.
+
+  The trailing `true` on each line is the textWrap argument. Without it a
+  tooltip is exactly as wide as its longest line, and the longer strings here
+  (the reputation control's discount line especially) rendered a tooltip wider
+  than the game window. With it the client breaks each line at its standard
+  tooltip width -- which is also why we do not hand-measure a pixel budget: the
+  client's own break points are correct in locales that don't put spaces
+  between words.
+
+  A one-argument call is a whole tooltip in one line, and renders as the title.
+]]
+local TOOLTIP_TITLE_R, TOOLTIP_TITLE_G, TOOLTIP_TITLE_B = 1, 0.82, 0 -- gold
+local TOOLTIP_BODY_R, TOOLTIP_BODY_G, TOOLTIP_BODY_B = 1, 1, 1       -- white
+
+---@param control WowControl
+---@param title string
+---@param ... string Body lines, each shown on its own line under the title
+function RS.SetupTooltip(control, title, ...)
+  local body = { ... }
+  control:SetScript("OnEnter", function(self)
+    GameTooltip:SetOwner(self, "ANCHOR_TOP")
+    GameTooltip:SetText(title, TOOLTIP_TITLE_R, TOOLTIP_TITLE_G, TOOLTIP_TITLE_B, 1, true)
+    for i = 1, #body do
+      GameTooltip:AddLine(" ") -- blank line under the title, then between each pair
+      GameTooltip:AddLine(body[i], TOOLTIP_BODY_R, TOOLTIP_BODY_G, TOOLTIP_BODY_B, true)
+    end
+    GameTooltip:Show()
+  end)
+  control:SetScript("OnLeave", function()
+    GameTooltip:Hide()
+  end)
 end
 
 ---AceAddon handler
@@ -809,10 +1010,6 @@ function RS:OnEnable()
   end -- setup the UI
 
   RS.loaded = true
-end
-
-function restockerModule:Color(hex, text)
-  return "|cff" .. hex .. text .. "|r"
 end
 
 -- AceAddon-3.0 replacement: OnInitialize/OnEnable used to be Ace lifecycle handlers.

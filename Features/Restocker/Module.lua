@@ -12,10 +12,12 @@
 --   ListFrame.lua
 --   Bank.lua
 --   Merchant.lua
+--   Upgrade.lua
 --   Item.lua
 --   Cache.lua
 --   Bag.lua
 --   Inventory.lua
+--   StarterList.lua
 
 ---@class CrsModuleModule
 ---@field bagModule RsBagModule

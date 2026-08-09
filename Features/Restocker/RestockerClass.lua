@@ -13,7 +13,6 @@
 ---@field RegisterEvent function
 ---@field buying boolean Currently buying is in progress
 ---@field addItemWait {[number|string]: boolean|nil} Item ids waiting for resolution to be added to the buy list
----@field BAG_ICON string
 ---@field buyIngredients table<string, RsRecipe> Auto buy table contains ingredients to buy if restocking some crafted item
 ---@field buyIngredientsWait table<number, RsRecipe> Item ids waiting for resolution for auto-buy setup
 ---@field commands RsCommands
@@ -49,4 +48,5 @@
 ---@field profileKeys {[string]: string}|nil Maps a character "Name-Realm" to its active profile name
 ---@field debugMessages boolean
 ---@field dataVersion number Saved-data layout version (see RS_DATA_VERSION)
+---@field starterListDismissed {[string]: boolean}|nil Characters ("Name-Realm") that opted out of the Starter List popup
 ---@field migratedToAccount boolean|nil Set on the old per-character table once imported

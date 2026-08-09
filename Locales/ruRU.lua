@@ -130,6 +130,22 @@ L["UI_IGNORE_LIST"] = "Список игнорирования"
 L["MENU_IGNORE"] = "Игнорировать"
 L["MENU_CLEAR_IGNORE"] = "Очистить игнор-лист"
 
+--[[
+    Restocker Report block in the minimap tooltip: how many restocking orders
+    are still outstanding, never the items themselves. An order is one row of
+    the Restock List, so the count is of rows below target and not of missing
+    units -- nine outstanding orders can be nine single juices or nine full
+    stacks. The header above supplies the "restocking", so the lines under it
+    only need the noun.
+
+    Separate singular and plural strings rather than a composed "%d order(s)",
+    so every locale can phrase the count its own way.
+]]
+L["UI_RESTOCKER_REPORT"] = "Отчёт о пополнении"
+L["UI_RESTOCKER_NEEDED_ONE"] = "1 невыполненный заказ"
+L["UI_RESTOCKER_NEEDED"] = "Невыполненных заказов: %d"
+L["UI_RESTOCKER_STOCKED"] = "Поздравляем, запасы полностью пополнены!"
+
 -- Options entry at the bottom of the minimap tooltip.
 L["MENU_OPTIONS"] = "Настройки Connoisseur"
 L["MENU_OPTIONS_KEYBIND"] = "Shift + СКМ"
@@ -313,6 +329,25 @@ L["OPTIONS_EXPLOSIVES_DESCRIPTION"] =
 L["EXPLOSIVES_MODE_ATPLAYER"] = "ЛКМ @player, ПКМ Бросок"
 L["EXPLOSIVES_MODE_TOSS"] = "ЛКМ Бросок, ПКМ @player"
 
+--[[
+    Ignore List. The rows are items, so the only copy here is the add box and
+    the placeholder shown while the client is still resolving an item's name.
+    The section header and the clear-all button reuse UI_IGNORE_LIST and
+    MENU_CLEAR_IGNORE, which the mini-map tooltip already carries.
+]]
+L["OPTIONS_IGNORE_DESCRIPTION"] =
+	"Предметы, которые Connoisseur никогда не выберет, какими бы хорошими они ни были. Щёлкните правой кнопкой по значку у миникарты, чтобы игнорировать предлагаемую сейчас еду, или добавьте предмет ниже."
+L["OPTIONS_IGNORE_ADD_ID"] = "Добавить по ID предмета"
+L["OPTIONS_IGNORE_ADD_ID_DESCRIPTION"] =
+	"Введите ID предмета или сделайте Shift + Клик по ссылке на предмет в чате, пока это поле активно."
+L["OPTIONS_IGNORE_ADD_ID_INVALID"] =
+	"Введите ID предмета или сделайте Shift + Клик по ссылке на предмет в чате."
+L["OPTIONS_IGNORE_REMOVE"] = "Убрать"
+L["OPTIONS_IGNORE_EMPTY"] = "Список пуст."
+L["OPTIONS_IGNORE_CLEAR_CONFIRM"] = "Убрать все предметы из списка игнорирования?"
+-- %d is the item ID, shown while the client is still resolving the item.
+L["LOADING_ITEM"] = "Загрузка ID: %d"
+
 -- Pet Food Buffs
 L["OPTIONS_PET_HEADER"] = "Баффы от еды для питомцев"
 L["OPTIONS_USE_PET_BUFFS"] = "Использовать баффы от еды для питомцев"
@@ -355,7 +390,10 @@ L["OPTIONS_STEALTH_EATING"] = "Включить незаметность при 
 L["OPTIONS_STEALTH_EATING_ROGUE_DESCRIPTION"] =
 	'Добавляет способность "Скрытность" в макрос еды, чтобы вы уходили в скрытность во время еды.'
 
--- Restocker. The section header reuses RESTOCKER_WINDOW_TITLE.
+-- Restocker options panel. The tree label stays "Restocker" in every locale
+-- (brand fragment, localization allowlist); the panel header reuses
+-- RESTOCKER_WINDOW_TITLE.
+L["OPTIONS_RESTOCKER_TAB"] = "Restocker"
 L["OPTIONS_RESTOCKER_DESCRIPTION"] =
 	"Пополняет сумки по списку пополнения для каждого персонажа. Автоматически покупает у торговцев и перемещает предметы между сумками и банком. Введите %s, чтобы открыть список."
 L["OPTIONS_RESTOCKER_OPEN_BANK"] = "Открывать в банке"
@@ -364,9 +402,57 @@ L["OPTIONS_RESTOCKER_OPEN_BANK_DESCRIPTION"] =
 L["OPTIONS_RESTOCKER_OPEN_MERCHANT"] = "Открывать у торговца"
 L["OPTIONS_RESTOCKER_OPEN_MERCHANT_DESCRIPTION"] =
 	"Открывает окно Restocker при посещении торговца."
+L["OPTIONS_RESTOCKER_REMIND"] = "Включить напоминания о пополнении в городе"
+L["OPTIONS_RESTOCKER_REMIND_DESCRIPTION"] =
+	"Выводит напоминание в чат, когда вы добираетесь до таверны или города, а в списке пополнения чего-то не хватает."
+L["OPTIONS_RESTOCKER_MERCHANT_REMIND"] =
+	"Включить напоминания о пополнении у торговца"
+L["OPTIONS_RESTOCKER_MERCHANT_REMIND_DESCRIPTION"] =
+	"Сообщает о невыполненных заказах на пополнение, когда вы закрываете окно торговца. Молчит, если таких нет."
+L["OPTIONS_RESTOCKER_BANK_REMIND"] = "Включить напоминания о пополнении в банке"
+L["OPTIONS_RESTOCKER_BANK_REMIND_DESCRIPTION"] =
+	"Сообщает о невыполненных заказах на пополнение, когда вы закрываете банк. Молчит, если таких нет."
+
+--[[
+    The starter List Builder pop-up. This toggle and the pop-up's own "Don't
+    show this again" box are the same per-character choice read from opposite
+    ends, which is why one ships on and the other off: a settings row reads
+    naturally as "enable", a dismissal reads naturally as "stop".
+]]
+L["OPTIONS_RESTOCKER_STARTER_LIST"] =
+	"Включить помощник списка, когда список пополнения пуст"
+L["OPTIONS_RESTOCKER_STARTER_LIST_DESCRIPTION"] =
+	"Предлагает начальный список пополнения при входе, если у этого персонажа он пуст."
+
+--[[
+    How much each reminder says. Simple is the headline alone; Verbose adds a
+    line per item, showing how many you have against how many you want.
+
+    One word each, deliberately: these sit beside toggles carrying a whole
+    sentence, and every character here is one the caption beside them loses.
+]]
+L["OPTIONS_RESTOCKER_MODE_SIMPLE"] = "Кратко"
+L["OPTIONS_RESTOCKER_MODE_VERBOSE"] = "Подробно"
+
+L["OPTIONS_RESTOCKER_REMIND_SOUND"] = "Проигрывать звук"
+L["OPTIONS_RESTOCKER_REMIND_SOUND_DESCRIPTION"] =
+	"Проигрывает сигнал вместе с напоминанием, когда в чате оживлённо."
+L["OPTIONS_RESTOCKER_SOUND_PREVIEW"] = "Нажмите, чтобы прослушать сигнал."
 L["OPTIONS_RESTOCKER_DEBUG"] = "Включить отладочные сообщения Restocker"
 L["OPTIONS_RESTOCKER_DEBUG_DESCRIPTION"] =
 	"Выводит в чат пошаговые решения Restocker при пополнении из банка и у торговца. Многословно; остаётся включённым между сеансами, пока не выключить."
+
+L["OPTIONS_RESTOCKER_WINDOW_HEADER"] = "Окно пополнения"
+L["OPTIONS_RESTOCKER_ADVANCED_HEADER"] = "Дополнительно"
+
+--[[
+    Praise for the adopted Restocker code. The three names are proper nouns and
+    stay as written in every locale (localization allowlist); the sentences
+    around them translate. Matches the History section of README.md.
+]]
+L["OPTIONS_RESTOCKER_PRAISE_HEADER"] = "Благодарности"
+L["OPTIONS_RESTOCKER_PRAISE"] =
+	"Я всегда любил Restocker и рад, что он продолжает жить внутри Connoisseur. Огромное спасибо ChiliFajita, автору оригинального Auto Restocker, а также kvakvs и guardycmw, которые поддерживали его в Classic и Mists of Pandaria."
 
 --[[
     /Commands. Both halves of each line are locale keys: the literal, which stays
@@ -379,7 +465,15 @@ L["RESTOCKER_COMMAND"] = "/crs"
 L["RESTOCKER_COMMAND_DESCRIPTION"] =
 	"Открывает окно Restocker для управления списком пополнения."
 
--- Enable Macros
+--[[
+    Macros panel. OPTIONS_MACROS_TAB is the panel's label in the settings tree
+    and the title on the page; DESCRIPTION is the intro beneath it, which
+    orients the player to the page's two halves -- which macros exist, then how
+    each one behaves. The Enable Macros header below titles the first section.
+]]
+L["OPTIONS_MACROS_TAB"] = "Макросы"
+L["OPTIONS_MACROS_DESCRIPTION"] =
+	"Connoisseur создаёт по одному макросу на каждый расходуемый предмет и обновляет его вслед за содержимым сумок, так что кнопка на панели всегда тянется к лучшему предмету, который у вас есть. Выберите ниже, какие макросы создавать, а затем настройте, как каждый из них выбирает предмет."
 L["OPTIONS_ENABLE_MACROS_HEADER"] = "Включить макросы"
 L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] =
 	"Выбор макросов, которые Connoisseur создает и поддерживает. Отключение макроса также удалит его."
@@ -425,7 +519,78 @@ L["RESTOCKER_STUCK_ITEM_EXTRA_FORMAT"] = "%dx %s (лишнее)"
 L["RESTOCKER_STOPPED_ERROR"] = "Пополнение остановлено из-за ошибки: %s"
 L["RESTOCKER_BAGS_FULL_SKIP_MERCHANT"] =
 	"Ваши сумки переполнены. Пополнение у торговца пропущено."
-L["RESTOCKER_FINISHED_RESTOCKING"] = "Пополнение завершено (покупок: %d)."
+-- Printed on reaching an inn or a city with something left on the Grocery List.
+L["RESTOCKER_TOWN_REMINDER"] = "Не забудьте пополнить запасы, пока вы в городе!"
+
+--[[
+    Headline for the merchant and bank reminders, which report on the way out
+    rather than nudging on arrival, so the count is the message. The in-town
+    reminder keeps its own line above.
+
+    The count is of restocking orders -- rows of the Restock List still below
+    their target -- which is why it does not say "items". An earlier draft read
+    "You're still short 9 items", and a bare object after "short" forces the
+    unit reading: "short 9 apples" is nine apples missing. The number here is
+    nine ROWS, each short by anything from one juice to a full stack. "Order"
+    can only mean a line on a list, so the ambiguity cannot come back, and it
+    is the word the code already uses (BuildPurchaseOrder, purchaseOrders).
+
+    "Outstanding" is load-bearing, not decoration. "Restocking order" alone can
+    be read as the sequence restocking happens in, and the list UI is sortable,
+    so the word forcing the purchase-order sense has to stay beside the noun.
+    Same job as "filled" on RESTOCKER_RESTOCKED_ONE -- never print the bare
+    noun without one of them.
+]]
+L["RESTOCKER_STILL_SHORT_ONE"] = "1 заказ на пополнение не выполнен."
+L["RESTOCKER_STILL_SHORT_MANY"] = "Не выполнено заказов на пополнение: %d."
+
+--[[
+    Level-up upgrades. The headline makes the Restock List the subject, so
+    there is no item count to agree with and one string covers any number of
+    swaps; the line under it is { old link, new link } and has no words at all.
+    It separates the two with the house " // " rather than an arrow glyph, which
+    renders as a box in some client fonts and locales.
+]]
+L["RESTOCKER_UPGRADED"] = "Ваш список пополнения обновлён."
+L["RESTOCKER_UPGRADED_ITEM"] = "%sx%d заменено на %sx%d."
+
+--[[
+    Verbose follow-up line, one per short item: { have, wanted, item link }.
+    Shared by all three reminders. Wordless on purpose -- the headline above it
+    supplies the context, so there is nothing here to translate. It stays a
+    locale key anyway so a locale that needs a different order can reorder it
+    (same as RESTOCKER_STUCK_ITEM_FORMAT).
+]]
+L["RESTOCKER_REMINDER_ITEM"] = "%d/%d %s"
+
+--[[
+    Printed after buying at a vendor. Counts restocking orders FILLED -- rows
+    whose whole requested amount was ordered -- not BuyMerchantItem calls and
+    not vendor slots. Forty juice bought in two stacks of twenty is one order
+    filled; six of a requested twenty is not one at all, and belongs to the
+    partial line below.
+
+    The claim has to be earned, which is why merchantModule:PurchaseMerchantItem
+    reports whether it got the full amount instead of the caller inferring it
+    from a unit count. What the vendor did not stock is deliberately not
+    mentioned here: the mini-map's Restocker Report owns the outstanding state,
+    this line owns the event, and neither repeats the other.
+]]
+L["RESTOCKER_RESTOCKED_ONE"] = "1 заказ на пополнение выполнен."
+L["RESTOCKER_RESTOCKED_MANY"] = "Выполнено заказов на пополнение: %d."
+
+--[[
+    The vendor had some of what an order asked for but not all of it. Its own
+    line rather than a clause on the one above, so the two counts stay
+    independent and a mixed run needs no combined string -- both print when
+    both are non-zero, and a run with no partials never mentions them.
+
+    Without this line, a partial buy would spend gold and say nothing, since
+    "filled" has to stay false for it.
+]]
+L["RESTOCKER_RESTOCKED_PARTIAL_ONE"] = "1 заказ на пополнение выполнен частично."
+L["RESTOCKER_RESTOCKED_PARTIAL_MANY"] =
+	"Частично выполнено заказов на пополнение: %d."
 
 -- /crs help lines. The command literals stay in code; these are the descriptions.
 L["RESTOCKER_HELP_SHOW"] = "Показывает окно Restocker."
@@ -435,6 +600,100 @@ L["RESTOCKER_HELP_PROFILE_RENAME"] = "Переименовывает текущ�
 L["RESTOCKER_HELP_PROFILE_COPY"] = "Копирует этот профиль в текущий."
 L["RESTOCKER_HELP_PROFILE_USE"] = "Переключает активный профиль на это имя."
 
+--[[
+    Starter List pop-up: the login window that offers vendor staples when the
+    Restock List is empty (Features/Restocker/StarterList.lua). Its title
+    reuses RESTOCKER_WINDOW_TITLE below, and the six food staples reuse the
+    DIET_ keys above, so the popup names bread whatever the pet-food tooltips
+    call it.
+
+    The intro is three short paragraphs: why the window opened, what a tick
+    does, and the way back in. Joined with blank lines at the call site, so
+    each reads as its own breath rather than one wall.
+]]
+L["STARTER_POPUP_INTRO_EMPTY"] =
+	"Ваш список пополнения пуст, так что давайте добавим несколько предметов для начала."
+L["STARTER_POPUP_INTRO_HOW"] =
+	"Всё, что вы отметите, пополняется автоматически при открытии торговца или банка, а базовые товары сами повышаются в ранге по мере роста уровня, так что у вас всегда будет лучшее из доступного."
+-- %s is the /crs slash command, colored at the call site.
+L["STARTER_POPUP_COMMAND_HINT"] =
+	"Вы всегда можете изменить этот список или добавить предметы позже, введя %s."
+--[[
+    The first section's heading names the water row it carries -- except for
+    the manaless classes, whose section holds only food, so the heading says
+    only that.
+]]
+L["STARTER_POPUP_FOOD_AND_WATER_HEADER"] = "Еда и вода"
+L["STARTER_POPUP_FOOD_HEADER"] = "Еда"
+L["STARTER_POPUP_AMMO_HEADER"] = "Боеприпасы"
+-- The two ammo staples; the Water label reuses LABEL_WATER above.
+L["STARTER_POPUP_BULLETS"] = "Пули"
+L["STARTER_POPUP_ARROWS"] = "Стрелы"
+
+--[[
+    The Reagents & Tools section: class tools and spell reagents, at most a
+    handful per class. Rogues additionally get a Poisons section of their
+    own, whose note under the header reuses PREFIX_ROGUE (rogue-colored at
+    the call site) to say the ingredients take care of themselves. The
+    poison labels are short forms on purpose -- the section heading plus the
+    tooltip's exact rank carry the rest -- and LABEL_POISONS ("Poison",
+    singular) belongs to the macro's no-item message and is not reused here.
+    The other reagent labels are kept inside about fifteen characters so
+    they hold the popup's reagent-row label cell.
+]]
+L["STARTER_POPUP_REAGENTS_HEADER"] = "Реагенты и инструменты"
+L["STARTER_POPUP_POISONS_HEADER"] = "Яды"
+-- %s is the rogue-colored PREFIX_ROGUE; the spaced colon is deliberate.
+L["STARTER_POPUP_POISONS_NOTE"] =
+	"%s : Добавьте готовый яд в список, и Connoisseur автоматически купит ингредиенты у любого торговца, который их продает."
+L["STARTER_POPUP_POISON_ANESTHETIC"] = "Анестезия"
+L["STARTER_POPUP_POISON_CRIPPLING"] = "Калечащий"
+L["STARTER_POPUP_POISON_DEADLY"] = "Смертельный"
+L["STARTER_POPUP_POISON_INSTANT"] = "Мгновенный"
+L["STARTER_POPUP_POISON_MIND_NUMBING"] = "Отупляющий"
+L["STARTER_POPUP_POISON_WOUND"] = "Ранящий"
+L["STARTER_POPUP_REAGENT_HEARTHSTONE"] = "Камень возвращения"
+L["STARTER_POPUP_REAGENT_BLINDING_POWDER"] = "Ослепляющий порошок"
+L["STARTER_POPUP_REAGENT_FLASH_POWDER"] = "Порошок вспышки"
+L["STARTER_POPUP_REAGENT_THIEVES_TOOLS"] = "Воровские инструменты"
+L["STARTER_POPUP_REAGENT_CORPSE_DUST"] = "Трупный прах"
+L["STARTER_POPUP_REAGENT_WILDS"] = "Дикие ягоды"
+L["STARTER_POPUP_REAGENT_SEEDS"] = "Семена"
+L["STARTER_POPUP_REAGENT_ARCANE_POWDER"] = "Чародейский порошок"
+L["STARTER_POPUP_REAGENT_LIGHT_FEATHER"] = "Легкое перо"
+L["STARTER_POPUP_REAGENT_TELEPORT_RUNES"] = "Руны телепортации"
+L["STARTER_POPUP_REAGENT_PORTAL_RUNES"] = "Руны порталов"
+L["STARTER_POPUP_REAGENT_SYMBOL_DIVINITY"] = "Символ божественности"
+L["STARTER_POPUP_REAGENT_SYMBOL_KINGS"] = "Символ королей"
+L["STARTER_POPUP_REAGENT_CANDLES"] = "Свечи"
+L["STARTER_POPUP_REAGENT_ANKH"] = "Анкх"
+L["STARTER_POPUP_REAGENT_FISH_SCALES"] = "Рыбья чешуя"
+L["STARTER_POPUP_REAGENT_FISH_OIL"] = "Рыбий жир"
+L["STARTER_POPUP_REAGENT_EARTH_TOTEM"] = "Тотем земли"
+L["STARTER_POPUP_REAGENT_FIRE_TOTEM"] = "Тотем огня"
+L["STARTER_POPUP_REAGENT_WATER_TOTEM"] = "Тотем воды"
+L["STARTER_POPUP_REAGENT_AIR_TOTEM"] = "Тотем воздуха"
+L["STARTER_POPUP_REAGENT_FIGURINE"] = "Статуэтка"
+L["STARTER_POPUP_REAGENT_INFERNAL_STONE"] = "Камень инфернала"
+L["STARTER_POPUP_REAGENT_SOUL_SHARDS"] = "Осколки души"
+-- Checkbox tooltip: { item link, amount }.
+L["STARTER_POPUP_ITEM_DESCRIPTION"] =
+	"Добавляет %s в список пополнения, держит %d в сумках и повышает ранг по мере роста уровня."
+L["STARTER_POPUP_ITEM_DESCRIPTION_STATIC"] =
+	"Добавляет %s в список пополнения и держит %d в сумках."
+--[[
+    The stacks dropdown beside each staple. The label is unit-agnostic (a
+    stack is 20 food or water, 200 ammo); the tooltip below carries the
+    per-item stack size as %d.
+]]
+L["STARTER_POPUP_STACK_ONE"] = "1 стопка"
+L["STARTER_POPUP_STACK_MANY"] = "Стопок: %d"
+L["STARTER_POPUP_STACKS_DESCRIPTION"] =
+	"Сколько стопок держать в запасе. Одна стопка здесь равна %d."
+L["STARTER_POPUP_DISMISS"] = "Больше не показывать для этого персонажа."
+L["STARTER_POPUP_DISMISS_DESCRIPTION"] =
+	"Иначе эти предложения будут появляться при каждом входе, когда список пополнения окажется пустым."
+
 -- Restocker window UI.
 L["RESTOCKER_WINDOW_TITLE"] = "Connoisseur Restocker"
 L["RESTOCKER_FILTER_PLACEHOLDER"] = "Фильтр предметов..."
@@ -442,20 +701,53 @@ L["RESTOCKER_ADD_BUTTON"] = "Добавить"
 L["RESTOCKER_ADD_TOOLTIP_TITLE"] = "Добавить предмет"
 L["RESTOCKER_ADD_TOOLTIP_BODY"] =
 	"Перетащите предмет из сумки или введите числовой ID предмета."
+-- In-box placeholder for the add row; the tooltip above carries the detail.
+L["RESTOCKER_ADD_PLACEHOLDER"] = "Перетащите сюда предмет или введите его ID..."
 L["RESTOCKER_PROFILE_LABEL"] = "Профиль:"
 L["RESTOCKER_RENAME_LABEL"] = "Переименовать:"
 L["RESTOCKER_NEW_PROFILE"] = "Новый профиль"
 L["RESTOCKER_COPY_PROFILE"] = "Копировать"
-L["RESTOCKER_COPY_PROFILE_TOOLTIP"] = "Клонирует этот профиль в новый."
+--[[
+    The three single-argument tooltips below (Copy, Delete, and the row's
+    Remove) render in RS.SetupTooltip's TITLE slot, not its body, so they take
+    no terminal punctuation -- matching every other title in the window. Don't
+    "restore" the period they read as wanting.
+]]
+L["RESTOCKER_COPY_PROFILE_TOOLTIP"] = "Клонирует этот профиль в новый"
 -- %s becomes "<profile name> Copy"; numbered if that name is taken.
 L["RESTOCKER_PROFILE_COPY_NAME"] = "%s (копия)"
 L["RESTOCKER_DELETE_PROFILE"] = "Удалить"
-L["RESTOCKER_DELETE_PROFILE_TOOLTIP"] = "Удаляет этот профиль."
+L["RESTOCKER_DELETE_PROFILE_TOOLTIP"] = "Удаляет этот профиль"
 -- %s is the profile name, colored at the call site. |n are line breaks.
 L["RESTOCKER_DELETE_PROFILE_CONFIRM"] =
 	"Вы уверены, что хотите удалить этот профиль?|n|n%s|n|nЭто нельзя отменить."
+--[[
+    Row controls in the Restocker window. UPGRADE is disabled on any item that
+    is not on a ladder in Data/Consumable-Upgrade-Paths.lua, which on a real
+    list is most of them.
+]]
+L["RESTOCKER_UPGRADE_LABEL"] = "Автоулучшение"
+L["RESTOCKER_UPGRADE_TOOLTIP_TITLE"] = "Улучшать с ростом уровня"
+L["RESTOCKER_UPGRADE_TOOLTIP_BODY"] =
+	"У еды, воды, боеприпасов и зелий есть чёткие ступени улучшения по мере роста уровня, поэтому Connoisseur поднимает этот предмет за вас. Всё остальное вы настраиваете сами со временем."
+
+--[[
+    Group captions on a row's detail line, which is hidden until the row is
+    expanded. They label where the item moves from, so the buttons beside them
+    can stay one word each.
+]]
+L["RESTOCKER_ROW_BANK"] = "Банк"
+L["RESTOCKER_ROW_MERCHANT"] = "Торговец"
+L["RESTOCKER_ROW_UPGRADE"] = "Улучшение"
+
 L["RESTOCKER_GROUP_OTHER"] = "Прочее"
-L["RESTOCKER_REMOVE_TOOLTIP"] = "Убирает этот предмет из списка пополнения."
+--[[
+    Temporary group holding items added during this viewing of the window. It
+    sorts above every real item type and disappears when the window closes.
+]]
+L["RESTOCKER_GROUP_NEW"] = "Новые"
+-- Title slot, like the two profile-button tooltips above: no terminal period.
+L["RESTOCKER_REMOVE_TOOLTIP"] = "Убирает этот предмет из списка пополнения"
 L["RESTOCKER_AMOUNT_TOOLTIP_TITLE"] = "Количество для пополнения"
 L["RESTOCKER_AMOUNT_TOOLTIP_BODY"] = "Нажмите Enter, когда закончите."
 L["RESTOCKER_BUY_LABEL"] = "Купить"
@@ -473,16 +765,35 @@ L["RESTOCKER_WITHDRAW_TOOLTIP_BODY"] =
 
 -- Required-reputation control (per-item vendor gate).
 L["RESTOCKER_REPUTATION_MENU_TITLE"] = "Требуемая репутация"
--- { standing label, discount percent }
-L["RESTOCKER_REPUTATION_DISCOUNT_FORMAT"] = "%s  (скидка %d%%)"
+--[[
+    { standing label, discount percent }.
+
+    This string IS run through string.format, so its literal percent sign is
+    escaped as %%. RESTOCKER_REPUTATION_TOOLTIP_DISCOUNTS below is printed
+    as-is and therefore writes bare % signs. Both are correct where they
+    stand; neither may be "normalized" to match the other, in any locale.
+]]
+L["RESTOCKER_REPUTATION_DISCOUNT_FORMAT"] = "%s (скидка %d%%)"
 L["RESTOCKER_REPUTATION_ANY"] = "Любая"
 L["RESTOCKER_REPUTATION_FRIENDLY"] = "Дружелюбие"
 L["RESTOCKER_REPUTATION_HONORED"] = "Уважение"
 L["RESTOCKER_REPUTATION_REVERED"] = "Почтение"
 L["RESTOCKER_REPUTATION_EXALTED"] = "Превознесение"
+--[[
+    The button shows a value, not an action, which left it reading as a bare
+    "Any" among four verbs. The prefix labels the control, since the window has
+    no column headings to do it.
+]]
+L["RESTOCKER_REPUTATION_BUTTON_FORMAT"] = "Реп.: %s"
+
 L["RESTOCKER_REPUTATION_TOOLTIP_TITLE"] = "Требуемая репутация у торговца"
+--[[
+    Quotes the button's own label. That couples this line to
+    RESTOCKER_REPUTATION_BUTTON_FORMAT and RESTOCKER_REPUTATION_ANY -- a locale
+    that renders the button differently has to say so here too.
+]]
 L["RESTOCKER_REPUTATION_TOOLTIP_STANDING"] =
-	"Покупать только у торговцев, с которыми у вас не ниже этой репутации."
+	'Выберите уровень репутации, и Connoisseur пропустит торговцев, с которыми вы его не достигли. "Реп.: Любая" покупает у любого торговца.'
 L["RESTOCKER_REPUTATION_TOOLTIP_DISCOUNTS"] =
-	"Более высокая репутация также означает более низкие цены (Дружелюбие 5%, Уважение 10%, Почтение 15%, Превознесение 20%)."
-L["RESTOCKER_REPUTATION_TOOLTIP_CLICK"] = "Щёлкните, чтобы выбрать репутацию."
+	"Репутация также снижает цену: Дружелюбие 5%, Уважение 10%, Почтение 15%, Превознесение 20%."
+L["RESTOCKER_REPUTATION_TOOLTIP_CLICK"] = "Нажмите, чтобы изменить."

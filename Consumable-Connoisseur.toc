@@ -1,5 +1,5 @@
 ## Title: Connoisseur
-## Notes: Auto-updating macros for your best food, buff food, water, potions, healthstones, scrolls, soulstones, bandages, poisons, and explosives. One-click conjuring, smart Feed Pet, automatic vendor and bank restocking. Optimal nutrition, peak performance.
+## Notes: Macros that automatically use your best food, buff food, water, potions, healthstones, bandages, and scrolls, plus a Restock List that keeps your bags full and upgrades your consumables as you level. Quality of life automation, peak performance.
 ## Author: Gogo1951
 
 ## IconTexture: Interface/AddOns/Consumable-Connoisseur/Includes/Images/Connoisseur.tga
@@ -66,6 +66,7 @@ Data/Potions.lua
 Data/Pet-Foods.lua
 Data/Poisons.lua
 Data/Explosives.lua
+Data/Consumable-Upgrade-Paths.lua
 
 # Connoisseur
 Features/Core.lua
@@ -106,16 +107,21 @@ Features/Restocker/MainFrame.lua
 Features/Restocker/ListFrame.lua
 Features/Restocker/Bank.lua
 Features/Restocker/Merchant.lua
+Features/Restocker/Upgrade.lua
 Features/Restocker/Item.lua
 Features/Restocker/Cache.lua
 Features/Restocker/Bag.lua
 Features/Restocker/Inventory.lua
+Features/Restocker/StarterList.lua
 
 Features/Diagnostics.lua
 Features/Minimap-Button.lua
 
 Options/Options-Utilities.lua
 Options/Options-General.lua
+Options/Options-Macros.lua
+Options/Options-Restocker.lua
+Options/Options-Starter-List-Popup.lua
 Options/Options-Profiles.lua
 Options/Options-Diagnostics.lua
 Options/Options.lua

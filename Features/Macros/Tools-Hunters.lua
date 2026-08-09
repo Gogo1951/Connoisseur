@@ -364,7 +364,7 @@ end
     Logic flow prioritizes modifier inputs first, then pet state, then combat.
     Combining conditions into bracket groups (e.g., [btn:2][combat]) keeps the
     body compact, but the cast cascade still names up to five client-localized
-    spells, so a body that fits in enUS can exceed the 255-byte macro limit in
+    spells, so a body that fits in enUS can exceed the 255 macro ceiling in
     multibyte locales: BuildFeedPetBody trims optional branches to fit (below).
 
     The macro adapts to which pet spells the hunter actually knows:
@@ -383,14 +383,15 @@ end
 ]]
 
 --[[
-    Trap: the client truncates a macro body at 255 bytes, and the trailing
+    Trap: the client caps a macro body at 255 — unit unconfirmed, so the guard
+    measures #body in bytes (see README-Technical) — and the trailing
     "/use item:" food line is the casualty, so a truncated body silently drops
     the feed. The Tier B/C cast cascade names up to five pet spells, and
     GetSpellInfo returns CLIENT-localized names, so a body that fits in enUS
     (Tier C is ~196 bytes) overflows in multibyte locales: ruRU pet-spell names
     run roughly double the byte cost and push Tier B/C past 300 bytes.
 
-    Rule: assemble the full body, then while it exceeds 255 bytes shed the
+    Rule: assemble the full body, then while #body exceeds 255 shed the
     optional modifier conveniences in priority order, the [mod:ctrl] Dismiss
     shortcut first and then the [mod:shift]/[@pet,dead] Revive shortcut,
     rebuilding the matching /stopmacro set each time so it stays consistent with
@@ -417,7 +418,7 @@ local function ComposeFeedPetBody(tier, itemID, includeDismiss, includeRevive)
         [btn:2][combat]; Tier B omits it (and we print a tip earlier in the
         macro to explain why right-click/combat does nothing useful). The
         Dismiss and Revive shortcuts are optional and are the first to be
-        dropped when the body must shrink to fit the 255-byte limit.
+        dropped when the body must shrink to fit the 255 ceiling.
     ]]
 	local castClauses = {}
 	if includeDismiss then
@@ -493,9 +494,9 @@ local function BuildFeedPetBody(tier, itemID)
 
 	--[[
         Full body first, then drop the Dismiss shortcut, then the Revive
-        shortcut, stopping as soon as the body fits 255 bytes (see the note
-        above ComposeFeedPetBody). #body is the byte length, matching the
-        macro-limit trims in Engine.lua and Integration-Druid-Macro-Helper.lua.
+        shortcut, stopping as soon as the body fits the 255 ceiling (see the
+        note above ComposeFeedPetBody). #body is the byte length, matching the
+        macro-length trims in Engine.lua and Integration-Druid-Macro-Helper.lua.
     ]]
 	local body = ComposeFeedPetBody(tier, itemID, true, true)
 	if #body > 255 then

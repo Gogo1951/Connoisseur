@@ -1,6 +1,6 @@
 # Connoisseur
 
-Auto-updating macros for your best food, buff food, water, potions, healthstones, scrolls, soulstones, bandages, poisons, and explosives. One-click conjuring, smart Feed Pet, automatic vendor and bank restocking. Optimal nutrition, peak performance.
+Macros that automatically use your best food, buff food, water, potions, healthstones, bandages, and scrolls, plus a Restock List that keeps your bags full and upgrades your consumables as you level. Quality of life automation, peak performance.
 
 ![Consumable-Connoisseur](https://github.com/user-attachments/assets/326eb93f-329f-4967-b750-909011a05b01)
 
@@ -8,13 +8,13 @@ Auto-updating macros for your best food, buff food, water, potions, healthstones
 
 🧞‍♂️ **Auto-Updating Macros** // Always picks your best food, water, potions, healthstones, mana gems, bandages, and explosives — rescans your bags whenever loot, level, or zone changes.
 
+🛒 **A Restock List That Grows With You** // Tick your staples once and Connoisseur runs the errands forever: buys from vendors, moves items to and from the bank, and steps your food, water, ammo, poisons, and potions up a tier every time you outlevel them. It never sells anything. Type `/crs`.
+
 🎯 **Smart Conjuring** // Mages and Warlocks right-click their food, water, healthstone, or soulstone macros to conjure the item on the spot. Middle-click casts Ritual of Refreshment (Mage) or Ritual of Souls (Warlock) for the whole group. The rank auto-matches your target, so a lower-level friend always gets something they can actually use.
 
 🦄 **Class Buttons** // Hunters get an all-in-one `- Feed Pet` macro that calls, feeds, mends, revives, and dismisses from a single button. Rogues get a dual-hand `- Poisons` applier. Druids can enable DruidMacroHelper powershifting. Night Elves and Rogues can stealth while eating or drinking.
 
 📜 **Raid-Ready Buffs** // When you're missing scroll buffs, your Food macro turns into a one-tap scroll applier. Buffs about to fall off count as already gone, so you top up before the pull instead of ten seconds into it — and every ready check prints exactly what you're still missing, where only you can see it.
-
-🛒 **Restocker** // Keep a per-character Restock List and Connoisseur runs the errands: buys from vendors and moves items to and from the bank automatically. It never sells anything. Type `/crs`.
 
 ## Setup
 
@@ -22,8 +22,8 @@ Auto-updating macros for your best food, buff food, water, potions, healthstones
 2.  Log in. Connoisseur scans your bags and creates macros in your General macro tab.
 3.  Drag the dash-prefixed macros (`- Food`, `- Water`, `- Health Potion`, etc.) onto your action bars.
 4.  Optional: type `/foodie` to fine-tune scroll buffs, buff food, pet food, and class options.
-5.  Optional: type `/crs` and add items to your Restock List — Connoisseur keeps you stocked at every vendor and bank stop.
-6.  Never miss a meal! Breakfast, second breakfast, elevenses, luncheon, afternoon tea, dinner, supper… (=
+5.  Around level 6, tick your staples in the Restock List window when it offers itself — or type `/crs` any time to build the list yourself.
+6.  Connoisseur // Never miss a meal! Breakfast, second breakfast, elevenses, luncheon, afternoon tea, dinner, supper… (=
 
 ## How It Works
 
@@ -78,15 +78,25 @@ For each consumable category, Connoisseur compares every usable item in your bag
 
 Items are filtered out if you don't meet the level requirement, lack the required profession skill (First Aid for bandages, Alchemy for certain potions, Engineering for explosives), require an engineering specialization you haven't learned (Goblin Engineer), or are in the wrong zone. Explosives are ranked by their minimum damage.
 
-### Connoisseur Restocker
+### Restocker
 
-Open the Restock List with `/crs`, drop items in from your bags, and set how many of each you want to carry. At a vendor, Connoisseur buys you back up to your target — with an optional reputation requirement per item, since better standing means better prices. At the bank, it tops up your bags from your stash and deposits the extra. Each item has its own Withdraw, Deposit, and Buy toggles, so one list runs your whole consumable logistics chain.
+**Building the list takes about ten seconds.** Around level 6, Connoisseur offers you a starter list: tick the staples you actually carry — bread, water, arrows, poisons, your class reagents, even your Hearthstone — pick how many stacks of each, and close the window. Bread comes pre-ticked for everyone, water for the mana classes, meat for hunters. After that, `/crs` opens the list any time, and you can drag anything else in straight from your bags.
 
-Every character keeps its own list, and you can copy, rename, or delete profiles right from the window — handy for raid-night versus farming loadouts. Restocker never sells anything: too many of an item is left untouched. The window can open itself when you reach a bank or a merchant, so the errands run without you thinking about them.
+**Your list grows with you.** Food, water, ammo, poisons, and potions all follow clean upgrade paths as you level, and Connoisseur walks your list up them without being asked. Refreshing Spring Water at level 1 becomes Ice Cold Milk at 5, Melon Juice at 15, Sweet Nectar at 25, Moonberry Juice at 35, Morning Glory Dew at 45. You never open the window to do it, and every swap is announced in chat so you know exactly what changed. It only ever moves forward — an item above your level is left alone, because you meant to stock it — and anything without an upgrade path stays exactly where you put it. Each row has its own **Automatic** toggle if you'd rather drive one yourself.
+
+**At a vendor**, Connoisseur buys you back up to your target, with an optional reputation requirement per item since better standing means better prices. Rogues get a bonus here: put the finished poison on your list and the ingredients buy themselves at any vendor that stocks them.
+
+**At the bank**, it tops your bags up from your stash and deposits the extra. Each item carries its own Withdraw, Deposit, and Buy toggles, so one list runs your whole consumable logistics chain.
+
+Restocker never sells anything — too many of an item is left untouched. The window can open itself when you reach a bank or a merchant, and optional reminders speak up when you hit an inn or a city short of something, so the errands run without you thinking about them.
+
+Every character keeps its own list, and you can copy, rename, or delete profiles right from the window — handy for raid-night versus farming loadouts.
 
 This feature started life as a separate add-on: Connoisseur ships an updated version with bug fixes and UX improvements that couldn't get rolled into the upstream builds — see History below.
 
-<img width="550" src="https://github.com/user-attachments/assets/c84a532b-28b2-42f3-9af7-24c3b4f371dc" />
+<img width="600" src="https://github.com/user-attachments/assets/c90aab80-cc69-49ba-86b0-a38ac44a7276" />
+
+<img width="500" src="https://github.com/user-attachments/assets/476c78a5-f1d8-4d1d-b40e-0dd650add8f0" />
 
 ### Class Features
 
@@ -159,13 +169,13 @@ Please reach out if you would like to be involved!
 
 ## Related Add-ons
 
-🟢 Pairs With // kvakvs's [Buffomat Classic](https://www.curseforge.com/wow/addons/buffomat-classic)
-
-🟢 Pairs With // Pupp3h's [Buffwatch Classic](https://www.curseforge.com/wow/addons/buffwatch-classic)
-
 🟢 Pairs With // ForsakenNGS's [DruidMacroHelper](https://www.curseforge.com/wow/addons/druidmacrohelper)
 
+🟢 Pairs With // Gogo1951's [Magic Eraser](https://www.curseforge.com/wow/addons/magic-eraser)
+
 🟢 Pairs With // ykiigor's [Method Raid Tools](https://www.curseforge.com/wow/addons/method-raid-tools)
+
+🟢 Pairs With // Gogo1951's [Play It Forward](https://www.curseforge.com/wow/addons/play-it-forward)
 
 🟢 Pairs With // Gogo1951's [Water Dispenser](https://www.curseforge.com/wow/addons/water-dispenser-revisited)
 

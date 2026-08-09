@@ -94,14 +94,17 @@ function stateClass:RemainingWork()
   for itemID, eachItem in pairs(self.currentProfile) do
     local haveInBag = self.playerInventory.summary[itemID] or 0
     local haveInBank = self.bankInventory.summary[itemID] or 0
+    -- A hand-edited save can leave amount nil; comparing that against a count throws
+    -- inside the coroutine and kills the whole run, so read it as 0.
+    local wanted = eachItem.amount or 0
 
-    if eachItem.restockFromBank and eachItem.amount > haveInBag and haveInBank > 0 then
-      work = work + math.min(eachItem.amount - haveInBag, haveInBank)
+    if eachItem.restockFromBank and wanted > haveInBag and haveInBank > 0 then
+      work = work + math.min(wanted - haveInBag, haveInBank)
     end
     -- Overshoot excess counts as stash work even without stashTobank: the addon created it
     -- (whole-stack fallback pull), so the addon returns it.
-    if (eachItem.stashTobank or self.overshotItems[itemID]) and haveInBag > eachItem.amount then
-      work = work + (haveInBag - eachItem.amount)
+    if (eachItem.stashTobank or self.overshotItems[itemID]) and haveInBag > wanted then
+      work = work + (haveInBag - wanted)
     end
   end
   return work
@@ -148,13 +151,14 @@ function stateClass:StuckMessage()
   for itemID, eachItem in pairs(self.currentProfile) do
     local haveInBag = self.playerInventory.summary[itemID] or 0
     local haveInBank = self.bankInventory.summary[itemID] or 0
+    local wanted = eachItem.amount or 0
 
-    if eachItem.restockFromBank and eachItem.amount > haveInBag and haveInBank > 0 then
+    if eachItem.restockFromBank and wanted > haveInBag and haveInBank > 0 then
       parts[#parts + 1] = string.format(L["RESTOCKER_STUCK_ITEM_FORMAT"],
-          math.min(eachItem.amount - haveInBag, haveInBank), eachItem.itemName)
-    elseif (eachItem.stashTobank or self.overshotItems[itemID]) and haveInBag > eachItem.amount then
+          math.min(wanted - haveInBag, haveInBank), eachItem.itemName)
+    elseif (eachItem.stashTobank or self.overshotItems[itemID]) and haveInBag > wanted then
       parts[#parts + 1] = string.format(L["RESTOCKER_STUCK_ITEM_EXTRA_FORMAT"],
-          haveInBag - eachItem.amount, eachItem.itemName)
+          haveInBag - wanted, eachItem.itemName)
     end
   end
 

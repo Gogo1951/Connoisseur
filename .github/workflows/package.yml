@@ -43,10 +43,9 @@ jobs:
           else
             git commit -m "Update vendored libraries for ${TAG}"
             git push origin "HEAD:${BRANCH}"
-            # Fast-forward the release tag onto the commit that has the libraries,
-            # so the packager builds a clean release (HEAD == tag), not an alpha.
             git tag -f "${TAG}"
             git push -f origin "refs/tags/${TAG}"
           fi
       - name: Package and release
         uses: BigWigsMods/packager@v2
+        

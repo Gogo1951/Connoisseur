@@ -23,8 +23,7 @@ ns.RawData.Potions = {
 	[33935] = { 0, 1800 }, -- Crystal Mana Potion
 	[23578] = { 0, 1350 }, -- Diet McWeaksauce
 	[4596] = { 140, 0 }, -- Discolored Healing Potion
-	-- Excluded here on purpose: lives in Data/Healthstones.lua, sharing the Healthstone cooldown category.
-	-- [23329] = {18, 0}, -- Enriched Lasher Root
+	-- Enriched Lasher Root (23329) is absent on purpose: its live row is in Data/Healthstones.lua, sharing the Healthstone cooldown category.
 	[1072] = { 0, 280 }, -- Full Moonshine
 	[1710] = { 455, 0 }, -- Greater Healing Potion
 	[6149] = { 0, 700 }, -- Greater Mana Potion
@@ -65,6 +64,5 @@ ns.RawData.Potions = {
 	[28101] = { 0, 1350 }, -- Unstable Mana Potion
 	[28100] = { 1050, 0 }, -- Volatile Healing Potion
 	[34440] = { 1650, 1650, nil, 315 }, -- Mad Alchemist's Potion
-	-- Excluded here on purpose: lives in Data/Healthstones.lua, sharing the Healthstone cooldown category.
-	-- [11951] = {700, 0}, -- Whipper Root Tuber
+	-- Whipper Root Tuber (11951) is absent on purpose: its live row is in Data/Healthstones.lua, sharing the Healthstone cooldown category.
 }

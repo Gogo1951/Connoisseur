@@ -34,8 +34,9 @@ local petBuffOverride = false
     usable line — the first scroll — which is exactly what the user should
     see when the button is about to fire scrolls.
 
-    All scrolls fit comfortably under WoW's 255-char macro limit: 14 chars
-    for the tooltip line + at most 6 scrolls × ~25 chars ≈ 164 chars.
+    All scrolls fit comfortably under the 255 macro ceiling: 14 bytes for
+    the tooltip line + at most 6 scrolls × ~25 bytes ≈ 164 bytes. The lines are
+    pure ASCII (no localized names), so the count cannot grow in another locale.
 ]]
 local function BuildScrollOnlyBody(scrollList)
 	local lines = { "#showtooltip" }

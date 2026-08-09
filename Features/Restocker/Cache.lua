@@ -48,3 +48,34 @@ function RS.GetItemInfo(arg)
   getItemInfoCache[arg] = cacheItem
   return cacheItem
 end
+
+--[[
+  A printable, hoverable, shift-clickable link for an item, always.
+
+  GetItemInfo returns nothing until the client has resolved an item, and on a
+  fresh login that is exactly when the Restocker wants to name things -- so
+  falling back to a bare name meant the reminder printed plain text most of the
+  time. A link built by hand from the id works the moment it is printed: the
+  client resolves |Hitem:| on hover, so the tooltip is correct even while the
+  cache behind it is still cold.
+
+  The colour on the hand-built form is white rather than the item's quality
+  colour, which is the one thing that cannot be known without the cache. The
+  cached link is preferred whenever it exists, and it carries the real colour.
+]]
+---@param itemID number|nil
+---@param fallbackName string|nil Stored name, used while the cache is cold
+---@return string
+function RS.GetItemLink(itemID, fallbackName)
+  local info = itemID and RS.GetItemInfo(itemID) or nil
+  if info and info.itemLink then
+    return info.itemLink
+  end
+
+  if itemID then
+    local label = (fallbackName and fallbackName ~= "") and fallbackName or ("item:" .. itemID)
+    return "|cffffffff|Hitem:" .. itemID .. "|h[" .. label .. "]|h|r"
+  end
+
+  return fallbackName or "?"
+end
