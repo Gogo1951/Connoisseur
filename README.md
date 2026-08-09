@@ -78,7 +78,7 @@ For each consumable category, Connoisseur compares every usable item in your bag
 
 Items are filtered out if you don't meet the level requirement, lack the required profession skill (First Aid for bandages, Alchemy for certain potions, Engineering for explosives), require an engineering specialization you haven't learned (Goblin Engineer), or are in the wrong zone. Explosives are ranked by their minimum damage.
 
-### Connoisseur Restocker
+### Restocker
 
 **Building the list takes about ten seconds.** Around level 6, Connoisseur offers you a starter list: tick the staples you actually carry — bread, water, arrows, poisons, your class reagents, even your Hearthstone — pick how many stacks of each, and close the window. Bread comes pre-ticked for everyone, water for the mana classes, meat for hunters. After that, `/crs` opens the list any time, and you can drag anything else in straight from your bags.
 
@@ -94,7 +94,9 @@ Every character keeps its own list, and you can copy, rename, or delete profiles
 
 This feature started life as a separate add-on: Connoisseur ships an updated version with bug fixes and UX improvements that couldn't get rolled into the upstream builds — see History below.
 
-<img width="550" src="https://github.com/user-attachments/assets/c84a532b-28b2-42f3-9af7-24c3b4f371dc" />
+<img width="600" src="https://github.com/user-attachments/assets/c90aab80-cc69-49ba-86b0-a38ac44a7276" />
+
+<img width="500" src="https://github.com/user-attachments/assets/476c78a5-f1d8-4d1d-b40e-0dd650add8f0" />
 
 ### Class Features
 
