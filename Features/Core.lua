@@ -347,7 +347,10 @@ local function InitVars()
             where the settings live, so each character configures its own
             consumables. The five account-wide keys live on ns.db.global
             instead, each with its reason (see Data/Default-Settings.lua).
-            AceDB applies ns.DATABASE_DEFAULTS via metatables -- no hand-merge.
+            AceDB applies ns.DATABASE_DEFAULTS itself -- no hand-merge. It
+            copies scalar and table defaults into the saved table (rawset)
+            when a scope is first accessed; only */** wildcard defaults
+            resolve through a metatable.
         ]]
 
 		ns.db = LibStub("AceDB-3.0"):New("ConnoisseurDB", ns.DATABASE_DEFAULTS)
@@ -373,11 +376,9 @@ local function InitVars()
 			if ns.ToggleMinimapButton and ns.db.global.minimap then
 				ns.ToggleMinimapButton(not ns.db.global.minimap.hide)
 			end
-			local AceConfigRegistry = LibStub("AceConfigRegistry-3.0", true)
-			if AceConfigRegistry then
-				for _, appName in pairs(ns.OPTIONS_REGISTRY) do
-					AceConfigRegistry:NotifyChange(appName)
-				end
+			local AceConfigRegistry = LibStub("AceConfigRegistry-3.0")
+			for _, appName in pairs(ns.OPTIONS_REGISTRY) do
+				AceConfigRegistry:NotifyChange(appName)
 			end
 			ns.RequestUpdate()
 		end

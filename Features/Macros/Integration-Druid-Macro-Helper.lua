@@ -77,8 +77,10 @@ local function BuildDMHBody(typeName, useIDs, stackIDs, formName)
 	local body = table.concat(lines, "\n") .. "\n"
 
 	--[[
-        The client truncates macro bodies at 255 bytes, which here would
-        chop the trailing /dmh end line and leave DMH guards dangling.
+        The client caps macro bodies at 255, unit unconfirmed, so the guard
+        measures #body in bytes — safe under either reading (see
+        README-Technical). Overflow here would chop the trailing /dmh end
+        line and leave DMH guards dangling.
         Drop /use lines from the bottom until the body fits — stacked
         Healthstone lines go first since they sit lowest, then potion
         fallbacks; the rank-1 potion line is never dropped. Mirrors the

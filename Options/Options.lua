@@ -18,10 +18,10 @@ local mainCategoryID
     because the Profiles panel's tree label is read from the stock
     AceDBOptions-3.0 table (ns.BuildProfilesOptions().name), which needs the
     database to exist. Child-panel order in Blizzard's settings tree is the
-    order of the AddToBlizOptions calls: General (root) -> Profiles -> Diagnostic
-    Tools, so Profiles sits second-to-last and Diagnostics last. The third
-    AddToBlizOptions argument is the parent's display name (L["ADDON_TITLE"]) so
-    each child nests under the root.
+    order of the AddToBlizOptions calls: General (root) -> Macros -> Restocker
+    -> Profiles -> Diagnostic Tools. The third AddToBlizOptions argument is the
+    parent's display name (L["ADDON_TITLE"]) so each child nests under the
+    root.
 ]]
 local function RegisterChild(appName, builder, displayName)
 	AceConfig:RegisterOptionsTable(appName, builder)
@@ -31,6 +31,27 @@ end
 function ns.InitializeOptions()
 	AceConfig:RegisterOptionsTable(REGISTRY.General, ns.BuildGeneralOptions)
 	mainPanel, mainCategoryID = AceConfigDialog:AddToBlizOptions(REGISTRY.General, L["ADDON_TITLE"])
+
+	--[[
+        Macros panel (Options-Macros.lua) -- the Enable Macros section, given
+        its own page. Its tree label is the short OPTIONS_MACROS_TAB rather
+        than the section's "Enable Macros" header, which the page still shows.
+    ]]
+	RegisterChild(REGISTRY.Macros, ns.BuildMacrosOptions, L["OPTIONS_MACROS_TAB"])
+
+	--[[
+        Restocker panel (Options-Restocker.lua). The tree label routes through
+        the locale table like every player-facing string, but stays "Restocker"
+        in every locale (brand fragment, localization allowlist).
+    ]]
+	RegisterChild(REGISTRY.Restocker, ns.BuildRestockerOptions, L["OPTIONS_RESTOCKER_TAB"])
+
+	--[[
+	    Starter List pop-up (Options-Starter-List-Popup.lua): registered only,
+	    never added to the Blizzard tree -- it opens as its own AceConfigDialog
+	    window over an empty Restock List (Features/Restocker/StarterList.lua).
+	]]
+	AceConfig:RegisterOptionsTable(REGISTRY.StarterListPopup, ns.BuildStarterListPopupOptions)
 
 	--[[
         Profiles panel: the stock AceDBOptions-3.0 table, unmodified

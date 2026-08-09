@@ -30,8 +30,8 @@ ConnoisseurState = ConnoisseurState or {}
 
 --[[
     Records the firing item with `/run ConnFire(itemID)` instead of inlining a
-    longer snippet — the saved characters matter when stacking scroll uses
-    against the 255-character macro body limit.
+    longer snippet — the saved bytes matter when stacking scroll uses against the
+    255 macro-body ceiling.
 ]]
 function ConnFire(itemID)
 	ConnoisseurState.lastID = itemID

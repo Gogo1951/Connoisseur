@@ -19,13 +19,66 @@ local restockerModule = CrsModule.restockerModule ---@type RsRestockerModule
 ---@field scrollFrame RsControl
 ---@field scrollChild RsControl
 ---@field title RsControl
+---@field resizeGrip RsControl Corner drag handle that resizes the window
+
+--[[
+  WINDOW GEOMETRY
+
+  Size and position both live in settings.framePos, which is part of
+  ConnoisseurRestockerDB -- a plain ## SavedVariables table, so it is
+  account-wide and one window layout follows the player across characters.
+
+  DEFAULT_WIDTH grew twice to keep a row's button strip off the item name, and
+  came back down once the strip moved to its own line: a row now shows only its
+  name, amount and remove control until it is expanded, so the widest thing the
+  list draws is that detail line rather than every row at once.
+
+  MIN_WIDTH is set by the footer rather than the list: the profile row up to the
+  Rename label is fixed, and below this the rename field itself has nothing left
+  to occupy. MAX_* is a sanity ceiling for a corrupt saved value, not a real
+  limit.
+]]
+local DEFAULT_WIDTH = 620
+local DEFAULT_HEIGHT = 400
+local MIN_WIDTH = 580
+local MIN_HEIGHT = 260
+local MAX_WIDTH = 1600
+local MAX_HEIGHT = 1200
+
+local function rsClamp(value, lo, hi, fallback)
+  value = tonumber(value)
+  if not value then
+    return fallback
+  end
+  return math.max(lo, math.min(hi, value))
+end
+
+---Persist where the window is and how big it is. Called when a drag or a
+---resize finishes, and again at logout, so a crash loses at most the last
+---adjustment rather than the whole layout.
+function RS.SaveFrameGeometry()
+  local frame = RS.MainFrame
+  if not frame then
+    return
+  end
+  local settings = restockerModule.settings
+  settings.framePos = settings.framePos or {}
+
+  local point, _, relativePoint, xOfs, yOfs = frame:GetPoint(frame:GetNumPoints())
+  settings.framePos.point = point
+  settings.framePos.relativePoint = relativePoint
+  settings.framePos.xOfs = xOfs
+  settings.framePos.yOfs = yOfs
+  settings.framePos.width = math.floor(frame:GetWidth() + 0.5)
+  settings.framePos.height = math.floor(frame:GetHeight() + 0.5)
+end
 
 function mainFrameModule:CreateAddonFrame()
   local settings = restockerModule.settings
   local addonFrame = --[[---@type RsRestockerFrame]] CreateFrame("Frame", "ConnoisseurRestockerFrame", UIParent,
     "BasicFrameTemplate");
-  addonFrame.width = 580
-  addonFrame.height = 400
+  addonFrame.width = rsClamp(settings.framePos.width, MIN_WIDTH, MAX_WIDTH, DEFAULT_WIDTH)
+  addonFrame.height = rsClamp(settings.framePos.height, MIN_HEIGHT, MAX_HEIGHT, DEFAULT_HEIGHT)
   addonFrame:SetSize(addonFrame.width, addonFrame.height);
   addonFrame:SetPoint(settings.framePos.point or "RIGHT",
     UIParent, settings.framePos.relativePoint or "RIGHT",
@@ -33,30 +86,113 @@ function mainFrameModule:CreateAddonFrame()
     settings.framePos.yOfs or 0);
   addonFrame:SetFrameStrata("FULLSCREEN");
   addonFrame:SetMovable(true)
+  addonFrame:SetResizable(true)
   addonFrame:EnableMouse(true)
   addonFrame:RegisterForDrag("LeftButton")
   addonFrame:SetScript("OnDragStart", addonFrame.StartMoving)
-  addonFrame:SetScript("OnDragStop", addonFrame.StopMovingOrSizing)
+  addonFrame:SetScript("OnDragStop", function(self)
+    self:StopMovingOrSizing()
+    RS.SaveFrameGeometry()
+  end)
+
+  --[[
+    SetResizeBounds is the modern single call; SetMinResize/SetMaxResize are
+    the pair it replaced. Both are probed in Diagnostics' API checks.
+  ]]
+  if addonFrame.SetResizeBounds then
+    addonFrame:SetResizeBounds(MIN_WIDTH, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT)
+  elseif addonFrame.SetMinResize then
+    addonFrame:SetMinResize(MIN_WIDTH, MIN_HEIGHT)
+    addonFrame:SetMaxResize(MAX_WIDTH, MAX_HEIGHT)
+  end
+
+  --[[
+    Children are anchored to two corners rather than given a size, so the whole
+    layout follows the window on its own. Only the scroll child and the pooled
+    rows need telling -- a scroll child is sized, not anchored -- which is what
+    RelayoutFrame does.
+  ]]
+  addonFrame:SetScript("OnSizeChanged", function(self)
+    mainFrameModule:RelayoutFrame(self)
+  end)
+
+  --[[
+    The "New" group and the open row both last exactly as long as the window is
+    open. Hooked on OnHide rather than in RS:Hide because the frame also closes
+    by routes that never reach it -- the title bar's X, and Escape via
+    UISpecialFrames.
+  ]]
+  addonFrame:SetScript("OnHide", function()
+    RS.ClearNewItems()
+    RS.CollapseAllRows()
+  end)
   return addonFrame
+end
+
+---Push the current window size down into the parts that cannot follow it by
+---anchoring alone. Cheap enough to run on every frame of a resize drag: it
+---sets widths and never rebuilds the list.
+function mainFrameModule:RelayoutFrame(addonFrame)
+  local scrollChild = addonFrame.scrollChild
+  if not scrollChild then
+    return -- still being built; CreateMenu lays out once at the end
+  end
+
+  addonFrame.width = addonFrame:GetWidth()
+  addonFrame.height = addonFrame:GetHeight()
+  addonFrame.listInset.width = addonFrame.listInset:GetWidth()
+  addonFrame.listInset.height = addonFrame.listInset:GetHeight()
+
+  local rowWidth = addonFrame.scrollFrame:GetWidth()
+  scrollChild:SetWidth(rowWidth)
+  for _, f in ipairs(RS.framepool) do
+    f:SetWidth(rowWidth)
+  end
+  for _, h in ipairs(RS.headerpool) do
+    h:SetWidth(rowWidth)
+  end
+end
+
+---The corner grip that resizes the window. A child button, so it takes the
+---mouse before the frame-wide drag-to-move handler sees it.
+function mainFrameModule:CreateResizeGrip(addonFrame)
+  local grip = CreateFrame("Button", nil, addonFrame)
+  grip:SetSize(16, 16)
+  grip:SetPoint("BOTTOMRIGHT", addonFrame, "BOTTOMRIGHT", -4, 4)
+  grip:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
+  grip:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
+  grip:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
+  grip:SetScript("OnMouseDown", function()
+    addonFrame:StartSizing("BOTTOMRIGHT")
+  end)
+  grip:SetScript("OnMouseUp", function()
+    addonFrame:StopMovingOrSizing()
+    mainFrameModule:RelayoutFrame(addonFrame)
+    RS.SaveFrameGeometry()
+  end)
+  addonFrame.resizeGrip = grip
+  return grip
 end
 
 function mainFrameModule:CreateListInset(addonFrame)
   local listInset = --[[---@type RsControl]] CreateFrame("Frame", nil, addonFrame, "InsetFrameTemplate3");
-  listInset.width = addonFrame.width - 6
-  listInset.height = addonFrame.height - 60
-  listInset:SetSize(listInset.width, listInset.height);
+  -- Two corners instead of a size: the inset then tracks the window by itself.
   listInset:SetPoint("TOPLEFT", addonFrame, "TOPLEFT", 2, -22);
+  listInset:SetPoint("BOTTOMRIGHT", addonFrame, "BOTTOMRIGHT", -4, 38);
+  listInset.width = listInset:GetWidth()
+  listInset.height = listInset:GetHeight()
   addonFrame.listInset = listInset
   return listInset
 end
 
 function mainFrameModule:CreateScrollFrame(addonFrame, listInset)
   local scrollFrame = --[[---@type RsControl]] CreateFrame("ScrollFrame", nil, addonFrame, "UIPanelScrollFrameTemplate")
-  scrollFrame.width = addonFrame.listInset.width - 4
-  -- Leave 22px at the top for the filter box (CreateFilterBox)
-  scrollFrame.height = addonFrame.listInset.height - 32 - 22
-  scrollFrame:SetSize(scrollFrame.width - 30, scrollFrame.height);
+  -- Leave 28px at the top for the filter box (CreateFilterBox), 26 on the
+  -- right for the scroll bar, and 26 at the bottom for the add row.
   scrollFrame:SetPoint("TOPLEFT", listInset, "TOPLEFT", 8, -28);
+  scrollFrame:SetPoint("BOTTOMRIGHT", listInset, "BOTTOMRIGHT", -26, 26);
+  scrollFrame.width = scrollFrame:GetWidth()
+  scrollFrame.height = scrollFrame:GetHeight()
   addonFrame.scrollFrame = scrollFrame
   return scrollFrame
 end
@@ -114,8 +250,9 @@ end
 
 function mainFrameModule:CreateAddGroup(addonFrame, listInset)
   local addGrp = --[[---@type RsControl]] CreateFrame("Frame", nil, addonFrame);
-  addGrp:SetPoint("BOTTOM", addonFrame.listInset, "BOTTOM", 0, 2);
-  addGrp:SetSize(listInset.width - 5, 25);
+  addGrp:SetPoint("BOTTOMLEFT", listInset, "BOTTOMLEFT", 3, 2);
+  addGrp:SetPoint("BOTTOMRIGHT", listInset, "BOTTOMRIGHT", -2, 2);
+  addGrp:SetHeight(25);
   addonFrame.addGrp = addGrp
   return addGrp
 end
@@ -136,14 +273,19 @@ function mainFrameModule:CreateAddButton(addGrp)
     editBox:SetText("")
     editBox:ClearFocus()
   end);
+  -- The same tooltip the edit box shows: the button and the box are two
+  -- halves of one control, and either is a fair place to hover.
+  RS.SetupTooltip(addBtn, L["RESTOCKER_ADD_TOOLTIP_TITLE"], L["RESTOCKER_ADD_TOOLTIP_BODY"])
   return addBtn
 end
 
 function mainFrameModule:CreateEditbox(addonFrame, addBtn)
   local editBox = CreateFrame("EditBox", nil, addonFrame.addGrp, "InputBoxTemplate");
+  -- Both ends anchored so the box absorbs every pixel the window gains.
+  editBox:SetPoint("LEFT", addonFrame.addGrp, "LEFT", 6, 0);
   editBox:SetPoint("RIGHT", addBtn, "LEFT", 3);
   editBox:SetAutoFocus(false);
-  editBox:SetSize(addonFrame.addGrp:GetWidth() - addBtn:GetWidth() - 5, 25);
+  editBox:SetHeight(25);
   editBox:SetScript("OnEnterPressed", function(self)
     local text = self:GetText()
     RS:addItem(text)
@@ -166,27 +308,55 @@ function mainFrameModule:CreateEditbox(addonFrame, addBtn)
       ClearCursor()
     end
   end)
-  editBox:SetScript("OnEnter", function(self)
-    GameTooltip:SetOwner(self, "ANCHOR_TOP")
-    GameTooltip:SetText(RS.FormatTexture(RS.BAG_ICON) .. " " .. L["RESTOCKER_ADD_TOOLTIP_TITLE"])
-    GameTooltip:AddLine(L["RESTOCKER_ADD_TOOLTIP_BODY"])
-    GameTooltip:Show()
+
+  -- Greyed-out placeholder, shown only while the box is empty -- the same
+  -- arrangement as the filter box at the top of the window.
+  local placeholder = editBox:CreateFontString(nil, "OVERLAY")
+  placeholder:SetFontObject("GameFontDisableSmall")
+  placeholder:SetPoint("LEFT", editBox, "LEFT", 4, 0)
+  placeholder:SetText(L["RESTOCKER_ADD_PLACEHOLDER"])
+  editBox:SetScript("OnTextChanged", function(self)
+    placeholder:SetShown((self:GetText() or "") == "")
   end)
-  editBox:SetScript("OnLeave", function(self, motion)
-    GameTooltip:Hide()
-  end)
+
+  RS.SetupTooltip(editBox, L["RESTOCKER_ADD_TOOLTIP_TITLE"], L["RESTOCKER_ADD_TOOLTIP_BODY"])
 
   addonFrame.editBox = editBox
   addonFrame.addBtn = addBtn
   return editBox
 end
 
+--[[
+  FOOTER ROW
+
+  Profile: [dropdown] [Copy] [Delete]        Rename: [box.....................]
+
+  Every width here used to be a literal, and a profile named after a character
+  ("Gogopaladin-Mankrik") overran all of them. Now the dropdown is sized to hold
+  a full Name-Realm, Copy and Delete size themselves to their captions through
+  the same RS.FitButton the list rows use, and the Rename box takes whatever
+  width is left -- so it, not the truncation, absorbs a wider window.
+
+  PROFILE_DROPDOWN_WIDTH is the dropdown's *text* width. Its visible box is
+  wider than that by the arrow and border, and the template frame is wider
+  again by invisible padding on the left, which is what the two offsets below
+  account for: DROPDOWN_LEFT_PAD from frame edge to visible box, and
+  DROPDOWN_TRIM for the arrow and right border.
+]]
+local PROFILE_LABEL_X = 10
+local PROFILE_DROPDOWN_WIDTH = 190
+local DROPDOWN_LEFT_PAD = 16
+local DROPDOWN_TRIM = 25
+local FOOTER_GAP = 4
+local FOOTER_Y = 12
+
 function mainFrameModule:CreateProfilesDropdown(addonFrame)
   local settings = restockerModule.settings
   local profileText = addonFrame:CreateFontString(nil, "OVERLAY")
-  profileText:SetPoint("BOTTOMLEFT", addonFrame, "BOTTOMLEFT", 10, 12)
+  profileText:SetPoint("BOTTOMLEFT", addonFrame, "BOTTOMLEFT", PROFILE_LABEL_X, FOOTER_Y)
   profileText:SetFontObject("GameFontNormal")
   profileText:SetText(L["RESTOCKER_PROFILE_LABEL"])
+  addonFrame.profileLabel = profileText
 
   local ConnoisseurRestockerProfileMenu = CreateFrame("Frame", "ConnoisseurRestockerProfileMenu", addonFrame,
     "UIDropDownMenuTemplate")
@@ -194,8 +364,8 @@ function mainFrameModule:CreateProfilesDropdown(addonFrame)
   -- template carries ~20px of invisible left padding, so -14 lands the
   -- visible box a few pixels after the text (same tightness as Rename).
   ConnoisseurRestockerProfileMenu:SetPoint("LEFT", profileText, "RIGHT", -14, 0)
-  UIDropDownMenu_SetWidth(ConnoisseurRestockerProfileMenu, 120, 500)
-  UIDropDownMenu_SetButtonWidth(ConnoisseurRestockerProfileMenu, 140)
+  UIDropDownMenu_SetWidth(ConnoisseurRestockerProfileMenu, PROFILE_DROPDOWN_WIDTH, 500)
+  UIDropDownMenu_SetButtonWidth(ConnoisseurRestockerProfileMenu, PROFILE_DROPDOWN_WIDTH)
   UIDropDownMenu_SetText(ConnoisseurRestockerProfileMenu, settings.currentProfile)
 
   ConnoisseurRestockerProfileMenu.initialize = function(self, level)
@@ -238,15 +408,21 @@ end
 ---Rename field for the active profile: always shows the current profile's name;
 ---type a new one and press Enter to rename it (Escape restores). Renames follow
 ---through to every character pointing at the profile (see RenameCurrentProfile).
+--[[
+  The rename box is the footer's flexible cell: its label follows Delete and
+  the box runs from there to the window edge (clear of the resize grip), so
+  every pixel a wider window gains goes to the field showing the longest text.
+]]
 function mainFrameModule:CreateProfileRenameBox(addonFrame)
   local label = addonFrame:CreateFontString(nil, "OVERLAY")
   label:SetFontObject("GameFontNormal")
   label:SetText(L["RESTOCKER_RENAME_LABEL"])
+  label:SetPoint("LEFT", addonFrame.deleteProfileButton, "RIGHT", 16, 0)
 
   local box = CreateFrame("EditBox", nil, addonFrame, "InputBoxTemplate")
-  box:SetSize(140, 20)
-  box:SetPoint("BOTTOMRIGHT", addonFrame, "BOTTOMRIGHT", -12, 12)
-  label:SetPoint("RIGHT", box, "LEFT", -12, 0)
+  box:SetHeight(20)
+  box:SetPoint("LEFT", label, "RIGHT", 12, 0)
+  box:SetPoint("RIGHT", addonFrame, "RIGHT", -26, 0)
   box:SetAutoFocus(false)
   box:SetText(restockerModule.settings.currentProfile or "")
 
@@ -266,15 +442,24 @@ end
   PROFILE FOOTER BUTTONS (Copy / Delete)
 ]]
 
--- Confirmation for the footer Delete button. text_arg1 is the profile name,
--- gold-wrapped at show time. Deleting falls back to another profile (or the
--- character's own empty list) via RS:DeleteProfile.
+--[[
+  Confirmation for the footer Delete button. text_arg1 is the profile name,
+  gold-wrapped at show time; StaticPopup_Show's fourth argument carries that same
+  name through as the dialog's data, and OnAccept deletes THAT name rather than
+  re-reading currentProfile.
+
+  Load-bearing: the dialog does not lock the window behind it, so a profile
+  switched in the dropdown while the confirm is open would otherwise redirect the
+  delete onto a list the player was never asked about -- and a Restock List has no
+  undo. Deleting falls back to another profile (or the character's own empty list)
+  via RS:DeleteProfile, which also ignores a nil or already-deleted name.
+]]
 StaticPopupDialogs["CONNOISSEUR_RESTOCKER_DELETE_PROFILE"] = {
   text = L["RESTOCKER_DELETE_PROFILE_CONFIRM"],
   button1 = YES,
   button2 = NO,
-  OnAccept = function()
-    RS:DeleteProfile(restockerModule.settings.currentProfile)
+  OnAccept = function(_self, data)
+    RS:DeleteProfile(data)
     RS:Update()
   end,
   timeout = 0,
@@ -283,36 +468,32 @@ StaticPopupDialogs["CONNOISSEUR_RESTOCKER_DELETE_PROFILE"] = {
   preferredIndex = 3,
 }
 
-local function rsFooterButtonTooltip(btn, text)
-  btn:SetScript("OnEnter", function(self)
-    GameTooltip:SetOwner(self, "ANCHOR_TOP")
-    GameTooltip:SetText(text)
-    GameTooltip:Show()
-  end)
-  btn:SetScript("OnLeave", function()
-    GameTooltip:Hide()
-  end)
-end
+local rsFooterButtonTooltip = RS.SetupTooltip
 
 function mainFrameModule:CreateProfileButtons(addonFrame)
   local copyBtn = CreateFrame("Button", nil, addonFrame, "UIPanelButtonTemplate")
-  copyBtn:SetSize(52, 22)
+  copyBtn:SetHeight(22)
   --[[
     Anchored to the window, not the dropdown: UIDropDownMenu_SetWidth gives the
-    dropdown's invisible frame width + padding (620px here), so anchoring to
-    its RIGHT edge lands outside the 580px window.
+    dropdown's invisible frame width + padding, so anchoring to its RIGHT edge
+    lands well outside the window. The x offset walks the visible row instead:
+    the label, then the dropdown's visible box.
   ]]
-  copyBtn:SetPoint("BOTTOMLEFT", addonFrame, "BOTTOMLEFT", 204, 12)
+  local dropdownLeft = PROFILE_LABEL_X + addonFrame.profileLabel:GetStringWidth() - 14
+  copyBtn:SetPoint("BOTTOMLEFT", addonFrame, "BOTTOMLEFT",
+    dropdownLeft + DROPDOWN_LEFT_PAD + PROFILE_DROPDOWN_WIDTH + DROPDOWN_TRIM + FOOTER_GAP, FOOTER_Y)
   copyBtn:SetText(L["RESTOCKER_COPY_PROFILE"])
+  RS.FitButton(copyBtn)
   copyBtn:SetScript("OnClick", function()
     RS:CloneCurrentProfile()
   end)
   rsFooterButtonTooltip(copyBtn, L["RESTOCKER_COPY_PROFILE_TOOLTIP"])
 
   local deleteBtn = CreateFrame("Button", nil, addonFrame, "UIPanelButtonTemplate")
-  deleteBtn:SetSize(52, 22)
-  deleteBtn:SetPoint("LEFT", copyBtn, "RIGHT", 4, 0)
+  deleteBtn:SetHeight(22)
+  deleteBtn:SetPoint("LEFT", copyBtn, "RIGHT", FOOTER_GAP, 0)
   deleteBtn:SetText(L["RESTOCKER_DELETE_PROFILE"])
+  RS.FitButton(deleteBtn)
   deleteBtn:SetScript("OnClick", function()
     local settings = restockerModule.settings
     if not settings.currentProfile then
@@ -320,7 +501,9 @@ function mainFrameModule:CreateProfileButtons(addonFrame)
     end
     StaticPopup_Show(
       "CONNOISSEUR_RESTOCKER_DELETE_PROFILE",
-      ns.GetColor("TITLE") .. settings.currentProfile .. "|r"
+      ns.GetColor("TITLE") .. settings.currentProfile .. "|r",
+      nil,
+      settings.currentProfile
     )
   end)
   rsFooterButtonTooltip(deleteBtn, L["RESTOCKER_DELETE_PROFILE_TOOLTIP"])
@@ -330,6 +513,9 @@ function mainFrameModule:CreateProfileButtons(addonFrame)
 end
 
 function mainFrameModule:CreateMenu()
+  -- Row and button heights come from the font, so measure before anything is built.
+  RS.RefreshRowMetrics()
+
   local addonFrame = self:CreateAddonFrame()
   local listInset = self:CreateListInset(addonFrame)
   local scrollFrame = self:CreateScrollFrame(addonFrame, listInset)
@@ -345,11 +531,14 @@ function mainFrameModule:CreateMenu()
   self:CreateProfilesDropdown(addonFrame)
   self:CreateProfileButtons(addonFrame)
   self:CreateProfileRenameBox(addonFrame)
+  self:CreateResizeGrip(addonFrame)
 
   table.insert(UISpecialFrames, "ConnoisseurRestockerFrame")
   addonFrame:Hide()
 
   RS.MainFrame = addonFrame
+  -- Now that scrollChild exists, settle the sizes the anchors could not carry.
+  self:RelayoutFrame(addonFrame)
   return RS.MainFrame
 end
 
@@ -380,7 +569,18 @@ function RS:addItem(text)
 
   local itemInfo = RS.GetItemInfo(text)
   if itemInfo == nil then
-    RS.addItemWait[text] = true
+    --[[
+      Park the pending add under its itemID whenever the input carries one: the
+      retry in eventsModule.OnItemInfoReceived looks up by the numeric itemID the
+      event hands it, so an add keyed by a raw item link (what a shift-click from
+      chat drops in) would never be found again and the item would silently never
+      arrive. Unparseable input keeps its own key, which simply never retries.
+    ]]
+    local waitKey = text
+    if type(text) == "string" then
+      waitKey = tonumber(text:match("item:(%d+)")) or text
+    end
+    RS.addItemWait[waitKey] = true
     return
   end
 
@@ -396,7 +596,13 @@ function RS:addItem(text)
   buyItem.itemName = ( --[[---@not nil]] itemInfo).itemName
   buyItem.itemType = ( --[[---@not nil]] itemInfo).itemType
   buyItem.itemID = itemID
-  buyItem.amount = 1
+  --[[
+    One stack of the item, not one unit: a fresh row asking for a single
+    juice reads as a typo, and a stack is the amount everything actually
+    trades in. Items that do not stack report a max of 1, so gear and tools
+    land at exactly one with no special case.
+  ]]
+  buyItem.amount = math.max(1, ( --[[---@not nil]] itemInfo).itemStackCount or 1)
   -- New items default to everything ON: buy from merchant, stash to bank, restock from bank
   buyItem.buyFromMerchant = true
   buyItem.stashTobank = true
@@ -404,5 +610,20 @@ function RS:addItem(text)
 
   currentProfile[itemID] = buyItem
 
+  --[[
+    Flag it for the "New" group and jump the list back to the top, so the row
+    you just created is on screen with its controls ready rather than filed
+    away in its type group somewhere down a long list. Opening it too is the
+    point of adding one: the amount and the three toggles are what you came to
+    set, and they live on the detail line.
+  ]]
+  RS.newItems[itemID] = true
+  RS.expandedItem = itemID
+
   RS:Update()
+
+  local scrollFrame = RS.MainFrame and RS.MainFrame.scrollFrame
+  if scrollFrame then
+    scrollFrame:SetVerticalScroll(0)
+  end
 end

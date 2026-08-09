@@ -61,6 +61,60 @@ function merchantModule:BuildPurchaseOrder(purchaseOrders, eachRestockRecord, ve
   end -- if amount
 end
 
+--[[
+  GROCERY LIST
+
+  What the current profile is short of right now: the same shortfall
+  BuildPurchaseOrder computes, minus the vendor. Used by the mini-map tooltip
+  and the entering-town reminder, both of which run while the player is
+  standing in the open with no merchant window in sight.
+
+  Two differences from a real purchase order, both because there is no vendor:
+  the required-reputation gate is skipped (it depends on which vendor you walk
+  up to), and crafting reagents are left out (BuyIngredients resolves those
+  against the merchant's stock). So this answers "what am I low on", which is
+  what a shopping list is, rather than "what will this vendor sell me".
+
+  Counts are bags only -- GetItemCount(id, false, false) -- matching what the
+  merchant restock compares against, so the list agrees with what would
+  actually be bought.
+]]
+---@return table[] Sorted { itemID, itemName, have, wanted, needed }, empty when fully stocked
+function RS.BuildGroceryList()
+  local settings = restockerModule.settings
+  local profile = settings and settings.profiles and settings.profiles[settings.currentProfile]
+  local list = {}
+  if not profile then
+    return list
+  end
+
+  for _, record in pairs(profile) do
+    local wanted = record.amount or 0
+    local key = record.itemID or record.itemName
+    -- nil buyFromMerchant defaults to true, the same rule Restock() uses
+    if key and wanted > 0 and (record.buyFromMerchant == nil or record.buyFromMerchant) then
+      local have = GetItemCount(key, false, false) or 0
+      local short = wanted - have
+      if short > 0 then
+        -- have/wanted ride along for the verbose town reminder, which reports
+        -- the ratio rather than the shortfall.
+        list[#list + 1] = {
+          itemID = record.itemID,
+          itemName = record.itemName,
+          have = have,
+          wanted = wanted,
+          needed = short,
+        }
+      end
+    end
+  end
+
+  table.sort(list, function(a, b)
+    return (a.itemName or "") < (b.itemName or "")
+  end)
+  return list
+end
+
 ---@param purchaseOrders RsTradeCommandsByName
 ---@param ingredientName string Name of ingredient to add to purchaseOrders
 ---@param toBuy number Requested amount
@@ -73,15 +127,35 @@ function merchantModule:UpdatePurchaseOrdersWithCraftingReagents(purchaseOrders,
   end
 end
 
+--[[
+  Buys one merchant slot if it is on the purchase order, and returns how many
+  UNITS were ordered plus whether that covered the whole order.
+
+  It used to return a count of BuyMerchantItem calls, which is a number no
+  player can interpret -- forty juice bought in stacks of twenty reported "2".
+
+  The second return is what the caller turns into "3 restocking orders filled".
+  A vendor holding six of a requested twenty leaves that order short, and the
+  chat line may not say otherwise, so the claim is decided here rather than
+  inferred from a unit count: this is the only place that still knows what the
+  order asked for and what the vendor actually had. Bag counts cannot settle it
+  either way -- they do not update until BAG_UPDATE, well after this returns.
+
+  Fulfilled orders are flagged rather than removed, so the caller can tell what
+  this vendor did not stock without re-reading those bag counts.
+]]
 ---@param i number Merchant item index
 ---@param purchaseOrders RsTradeCommandsByName
----@param numPurchases number Counter for purchases done
-function merchantModule:PurchaseMerchantItem(i, purchaseOrders, numPurchases)
+---@return number unitsOrdered
+---@return boolean orderFilled Whole requested amount was ordered
+function merchantModule:PurchaseMerchantItem(i, purchaseOrders)
   local itemName, _, _, _, merchantAvailable, _, _ = GetMerchantItemInfo(i)
   local itemLink = GetMerchantItemLink(i)
 
   -- is item from merchant in our purchase order?
   local buyItem = purchaseOrders[itemName]
+  local unitsOrdered = 0
+  local orderFilled = false
 
   if buyItem then
     -- Link and cached record are both missing until the client resolves the item, so fall
@@ -92,23 +166,45 @@ function merchantModule:PurchaseMerchantItem(i, purchaseOrders, numPurchases)
       stackCount = 1
     end
 
-    if buyItem.amount > merchantAvailable and merchantAvailable > 0 then
-      BuyMerchantItem(i, merchantAvailable)
-      numPurchases = numPurchases + 1
-    else
-      for n = buyItem.amount, 1, -stackCount do
-        if n > stackCount then
-          BuyMerchantItem(i, stackCount)
-          numPurchases = numPurchases + 1
-        else
-          BuyMerchantItem(i, n)
-          numPurchases = numPurchases + 1
-        end
-      end -- forloop
+    --[[
+      BuyMerchantItem will not sell more than one stack per call, which is what
+      the stackCount loop below is for. Capping against the vendor's stock used
+      to bypass that loop and pass merchantAvailable through in a single call,
+      so a limited slot holding more than one stack -- a poison supplier's
+      reagents, exactly the case this path exists for -- had its call rejected
+      and still credited the full amount, reporting an order filled that never
+      arrived. Capping the target first lets one chunked loop serve both cases.
+    ]]
+    local wanted = buyItem.amount
+    if merchantAvailable > 0 and wanted > merchantAvailable then
+      wanted = merchantAvailable
     end
+
+    for n = wanted, 1, -stackCount do
+      local chunk = (n > stackCount) and stackCount or n
+      BuyMerchantItem(i, chunk)
+      unitsOrdered = unitsOrdered + chunk
+    end -- forloop
+
+    --[[
+      A sold-out slot reports numAvailable 0; unlimited stock reports -1, which is
+      why the cap above tests for a POSITIVE count. Neither reading can buy from
+      an empty slot -- the loop still runs and the server rejects every call --
+      so what it asked for is not what it got, and passing those units up would
+      announce a partial fill for a slot that gave us nothing.
+    ]]
+    if merchantAvailable == 0 then
+      unitsOrdered = 0
+    end
+
+    -- The > 0 half matters for a zero-amount order, which the crafting-reagent
+    -- path can create: nothing bought must never read as an order filled.
+    orderFilled = unitsOrdered > 0 and unitsOrdered >= buyItem.amount
+
+    buyItem.purchased = true
   end -- if purchaseOrders[itemName]
 
-  return numPurchases
+  return unitsOrdered, orderFilled
 end
 
 ---@alias RsTradeCommandsByName {[string]: RsTradeCommand}
@@ -124,7 +220,6 @@ function merchantModule:Restock()
   end -- If vendor reopened within 1 second then return (only activate addon once per second)
 
   self.lastTimeRestocked = GetTime()
-  local numPurchases = 0
 
   -- Don't try to buy anything when the bags have no free slot -- the purchase would just
   -- fail with "Inventory is full". (The bank restock already bails on full bags via
@@ -157,15 +252,40 @@ function merchantModule:Restock()
   end
 
   -- Loop through vendor items
+  local ordersFilled = 0
+  local ordersPartlyFilled = 0
   for i = 1, GetMerchantNumItems() do
     if not RS.buying then
       return
     end
 
-    numPurchases = self:PurchaseMerchantItem(i, purchaseOrders, numPurchases)
+    local unitsOrdered, orderFilled = self:PurchaseMerchantItem(i, purchaseOrders)
+    if orderFilled then
+      ordersFilled = ordersFilled + 1
+    elseif unitsOrdered > 0 then
+      ordersPartlyFilled = ordersPartlyFilled + 1
+    end
   end -- for loop GetMerchantNumItems()
 
-  if numPurchases > 0 then
-    RS:Print(string.format(L["RESTOCKER_FINISHED_RESTOCKING"], numPurchases))
+  --[[
+    Report what happened, and nothing more. Anything this vendor did not stock
+    is still outstanding, but the mini-map's Restocker Report already says so --
+    the chat line covers the event, the tooltip covers the outstanding state,
+    and neither repeats the other.
+
+    Filled and partly filled are counted apart and printed apart, so a mixed run
+    needs no combined string and a clean one never mentions partials. Both are
+    silent at zero, which keeps a vendor that stocked nothing on our list quiet.
+  ]]
+  if ordersFilled == 1 then
+    RS:Print(L["RESTOCKER_RESTOCKED_ONE"])
+  elseif ordersFilled > 1 then
+    RS:Print(string.format(L["RESTOCKER_RESTOCKED_MANY"], ordersFilled))
+  end
+
+  if ordersPartlyFilled == 1 then
+    RS:Print(L["RESTOCKER_RESTOCKED_PARTIAL_ONE"])
+  elseif ordersPartlyFilled > 1 then
+    RS:Print(string.format(L["RESTOCKER_RESTOCKED_PARTIAL_MANY"], ordersPartlyFilled))
   end
 end

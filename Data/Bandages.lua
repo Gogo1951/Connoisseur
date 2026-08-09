@@ -3,14 +3,10 @@ ns.RawData = ns.RawData or {}
 
 --[[
 
-SELECT 
+SELECT
     CONCAT(
-        -- Dynamically prepends the Lua comment string for unused items
-        CASE 
-            WHEN it.entry IN (38640, 44646) THEN '    -- [' 
-            ELSE '    [' 
-        END,
-        it.entry, '] = {', 
+        '    [',
+        it.entry, '] = {',
         
         -- Dynamically calculates the Total Heal amount!
         (st.EffectBasePoints1 + 1) * 
@@ -35,14 +31,13 @@ SELECT
     ) AS `ns.RawData.Bandage`
 FROM item_template it
 JOIN spell_template st ON it.spellid_1 = st.Id
-WHERE it.class = 0 
+WHERE it.class = 0
   AND it.subclass = 7
   AND it.spellid_1 > 0
-  AND st.EffectBasePoints1 > 0 
-ORDER BY 
-  -- Pushes commented/deprecated items to the very bottom of the array
-  CASE WHEN it.entry IN (38640, 44646) THEN 1 ELSE 0 END ASC,
-  it.RequiredSkillRank DESC, 
+  AND st.EffectBasePoints1 > 0
+  AND it.entry NOT IN (38640, 44646)
+ORDER BY
+  it.RequiredSkillRank DESC,
   it.entry DESC;
 
 ]]
@@ -78,6 +73,5 @@ ns.RawData.Bandage = {
 	[3530] = { 161, 50, 25 }, -- Wool Bandage
 	[2581] = { 114, 20, 20 }, -- Heavy Linen Bandage
 	[1251] = { 66, 1, 8 }, -- Linen Bandage
-	-- [38640] = {8200, 425, 3000}, -- Dense Frostweave Bandage
-	-- [44646] = {114, 20, 20}, -- Dalaran Bandage
+	-- Dense Frostweave Bandage (38640) and Dalaran Bandage (44646) are deliberately absent as Wrath-era entries; the query above excludes them too, so a regeneration will not bring them back.
 }

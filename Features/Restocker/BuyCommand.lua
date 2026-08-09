@@ -16,6 +16,7 @@ local buyCommandModule = CrsModule.buyCommandModule
 ---@field buyFromMerchant boolean|nil Nil default true
 ---@field stashTobank boolean|nil Nil default false
 ---@field restockFromBank boolean|nil Nil default false
+---@field upgrade boolean|nil Nil default true; follow the food/water ladder on level up
 
 local buyItemClass = {}
 buyItemClass.__index = buyItemClass

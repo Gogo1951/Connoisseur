@@ -346,8 +346,8 @@ end
 
 --[[
     Returns an ordered list of scroll item IDs the player should use, or nil
-    if none apply. Order follows ns.SCROLL_CHECK_ORDER so the macro builder
-    can use that priority when truncating to fit the 255-char macro limit.
+    if none apply. Order follows ns.SCROLL_CHECK_ORDER, which is the order the
+    scroll-only body fires them in.
 ]]
 function ns.FindScrollOverrides(bagItemCounts)
 	local settings = ns.db and ns.db.profile

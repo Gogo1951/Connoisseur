@@ -27,7 +27,7 @@ ns.RegisterMacroType({
         come straight from the scan and are populated regardless of whether
         the standalone Healthstone macro is enabled. The engine gates this on
         having a potion to stack onto and sheds these lines first in the
-        255-byte trim.
+        macro-length trim.
     ]]
 	getStackIDs = function(best)
 		local settings = ns.db and ns.db.profile
