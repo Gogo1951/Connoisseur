@@ -57,7 +57,8 @@ local POISONS_NOTE_HEIGHT = 45 -- the two-line ingredients note plus its spacer
     The staple pair is sized snug to one-word labels with a dropdown that
     must hold "18 Stacks"; the reagent pair spends more on the label --
     "Demonic Figurine" is the yardstick -- and less on a dropdown that never
-    shows past "4 Stacks". Both dropdowns fit because the AceGUI dropdown
+    shows past "4 Stacks" (the counting ones, Soul Shards, stop at a bare
+    "40", narrower still). Both dropdowns fit because the AceGUI dropdown
     renders its text in the small highlight font. A reagent with a fixed
     amount draws no dropdown; its checkbox spans the whole pair, so the
     columns keep their rhythm. A locale that overruns a label wraps that row
@@ -79,25 +80,54 @@ local COLUMN_GUTTER_WIDTH = 0.2
     dropdowns stop at 4 stacks where the ammo ones run to 18, so the lists
     are built per category.maxStacks and cached by that cap. The label is
     unit-agnostic on purpose, because a stack is 20 for most staples and 200
-    for the ammo and the dropdown's tooltip is what says which. Keys are the
-    stack counts themselves, and the explicit sorting array is what keeps
-    AceConfig from ordering them "1, 10, 11, .." by label.
+    for the ammo and the dropdown's tooltip is what says which.
+
+    A category whose stack size is 1 counts items instead (Soul Shards), and
+    gets a bare-number list: "1 Stack" of a thing that cannot stack reads as a
+    bug, and the row's own label already says what is being counted.
+
+    A category carrying a choices list offers exactly those counts rather than
+    every number to a cap -- StarterList.lua owns which, and why. Same
+    machinery either way, so the cache keys on the style and on the run of
+    counts, and two categories offering the same run share one list.
 ]]
 local stackOptionsByCap = {}
 
-local function StackOptions(maxStacks)
-	local cached = stackOptionsByCap[maxStacks]
+---@param category table From RS.GetStarterCategories
+---@return table values, table sorting
+local function StackOptions(category)
+	local counting = category.stackSize == 1
+	local choices = category.choices
+	local cacheKey = (counting and "count:" or "stacks:")
+		.. (choices and table.concat(choices, ",") or category.maxStacks)
+
+	local cached = stackOptionsByCap[cacheKey]
 	if not cached then
 		cached = { values = {}, sorting = {} }
-		for stacks = 1, maxStacks do
-			if stacks == 1 then
+		--[[
+		    Keys are the counts themselves. The explicit sorting array is what
+		    keeps AceConfig from ordering them "1, 10, 11, .." by label, so it
+		    is filled in offered order rather than keyed like the values.
+		]]
+		local offered = choices
+		if not offered then
+			offered = {}
+			for stacks = 1, category.maxStacks do
+				offered[stacks] = stacks
+			end
+		end
+
+		for index, stacks in ipairs(offered) do
+			if counting then
+				cached.values[stacks] = tostring(stacks)
+			elseif stacks == 1 then
 				cached.values[stacks] = L["STARTER_POPUP_STACK_ONE"]
 			else
 				cached.values[stacks] = string.format(L["STARTER_POPUP_STACK_MANY"], stacks)
 			end
-			cached.sorting[stacks] = stacks
+			cached.sorting[index] = stacks
 		end
-		stackOptionsByCap[maxStacks] = cached
+		stackOptionsByCap[cacheKey] = cached
 	end
 	return cached.values, cached.sorting
 end
@@ -137,11 +167,14 @@ end
 ---@param width number
 ---@return table
 local function StapleStacks(category, order, width)
-	local values, sorting = StackOptions(category.maxStacks)
+	local values, sorting = StackOptions(category)
 	return {
 		type = "select",
 		name = "",
 		desc = function()
+			if category.stackSize == 1 then
+				return L["STARTER_POPUP_COUNT_DESCRIPTION"]
+			end
 			return string.format(L["STARTER_POPUP_STACKS_DESCRIPTION"], category.stackSize)
 		end,
 		order = order,
@@ -240,7 +273,8 @@ end
 local function SectionCategories(section)
 	local categories = {}
 	for _, category in ipairs(CRS_ADDON.GetStarterCategories()) do
-		if category.section == section
+		if
+			category.section == section
 			and CRS_ADDON.IsStarterCategoryForClass(category)
 			and CRS_ADDON.IsStarterCategoryAvailable(category)
 		then

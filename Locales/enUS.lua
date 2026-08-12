@@ -37,10 +37,18 @@ L["RANK"] = "Rank"
 -- Pet Diets
 --------------------------------------------------------------------------------
 
--- Diet names as returned by GetPetFoodTypes(), which is localized. These
--- values MUST match the client's strings exactly (verify in-game with
--- /dump GetPetFoodTypes() while a pet is out). Used to build
--- ns.PetDietMap in Data/Pet-Foods.lua.
+--[[
+    Diet names as returned by GetPetFoodTypes(), which is localized. These
+    values MUST match the client's strings exactly (verify in-game with
+    /dump GetPetFoodTypes() while a pet is out). Used to build
+    ns.PetDietMap in Data/Pet-Foods.lua.
+
+    They are ALSO the food checkbox labels in the Starter List pop-up, so they
+    read as ordinary labels while carrying that hard constraint. Translate them
+    as the client's own diet words, never as the nicer label they look like --
+    a locale that "improves" one here stops matching that client's strings and
+    silently breaks pet-food selection for everyone playing in it.
+]]
 
 L["DIET_BREAD"] = "Bread"
 L["DIET_CHEESE"] = "Cheese"
@@ -378,7 +386,7 @@ L["OPTIONS_RESTOCKER_OPEN_MERCHANT"] = "Open at Merchant"
 L["OPTIONS_RESTOCKER_OPEN_MERCHANT_DESCRIPTION"] = "Open the Restocker window when you visit a merchant."
 L["OPTIONS_RESTOCKER_REMIND"] = "Enable In-Town Restock Reminders"
 L["OPTIONS_RESTOCKER_REMIND_DESCRIPTION"] =
-	"Prints a chat reminder when you reach an inn or a city and your Restock List is short of something."
+	"Prints a chat reminder when your Restock List is short of something and you reach an inn or a city, or log in already standing in one."
 L["OPTIONS_RESTOCKER_MERCHANT_REMIND"] = "Enable At-Merchant Restock Reminders"
 L["OPTIONS_RESTOCKER_MERCHANT_REMIND_DESCRIPTION"] =
 	"Reports outstanding restocking orders when you close a merchant window. Silent when there are none."
@@ -485,7 +493,7 @@ L["RESTOCKER_STUCK_ITEM_EXTRA_FORMAT"] = "%dx %s (extra)"
 L["RESTOCKER_STOPPED_ERROR"] = "Restocking stopped due to an error: %s"
 L["RESTOCKER_BAGS_FULL_SKIP_MERCHANT"] = "Your bags are full. Skipping merchant restock."
 -- Printed on reaching an inn or a city with something left on the Grocery List.
-L["RESTOCKER_TOWN_REMINDER"] = "Don't forget to Restock while you are in town!"
+L["RESTOCKER_TOWN_REMINDER"] = "Don't forget to restock while you are in town!"
 
 --[[
     Headline for the merchant and bank reminders, which report on the way out
@@ -653,6 +661,11 @@ L["STARTER_POPUP_ITEM_DESCRIPTION_STATIC"] = "Adds %s to your Restock List, keep
 L["STARTER_POPUP_STACK_ONE"] = "1 Stack"
 L["STARTER_POPUP_STACK_MANY"] = "%d Stacks"
 L["STARTER_POPUP_STACKS_DESCRIPTION"] = "How many stacks to keep stocked. One stack here is %d."
+--[[
+    The same dropdown where the staple does not stack (Soul Shards): the
+    choices are bare numbers, so only the tooltip needs words.
+]]
+L["STARTER_POPUP_COUNT_DESCRIPTION"] = "How many to keep stocked. These do not stack, so each one takes a bag slot."
 L["STARTER_POPUP_DISMISS"] = "Don't show this again for this character."
 L["STARTER_POPUP_DISMISS_DESCRIPTION"] =
 	"These suggestions otherwise return on any login that finds your Restock List empty."

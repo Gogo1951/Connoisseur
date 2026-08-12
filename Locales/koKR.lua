@@ -39,10 +39,18 @@ L["RANK"] = "레벨"
 -- Pet Diets
 --------------------------------------------------------------------------------
 
--- Diet names as returned by GetPetFoodTypes(), which is localized. These
--- values MUST match the client's strings exactly (verify in-game with
--- /dump GetPetFoodTypes() while a pet is out). Used to build
--- ns.PetDietMap in Data/Pet-Foods.lua.
+--[[
+    Diet names as returned by GetPetFoodTypes(), which is localized. These
+    values MUST match the client's strings exactly (verify in-game with
+    /dump GetPetFoodTypes() while a pet is out). Used to build
+    ns.PetDietMap in Data/Pet-Foods.lua.
+
+    They are ALSO the food checkbox labels in the Starter List pop-up, so they
+    read as ordinary labels while carrying that hard constraint. Translate them
+    as the client's own diet words, never as the nicer label they look like --
+    a locale that "improves" one here stops matching that client's strings and
+    silently breaks pet-food selection for everyone playing in it.
+]]
 
 L["DIET_BREAD"] = "빵"
 L["DIET_CHEESE"] = "치즈"
@@ -390,7 +398,7 @@ L["OPTIONS_RESTOCKER_OPEN_MERCHANT"] = "상인에게서 열기"
 L["OPTIONS_RESTOCKER_OPEN_MERCHANT_DESCRIPTION"] = "상인 방문 시 Restocker 창을 엽니다."
 L["OPTIONS_RESTOCKER_REMIND"] = "마을 보충 알림 사용"
 L["OPTIONS_RESTOCKER_REMIND_DESCRIPTION"] =
-	"여관이나 도시에 도착했을 때 보충 목록에 부족한 것이 있으면 대화창에 알림을 표시합니다."
+	"보충 목록에 부족한 것이 있고 여관이나 도시에 도착하거나 이미 그곳에 있는 상태로 접속했을 때 대화창에 알림을 표시합니다."
 L["OPTIONS_RESTOCKER_MERCHANT_REMIND"] = "상인 보충 알림 사용"
 L["OPTIONS_RESTOCKER_MERCHANT_REMIND_DESCRIPTION"] =
 	"상인 창을 닫을 때 미완료된 보충 주문을 알려 줍니다. 없으면 아무 말도 하지 않습니다."
@@ -527,9 +535,12 @@ L["RESTOCKER_STILL_SHORT_MANY"] = "보충 주문 %d건이 남아 있습니다."
 --[[
     Level-up upgrades. The headline makes the Restock List the subject, so
     there is no item count to agree with and one string covers any number of
-    swaps; the line under it is { old link, new link } and has no words at all.
-    It separates the two with the house " // " rather than an arrow glyph, which
-    renders as a box in some client fonts and locales.
+    swaps; the line under it is { old link, old amount, new link, new amount },
+    outgoing tier on the left and incoming on the right.
+
+    Both amounts are carried because they are not always equal: a swap onto a
+    tier the list already holds merges the two rows, so the new amount is the
+    sum rather than the old amount moved across.
 ]]
 L["RESTOCKER_UPGRADED"] = "보충 목록이 갱신되었습니다."
 L["RESTOCKER_UPGRADED_ITEM"] = "%sx%d을(를) %sx%d(으)로 업그레이드."
@@ -655,20 +666,27 @@ L["STARTER_POPUP_REAGENT_AIR_TOTEM"] = "공기 토템"
 L["STARTER_POPUP_REAGENT_FIGURINE"] = "악마 조각상"
 L["STARTER_POPUP_REAGENT_INFERNAL_STONE"] = "지옥소환석"
 L["STARTER_POPUP_REAGENT_SOUL_SHARDS"] = "영혼의 파편"
--- Checkbox tooltip: { item link, amount }.
+-- Checkbox tooltips: { item link, amount }. The first is for ladder items;
+-- the second for single-tier reagents, which never upgrade.
 L["STARTER_POPUP_ITEM_DESCRIPTION"] =
 	"%s을(를) 보충 목록에 추가하고, 가방에 %d개를 유지하며 레벨에 맞춰 상위 등급으로 바꿔 줍니다."
 L["STARTER_POPUP_ITEM_DESCRIPTION_STATIC"] =
 	"%s을(를) 보충 목록에 추가하고 가방에 %d개를 유지합니다."
 --[[
     The stacks dropdown beside each staple. The label is unit-agnostic (a
-    stack is 20 food or water, 200 ammo); the tooltip below carries the
-    per-item stack size as %d.
+    stack is 20 for food, water and poisons, 200 for ammo); the tooltip
+    below carries the per-item stack size as %d.
 ]]
 L["STARTER_POPUP_STACK_ONE"] = "1묶음"
 L["STARTER_POPUP_STACK_MANY"] = "%d묶음"
 L["STARTER_POPUP_STACKS_DESCRIPTION"] =
 	"몇 묶음을 유지할지 정합니다. 여기서 한 묶음은 %d개입니다."
+--[[
+    The same dropdown where the staple does not stack (Soul Shards): the
+    choices are bare numbers, so only the tooltip needs words.
+]]
+L["STARTER_POPUP_COUNT_DESCRIPTION"] =
+	"몇 개를 유지할지 정합니다. 이 항목은 겹쳐지지 않으므로 하나당 가방 한 칸을 차지합니다."
 L["STARTER_POPUP_DISMISS"] = "이 캐릭터에서 다시 표시하지 않기."
 L["STARTER_POPUP_DISMISS_DESCRIPTION"] =
 	"그렇지 않으면 보충 목록이 비어 있는 상태로 접속할 때마다 이 제안이 다시 나타납니다."

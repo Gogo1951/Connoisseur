@@ -11,7 +11,7 @@ local _, ns = ...
     definition.
 
     Exposes: ns.ScanBags, ns.AdjustedScore, ns.BestSelection, ns.BestFoodID,
-    ns.BestFoodLink.
+    ns.BestFoodLink, ns.AllowBuffFood, ns.DiagnosticCandidates.
 ]]
 
 --------------------------------------------------------------------------------

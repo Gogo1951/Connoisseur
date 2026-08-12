@@ -98,22 +98,97 @@ end
   it turns on in inns and cities and nowhere else -- so it is what the reminder
   keys off rather than a zone list we would have to maintain.
 
-  PLAYER_UPDATE_RESTING fires on both edges and can repeat, so only a
-  not-resting to resting transition counts. The RS.loaded check comes before
-  the state is recorded, deliberately: a firing during load would otherwise
-  consume the transition and swallow the reminder for that whole visit.
+  Only a not-resting to resting transition counts, so this reminds you on
+  ARRIVING in town rather than every time the flag twitches while you are in
+  one -- and logging in counts as arriving, see the arming block below.
 
-  This reminds you on arriving in town, not on being in one. Logging in or
-  reloading inside an inn generally will not fire it, which is the point --
-  a reminder on every /reload would be noise.
+  Three things reach the check, because one signal does not cover every way of
+  arriving:
+
+    PLAYER_UPDATE_RESTING  -- walking in. Fires on both edges and can repeat,
+                              which the transition rule already absorbs.
+    PLAYER_ENTERING_WORLD  -- logging in, hearthing, portalling, or stepping
+                              out of an instance. The resting flag is part of
+                              the state the client syncs across a loading
+                              screen, so no update event follows and
+                              walking-in was the only arrival that ever fired.
+    PLAYER_CONTROL_GAINED  -- landing off a flight path; see the taxi rule.
 
   Both halves are gated on actually being short of something: a reminder to
   restock when there is nothing to buy is noise too. All three settings ship on.
 ]]
 local wasResting = nil
 
-function eventsModule.OnUpdateResting()
-  if not RS.loaded then
+--[[
+  A flight path crosses inns and towns the whole way, and the resting flag
+  flickers on and off with them. None of those is an arrival -- you cannot
+  shop from the back of a gryphon -- so a taxi counts as NOT IN TOWN for as
+  long as it lasts, and the recorded state is forced to match. That is what
+  leaves a genuine not-resting to resting edge for the landing to trip:
+  PLAYER_CONTROL_GAINED re-checks once control is back and UnitOnTaxi has
+  cleared, so touching down at a town flight master still reminds you.
+]]
+---@return boolean
+local function rsOnTaxi()
+  return UnitOnTaxi("player") and true or false
+end
+
+--[[
+  The quiet window after a reminder. Arrivals cluster -- a hearth lands you in
+  an inn inside a city, and a quick errand in and out of an instance re-crosses
+  the same boundary -- and each of those is one trip to town, not three
+  reminders. Measured from the reminder, not from the arrival, so a suppressed
+  check (nothing short, everything off) never starts the clock.
+]]
+local REMINDER_COOLDOWN = 60
+local lastReminderAt = nil
+
+--[[
+  How long to let an arrival settle before reading it. Resting status and the
+  bag counts the shortfall is built from both land after the loading screen,
+  and after a flight the taxi flag clears a moment behind control returning --
+  reading either too early reports the trip you just left.
+
+  A login settles slower than a zone change and waits longer still -- past the
+  loading-screen flurry, past the add-on's own post-login work, and well past
+  the item queries behind a name-keyed list entry. The shortfall is read at the
+  END of that pause, not the start, so a bag that finishes filling in the
+  meantime is counted and a list that is no longer short says nothing.
+]]
+local ARRIVAL_SETTLE_DELAY = 2
+local LOGIN_SETTLE_DELAY = 5
+
+--[[
+  ARMING
+
+  Nothing reminds until PLAYER_ENTERING_WORLD has said what kind of entry this
+  was, because the two kinds want opposite things and the resting events during
+  a load arrive too early to tell them apart:
+
+    Logging in IS an arrival -- you have just walked up to the game -- so a
+    character who logs in resting gets the reminder. That was inconsistent
+    before this gate existed: an inn happened to fire a late
+    PLAYER_UPDATE_RESTING and a city did not, so the same standing-in-town
+    login reminded you or did not depending on which side of the door you
+    logged out on.
+
+    A /reload is NOT an arrival. It records where the character already is --
+    so the next real arrival still has an edge to trip -- and says nothing,
+    which is the whole reason the flag is seeded rather than simply cleared.
+
+  Left false until then, the check does nothing at all rather than recording
+  state: a resting event landing mid-load would otherwise consume the very
+  transition the login is about to report.
+]]
+local remindersArmed = false
+
+local function rsCheckResting()
+  if not RS.loaded or not remindersArmed then
+    return
+  end
+
+  if rsOnTaxi() then
+    wasResting = false
     return
   end
 
@@ -135,10 +210,16 @@ function eventsModule.OnUpdateResting()
     return
   end
 
+  if lastReminderAt and (GetTime() - lastReminderAt) < REMINDER_COOLDOWN then
+    return
+  end
+
   local groceries = RS.BuildGroceryList()
   if #groceries == 0 then
     return
   end
+
+  lastReminderAt = GetTime()
 
   --[[
     Unlike the closing-window reminders, this one keeps its own headline: it
@@ -152,6 +233,46 @@ function eventsModule.OnUpdateResting()
   if settings.restockReminderSound then
     PlaySoundFile(RS.RESTOCK_ALERT_SOUND, "Master")
   end
+end
+
+function eventsModule.OnUpdateResting()
+  rsCheckResting()
+end
+
+---Arriving under your own steam: off a flight path (the common case for this
+---event) or out of anything else that took control away. Delayed like the
+---loading-screen arrivals, because UnitOnTaxi clears a moment after control
+---returns and an immediate read would still call it a flight.
+function eventsModule.OnControlGained()
+  C_Timer.After(ARRIVAL_SETTLE_DELAY, rsCheckResting)
+end
+
+--[[
+  The one PLAYER_ENTERING_WORLD handler (the dispatcher in Restocker.lua keeps
+  one per event), shared by the arrival check and the Starter List pop-up.
+
+  isReloadingUi is the only entry that is not an arrival: a login is one, and
+  so is any other loading screen -- a hearth, a portal, an instance door. Both
+  branches wait out the same settle before touching the resting flag, so a
+  /reload cannot be reminded on by a resting event that beat the seeding.
+]]
+---@param isInitialLogin boolean
+---@param isReloadingUi boolean
+function eventsModule.OnEnteringWorld(isInitialLogin, isReloadingUi)
+  local delay = isInitialLogin and LOGIN_SETTLE_DELAY or ARRIVAL_SETTLE_DELAY
+
+  C_Timer.After(delay, function()
+    if isReloadingUi then
+      wasResting = IsResting() and true or false
+      remindersArmed = true
+      return
+    end
+
+    remindersArmed = true
+    rsCheckResting()
+  end)
+
+  RS.OnStarterListEnteringWorld(isInitialLogin, isReloadingUi)
 end
 
 ---@param itemID number
@@ -237,10 +358,12 @@ function eventsModule:InitEvents()
   RS:RegisterEvent("PLAYER_LOGOUT", self.OnLogout);
   RS:RegisterEvent("UI_ERROR_MESSAGE", self.OnUiErrorMessage);
   RS:RegisterEvent("PLAYER_UPDATE_RESTING", self.OnUpdateResting);
+  RS:RegisterEvent("PLAYER_CONTROL_GAINED", self.OnControlGained);
   RS:RegisterEvent("PLAYER_LEVEL_UP", self.OnLevelUp);
-  -- Handler lives in StarterList.lua (loads after this file, defined well
-  -- before PLAYER_LOGIN runs InitEvents). Note the dispatcher in Restocker.lua
-  -- keeps ONE handler per event -- anything else that wants
-  -- PLAYER_ENTERING_WORLD must share this registration.
-  RS:RegisterEvent("PLAYER_ENTERING_WORLD", RS.OnStarterListEnteringWorld);
+  -- The dispatcher in Restocker.lua keeps ONE handler per event, so the two
+  -- things that want PLAYER_ENTERING_WORLD share OnEnteringWorld above: the
+  -- arrival check here, and the Starter List pop-up whose half lives in
+  -- StarterList.lua (loads after this file, defined well before PLAYER_LOGIN
+  -- runs InitEvents).
+  RS:RegisterEvent("PLAYER_ENTERING_WORLD", self.OnEnteringWorld);
 end

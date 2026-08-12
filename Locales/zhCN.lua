@@ -39,10 +39,18 @@ L["RANK"] = "等级"
 -- Pet Diets
 --------------------------------------------------------------------------------
 
--- Diet names as returned by GetPetFoodTypes(), which is localized. These
--- values MUST match the client's strings exactly (verify in-game with
--- /dump GetPetFoodTypes() while a pet is out). Used to build
--- ns.PetDietMap in Data/Pet-Foods.lua.
+--[[
+    Diet names as returned by GetPetFoodTypes(), which is localized. These
+    values MUST match the client's strings exactly (verify in-game with
+    /dump GetPetFoodTypes() while a pet is out). Used to build
+    ns.PetDietMap in Data/Pet-Foods.lua.
+
+    They are ALSO the food checkbox labels in the Starter List pop-up, so they
+    read as ordinary labels while carrying that hard constraint. Translate them
+    as the client's own diet words, never as the nicer label they look like --
+    a locale that "improves" one here stops matching that client's strings and
+    silently breaks pet-food selection for everyone playing in it.
+]]
 
 L["DIET_BREAD"] = "面包"
 L["DIET_CHEESE"] = "奶酪"
@@ -381,7 +389,7 @@ L["OPTIONS_RESTOCKER_OPEN_MERCHANT"] = "在商人处打开"
 L["OPTIONS_RESTOCKER_OPEN_MERCHANT_DESCRIPTION"] = "访问商人时打开 Restocker 窗口。"
 L["OPTIONS_RESTOCKER_REMIND"] = "启用城镇补货提醒"
 L["OPTIONS_RESTOCKER_REMIND_DESCRIPTION"] =
-	"当你抵达旅店或城市而补货清单尚有缺口时，在聊天中输出提醒。"
+	"当补货清单尚有缺口，且你抵达旅店或城市，或登录时已身处其中，在聊天中输出提醒。"
 L["OPTIONS_RESTOCKER_MERCHANT_REMIND"] = "启用商人补货提醒"
 L["OPTIONS_RESTOCKER_MERCHANT_REMIND_DESCRIPTION"] =
 	"关闭商人窗口时报告未完成的补货订单。没有时保持安静。"
@@ -515,9 +523,12 @@ L["RESTOCKER_STILL_SHORT_MANY"] = "还有 %d 项补货订单未完成。"
 --[[
     Level-up upgrades. The headline makes the Restock List the subject, so
     there is no item count to agree with and one string covers any number of
-    swaps; the line under it is { old link, new link } and has no words at all.
-    It separates the two with the house " // " rather than an arrow glyph, which
-    renders as a box in some client fonts and locales.
+    swaps; the line under it is { old link, old amount, new link, new amount },
+    outgoing tier on the left and incoming on the right.
+
+    Both amounts are carried because they are not always equal: a swap onto a
+    tier the list already holds merges the two rows, so the new amount is the
+    sum rather than the old amount moved across.
 ]]
 L["RESTOCKER_UPGRADED"] = "你的补货清单已升级。"
 L["RESTOCKER_UPGRADED_ITEM"] = "%sx%d 升级为 %sx%d。"
@@ -641,18 +652,25 @@ L["STARTER_POPUP_REAGENT_AIR_TOTEM"] = "空气图腾"
 L["STARTER_POPUP_REAGENT_FIGURINE"] = "恶魔雕像"
 L["STARTER_POPUP_REAGENT_INFERNAL_STONE"] = "地狱火石"
 L["STARTER_POPUP_REAGENT_SOUL_SHARDS"] = "灵魂碎片"
--- Checkbox tooltip: { item link, amount }.
+-- Checkbox tooltips: { item link, amount }. The first is for ladder items;
+-- the second for single-tier reagents, which never upgrade.
 L["STARTER_POPUP_ITEM_DESCRIPTION"] =
 	"将 %s 加入你的补货清单，在背包中保留 %d 个，并随着你的等级自动升级。"
 L["STARTER_POPUP_ITEM_DESCRIPTION_STATIC"] = "将 %s 加入补货清单，并在背包中保留 %d 个。"
 --[[
     The stacks dropdown beside each staple. The label is unit-agnostic (a
-    stack is 20 food or water, 200 ammo); the tooltip below carries the
-    per-item stack size as %d.
+    stack is 20 for food, water and poisons, 200 for ammo); the tooltip
+    below carries the per-item stack size as %d.
 ]]
 L["STARTER_POPUP_STACK_ONE"] = "1 组"
 L["STARTER_POPUP_STACK_MANY"] = "%d 组"
 L["STARTER_POPUP_STACKS_DESCRIPTION"] = "要备多少组。这里的一组是 %d 个。"
+--[[
+    The same dropdown where the staple does not stack (Soul Shards): the
+    choices are bare numbers, so only the tooltip needs words.
+]]
+L["STARTER_POPUP_COUNT_DESCRIPTION"] =
+	"要备多少个。这些不能堆叠，因此每个都会占用一个背包格。"
 L["STARTER_POPUP_DISMISS"] = "此角色不再显示。"
 L["STARTER_POPUP_DISMISS_DESCRIPTION"] =
 	"否则每次登录时只要补货清单为空，这些建议就会再次出现。"

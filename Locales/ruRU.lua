@@ -39,10 +39,18 @@ L["RANK"] = "Уровень"
 -- Pet Diets
 --------------------------------------------------------------------------------
 
--- Diet names as returned by GetPetFoodTypes(), which is localized. These
--- values MUST match the client's strings exactly (verify in-game with
--- /dump GetPetFoodTypes() while a pet is out). Used to build
--- ns.PetDietMap in Data/Pet-Foods.lua.
+--[[
+    Diet names as returned by GetPetFoodTypes(), which is localized. These
+    values MUST match the client's strings exactly (verify in-game with
+    /dump GetPetFoodTypes() while a pet is out). Used to build
+    ns.PetDietMap in Data/Pet-Foods.lua.
+
+    They are ALSO the food checkbox labels in the Starter List pop-up, so they
+    read as ordinary labels while carrying that hard constraint. Translate them
+    as the client's own diet words, never as the nicer label they look like --
+    a locale that "improves" one here stops matching that client's strings and
+    silently breaks pet-food selection for everyone playing in it.
+]]
 
 L["DIET_BREAD"] = "Хлеб"
 L["DIET_CHEESE"] = "Сыр"
@@ -404,7 +412,7 @@ L["OPTIONS_RESTOCKER_OPEN_MERCHANT_DESCRIPTION"] =
 	"Открывает окно Restocker при посещении торговца."
 L["OPTIONS_RESTOCKER_REMIND"] = "Включить напоминания о пополнении в городе"
 L["OPTIONS_RESTOCKER_REMIND_DESCRIPTION"] =
-	"Выводит напоминание в чат, когда вы добираетесь до таверны или города, а в списке пополнения чего-то не хватает."
+	"Выводит напоминание в чат, когда в списке пополнения чего-то не хватает и вы добираетесь до таверны или города либо уже находитесь в них при входе в игру."
 L["OPTIONS_RESTOCKER_MERCHANT_REMIND"] =
 	"Включить напоминания о пополнении у торговца"
 L["OPTIONS_RESTOCKER_MERCHANT_REMIND_DESCRIPTION"] =
@@ -547,9 +555,12 @@ L["RESTOCKER_STILL_SHORT_MANY"] = "Не выполнено заказов на �
 --[[
     Level-up upgrades. The headline makes the Restock List the subject, so
     there is no item count to agree with and one string covers any number of
-    swaps; the line under it is { old link, new link } and has no words at all.
-    It separates the two with the house " // " rather than an arrow glyph, which
-    renders as a box in some client fonts and locales.
+    swaps; the line under it is { old link, old amount, new link, new amount },
+    outgoing tier on the left and incoming on the right.
+
+    Both amounts are carried because they are not always equal: a swap onto a
+    tier the list already holds merges the two rows, so the new amount is the
+    sum rather than the old amount moved across.
 ]]
 L["RESTOCKER_UPGRADED"] = "Ваш список пополнения обновлён."
 L["RESTOCKER_UPGRADED_ITEM"] = "%sx%d заменено на %sx%d."
@@ -676,20 +687,27 @@ L["STARTER_POPUP_REAGENT_AIR_TOTEM"] = "Тотем воздуха"
 L["STARTER_POPUP_REAGENT_FIGURINE"] = "Статуэтка"
 L["STARTER_POPUP_REAGENT_INFERNAL_STONE"] = "Камень инфернала"
 L["STARTER_POPUP_REAGENT_SOUL_SHARDS"] = "Осколки души"
--- Checkbox tooltip: { item link, amount }.
+-- Checkbox tooltips: { item link, amount }. The first is for ladder items;
+-- the second for single-tier reagents, which never upgrade.
 L["STARTER_POPUP_ITEM_DESCRIPTION"] =
 	"Добавляет %s в список пополнения, держит %d в сумках и повышает ранг по мере роста уровня."
 L["STARTER_POPUP_ITEM_DESCRIPTION_STATIC"] =
 	"Добавляет %s в список пополнения и держит %d в сумках."
 --[[
     The stacks dropdown beside each staple. The label is unit-agnostic (a
-    stack is 20 food or water, 200 ammo); the tooltip below carries the
-    per-item stack size as %d.
+    stack is 20 for food, water and poisons, 200 for ammo); the tooltip
+    below carries the per-item stack size as %d.
 ]]
 L["STARTER_POPUP_STACK_ONE"] = "1 стопка"
 L["STARTER_POPUP_STACK_MANY"] = "Стопок: %d"
 L["STARTER_POPUP_STACKS_DESCRIPTION"] =
 	"Сколько стопок держать в запасе. Одна стопка здесь равна %d."
+--[[
+    The same dropdown where the staple does not stack (Soul Shards): the
+    choices are bare numbers, so only the tooltip needs words.
+]]
+L["STARTER_POPUP_COUNT_DESCRIPTION"] =
+	"Сколько держать в запасе. Они не складываются в стопки, поэтому каждый занимает ячейку сумки."
 L["STARTER_POPUP_DISMISS"] = "Больше не показывать для этого персонажа."
 L["STARTER_POPUP_DISMISS_DESCRIPTION"] =
 	"Иначе эти предложения будут появляться при каждом входе, когда список пополнения окажется пустым."
