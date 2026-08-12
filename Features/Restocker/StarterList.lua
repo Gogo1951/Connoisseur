@@ -36,14 +36,26 @@ local restockerModule = CrsModule.restockerModule ---@type RsRestockerModule
     reagents in stacks of 20, so the stack sizes below are constants of the
     data, not guesses.
 
-    A tick defaults to one stack; the dropdown beside it runs to a
-    per-category cap -- 18 for ammo, where a hunter genuinely fills an
-    18-slot quiver, and a tighter 4 everywhere else, where more stacks than
-    that is just a heavier corpse run.
+    A tick defaults to one stack -- or to defaultStacks, where one is the
+    wrong opening offer -- and the dropdown beside it runs to a per-category
+    cap: 18 for ammo, where a hunter genuinely fills an 18-slot quiver, and a
+    tighter 4 everywhere else, where more stacks than that is just a heavier
+    corpse run.
+
+    A STACK SIZE OF 1 turns the same dropdown into a plain count, which is
+    what an item that never stacks needs: Soul Shards take a bag slot each, so
+    the choice is how many slots to give them, and the dropdown says "20"
+    rather than "20 Stacks".
+
+    A category with an explicit choices list offers those counts INSTEAD of
+    every number up to a cap. Soul Shards step in fours from 12 to 40 -- a
+    soul bag's worth at each of the sizes a warlock actually carries -- which
+    is the same question a forty-entry dropdown would ask, without the
+    scrolling. maxStacks is the cap for the every-number kind and is what
+    choices replaces, so a category sets one or the other, never both.
 
     A category with fixedAmount instead of a stack size gets no dropdown at
-    all: totems are tools you own one of, and Soul Shards never stack, so
-    "2 Stacks" would be nonsense on both.
+    all: totems are tools you own one of.
 ]]
 local FOOD_STACK_SIZE = 20
 local FOOD_MAX_STACKS = 4
@@ -53,6 +65,9 @@ local POISON_STACK_SIZE = 20
 local POISON_MAX_STACKS = 4
 local REAGENT_STACK_SIZE = 20
 local REAGENT_MAX_STACKS = 4
+local SINGLE_STACK_SIZE = 1
+local SOUL_SHARD_CHOICES = { 12, 16, 20, 24, 28, 32, 36, 40 }
+local SOUL_SHARD_DEFAULT = 20
 
 -- Ladders keyed for the category list below: food by diet number, poisons
 -- by group number, reagents by their reagent string, the single-ladder kinds
@@ -171,12 +186,12 @@ for _, spec in ipairs({
 	{ key = "watertotem", section = "reagents", label = L["STARTER_POPUP_REAGENT_WATER_TOTEM"], chainKey = "reagent:water-totem", fixedAmount = 1, classes = { SHAMAN = true } },
 	{ key = "airtotem", section = "reagents", label = L["STARTER_POPUP_REAGENT_AIR_TOTEM"], chainKey = "reagent:air-totem", fixedAmount = 1, classes = { SHAMAN = true } },
 
-	-- Soul Shards never stack, so the amount is a count of bag slots -- a
-	-- full small soul bag's worth -- and there is no stacks dropdown to
-	-- mislabel it.
+	-- Soul Shards never stack, so their dropdown counts bag slots rather than
+	-- stacks (stackSize 1), offering the soul-bag sizes above and opening on
+	-- a middling one.
 	{ key = "figurine", section = "reagents", label = L["STARTER_POPUP_REAGENT_FIGURINE"], chainKey = "reagent:demonic-figurine", stackSize = REAGENT_STACK_SIZE, maxStacks = REAGENT_MAX_STACKS, classes = { WARLOCK = true } },
 	{ key = "infernalstone", section = "reagents", label = L["STARTER_POPUP_REAGENT_INFERNAL_STONE"], chainKey = "reagent:infernal-stone", stackSize = REAGENT_STACK_SIZE, maxStacks = REAGENT_MAX_STACKS, classes = { WARLOCK = true } },
-	{ key = "soulshards", section = "reagents", label = L["STARTER_POPUP_REAGENT_SOUL_SHARDS"], chainKey = "reagent:soul-shard", fixedAmount = 20, classes = { WARLOCK = true } },
+	{ key = "soulshards", section = "reagents", label = L["STARTER_POPUP_REAGENT_SOUL_SHARDS"], chainKey = "reagent:soul-shard", stackSize = SINGLE_STACK_SIZE, choices = SOUL_SHARD_CHOICES, defaultStacks = SOUL_SHARD_DEFAULT, classes = { WARLOCK = true } },
 }) do
 	local chain = chainsByKey[spec.chainKey]
 	if chain then
@@ -386,8 +401,33 @@ end
     the list the choice is view state in selectedStacks -- one sitting only,
     never saved -- so a stack count can be picked BEFORE ticking the box, and
     survives an untick-retick without a row ever existing to carry it.
+
+    An untouched dropdown opens on defaultStacks where the category sets one,
+    and on one stack otherwise -- the opening offer, not a saved choice, so it
+    reads the same on a fresh character as on a fifth one.
 ]]
 local selectedStacks = {} -- [category.key] = stacks, while the staple is not on the list
+
+---What a raw count reads as in the dropdown. The every-number categories
+---simply clamp; one that offers a handful (Soul Shards) snaps up to the
+---smallest offer that still covers the count, so an amount the dropdown could
+---not have produced -- hand-edited in the Restocker window, or left behind by
+---a shorter choices list -- lands on a real entry instead of blanking it.
+---@param category table One of STARTER_CATEGORIES
+---@param count number
+---@return number stacks
+local function rsSnapStacks(category, count)
+	local choices = category.choices
+	if not choices then
+		return math.max(1, math.min(category.maxStacks, count))
+	end
+	for _, offered in ipairs(choices) do
+		if count <= offered then
+			return offered
+		end
+	end
+	return choices[#choices]
+end
 
 ---@param category table One of STARTER_CATEGORIES
 ---@return number stacks
@@ -400,9 +440,9 @@ function RS.GetStarterCategoryStacks(category)
 	if listedID then
 		local amount = profile[listedID].amount or category.stackSize
 		local stacks = math.floor(amount / category.stackSize + 0.5)
-		return math.max(1, math.min(category.maxStacks, stacks))
+		return rsSnapStacks(category, stacks)
 	end
-	return selectedStacks[category.key] or 1
+	return selectedStacks[category.key] or category.defaultStacks or 1
 end
 
 ---@param category table One of STARTER_CATEGORIES
@@ -411,7 +451,7 @@ function RS.SetStarterCategoryStacks(category, stacks)
 	if category.fixedAmount then
 		return
 	end
-	stacks = math.max(1, math.min(category.maxStacks, math.floor(stacks)))
+	stacks = rsSnapStacks(category, math.floor(stacks))
 	selectedStacks[category.key] = stacks
 
 	local profile = rsCurrentProfile()
@@ -419,7 +459,19 @@ function RS.SetStarterCategoryStacks(category, stacks)
 	if listedID then
 		profile[listedID].amount = stacks * category.stackSize
 		RS:Update()
+		return
 	end
+
+	--[[
+	    Off the list, picking a count IS asking for the staple. The dropdown
+	    beside an unticked box otherwise does nothing you can see -- it only
+	    pre-loads what a later tick would add -- so setting one to 28 and
+	    watching the Restock List stay empty reads as the add being broken.
+	    The tick goes through the same add path the checkbox uses, and
+	    AceConfigDialog's post-set NotifyChange is what makes the box opposite
+	    show itself ticked.
+	]]
+	RS.AddStarterCategory(category)
 end
 
 ---The checkbox tooltip: the exact item a tick adds right now, with the

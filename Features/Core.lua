@@ -20,6 +20,14 @@ local isTickScheduled = false
 local updateTimer = 0
 local UPDATE_THROTTLE = 0.5
 
+--[[
+    Budget for the cold-item retry below, sized to cover a slow login. Matches
+    the cap ns.WarmItemCache spends on the same problem in
+    Options/Options-Utilities.lua.
+]]
+local DATA_RETRY_MAX_ATTEMPTS = 10
+local dataRetryAttempts = 0
+
 --------------------------------------------------------------------------------
 -- Diagnostics State
 --------------------------------------------------------------------------------
@@ -536,14 +544,33 @@ end
 -- Update Throttling
 --------------------------------------------------------------------------------
 
+--[[
+    An id the server never answers for would spin the rescan forever: every
+    scan that ends with an unresolved bag item calls this, and the timer walks
+    straight back into another scan, so the pair is self-sustaining with no
+    outside signal to stop it. The timer therefore gets a budget of
+    DATA_RETRY_MAX_ATTEMPTS and then stops arming.
+
+    GET_ITEM_INFO_RECEIVED stays registered past the budget: the event is the
+    real signal, it costs nothing while idle, and an answer arriving late still
+    rebuilds. UnregisterDataRetry refunds the budget, so the next cold item
+    starts from a full one rather than inheriting an exhausted one.
+]]
 function ns.RegisterDataRetry()
 	frame:RegisterEvent("GET_ITEM_INFO_RECEIVED")
+
+	if dataRetryAttempts >= DATA_RETRY_MAX_ATTEMPTS then
+		return
+	end
+	dataRetryAttempts = dataRetryAttempts + 1
+
 	C_Timer.After(2, function()
 		ns.RequestUpdate()
 	end)
 end
 
 function ns.UnregisterDataRetry()
+	dataRetryAttempts = 0
 	frame:UnregisterEvent("GET_ITEM_INFO_RECEIVED")
 end
 

@@ -454,6 +454,26 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	--[[
+        The two routes ns:OpenOptionsPanel picks between (Options/Options.lua):
+        the first docks the panel inside the Blizzard Settings interface, the
+        second is the legacy opener. Which one a client provides is what makes
+        a misrouted panel client-specific -- it opens as a standalone floating
+        window on one flavor while still docking on the other -- so a report
+        that names neither cannot say which route the player took.
+    ]]
+	{
+		"Settings.OpenToCategory",
+		function()
+			return type(Settings) == "table" and type(Settings.OpenToCategory) == "function"
+		end,
+	},
+	{
+		"InterfaceOptionsFrame_OpenToCategory (legacy)",
+		function()
+			return type(InterfaceOptionsFrame_OpenToCategory) == "function"
+		end,
+	},
+	--[[
         Frame methods, read off UIParent because every frame shares one
         metatable. The Restocker window's resize grip prefers SetResizeBounds
         and falls back to the SetMinResize/SetMaxResize pair it replaced; if
@@ -478,13 +498,21 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	--[[
-        Both load-bearing for the Restocker's entering-town reminder: IsResting
-        is the signal it keys off, PlaySoundFile plays the optional alert.
+        All three load-bearing for the Restocker's entering-town reminder:
+        IsResting is the signal it keys off, UnitOnTaxi is what keeps a flight
+        path over a town from counting as arriving in one, and PlaySoundFile
+        plays the optional alert.
     ]]
 	{
 		"IsResting",
 		function()
 			return type(IsResting) == "function"
+		end,
+	},
+	{
+		"UnitOnTaxi",
+		function()
+			return type(UnitOnTaxi) == "function"
 		end,
 	},
 	{

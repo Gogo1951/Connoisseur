@@ -39,10 +39,18 @@ L["RANK"] = "Rang"
 -- Pet Diets
 --------------------------------------------------------------------------------
 
--- Diet names as returned by GetPetFoodTypes(), which is localized. These
--- values MUST match the client's strings exactly (verify in-game with
--- /dump GetPetFoodTypes() while a pet is out). Used to build
--- ns.PetDietMap in Data/Pet-Foods.lua.
+--[[
+    Diet names as returned by GetPetFoodTypes(), which is localized. These
+    values MUST match the client's strings exactly (verify in-game with
+    /dump GetPetFoodTypes() while a pet is out). Used to build
+    ns.PetDietMap in Data/Pet-Foods.lua.
+
+    They are ALSO the food checkbox labels in the Starter List pop-up, so they
+    read as ordinary labels while carrying that hard constraint. Translate them
+    as the client's own diet words, never as the nicer label they look like --
+    a locale that "improves" one here stops matching that client's strings and
+    silently breaks pet-food selection for everyone playing in it.
+]]
 
 L["DIET_BREAD"] = "Brot"
 L["DIET_CHEESE"] = "Käse"
@@ -388,7 +396,7 @@ L["OPTIONS_RESTOCKER_OPEN_MERCHANT"] = "Beim Händler öffnen"
 L["OPTIONS_RESTOCKER_OPEN_MERCHANT_DESCRIPTION"] = "Öffnet das Restocker-Fenster beim Besuch eines Händlers."
 L["OPTIONS_RESTOCKER_REMIND"] = "Nachschub-Erinnerungen in der Stadt aktivieren"
 L["OPTIONS_RESTOCKER_REMIND_DESCRIPTION"] =
-	"Gibt eine Chat-Erinnerung aus, wenn du ein Gasthaus oder eine Stadt erreichst und deiner Nachschubliste etwas fehlt."
+	"Gibt eine Chat-Erinnerung aus, wenn deiner Nachschubliste etwas fehlt und du ein Gasthaus oder eine Stadt erreichst oder dich beim Anmelden bereits in einem befindest."
 L["OPTIONS_RESTOCKER_MERCHANT_REMIND"] = "Nachschub-Erinnerungen beim Händler aktivieren"
 L["OPTIONS_RESTOCKER_MERCHANT_REMIND_DESCRIPTION"] =
 	"Meldet offene Nachschubposten, wenn du ein Händlerfenster schließt. Bleibt still, wenn keine offen sind."
@@ -525,9 +533,12 @@ L["RESTOCKER_STILL_SHORT_MANY"] = "%d Nachschubposten offen."
 --[[
     Level-up upgrades. The headline makes the Restock List the subject, so
     there is no item count to agree with and one string covers any number of
-    swaps; the line under it is { old link, new link } and has no words at all.
-    It separates the two with the house " // " rather than an arrow glyph, which
-    renders as a box in some client fonts and locales.
+    swaps; the line under it is { old link, old amount, new link, new amount },
+    outgoing tier on the left and incoming on the right.
+
+    Both amounts are carried because they are not always equal: a swap onto a
+    tier the list already holds merges the two rows, so the new amount is the
+    sum rather than the old amount moved across.
 ]]
 L["RESTOCKER_UPGRADED"] = "Deine Nachschubliste wurde aufgewertet."
 L["RESTOCKER_UPGRADED_ITEM"] = "%sx%d wird zu %sx%d."
@@ -653,19 +664,26 @@ L["STARTER_POPUP_REAGENT_AIR_TOTEM"] = "Lufttotem"
 L["STARTER_POPUP_REAGENT_FIGURINE"] = "Dämonenfigur"
 L["STARTER_POPUP_REAGENT_INFERNAL_STONE"] = "Infernalstein"
 L["STARTER_POPUP_REAGENT_SOUL_SHARDS"] = "Seelensplitter"
--- Checkbox tooltip: { item link, amount }.
+-- Checkbox tooltips: { item link, amount }. The first is for ladder items;
+-- the second for single-tier reagents, which never upgrade.
 L["STARTER_POPUP_ITEM_DESCRIPTION"] =
 	"Fügt %s zu deiner Nachschubliste hinzu, hält %d davon in deinen Taschen und wertet sie mit deiner Stufe auf."
 L["STARTER_POPUP_ITEM_DESCRIPTION_STATIC"] =
 	"Fügt %s zu deiner Nachschubliste hinzu und hält %d in deinen Taschen bereit."
 --[[
     The stacks dropdown beside each staple. The label is unit-agnostic (a
-    stack is 20 food or water, 200 ammo); the tooltip below carries the
-    per-item stack size as %d.
+    stack is 20 for food, water and poisons, 200 for ammo); the tooltip
+    below carries the per-item stack size as %d.
 ]]
 L["STARTER_POPUP_STACK_ONE"] = "1 Stapel"
 L["STARTER_POPUP_STACK_MANY"] = "%d Stapel"
 L["STARTER_POPUP_STACKS_DESCRIPTION"] = "Wie viele Stapel vorrätig bleiben sollen. Ein Stapel sind hier %d."
+--[[
+    The same dropdown where the staple does not stack (Soul Shards): the
+    choices are bare numbers, so only the tooltip needs words.
+]]
+L["STARTER_POPUP_COUNT_DESCRIPTION"] =
+	"Wie viele vorrätig bleiben sollen. Diese stapeln sich nicht, daher belegt jedes einen Taschenplatz."
 L["STARTER_POPUP_DISMISS"] = "Für diesen Charakter nicht mehr anzeigen."
 L["STARTER_POPUP_DISMISS_DESCRIPTION"] =
 	"Andernfalls erscheinen diese Vorschläge bei jeder Anmeldung erneut, bei der deine Nachschubliste leer ist."

@@ -5,8 +5,8 @@ local _, ns = ...
     ns.db.profile.itemCache (the stateful item-metadata layer) and answers
     whether an item is a known consumable.
 
-    Exposes: ns.RawData, ns.ClearItemCache, ns.IsKnownConsumable,
-    ns.CacheItemData, ns.PruneIgnoreList.
+    Exposes: ns.RawData, ns.IsKnownConsumable, ns.CacheItemData,
+    ns.PruneIgnoreList.
 ]]
 
 --------------------------------------------------------------------------------
@@ -29,12 +29,6 @@ ns.RawData.Explosives = ns.RawData.Explosives or {}
 --------------------------------------------------------------------------------
 -- Item Cache
 --------------------------------------------------------------------------------
-
-function ns.ClearItemCache()
-	if ns.db and ns.db.profile.itemCache then
-		wipe(ns.db.profile.itemCache)
-	end
-end
 
 function ns.IsKnownConsumable(itemID)
 	local cache = ns.db and ns.db.profile.itemCache

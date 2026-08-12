@@ -9,9 +9,9 @@ local _, ns = ...
     ns.UpdateEngineeringSkill, ns.CurrentFirstAidSkill,
     ns.CurrentAlchemySkill, ns.CurrentEngineeringSkill,
     ns.GetPlayerBuffSnapshot, ns.HasWellFedBuff, ns.HasScrollBuff,
-    ns.GetPetFoodBuffExpiration, ns.HasPetFoodBuff, ns.FindScrollOverrides,
-    ns.HandleUnitAura, ns.ResetScrollBuffTracking, ns.ScrollItemLookup,
-    ns.ScrollOverrideIDs.
+    ns.ShouldTrackPetFood, ns.GetPetFoodBuffExpiration, ns.HasPetFoodBuff,
+    ns.FindScrollOverrides, ns.HandleUnitAura, ns.ResetScrollBuffTracking,
+    ns.ScrollItemLookup, ns.ScrollOverrideIDs.
 ]]
 
 --------------------------------------------------------------------------------
