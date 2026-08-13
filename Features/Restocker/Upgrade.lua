@@ -124,14 +124,23 @@ local pendingUpgrade = false
 
 ---Bring every eligible entry on the current Restock List up to date.
 ---Safe to call repeatedly: it is a no-op once nothing is behind.
-function RS.UpgradeRestockList()
+---
+---PLAYER_LEVEL_UP passes its new level straight through, because
+---UnitLevel("player") still reads the OLD level while that event is being
+---handled -- the unit field updates a moment later. Reading it there cost a
+---whole level: the ding to 45 planned against 44, found no strictly later
+---tier, and left the list on its level-35 water permanently, since nothing
+---re-checked afterwards. Callers that run clear of the ding -- the deferred
+---retry, the login catch-up -- pass nothing and read the level themselves.
+---@param newLevel number|nil the level from PLAYER_LEVEL_UP, when that is the caller
+function RS.UpgradeRestockList(newLevel)
 	local settings = restockerModule.settings
 	local profile = settings and settings.profiles and settings.profiles[settings.currentProfile]
 	if not profile then
 		return
 	end
 
-	local level = UnitLevel("player") or 1
+	local level = newLevel or UnitLevel("player") or 1
 	pendingUpgrade = false
 
 	--[[

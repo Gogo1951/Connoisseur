@@ -417,25 +417,39 @@ local function InitVars()
 		ns.db.profile.itemCache = ns.db.profile.itemCache or {}
 	end
 
-	ns.CachedPlayerLevel = UnitLevel("player") or 1
-	ns.CachedMapID = C_Map.GetBestMapForUnit("player")
-
 	--[[
-        Session-constant work runs once. Everything above this gate refreshes
-        every call — SavedVariables existence and the cached level/zone, which
-        change between logins and as the player levels and zones.
+        Session-constant work runs once; the SavedVariables work above it is
+        idempotent, so the whole function is safe to call twice on the login
+        path even though nothing does.
     ]]
 	if not varsInitialized then
 		varsInitialized = true
 		InitSessionConstants()
 	end
+end
+
+--[[
+    Per-arrival state: refreshed at login AND on every later loading screen,
+    because the cached level and zone move as the player levels and travels.
+
+    Split out of InitVars, which is confined to PLAYER_LOGIN — SavedVariables
+    initialization must not hang off PLAYER_ENTERING_WORLD, which refires on
+    every loading screen. Nothing here touches the database.
+
+    Order matters on the login path: this runs AFTER InitVars, because
+    InitSessionConstants is what resolves ns.IsHunter for the registration
+    below.
+]]
+local function RefreshArrivalState()
+	ns.CachedPlayerLevel = UnitLevel("player") or 1
+	ns.CachedMapID = C_Map.GetBestMapForUnit("player")
 
 	--[[
         QUEST_LOG_UPDATE fires very frequently, and the only consumer of quest
         data is Hunter pet-food quest-objective skipping (ScanPetFood via
         BuildActiveQuestSet). Register it only for hunters so everyone else
         doesn't pay for a full bag rescan + macro rebuild on every quest-log
-        churn. Kept per-call (idempotent) so registration follows ns.IsHunter.
+        churn. Idempotent, so registration follows ns.IsHunter on every arrival.
     ]]
 	if ns.IsHunter then
 		frame:RegisterEvent("QUEST_LOG_UPDATE")
@@ -635,18 +649,20 @@ frame:SetScript("OnEvent", function(self, event, ...)
 	end
 
 	--[[
-        Initialization must run regardless of combat state, so it is handled
-        ahead of the lockdown guard below. PLAYER_LOGIN is the earliest safe
-        point (SavedVariables are loaded) and fires before the first
-        PLAYER_ENTERING_WORLD. InitVars touches no protected functions and is
-        idempotent, so running it here guarantees the DB exists even when the
+        PLAYER_LOGIN is the ONLY place the database initializes: it is the
+        earliest safe point (SavedVariables are loaded) and it fires before the
+        first PLAYER_ENTERING_WORLD, which refires on every loading screen and
+        so can never own SavedVariables setup.
+
+        Handled ahead of the lockdown guard below, and neither call touches a
+        protected function. That is what guarantees ns.db exists even when the
         player enters the world already in combat (e.g. zoning into an
         in-progress battleground) — a case the guard would otherwise swallow,
-        leaving ns.db nil until the next out-of-combat
-        PLAYER_ENTERING_WORLD.
+        leaving the add-on uninitialized until combat dropped.
     ]]
 	if event == "PLAYER_LOGIN" then
 		InitVars()
+		RefreshArrivalState()
 		return
 	end
 
@@ -676,13 +692,19 @@ frame:SetScript("OnEvent", function(self, event, ...)
         Leveling changes which items, scrolls, and spells qualify, so a
         level-up forces a full rebuild of every macro. Refresh the cached level
         and hunter spell names here, above the combat lockdown guard, because a
-        ding from a killing blow fires PLAYER_LEVEL_UP in combat, and UnitLevel
-        / GetSpellInfo are safe combat reads. Wiping the macro state forces
-        every macro to rewrite; the write itself still defers to the
-        post-combat tick via the throttled update.
+        ding from a killing blow fires PLAYER_LEVEL_UP in combat, and the
+        event's own level / GetSpellInfo are safe combat reads. Wiping the
+        macro state forces every macro to rewrite; the write itself still
+        defers to the post-combat tick via the throttled update.
+
+        The level comes off the event rather than from UnitLevel("player"),
+        which still reads the OLD level while this event is being handled --
+        caching that would rebuild every macro one level behind and leave it
+        there until some later event happened to rebuild them again.
     ]]
 	if event == "PLAYER_LEVEL_UP" then
-		ns.CachedPlayerLevel = UnitLevel("player") or ns.CachedPlayerLevel or 1
+		local newLevel = ...
+		ns.CachedPlayerLevel = newLevel or UnitLevel("player") or ns.CachedPlayerLevel or 1
 		if ns.IsHunter then
 			ns.ResolveHunterSpells()
 		end
@@ -758,7 +780,7 @@ frame:SetScript("OnEvent", function(self, event, ...)
 		end
 		ns.RequestUpdate()
 	elseif event == "PLAYER_ENTERING_WORLD" then
-		InitVars()
+		RefreshArrivalState()
 		ns.PrintWelcome()
 		ns.UpdateAuraTracking()
 		if ns.ApplyMacroNameVisibility then

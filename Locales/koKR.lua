@@ -117,7 +117,7 @@ L["TIP_DONT_KNOW_SPELL"] = "현재 %s 기술을 배우지 않았습니다."
 -- Minimap Tooltip
 --------------------------------------------------------------------------------
 
--- Feature toggles shown in the minimap tooltip, each with a description line.
+-- Feature toggles shown in the mini-map tooltip, each with a description line.
 L["FEATURE_BUFF_FOOD"] = "버프 음식"
 L["MENU_BUFF_FOOD_DESCRIPTION"] =
 	'"포만감" 버프가 없을 때 해당 버프를 주는 음식을 우선 사용합니다.'
@@ -125,7 +125,7 @@ L["FEATURE_SCROLL_BUFFS"] = "두루마리 버프"
 L["MENU_SCROLL_BUFFS_DESCRIPTION"] =
 	"두루마리 버프가 없을 때 음식 매크로를 두루마리 적용기로 전환합니다."
 
--- Section titles and ignore-list actions in the minimap tooltip.
+-- Section titles and ignore-list actions in the mini-map tooltip.
 L["UI_BEST_FOOD"] = "현재 음식"
 L["UI_BEST_PET_FOOD"] = "현재 소환수 먹이"
 -- Weapon-slot titles over the rogue's resolved poison, inside the Poisons block.
@@ -136,7 +136,7 @@ L["MENU_IGNORE"] = "차단"
 L["MENU_CLEAR_IGNORE"] = "차단 목록 초기화"
 
 --[[
-    Restocker Report block in the minimap tooltip: how many restocking orders
+    Restocker Report block in the mini-map tooltip: how many restocking orders
     are still outstanding, never the items themselves. An order is one row of
     the Restock List, so the count is of rows below target and not of missing
     units -- nine outstanding orders can be nine single juices or nine full
@@ -151,7 +151,7 @@ L["UI_RESTOCKER_NEEDED_ONE"] = "미완료 주문 1건"
 L["UI_RESTOCKER_NEEDED"] = "미완료 주문 %d건"
 L["UI_RESTOCKER_STOCKED"] = "축하합니다, 보급품이 모두 채워졌습니다!"
 
--- Options entry at the bottom of the minimap tooltip.
+-- Options entry at the bottom of the mini-map tooltip.
 L["MENU_OPTIONS"] = "Connoisseur 설정"
 L["MENU_OPTIONS_KEYBIND"] = "Shift + 휠클릭"
 
@@ -159,8 +159,10 @@ L["MENU_OPTIONS_KEYBIND"] = "Shift + 휠클릭"
 -- Class Announcements
 --------------------------------------------------------------------------------
 
--- Class-colored headers and conjure/pet tips shown in the minimap tooltip for
--- the player's class.
+--[[
+    Class-colored headers and conjure/pet tips shown in the mini-map tooltip for
+    the player's class.
+]]
 
 L["PREFIX_HUNTER"] = "사냥꾼 주의"
 L["PREFIX_MAGE"] = "마법사 주의"
@@ -216,8 +218,10 @@ L["TIP_ROGUE_WINDOW"] = "휠클릭하면 독 제조 창을 엽니다."
 -- Item Labels
 --------------------------------------------------------------------------------
 
--- Labels that get plugged into MSG_NO_ITEM ("No suitable %s found...").
--- One per macro type (resolved via ns.Config in ConnNoItem), plus Pet Food.
+--[[
+    Labels that get plugged into MSG_NO_ITEM ("No suitable %s found...").
+    One per macro type (resolved via ns.Config in ConnNoItem), plus Pet Food.
+]]
 
 L["LABEL_BANDAGE"] = "붕대"
 L["LABEL_EXPLOSIVE"] = "폭발물"
@@ -235,7 +239,7 @@ L["LABEL_WATER"] = "물"
 -- UI Labels
 --------------------------------------------------------------------------------
 
--- Generic labels reused across the minimap tooltip and options panel.
+-- Generic labels reused across the mini-map tooltip and options panel.
 
 L["UI_ENABLED"] = "활성화됨"
 L["UI_DISABLED"] = "비활성화됨"
@@ -258,7 +262,7 @@ L["MODE_RAID"] = "공격대 중일 때만"
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
-	"최고의 음식, 버프 음식, 물, 물약, 생명석, 두루마리, 영혼석, 붕대, 독, 폭발물에 대해 자동으로 업데이트되는 매크로입니다. 원클릭 창조, 스마트한 야수 먹이 주기, 상인과 은행에서의 자동 보충 기능. 최적의 영양 상태, 최고의 성능."
+	"최고의 음식, 버프 음식, 물, 물약, 생명석, 붕대, 두루마리를 자동으로 사용하는 매크로에, 가방을 가득 채워 두고 레벨에 맞춰 소모품을 승급해 주는 보충 목록까지. 편의성 자동화, 최고의 성능."
 
 -- Welcome Message
 L["OPTIONS_WELCOME_MESSAGE"] = "환영 메시지 활성화"
@@ -299,17 +303,28 @@ L["OPTIONS_READY_CHECK"] = "준비 확인 시 상태 보고"
 L["OPTIONS_READY_CHECK_DESCRIPTION"] =
 	"준비 확인이 시작될 때마다 부족한 것과 추적 중인 버프의 남은 시간을 출력합니다. 자신에게만 보입니다."
 
--- Buff Food. The section header reuses FEATURE_BUFF_FOOD.
+--[[
+    Three features are suppressed in a PvP Arena, and each says so with the
+    same sentence. It lives here once and is appended at the call site
+    (Options/Options-Macros.lua), so every locale translates it a single time
+    and the caveat can never drift between the three.
+]]
+L["OPTIONS_DISABLED_IN_ARENAS"] = "투기장에서는 비활성화됩니다."
+
+--[[
+    Buff Food. The section header reuses FEATURE_BUFF_FOOD, and the options
+    description reuses MENU_BUFF_FOOD_DESCRIPTION plus the arena note above --
+    the mini-map tooltip and the options panel say the same thing, so they read
+    from one key rather than two copies of one sentence.
+]]
 L["OPTIONS_BUFF_FOOD"] = "버프 음식 우선"
-L["OPTIONS_BUFF_FOOD_DESCRIPTION"] =
-	'"포만감" 버프가 없을 때 해당 버프를 주는 음식을 우선 사용합니다. 투기장에서는 비활성화됩니다.'
 L["OPTIONS_BUFF_FOOD_DETAIL"] =
 	"프로 팁: 자신을 대상으로 지정하면 음식 매크로가 항상 버프 음식과 두루마리를 건너뜁니다."
 
 -- Scroll Buffs. The section header reuses FEATURE_SCROLL_BUFFS.
 L["OPTIONS_USE_SCROLLS"] = "두루마리 버프 포함"
 L["OPTIONS_USE_SCROLLS_DESCRIPTION"] =
-	"한 번 누르면 부족한 두루마리를 적용하고, 다시 누르면 음식을 먹습니다. 두루마리는 전역 재사용 대기시간(GCD)의 영향을 받지 않고 자신을 대상으로 하며, 우호적인 플레이어를 대상으로 지정하면 건너뜁니다. 투기장에서는 비활성화됩니다."
+	"한 번 누르면 부족한 두루마리를 적용하고, 다시 누르면 음식을 먹습니다. 두루마리는 전역 재사용 대기시간(GCD)의 영향을 받지 않고 자신을 대상으로 하며, 우호적인 플레이어를 대상으로 지정하면 건너뜁니다."
 L["OPTIONS_SCROLL_TYPES"] = "확인할 두루마리 유형 포함"
 L["OPTIONS_SCROLL_AGILITY"] = "민첩성"
 L["OPTIONS_SCROLL_INTELLECT"] = "지능"
@@ -348,7 +363,7 @@ L["LOADING_ITEM"] = "ID 불러오는 중: %d"
 L["OPTIONS_PET_HEADER"] = "소환수 음식 버프"
 L["OPTIONS_USE_PET_BUFFS"] = "소환수 음식 버프 사용"
 L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] =
-	'소환수에게 "포만감" 버프가 없을 때 음식 매크로에 소환수 음식을 추가합니다. 투기장에서는 비활성화됩니다.'
+	'소환수에게 "포만감" 버프가 없을 때 음식 매크로에 소환수 음식을 추가합니다.'
 L["OPTIONS_PET_BUFF_TYPES"] = "확인할 소환수 음식 유형 포함"
 L["OPTIONS_PET_BUFF_KIBLERS"] = "키블러의 간식"
 L["OPTIONS_PET_BUFF_SPORELING"] = "스포어가르 간식"
@@ -386,9 +401,11 @@ L["OPTIONS_STEALTH_EATING"] = "먹을 때 은신 사용"
 L["OPTIONS_STEALTH_EATING_ROGUE_DESCRIPTION"] =
 	"음식 매크로에 은신을 추가하여 음식을 먹는 동안 은신합니다."
 
--- Restocker options panel. The tree label stays "Restocker" in every locale
--- (brand fragment, localization allowlist); the panel header reuses
--- RESTOCKER_WINDOW_TITLE.
+--[[
+    Restocker options panel. The tree label stays "Restocker" in every locale
+    (brand fragment, localization allowlist); the panel header reuses
+    RESTOCKER_WINDOW_TITLE.
+]]
 L["OPTIONS_RESTOCKER_TAB"] = "Restocker"
 L["OPTIONS_RESTOCKER_DESCRIPTION"] =
 	"캐릭터별 보충 목록에 따라 가방을 채워 줍니다. 상인에게서 자동으로 구매하고 가방과 은행 사이에서 아이템을 옮깁니다. %s 명령어로 목록을 엽니다."
@@ -666,8 +683,10 @@ L["STARTER_POPUP_REAGENT_AIR_TOTEM"] = "공기 토템"
 L["STARTER_POPUP_REAGENT_FIGURINE"] = "악마 조각상"
 L["STARTER_POPUP_REAGENT_INFERNAL_STONE"] = "지옥소환석"
 L["STARTER_POPUP_REAGENT_SOUL_SHARDS"] = "영혼의 파편"
--- Checkbox tooltips: { item link, amount }. The first is for ladder items;
--- the second for single-tier reagents, which never upgrade.
+--[[
+    Checkbox tooltips: { item link, amount }. The first is for ladder items;
+    the second for single-tier reagents, which never upgrade.
+]]
 L["STARTER_POPUP_ITEM_DESCRIPTION"] =
 	"%s을(를) 보충 목록에 추가하고, 가방에 %d개를 유지하며 레벨에 맞춰 상위 등급으로 바꿔 줍니다."
 L["STARTER_POPUP_ITEM_DESCRIPTION_STATIC"] =

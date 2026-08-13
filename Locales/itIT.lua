@@ -118,14 +118,14 @@ L["TIP_DONT_KNOW_SPELL"] = "Al momento non conosci %s."
 -- Minimap Tooltip
 --------------------------------------------------------------------------------
 
--- Feature toggles shown in the minimap tooltip, each with a description line.
+-- Feature toggles shown in the mini-map tooltip, each with a description line.
 L["FEATURE_BUFF_FOOD"] = "Cibo con Buff"
 L["MENU_BUFF_FOOD_DESCRIPTION"] = 'Dà priorità al cibo che fornisce il buff "Ben Nutrito", quando il buff è assente.'
 L["FEATURE_SCROLL_BUFFS"] = "Buff Pergamena"
 L["MENU_SCROLL_BUFFS_DESCRIPTION"] =
 	"Trasforma la tua macro Cibo in un applicatore di pergamene quando ti mancano i buff delle pergamene."
 
--- Section titles and ignore-list actions in the minimap tooltip.
+-- Section titles and ignore-list actions in the mini-map tooltip.
 L["UI_BEST_FOOD"] = "Cibo Attuale"
 L["UI_BEST_PET_FOOD"] = "Cibo Famiglio Attuale"
 -- Weapon-slot titles over the rogue's resolved poison, inside the Poisons block.
@@ -136,7 +136,7 @@ L["MENU_IGNORE"] = "Ignora"
 L["MENU_CLEAR_IGNORE"] = "Svuota Lista Ignorati"
 
 --[[
-    Restocker Report block in the minimap tooltip: how many restocking orders
+    Restocker Report block in the mini-map tooltip: how many restocking orders
     are still outstanding, never the items themselves. An order is one row of
     the Restock List, so the count is of rows below target and not of missing
     units -- nine outstanding orders can be nine single juices or nine full
@@ -151,7 +151,7 @@ L["UI_RESTOCKER_NEEDED_ONE"] = "1 ordine in sospeso"
 L["UI_RESTOCKER_NEEDED"] = "%d ordini in sospeso"
 L["UI_RESTOCKER_STOCKED"] = "Complimenti, hai le scorte al completo!"
 
--- Options entry at the bottom of the minimap tooltip.
+-- Options entry at the bottom of the mini-map tooltip.
 L["MENU_OPTIONS"] = "Opzioni di Connoisseur"
 L["MENU_OPTIONS_KEYBIND"] = "Shift + Clic Centrale"
 
@@ -159,8 +159,10 @@ L["MENU_OPTIONS_KEYBIND"] = "Shift + Clic Centrale"
 -- Class Announcements
 --------------------------------------------------------------------------------
 
--- Class-colored headers and conjure/pet tips shown in the minimap tooltip for
--- the player's class.
+--[[
+    Class-colored headers and conjure/pet tips shown in the mini-map tooltip for
+    the player's class.
+]]
 
 L["PREFIX_HUNTER"] = "Attenzione Cacciatori"
 L["PREFIX_MAGE"] = "Attenzione Maghi"
@@ -215,8 +217,10 @@ L["TIP_ROGUE_WINDOW"] = "Clic centrale apre la finestra dei Veleni."
 -- Item Labels
 --------------------------------------------------------------------------------
 
--- Labels that get plugged into MSG_NO_ITEM ("No suitable %s found...").
--- One per macro type (resolved via ns.Config in ConnNoItem), plus Pet Food.
+--[[
+    Labels that get plugged into MSG_NO_ITEM ("No suitable %s found...").
+    One per macro type (resolved via ns.Config in ConnNoItem), plus Pet Food.
+]]
 
 L["LABEL_BANDAGE"] = "Benda"
 L["LABEL_EXPLOSIVE"] = "Esplosivo"
@@ -234,7 +238,7 @@ L["LABEL_WATER"] = "Acqua"
 -- UI Labels
 --------------------------------------------------------------------------------
 
--- Generic labels reused across the minimap tooltip and options panel.
+-- Generic labels reused across the mini-map tooltip and options panel.
 
 L["UI_ENABLED"] = "Abilitato"
 L["UI_DISABLED"] = "Disabilitato"
@@ -257,7 +261,7 @@ L["MODE_RAID"] = "Solo in incursione"
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
-	"Macro che si aggiornano automaticamente per il tuo miglior cibo, cibo con buff, acqua, pozioni, pietre della salute, pergamene, pietre dell'anima, bende, veleni ed esplosivi. Evocazione con un clic, Nutri Famiglio intelligente, rifornimento automatico dal mercante e in banca. Nutrizione ottimale, massime prestazioni."
+	"Macro che usano automaticamente il tuo miglior cibo, cibo con buff, acqua, pozioni, pietre della salute, bende e pergamene, più una lista di rifornimento che tiene piene le tue borse e migliora i tuoi consumabili man mano che sali di livello. Automazione per il comfort di gioco, massime prestazioni."
 
 -- Welcome Message
 L["OPTIONS_WELCOME_MESSAGE"] = "Abilita messaggio di benvenuto"
@@ -298,17 +302,28 @@ L["OPTIONS_READY_CHECK"] = "Segnala lo stato al controllo preparazione"
 L["OPTIONS_READY_CHECK_DESCRIPTION"] =
 	"Mostra cosa ti manca e quanto tempo resta ai buff monitorati a ogni controllo di preparazione; lo vedi solo tu."
 
--- Buff Food. The section header reuses FEATURE_BUFF_FOOD.
+--[[
+    Three features are suppressed in a PvP Arena, and each says so with the
+    same sentence. It lives here once and is appended at the call site
+    (Options/Options-Macros.lua), so every locale translates it a single time
+    and the caveat can never drift between the three.
+]]
+L["OPTIONS_DISABLED_IN_ARENAS"] = "Disattivato nelle Arene."
+
+--[[
+    Buff Food. The section header reuses FEATURE_BUFF_FOOD, and the options
+    description reuses MENU_BUFF_FOOD_DESCRIPTION plus the arena note above --
+    the mini-map tooltip and the options panel say the same thing, so they read
+    from one key rather than two copies of one sentence.
+]]
 L["OPTIONS_BUFF_FOOD"] = "Priorità Cibo con Buff"
-L["OPTIONS_BUFF_FOOD_DESCRIPTION"] =
-	'Dà priorità al cibo che fornisce il buff "Ben Nutrito", quando il buff è assente. Disattivato nelle Arene.'
 L["OPTIONS_BUFF_FOOD_DETAIL"] =
 	"Suggerimento pro: Avere te stesso come bersaglio fa sì che la macro Cibo ignori sempre il cibo con buff e le pergamene."
 
 -- Scroll Buffs. The section header reuses FEATURE_SCROLL_BUFFS.
 L["OPTIONS_USE_SCROLLS"] = "Includi Buff Pergamena"
 L["OPTIONS_USE_SCROLLS_DESCRIPTION"] =
-	"Tocca una volta per applicare le pergamene mancanti, di nuovo per mangiare. Le pergamene ignorano il GCD e hanno te come bersaglio; selezionare un giocatore amico le salta. Disattivato nelle Arene."
+	"Tocca una volta per applicare le pergamene mancanti, di nuovo per mangiare. Le pergamene ignorano il GCD e hanno te come bersaglio; selezionare un giocatore amico le salta."
 L["OPTIONS_SCROLL_TYPES"] = "Includi Tipi di Pergamena nel Controllo"
 L["OPTIONS_SCROLL_AGILITY"] = "Agilità"
 L["OPTIONS_SCROLL_INTELLECT"] = "Intelletto"
@@ -347,7 +362,7 @@ L["LOADING_ITEM"] = "Caricamento ID: %d"
 L["OPTIONS_PET_HEADER"] = "Buff Cibo Famiglio"
 L["OPTIONS_USE_PET_BUFFS"] = "Usa Buff Cibo Famiglio"
 L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] =
-	'Aggiunge Cibo per Famigli alla tua macro Cibo quando manca il buff "Ben Nutrito" sul tuo famiglio. Disattivato nelle Arene.'
+	'Aggiunge Cibo per Famigli alla tua macro Cibo quando manca il buff "Ben Nutrito" sul tuo famiglio.'
 L["OPTIONS_PET_BUFF_TYPES"] = "Includi Tipi di Cibo Famiglio nel Controllo"
 L["OPTIONS_PET_BUFF_KIBLERS"] = "Bocconcini di Kibler"
 L["OPTIONS_PET_BUFF_SPORELING"] = "Spuntini degli Sporeggiar"
@@ -385,9 +400,11 @@ L["OPTIONS_STEALTH_EATING"] = "Abilita furtività mentre mangi"
 L["OPTIONS_STEALTH_EATING_ROGUE_DESCRIPTION"] =
 	"Aggiunge Furtività alla tua macro Cibo per renderti furtivo mentre mangi."
 
--- Restocker options panel. The tree label stays "Restocker" in every locale
--- (brand fragment, localization allowlist); the panel header reuses
--- RESTOCKER_WINDOW_TITLE.
+--[[
+    Restocker options panel. The tree label stays "Restocker" in every locale
+    (brand fragment, localization allowlist); the panel header reuses
+    RESTOCKER_WINDOW_TITLE.
+]]
 L["OPTIONS_RESTOCKER_TAB"] = "Restocker"
 L["OPTIONS_RESTOCKER_DESCRIPTION"] =
 	"Mantiene le borse rifornite in base a una lista di rifornimento per personaggio. Compra automaticamente dai mercanti e sposta gli oggetti tra le borse e la banca. Digita %s per aprire la lista."
@@ -664,8 +681,10 @@ L["STARTER_POPUP_REAGENT_AIR_TOTEM"] = "Totem d'aria"
 L["STARTER_POPUP_REAGENT_FIGURINE"] = "Statuetta"
 L["STARTER_POPUP_REAGENT_INFERNAL_STONE"] = "Pietra infernale"
 L["STARTER_POPUP_REAGENT_SOUL_SHARDS"] = "Frammenti d'anima"
--- Checkbox tooltips: { item link, amount }. The first is for ladder items;
--- the second for single-tier reagents, which never upgrade.
+--[[
+    Checkbox tooltips: { item link, amount }. The first is for ladder items;
+    the second for single-tier reagents, which never upgrade.
+]]
 L["STARTER_POPUP_ITEM_DESCRIPTION"] =
 	"Aggiunge %s alla tua lista di rifornimento, tenendone %d nelle borse e aggiornandoli man mano che sali di livello."
 L["STARTER_POPUP_ITEM_DESCRIPTION_STATIC"] = "Aggiunge %s alla tua lista di rifornimento, mantenendone %d nelle borse."

@@ -186,6 +186,22 @@ local function MacroToggle(label, key, order, hiddenFn)
 	}
 end
 
+--[[
+    Buff Food, Scroll Buffs and Pet Food Buffs are all suppressed in a PvP
+    Arena, and all three say so with the same sentence. It lives in one locale
+    key (OPTIONS_DISABLED_IN_ARENAS) and is appended here instead of being
+    written into each description, so every locale translates it once and the
+    caveat cannot drift between the three.
+
+    Appending a whole sentence after a full stop, never a fragment -- the base
+    description stays a complete, independently translatable sentence, which is
+    also what lets the mini-map tooltip reuse the Buff Food one without the
+    arena note (it has no room for the caveat).
+]]
+local function WithArenaNote(descriptionKey)
+	return L[descriptionKey] .. " " .. L["OPTIONS_DISABLED_IN_ARENAS"]
+end
+
 -- ns.OptionsSpacer takes no `hidden`, so a class-gated spacer is inlined.
 local function GatedSpacer(order, hiddenFn)
 	return {
@@ -411,12 +427,12 @@ function ns.BuildMacrosOptions()
 		spaceBuff0 = Spacer(100),
 		headerBuff = Header(L["FEATURE_BUFF_FOOD"], 101),
 		spaceBuff1 = Spacer(102),
-		descBuff = Desc(GetColor("BODY") .. L["OPTIONS_BUFF_FOOD_DESCRIPTION"] .. "|r", 103),
+		descBuff = Desc(GetColor("BODY") .. WithArenaNote("MENU_BUFF_FOOD_DESCRIPTION") .. "|r", 103),
 		spaceBuff2 = Spacer(104),
 		toggleBuffFood = {
 			type = "toggle",
 			name = L["OPTIONS_BUFF_FOOD"],
-			desc = L["OPTIONS_BUFF_FOOD_DESCRIPTION"],
+			desc = WithArenaNote("MENU_BUFF_FOOD_DESCRIPTION"),
 			order = 105,
 			width = "double",
 			get = function()
@@ -436,12 +452,12 @@ function ns.BuildMacrosOptions()
 		spaceScroll0 = Spacer(200),
 		headerScroll = Header(L["FEATURE_SCROLL_BUFFS"], 201),
 		spaceScroll1 = Spacer(202),
-		descScroll = Desc(GetColor("BODY") .. L["OPTIONS_USE_SCROLLS_DESCRIPTION"] .. "|r", 203),
+		descScroll = Desc(GetColor("BODY") .. WithArenaNote("OPTIONS_USE_SCROLLS_DESCRIPTION") .. "|r", 203),
 		spaceScroll2 = Spacer(204),
 		toggleScrolls = {
 			type = "toggle",
 			name = L["OPTIONS_USE_SCROLLS"],
-			desc = L["OPTIONS_USE_SCROLLS_DESCRIPTION"],
+			desc = WithArenaNote("OPTIONS_USE_SCROLLS_DESCRIPTION"),
 			order = 205,
 			width = "double",
 			get = function()
@@ -479,12 +495,12 @@ function ns.BuildMacrosOptions()
 		spacePet0 = Spacer(300),
 		headerPet = Header(L["OPTIONS_PET_HEADER"], 301),
 		spacePet1 = Spacer(302),
-		descPet = Desc(GetColor("BODY") .. L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] .. "|r", 303),
+		descPet = Desc(GetColor("BODY") .. WithArenaNote("OPTIONS_USE_PET_BUFFS_DESCRIPTION") .. "|r", 303),
 		spacePet2 = Spacer(304),
 		togglePetBuffs = {
 			type = "toggle",
 			name = L["OPTIONS_USE_PET_BUFFS"],
-			desc = L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"],
+			desc = WithArenaNote("OPTIONS_USE_PET_BUFFS_DESCRIPTION"),
 			order = 305,
 			width = "double",
 			get = function()
