@@ -273,6 +273,23 @@ function eventsModule.OnEnteringWorld(isInitialLogin, isReloadingUi)
   end)
 
   RS.OnStarterListEnteringWorld(isInitialLogin, isReloadingUi)
+
+  --[[
+    Catch-up for a list that is behind the player's level. A ding is not the
+    only way that happens -- levels gained with the add-on disabled, a profile
+    copied off a higher character, a ding that arrived while the list was
+    mid-load -- and before this ran, a single missed level-up stranded the
+    entry for good, since nothing else re-checked.
+
+    Safe here: rsInflate has already turned the saved one-line entries back
+    into tables (it runs at PLAYER_LOGIN, ahead of this event), and the check
+    is silent and free once nothing is behind, so the zone-in case costs a walk
+    of the list. A cold item cache at login needs no special handling: the move
+    defers and rides GET_ITEM_INFO_RECEIVED like any other.
+  ]]
+  if RS.UpgradeRestockList then
+    RS.UpgradeRestockList()
+  end
 end
 
 ---@param itemID number
@@ -312,14 +329,19 @@ function eventsModule.OnItemInfoReceived(itemID, success)
 end
 
 --[[
-  Levelling is the only thing that moves a staple onto its next tier, so the
-  Restock List is checked here and nowhere else. Classic Era's ladders top out
-  at level 45, so a Classic character sees this a handful of times and then
-  never again -- which is exactly what the expansion flag on each tier is for.
+  A ding is the usual thing that moves a staple onto its next tier. The new
+  level is handed on rather than read back off the player: UnitLevel("player")
+  still returns the OLD level during this event (see RS.UpgradeRestockList),
+  which is what used to make the ding itself a no-op.
+
+  Classic Era's ladders top out at level 45, so a Classic character sees this a
+  handful of times and then never again -- which is exactly what the expansion
+  flag on each tier is for.
 ]]
-function eventsModule.OnLevelUp()
+---@param newLevel number
+function eventsModule.OnLevelUp(newLevel)
   if RS.UpgradeRestockList then
-    RS.UpgradeRestockList()
+    RS.UpgradeRestockList(newLevel)
   end
 end
 

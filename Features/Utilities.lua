@@ -59,17 +59,28 @@ ns.IsTBC = (WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC)
 
 --[[
     Cross-client API shims, resolved once at load so call sites stay
-    branch-free and never hit "attempt to index nil" on a missing global.
-    Item readers live on C_Item on retail and as globals on Classic/TBC;
-    container readers are the reverse — C_Container is the only surface on the
-    target clients (see the TOC ## Interface line), with the old globals kept
-    only as a pre-C_Container fallback. Each shim picks the API by existence, never by
-    a truthy result.
+    branch-free and never hit "attempt to index nil" on a missing global. Each
+    shim picks the API by existence, never by a truthy result.
+
+    Item readers live on C_Item on retail and as globals on Classic/TBC, and
+    the two surfaces return the same shape, so those fall back freely.
+
+    C_Container is the ONLY container surface on the target clients (see the
+    TOC ## Interface line) — which is why Diagnostics ships no legacy container
+    rows in ns.DIAGNOSTIC_API_CHECKS and Features/Restocker/Item.lua calls
+    C_Container.GetContainerItemInfo directly with no shim at all.
+
+    GetContainerItemInfo therefore has no fallback, and must not be given one:
+    the legacy global returns a flat list of values where C_Container returns a
+    table, and every call site here indexes the result (info.itemID,
+    info.stackCount, info.hyperlink). A fallback could only ever error.
+    GetContainerNumSlots keeps its own because both surfaces return a plain
+    number.
 ]]
 ns.GetItemCount = (C_Item and C_Item.GetItemCount) or GetItemCount
 ns.GetItemIcon = (C_Item and C_Item.GetItemIconByID) or GetItemIcon
 ns.GetContainerNumSlots = (C_Container and C_Container.GetContainerNumSlots) or GetContainerNumSlots
-ns.GetContainerItemInfo = (C_Container and C_Container.GetContainerItemInfo) or GetContainerItemInfo
+ns.GetContainerItemInfo = C_Container and C_Container.GetContainerItemInfo
 
 --------------------------------------------------------------------------------
 -- Game-State Predicates

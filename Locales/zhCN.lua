@@ -116,13 +116,13 @@ L["TIP_DONT_KNOW_SPELL"] = "你目前还没有学会%s。"
 -- Minimap Tooltip
 --------------------------------------------------------------------------------
 
--- Feature toggles shown in the minimap tooltip, each with a description line.
+-- Feature toggles shown in the mini-map tooltip, each with a description line.
 L["FEATURE_BUFF_FOOD"] = "增益食物"
 L["MENU_BUFF_FOOD_DESCRIPTION"] = '当缺少 "进食充分" BUFF时，优先使用提供该BUFF的食物。'
 L["FEATURE_SCROLL_BUFFS"] = "卷轴增益"
 L["MENU_SCROLL_BUFFS_DESCRIPTION"] = "当你缺少卷轴增益时，将你的食物宏转变为卷轴施放器。"
 
--- Section titles and ignore-list actions in the minimap tooltip.
+-- Section titles and ignore-list actions in the mini-map tooltip.
 L["UI_BEST_FOOD"] = "当前食物"
 L["UI_BEST_PET_FOOD"] = "当前宠物食物"
 -- Weapon-slot titles over the rogue's resolved poison, inside the Poisons block.
@@ -133,7 +133,7 @@ L["MENU_IGNORE"] = "忽略"
 L["MENU_CLEAR_IGNORE"] = "清除忽略列表"
 
 --[[
-    Restocker Report block in the minimap tooltip: how many restocking orders
+    Restocker Report block in the mini-map tooltip: how many restocking orders
     are still outstanding, never the items themselves. An order is one row of
     the Restock List, so the count is of rows below target and not of missing
     units -- nine outstanding orders can be nine single juices or nine full
@@ -148,7 +148,7 @@ L["UI_RESTOCKER_NEEDED_ONE"] = "1 项未完成订单"
 L["UI_RESTOCKER_NEEDED"] = "%d 项未完成订单"
 L["UI_RESTOCKER_STOCKED"] = "恭喜，你的补给已经备齐！"
 
--- Options entry at the bottom of the minimap tooltip.
+-- Options entry at the bottom of the mini-map tooltip.
 L["MENU_OPTIONS"] = "Connoisseur 选项"
 L["MENU_OPTIONS_KEYBIND"] = "Shift + 中键点击"
 
@@ -156,8 +156,10 @@ L["MENU_OPTIONS_KEYBIND"] = "Shift + 中键点击"
 -- Class Announcements
 --------------------------------------------------------------------------------
 
--- Class-colored headers and conjure/pet tips shown in the minimap tooltip for
--- the player's class.
+--[[
+    Class-colored headers and conjure/pet tips shown in the mini-map tooltip for
+    the player's class.
+]]
 
 L["PREFIX_HUNTER"] = "猎人请注意"
 L["PREFIX_MAGE"] = "法师请注意"
@@ -211,8 +213,10 @@ L["TIP_ROGUE_WINDOW"] = "中键点击打开毒药制作窗口。"
 -- Item Labels
 --------------------------------------------------------------------------------
 
--- Labels that get plugged into MSG_NO_ITEM ("No suitable %s found...").
--- One per macro type (resolved via ns.Config in ConnNoItem), plus Pet Food.
+--[[
+    Labels that get plugged into MSG_NO_ITEM ("No suitable %s found...").
+    One per macro type (resolved via ns.Config in ConnNoItem), plus Pet Food.
+]]
 
 L["LABEL_BANDAGE"] = "绷带"
 L["LABEL_EXPLOSIVE"] = "爆炸物"
@@ -230,7 +234,7 @@ L["LABEL_WATER"] = "水"
 -- UI Labels
 --------------------------------------------------------------------------------
 
--- Generic labels reused across the minimap tooltip and options panel.
+-- Generic labels reused across the mini-map tooltip and options panel.
 
 L["UI_ENABLED"] = "已启用"
 L["UI_DISABLED"] = "已禁用"
@@ -253,7 +257,7 @@ L["MODE_RAID"] = "仅在团队时"
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
-	"为你最好的食物、增益食物、水、药水、治疗石、卷轴、灵魂石、绷带、毒药和爆炸物创建自动更新的宏。一键制造，智能喂养宠物，自动向商人和银行补货。最佳营养，巅峰表现。"
+	"自动取用你最好的食物、增益食物、水、药水、治疗石、绷带和卷轴的宏，外加一份补货清单，让你的背包始终充足，并随着你升级自动升级消耗品。便利性自动化，巅峰表现。"
 
 -- Welcome Message
 L["OPTIONS_WELCOME_MESSAGE"] = "启用欢迎消息"
@@ -294,16 +298,27 @@ L["OPTIONS_READY_CHECK"] = "在准备确认时报告状态"
 L["OPTIONS_READY_CHECK_DESCRIPTION"] =
 	"每次开始准备确认时，输出你缺少什么以及所追踪增益的剩余时间，仅你自己可见。"
 
--- Buff Food. The section header reuses FEATURE_BUFF_FOOD.
+--[[
+    Three features are suppressed in a PvP Arena, and each says so with the
+    same sentence. It lives here once and is appended at the call site
+    (Options/Options-Macros.lua), so every locale translates it a single time
+    and the caveat can never drift between the three.
+]]
+L["OPTIONS_DISABLED_IN_ARENAS"] = "在竞技场中禁用。"
+
+--[[
+    Buff Food. The section header reuses FEATURE_BUFF_FOOD, and the options
+    description reuses MENU_BUFF_FOOD_DESCRIPTION plus the arena note above --
+    the mini-map tooltip and the options panel say the same thing, so they read
+    from one key rather than two copies of one sentence.
+]]
 L["OPTIONS_BUFF_FOOD"] = "优先增益食物"
-L["OPTIONS_BUFF_FOOD_DESCRIPTION"] =
-	'当缺少 "进食充分" BUFF时，优先使用提供该BUFF的食物。在竞技场中禁用。'
 L["OPTIONS_BUFF_FOOD_DETAIL"] = "专业提示：以自己为目标总是会让食物宏跳过增益食物和卷轴。"
 
 -- Scroll Buffs. The section header reuses FEATURE_SCROLL_BUFFS.
 L["OPTIONS_USE_SCROLLS"] = "包含卷轴增益"
 L["OPTIONS_USE_SCROLLS_DESCRIPTION"] =
-	"按一次施放缺少的卷轴，再按一次进食。卷轴不占用GCD且以你自己为目标；以友方玩家为目标时会跳过卷轴。在竞技场中禁用。"
+	"按一次施放缺少的卷轴，再按一次进食。卷轴不占用GCD且以你自己为目标；以友方玩家为目标时会跳过卷轴。"
 L["OPTIONS_SCROLL_TYPES"] = "在检查中包含卷轴类型"
 L["OPTIONS_SCROLL_AGILITY"] = "敏捷"
 L["OPTIONS_SCROLL_INTELLECT"] = "智力"
@@ -341,7 +356,7 @@ L["LOADING_ITEM"] = "正在载入 ID：%d"
 L["OPTIONS_PET_HEADER"] = "宠物食物增益"
 L["OPTIONS_USE_PET_BUFFS"] = "使用宠物食物增益"
 L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] =
-	'当你的宠物缺少 "进食充分" BUFF时，在你的食物宏中加入宠物食物。在竞技场中禁用。'
+	'当你的宠物缺少 "进食充分" BUFF时，在你的食物宏中加入宠物食物。'
 L["OPTIONS_PET_BUFF_TYPES"] = "在检查中包含宠物食物类型"
 L["OPTIONS_PET_BUFF_KIBLERS"] = "基布雷尔的宠物食品"
 L["OPTIONS_PET_BUFF_SPORELING"] = "孢子村点心"
@@ -377,9 +392,11 @@ L["OPTIONS_POISON_OFF_HAND"] = "副手毒药类型"
 L["OPTIONS_STEALTH_EATING"] = "启用进食时潜行"
 L["OPTIONS_STEALTH_EATING_ROGUE_DESCRIPTION"] = "将潜行添加到你的食物宏中，以便你在进食时潜行。"
 
--- Restocker options panel. The tree label stays "Restocker" in every locale
--- (brand fragment, localization allowlist); the panel header reuses
--- RESTOCKER_WINDOW_TITLE.
+--[[
+    Restocker options panel. The tree label stays "Restocker" in every locale
+    (brand fragment, localization allowlist); the panel header reuses
+    RESTOCKER_WINDOW_TITLE.
+]]
 L["OPTIONS_RESTOCKER_TAB"] = "Restocker"
 L["OPTIONS_RESTOCKER_DESCRIPTION"] =
 	"根据每个角色的补货清单保持背包补给充足。自动向商人购买，并在背包与银行之间搬运物品。输入 %s 打开清单。"
@@ -652,8 +669,10 @@ L["STARTER_POPUP_REAGENT_AIR_TOTEM"] = "空气图腾"
 L["STARTER_POPUP_REAGENT_FIGURINE"] = "恶魔雕像"
 L["STARTER_POPUP_REAGENT_INFERNAL_STONE"] = "地狱火石"
 L["STARTER_POPUP_REAGENT_SOUL_SHARDS"] = "灵魂碎片"
--- Checkbox tooltips: { item link, amount }. The first is for ladder items;
--- the second for single-tier reagents, which never upgrade.
+--[[
+    Checkbox tooltips: { item link, amount }. The first is for ladder items;
+    the second for single-tier reagents, which never upgrade.
+]]
 L["STARTER_POPUP_ITEM_DESCRIPTION"] =
 	"将 %s 加入你的补货清单，在背包中保留 %d 个，并随着你的等级自动升级。"
 L["STARTER_POPUP_ITEM_DESCRIPTION_STATIC"] = "将 %s 加入补货清单，并在背包中保留 %d 个。"

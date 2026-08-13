@@ -117,14 +117,25 @@ local EVENT_LOG_MAX_ARGS = 8
 local EVENT_LOG_MAX_ARG_LENGTH = 255
 
 --[[
-    Firehose events flood the log in milliseconds and bury the signal, so they
-    are kept out of the buffer -- but counted into the suppressed-traffic summary
-    rather than dropped silently, so the report still proves the event fired and
-    how often. UNIT_AURA is the one firehose this add-on registers (Well Fed /
-    scroll / pet-buff tracking), and "did the aura event arrive at all" is the
-    first question a stale-macro report has to answer. The log only sees events
-    routed through Core's central dispatcher, so an event the add-on never
-    registers can't appear here regardless.
+    Events the capture tap can only COUNT, never classify. They are kept out of
+    the buffer and folded into the suppressed-traffic summary instead, so the
+    report still proves the event fired and how often.
+
+    UNIT_AURA is the one entry, and it is here for a narrow reason: it is a
+    firehose whose signal firings cannot be told apart AT CAPTURE. ns:LogEvent
+    runs from Core's dispatcher BEFORE the real handler, so at that moment
+    nothing yet knows whether this particular aura change moved anything the
+    add-on tracks. Its signal firings are therefore logged from the other end --
+    ns.HandleUnitAura (Features/Scanner-Character.lua) calls ns:LogEventNow once
+    it has decided something changed, so a stale-macro report shows the aura
+    change that preceded the rebuild in full, with the rest of the traffic
+    counted beneath it.
+
+    Nothing else belongs here. An event whose firings can be classified at
+    capture uses ns.MESSAGE_ID_FILTERED_EVENTS below, and an event with no
+    firehose problem is simply logged. The log only sees events routed through
+    Core's central dispatcher, so an event the add-on never registers can't
+    appear here regardless.
 ]]
 ns.DIAGNOSTIC_EVENT_EXCLUDE = {
 	UNIT_AURA = true,
@@ -247,12 +258,32 @@ end
     swatch. Escaping last also means the cut can never leave a dangling pipe that
     would eat the following ", " separator.
 ]]
+local function AppendLogEntry(event, ...)
+	local log = ns.diagnostics.log
+	if not log then
+		return
+	end
+	local parts = {}
+	for index = 1, select("#", ...) do
+		if index > EVENT_LOG_MAX_ARGS then
+			break
+		end
+		local raw = string.sub(tostring((select(index, ...))), 1, EVENT_LOG_MAX_ARG_LENGTH)
+		parts[index] = (raw:gsub("|", "||"))
+	end
+	log[#log + 1] = string.format("%.3f %s(%s)", GetTime(), event, table.concat(parts, ", "))
+	if #log > EVENT_LOG_SIZE then
+		table.remove(log, 1)
+	end
+end
+
 function ns:LogEvent(event, ...)
 	if ns.DIAGNOSTIC_EVENT_EXCLUDE[event] then
 		--[[
-	        Excluded from the buffer, not from the report: the first argument is
-	        what distinguishes these firings from each other (UNIT_AURA's unit),
-	        so it is what the tally is keyed by -- "UNIT_AURA(player) x319".
+	        Counted, not dropped: the first argument is what distinguishes these
+	        firings from each other (UNIT_AURA's unit), so it is what the tally is
+	        keyed by -- "UNIT_AURA(player) x319". The handler writes the full line
+	        for the firings that mattered; see ns:LogEventNow.
 	    ]]
 		local first = select("#", ...) > 0 and tostring((select(1, ...))) or ""
 		CountSuppressed(event, first)
@@ -266,19 +297,25 @@ function ns:LogEvent(event, ...)
 	if ns:SuppressUncorrelatedMessage(event, ...) then
 		return
 	end
-	local parts = {}
-	for index = 1, select("#", ...) do
-		if index > EVENT_LOG_MAX_ARGS then
-			break
-		end
-		local raw = string.sub(tostring((select(index, ...))), 1, EVENT_LOG_MAX_ARG_LENGTH)
-		parts[index] = (raw:gsub("|", "||"))
+	AppendLogEntry(event, ...)
+end
+
+--[[
+    Write a full log line from inside a handler, for an event ns:LogEvent can
+    only count because the capture tap runs before the handler and so cannot yet
+    tell signal from noise (ns.DIAGNOSTIC_EVENT_EXCLUDE).
+
+    The classification therefore comes from the handler that already made the
+    decision, never from a second copy of its logic -- which is what stops the
+    log from disagreeing with the code about what the add-on acted on. Call it
+    only on firings the handler actually acted on; everything else is already in
+    the suppressed tally.
+]]
+function ns:LogEventNow(event, ...)
+	if not ns.diagnostics.logging then
+		return
 	end
-	local log = ns.diagnostics.log
-	log[#log + 1] = string.format("%.3f %s(%s)", GetTime(), event, table.concat(parts, ", "))
-	if #log > EVENT_LOG_SIZE then
-		table.remove(log, 1)
-	end
+	AppendLogEntry(event, ...)
 end
 
 --[[

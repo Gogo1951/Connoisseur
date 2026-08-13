@@ -204,7 +204,10 @@ end
     scroll's own amount, which is per-call.
 
     The table is reused in place rather than rebuilt, because UNIT_AURA is a
-    firehose and the Well Fed probe runs on every tick.
+    firehose and the Well Fed probe runs on every tick. That makes the return
+    value a single shared buffer, not a private copy: a caller must not hold it
+    across another call to this function, and one that needs several answers
+    takes one snapshot and passes it down (see ns.FindScrollOverrides).
 ]]
 local WELL_FED_ICON_ID = 136000
 local WELL_FED_ICON_ID_2 = 133943
@@ -299,12 +302,15 @@ end
     scroll we would use — otherwise the scroll would still improve the stat.
 ]]
 
-function ns.HasScrollBuff(scrollType, scrollAmount)
+---@param snapshot table|nil A snapshot from ns.GetPlayerBuffSnapshot to read from.
+---Callers asking about more than one scroll type pass one in, so a single walk
+---of the player's auras serves the whole set; omitting it takes a fresh one.
+function ns.HasScrollBuff(scrollType, scrollAmount, snapshot)
 	if not ns.ScrollData or not ns.ScrollData[scrollType] then
 		return true
 	end
 
-	local entry = ns.GetPlayerBuffSnapshot().scrolls[scrollType]
+	local entry = (snapshot or ns.GetPlayerBuffSnapshot()).scrolls[scrollType]
 
 	-- Already have a scroll buff active for this stat
 	if entry.expiration ~= nil and BuffCountsAsActive(entry.expiration) then
@@ -365,10 +371,17 @@ function ns.FindScrollOverrides(bagItemCounts)
 
 	local results
 
+	--[[
+        One aura walk for the whole set. Letting each ns.HasScrollBuff call take
+        its own snapshot re-read the player's 40 aura slots once per enabled
+        scroll type, on a path that re-runs with every bag scan.
+    ]]
+	local snapshot = ns.GetPlayerBuffSnapshot()
+
 	for _, scrollType in ipairs(ns.SCROLL_CHECK_ORDER) do
 		if scrollTypes[scrollType] then
 			local scrollItemID, scrollAmount = FindBestScroll(scrollType, bagItemCounts)
-			if scrollItemID and not ns.HasScrollBuff(scrollType, scrollAmount) then
+			if scrollItemID and not ns.HasScrollBuff(scrollType, scrollAmount, snapshot) then
 				results = results or {}
 				results[#results + 1] = scrollItemID
 			end
@@ -508,6 +521,15 @@ end
 ]]
 function ns.HandleUnitAura(unit)
 	local needsUpdate = false
+	--[[
+        What made this firing worth acting on. UNIT_AURA is a firehose, so the
+        diagnostics capture tap can only count it -- it runs before this handler
+        and cannot yet know. This is the end that does know, so the signal
+        firings are logged from here (see ns:LogEventNow in
+        Features/Diagnostics.lua), which keeps the event log from disagreeing
+        with what the add-on actually reacted to.
+    ]]
+	local reason
 
 	if unit == "player" then
 		local currentSnapshot = ns.GetPlayerBuffSnapshot()
@@ -516,21 +538,27 @@ function ns.HandleUnitAura(unit)
 		if wellFedState ~= ns.WellFedState then
 			ns.WellFedState = wellFedState
 			needsUpdate = true
+			reason = "wellfed"
 		end
 
 		local settings = ns.db and ns.db.profile
 		if settings and settings.useScrolls and settings.scrollTypes then
 			if ScrollAurasChanged(currentSnapshot, settings.scrollTypes) then
 				needsUpdate = true
+				reason = reason and (reason .. "+scrolls") or "scrolls"
 			end
 		end
 	elseif unit == "pet" then
 		if ns.db and ns.db.profile and ns.db.profile.usePetBuffFood then
 			needsUpdate = true
+			reason = "petbuff"
 		end
 	end
 
 	if needsUpdate then
+		if ns.LogEventNow then
+			ns:LogEventNow("UNIT_AURA", unit, reason)
+		end
 		ns.RequestUpdate()
 	end
 end

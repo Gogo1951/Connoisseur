@@ -640,14 +640,23 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-    One-time OnHide hook on the Blizzard Macro UI. The frame is load-on-demand,
-    so the hook can only be installed once the frame exists -- the deferral
-    guard in UpdateMacros is the first code to see it shown. MacroFrame saves
-    its edit box back over the selected macro when the selection changes and
-    when it hides, so a Connoisseur macro the user had selected may just have
-    been reverted to the text from when the frame opened. The state keys can't
-    see that -- they track what WE last wrote, and after a revert they match a
-    body that is no longer there -- so drop them all and rebuild from scratch.
+    One-time OnHide hook on the Blizzard Macro UI. MacroFrame saves its edit box
+    back over the selected macro when the selection changes and when it hides,
+    so a Connoisseur macro the user had selected may just have been reverted to
+    the text from when the frame opened. The state keys can't see that -- they
+    track what WE last wrote, and after a revert they match a body that is no
+    longer there -- so drop them all and rebuild from scratch.
+
+    The frame is load-on-demand, so this can only run once Blizzard_MacroUI has
+    loaded. UpdateMacros calls it on EVERY pass rather than only from the
+    frame-is-shown deferral below: hanging the install off that branch armed the
+    hook only when an update happened to land inside the window someone had the
+    frame open, and a short visit that requests no update never armed it at all
+    -- leaving exactly the stale-macro case this hook exists to close.
+
+    One gap survives by design: a first open-and-close with no macro update in
+    between still misses the hook, because the frame does not exist until the
+    open and nothing runs before the close.
 ]]
 local macroUIHooked = false
 
@@ -663,6 +672,13 @@ local function EnsureMacroUIHook()
 end
 
 function ns.UpdateMacros(forced)
+	--[[
+        Arm the Macro UI hook as early as possible. It self-guards on both
+        "already hooked" and "frame does not exist yet", so this costs one
+        boolean test per update.
+    ]]
+	EnsureMacroUIHook()
+
 	--[[
         The wipe runs ahead of the deferral guards so a forced rebuild that
         arrives in combat or with the Macro UI open keeps its force: the
@@ -689,7 +705,6 @@ function ns.UpdateMacros(forced)
         OnHide hook above forces the full rebuild the moment the frame closes.
     ]]
 	if MacroFrame and MacroFrame:IsShown() then
-		EnsureMacroUIHook()
 		ns.RequestUpdate()
 		return
 	end

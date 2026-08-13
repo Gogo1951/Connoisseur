@@ -114,13 +114,13 @@ L["TIP_DONT_KNOW_SPELL"] = "You don't currently know %s."
 -- Minimap Tooltip
 --------------------------------------------------------------------------------
 
--- Feature toggles shown in the minimap tooltip, each with a description line.
+-- Feature toggles shown in the mini-map tooltip, each with a description line.
 L["FEATURE_BUFF_FOOD"] = "Buff Food"
 L["MENU_BUFF_FOOD_DESCRIPTION"] = 'Prioritizes food that grants "Well Fed" whenever the buff is missing.'
 L["FEATURE_SCROLL_BUFFS"] = "Scroll Buffs"
 L["MENU_SCROLL_BUFFS_DESCRIPTION"] = "Turns your Food macro into a scroll-applier when you're missing scroll buffs."
 
--- Section titles and ignore-list actions in the minimap tooltip.
+-- Section titles and ignore-list actions in the mini-map tooltip.
 L["UI_BEST_FOOD"] = "Current Food"
 L["UI_BEST_PET_FOOD"] = "Current Pet Food"
 -- Weapon-slot titles over the rogue's resolved poison, inside the Poisons block.
@@ -131,7 +131,7 @@ L["MENU_IGNORE"] = "Ignore"
 L["MENU_CLEAR_IGNORE"] = "Clear Ignore List"
 
 --[[
-    Restocker Report block in the minimap tooltip: how many restocking orders
+    Restocker Report block in the mini-map tooltip: how many restocking orders
     are still outstanding, never the items themselves. An order is one row of
     the Restock List, so the count is of rows below target and not of missing
     units -- nine outstanding orders can be nine single juices or nine full
@@ -146,7 +146,7 @@ L["UI_RESTOCKER_NEEDED_ONE"] = "1 Order Outstanding"
 L["UI_RESTOCKER_NEEDED"] = "%d Orders Outstanding"
 L["UI_RESTOCKER_STOCKED"] = "Congratulations, you're fully stocked up!"
 
--- Options entry at the bottom of the minimap tooltip.
+-- Options entry at the bottom of the mini-map tooltip.
 L["MENU_OPTIONS"] = "Connoisseur Options"
 L["MENU_OPTIONS_KEYBIND"] = "Shift + Middle-Click"
 
@@ -154,8 +154,10 @@ L["MENU_OPTIONS_KEYBIND"] = "Shift + Middle-Click"
 -- Class Announcements
 --------------------------------------------------------------------------------
 
--- Class-colored headers and conjure/pet tips shown in the minimap tooltip for
--- the player's class.
+--[[
+    Class-colored headers and conjure/pet tips shown in the mini-map tooltip for
+    the player's class.
+]]
 
 L["PREFIX_HUNTER"] = "Attention Hunters"
 L["PREFIX_MAGE"] = "Attention Mages"
@@ -209,8 +211,10 @@ L["TIP_ROGUE_WINDOW"] = "Middle-Click opens the Poisons window."
 -- Item Labels
 --------------------------------------------------------------------------------
 
--- Labels that get plugged into MSG_NO_ITEM ("No suitable %s found...").
--- One per macro type (resolved via ns.Config in ConnNoItem), plus Pet Food.
+--[[
+    Labels that get plugged into MSG_NO_ITEM ("No suitable %s found...").
+    One per macro type (resolved via ns.Config in ConnNoItem), plus Pet Food.
+]]
 
 L["LABEL_BANDAGE"] = "Bandage"
 L["LABEL_EXPLOSIVE"] = "Explosive"
@@ -228,7 +232,7 @@ L["LABEL_WATER"] = "Water"
 -- UI Labels
 --------------------------------------------------------------------------------
 
--- Generic labels reused across the minimap tooltip and options panel.
+-- Generic labels reused across the mini-map tooltip and options panel.
 
 L["UI_ENABLED"] = "Enabled"
 L["UI_DISABLED"] = "Disabled"
@@ -292,16 +296,27 @@ L["OPTIONS_READY_CHECK"] = "Report Readiness on Ready Check"
 L["OPTIONS_READY_CHECK_DESCRIPTION"] =
 	"Prints what you're missing and how long your tracked buffs have left whenever a ready check starts, where only you can see it."
 
--- Buff Food. The section header reuses FEATURE_BUFF_FOOD.
+--[[
+    Three features are suppressed in a PvP Arena, and each says so with the
+    same sentence. It lives here once and is appended at the call site
+    (Options/Options-Macros.lua), so every locale translates it a single time
+    and the caveat can never drift between the three.
+]]
+L["OPTIONS_DISABLED_IN_ARENAS"] = "Disabled in Arenas."
+
+--[[
+    Buff Food. The section header reuses FEATURE_BUFF_FOOD, and the options
+    description reuses MENU_BUFF_FOOD_DESCRIPTION plus the arena note above --
+    the mini-map tooltip and the options panel say the same thing, so they read
+    from one key rather than two copies of one sentence.
+]]
 L["OPTIONS_BUFF_FOOD"] = "Prioritize Buff Food"
-L["OPTIONS_BUFF_FOOD_DESCRIPTION"] =
-	'Prioritizes food that grants "Well Fed" whenever the buff is missing. Disabled in Arenas.'
 L["OPTIONS_BUFF_FOOD_DETAIL"] = "Pro Tip: Targeting yourself always makes the Food macro skip buff food and scrolls."
 
 -- Scroll Buffs. The section header reuses FEATURE_SCROLL_BUFFS.
 L["OPTIONS_USE_SCROLLS"] = "Include Scroll Buffs"
 L["OPTIONS_USE_SCROLLS_DESCRIPTION"] =
-	"Tap once to apply missing scrolls, again to eat. Scrolls are off the GCD and self-cast; targeting a friendly player skips them. Disabled in Arenas."
+	"Tap once to apply missing scrolls, again to eat. Scrolls are off the GCD and self-cast; targeting a friendly player skips them."
 L["OPTIONS_SCROLL_TYPES"] = "Include Scroll Types in Check"
 L["OPTIONS_SCROLL_AGILITY"] = "Agility"
 L["OPTIONS_SCROLL_INTELLECT"] = "Intellect"
@@ -338,8 +353,7 @@ L["LOADING_ITEM"] = "Loading ID: %d"
 -- Pet Food Buffs
 L["OPTIONS_PET_HEADER"] = "Pet Food Buffs"
 L["OPTIONS_USE_PET_BUFFS"] = "Use Pet Food Buffs"
-L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] =
-	'Adds Pet Food to your Food macro when your pet is missing "Well Fed". Disabled in Arenas.'
+L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] = 'Adds Pet Food to your Food macro when your pet is missing "Well Fed".'
 L["OPTIONS_PET_BUFF_TYPES"] = "Include Pet Food Types in Check"
 L["OPTIONS_PET_BUFF_KIBLERS"] = "Kibler's Bits"
 L["OPTIONS_PET_BUFF_SPORELING"] = "Sporeling Snacks"
@@ -374,9 +388,11 @@ L["OPTIONS_POISON_OFF_HAND"] = "Off Hand Poison Type"
 L["OPTIONS_STEALTH_EATING"] = "Enable Stealth Eating"
 L["OPTIONS_STEALTH_EATING_ROGUE_DESCRIPTION"] = "Appends Stealth to your Food macro so you stealth while eating."
 
--- Restocker options panel. The tree label stays "Restocker" in every locale
--- (brand fragment, localization allowlist); the panel header reuses
--- RESTOCKER_WINDOW_TITLE.
+--[[
+    Restocker options panel. The tree label stays "Restocker" in every locale
+    (brand fragment, localization allowlist); the panel header reuses
+    RESTOCKER_WINDOW_TITLE.
+]]
 L["OPTIONS_RESTOCKER_TAB"] = "Restocker"
 L["OPTIONS_RESTOCKER_DESCRIPTION"] =
 	"Keeps your bags stocked from a per-character Restock List, buying from vendors and moving items to and from the bank automatically. Type %s to open the list."
@@ -400,7 +416,7 @@ L["OPTIONS_RESTOCKER_BANK_REMIND_DESCRIPTION"] =
     ends, which is why one ships on and the other off: a settings row reads
     naturally as "enable", a dismissal reads naturally as "stop".
 ]]
-L["OPTIONS_RESTOCKER_STARTER_LIST"] = "Enable List Builder when Restock List is Empty"
+L["OPTIONS_RESTOCKER_STARTER_LIST"] = "Enable List Builder When Restock List Is Empty"
 L["OPTIONS_RESTOCKER_STARTER_LIST_DESCRIPTION"] =
 	"Offers a starter Restock List at login whenever this character's list is empty."
 
@@ -648,8 +664,10 @@ L["STARTER_POPUP_REAGENT_AIR_TOTEM"] = "Air Totem"
 L["STARTER_POPUP_REAGENT_FIGURINE"] = "Demonic Figurine"
 L["STARTER_POPUP_REAGENT_INFERNAL_STONE"] = "Infernal Stone"
 L["STARTER_POPUP_REAGENT_SOUL_SHARDS"] = "Soul Shards"
--- Checkbox tooltips: { item link, amount }. The first is for ladder items;
--- the second for single-tier reagents, which never upgrade.
+--[[
+    Checkbox tooltips: { item link, amount }. The first is for ladder items;
+    the second for single-tier reagents, which never upgrade.
+]]
 L["STARTER_POPUP_ITEM_DESCRIPTION"] =
 	"Adds %s to your Restock List, keeping %d in your bags and upgrading them as you level."
 L["STARTER_POPUP_ITEM_DESCRIPTION_STATIC"] = "Adds %s to your Restock List, keeping %d in your bags."
@@ -701,7 +719,7 @@ L["RESTOCKER_DELETE_PROFILE_CONFIRM"] = "Are you sure you want to delete this pr
     list is most of them.
 ]]
 L["RESTOCKER_UPGRADE_LABEL"] = "Automatic"
-L["RESTOCKER_UPGRADE_TOOLTIP_TITLE"] = "Upgrade With Your Level"
+L["RESTOCKER_UPGRADE_TOOLTIP_TITLE"] = "Upgrade with Your Level"
 L["RESTOCKER_UPGRADE_TOOLTIP_BODY"] =
 	"Food, water, ammo, poisons and potions have clean upgrade paths as you level, so Connoisseur moves this one up for you. Everything else is yours to adjust over time."
 

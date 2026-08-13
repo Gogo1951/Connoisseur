@@ -120,7 +120,7 @@ L["TIP_DONT_KNOW_SPELL"] = "В данный момент вы не знаете 
 -- Minimap Tooltip
 --------------------------------------------------------------------------------
 
--- Feature toggles shown in the minimap tooltip, each with a description line.
+-- Feature toggles shown in the mini-map tooltip, each with a description line.
 L["FEATURE_BUFF_FOOD"] = "Еда с эффектом"
 L["MENU_BUFF_FOOD_DESCRIPTION"] =
 	'Приоритет еды, дающей эффект "Сытость", если он отсутствует.'
@@ -128,7 +128,7 @@ L["FEATURE_SCROLL_BUFFS"] = "Баффы от свитков"
 L["MENU_SCROLL_BUFFS_DESCRIPTION"] =
 	"Превращает ваш макрос Еды в аппликатор свитков, когда вам не хватает баффов от свитков."
 
--- Section titles and ignore-list actions in the minimap tooltip.
+-- Section titles and ignore-list actions in the mini-map tooltip.
 L["UI_BEST_FOOD"] = "Текущая еда"
 L["UI_BEST_PET_FOOD"] = "Текущая еда для питомца"
 -- Weapon-slot titles over the rogue's resolved poison, inside the Poisons block.
@@ -139,7 +139,7 @@ L["MENU_IGNORE"] = "Игнорировать"
 L["MENU_CLEAR_IGNORE"] = "Очистить игнор-лист"
 
 --[[
-    Restocker Report block in the minimap tooltip: how many restocking orders
+    Restocker Report block in the mini-map tooltip: how many restocking orders
     are still outstanding, never the items themselves. An order is one row of
     the Restock List, so the count is of rows below target and not of missing
     units -- nine outstanding orders can be nine single juices or nine full
@@ -154,7 +154,7 @@ L["UI_RESTOCKER_NEEDED_ONE"] = "1 невыполненный заказ"
 L["UI_RESTOCKER_NEEDED"] = "Невыполненных заказов: %d"
 L["UI_RESTOCKER_STOCKED"] = "Поздравляем, запасы полностью пополнены!"
 
--- Options entry at the bottom of the minimap tooltip.
+-- Options entry at the bottom of the mini-map tooltip.
 L["MENU_OPTIONS"] = "Настройки Connoisseur"
 L["MENU_OPTIONS_KEYBIND"] = "Shift + СКМ"
 
@@ -162,8 +162,10 @@ L["MENU_OPTIONS_KEYBIND"] = "Shift + СКМ"
 -- Class Announcements
 --------------------------------------------------------------------------------
 
--- Class-colored headers and conjure/pet tips shown in the minimap tooltip for
--- the player's class.
+--[[
+    Class-colored headers and conjure/pet tips shown in the mini-map tooltip for
+    the player's class.
+]]
 
 L["PREFIX_HUNTER"] = "Внимание Охотники"
 L["PREFIX_MAGE"] = "Внимание Маги"
@@ -226,8 +228,10 @@ L["TIP_ROGUE_WINDOW"] = "СКМ открывает окно ядов."
 -- Item Labels
 --------------------------------------------------------------------------------
 
--- Labels that get plugged into MSG_NO_ITEM ("No suitable %s found...").
--- One per macro type (resolved via ns.Config in ConnNoItem), plus Pet Food.
+--[[
+    Labels that get plugged into MSG_NO_ITEM ("No suitable %s found...").
+    One per macro type (resolved via ns.Config in ConnNoItem), plus Pet Food.
+]]
 
 L["LABEL_BANDAGE"] = "Бинты"
 L["LABEL_EXPLOSIVE"] = "Взрывчатка"
@@ -245,7 +249,7 @@ L["LABEL_WATER"] = "Вода"
 -- UI Labels
 --------------------------------------------------------------------------------
 
--- Generic labels reused across the minimap tooltip and options panel.
+-- Generic labels reused across the mini-map tooltip and options panel.
 
 L["UI_ENABLED"] = "Включено"
 L["UI_DISABLED"] = "Отключено"
@@ -268,7 +272,7 @@ L["MODE_RAID"] = "Только в рейде"
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
-	"Автоматически обновляемые макросы для вашей лучшей еды, еды с баффами, воды, зелий, камней здоровья, свитков, камней души, бинтов, ядов и взрывчатки. Сотворение в один клик, умное Кормление питомца, автоматическое пополнение у торговца и из банка. Оптимальное питание, пиковая эффективность."
+	"Макросы, которые автоматически используют вашу лучшую еду, еду с эффектом, воду, зелья, камни здоровья, бинты и свитки, а также список пополнения, который держит сумки полными и повышает уровень ваших расходуемых предметов вместе с вашим. Автоматизация для удобства, пиковая эффективность."
 
 -- Welcome Message
 L["OPTIONS_WELCOME_MESSAGE"] = "Включить приветственное сообщение"
@@ -311,17 +315,28 @@ L["OPTIONS_READY_CHECK"] = "Сообщать о готовности при пр
 L["OPTIONS_READY_CHECK_DESCRIPTION"] =
 	"При каждой проверке готовности выводит, чего вам не хватает и сколько времени осталось у отслеживаемых баффов; видно только вам."
 
--- Buff Food. The section header reuses FEATURE_BUFF_FOOD.
+--[[
+    Three features are suppressed in a PvP Arena, and each says so with the
+    same sentence. It lives here once and is appended at the call site
+    (Options/Options-Macros.lua), so every locale translates it a single time
+    and the caveat can never drift between the three.
+]]
+L["OPTIONS_DISABLED_IN_ARENAS"] = "Отключено на аренах."
+
+--[[
+    Buff Food. The section header reuses FEATURE_BUFF_FOOD, and the options
+    description reuses MENU_BUFF_FOOD_DESCRIPTION plus the arena note above --
+    the mini-map tooltip and the options panel say the same thing, so they read
+    from one key rather than two copies of one sentence.
+]]
 L["OPTIONS_BUFF_FOOD"] = "Еда с баффами"
-L["OPTIONS_BUFF_FOOD_DESCRIPTION"] =
-	'Приоритет еды, дающей эффект "Сытость", если он отсутствует. Отключено на аренах.'
 L["OPTIONS_BUFF_FOOD_DETAIL"] =
 	"Совет профи: Выбор себя в качестве цели всегда заставляет макрос еды пропускать еду с баффами и свитки."
 
 -- Scroll Buffs. The section header reuses FEATURE_SCROLL_BUFFS.
 L["OPTIONS_USE_SCROLLS"] = "Включить баффы от свитков"
 L["OPTIONS_USE_SCROLLS_DESCRIPTION"] =
-	"Нажмите один раз, чтобы применить недостающие свитки, и ещё раз, чтобы поесть. Свитки не зависят от ГКД и применяются к вам; если целью выбран дружественный игрок, они пропускаются. Отключено на аренах."
+	"Нажмите один раз, чтобы применить недостающие свитки, и ещё раз, чтобы поесть. Свитки не зависят от ГКД и применяются к вам; если целью выбран дружественный игрок, они пропускаются."
 L["OPTIONS_SCROLL_TYPES"] = "Включить типы свитков в проверку"
 L["OPTIONS_SCROLL_AGILITY"] = "Ловкость"
 L["OPTIONS_SCROLL_INTELLECT"] = "Интеллект"
@@ -360,7 +375,7 @@ L["LOADING_ITEM"] = "Загрузка ID: %d"
 L["OPTIONS_PET_HEADER"] = "Баффы от еды для питомцев"
 L["OPTIONS_USE_PET_BUFFS"] = "Использовать баффы от еды для питомцев"
 L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] =
-	'Добавляет еду для питомца в макрос еды, если у питомца отсутствует бафф "Сытость". Отключено на аренах.'
+	'Добавляет еду для питомца в макрос еды, если у питомца отсутствует бафф "Сытость".'
 L["OPTIONS_PET_BUFF_TYPES"] = "Включить типы еды для питомцев в проверку"
 L["OPTIONS_PET_BUFF_KIBLERS"] = "Кусочки Киблера"
 L["OPTIONS_PET_BUFF_SPORELING"] = "Закуска из спор"
@@ -398,9 +413,11 @@ L["OPTIONS_STEALTH_EATING"] = "Включить незаметность при 
 L["OPTIONS_STEALTH_EATING_ROGUE_DESCRIPTION"] =
 	'Добавляет способность "Скрытность" в макрос еды, чтобы вы уходили в скрытность во время еды.'
 
--- Restocker options panel. The tree label stays "Restocker" in every locale
--- (brand fragment, localization allowlist); the panel header reuses
--- RESTOCKER_WINDOW_TITLE.
+--[[
+    Restocker options panel. The tree label stays "Restocker" in every locale
+    (brand fragment, localization allowlist); the panel header reuses
+    RESTOCKER_WINDOW_TITLE.
+]]
 L["OPTIONS_RESTOCKER_TAB"] = "Restocker"
 L["OPTIONS_RESTOCKER_DESCRIPTION"] =
 	"Пополняет сумки по списку пополнения для каждого персонажа. Автоматически покупает у торговцев и перемещает предметы между сумками и банком. Введите %s, чтобы открыть список."
@@ -687,8 +704,10 @@ L["STARTER_POPUP_REAGENT_AIR_TOTEM"] = "Тотем воздуха"
 L["STARTER_POPUP_REAGENT_FIGURINE"] = "Статуэтка"
 L["STARTER_POPUP_REAGENT_INFERNAL_STONE"] = "Камень инфернала"
 L["STARTER_POPUP_REAGENT_SOUL_SHARDS"] = "Осколки души"
--- Checkbox tooltips: { item link, amount }. The first is for ladder items;
--- the second for single-tier reagents, which never upgrade.
+--[[
+    Checkbox tooltips: { item link, amount }. The first is for ladder items;
+    the second for single-tier reagents, which never upgrade.
+]]
 L["STARTER_POPUP_ITEM_DESCRIPTION"] =
 	"Добавляет %s в список пополнения, держит %d в сумках и повышает ранг по мере роста уровня."
 L["STARTER_POPUP_ITEM_DESCRIPTION_STATIC"] =
