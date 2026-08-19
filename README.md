@@ -1,4 +1,4 @@
-# Connoisseur
+# Connoisseur & Restocker
 
 Macros that automatically use your best food, buff food, water, potions, healthstones, bandages, and scrolls, plus a Restock List that keeps your bags full and upgrades your consumables as you level. Quality of life automation, peak performance.
 
@@ -138,7 +138,7 @@ Five options stay account-wide: the welcome message, the minimap button, macro n
 
 **Pet Food Buffs** // Uses Kibler's Bits or Sporeling Snacks on your pet when its Well Fed buff is missing. Requires level 55+. Can be restricted to party or raid. Pet food only fires in food mode — if you're missing scroll buffs, scrolls go first.
 
-**Ignore List** // Tell Connoisseur to skip an item it's currently picking. Right-click the minimap button to add the current best food. Middle-click to clear the list. Also clearable from the settings panel.
+**Ignore List** // Tell Connoisseur to skip an item it's currently picking. Right-click the minimap button to add the current best food. Middle-click to clear the list. The settings panel takes items too — paste an item ID or Shift + Click an item link in chat — and clears the whole list on request.
 
 ## Testing & Localization Status
 
@@ -181,9 +181,9 @@ Please reach out if you would like to be involved!
 
 🟡 Some Overlap // wumatic1's [BuffBuddy](https://www.curseforge.com/wow/addons/buffbuddy)
 
-🟡 Some Overlap // nyxito's [Consumable Tracker Classic/TBC](https://www.curseforge.com/wow/addons/consumabletracker)
+🟡 Some Overlap // kvakvs's [Buffomat Classic](https://www.curseforge.com/wow/addons/buffomat-classic)
 
-🟡 Some Overlap // zac12's [Consumables Checker](https://www.curseforge.com/wow/addons/consumables-checker-classic-wow-raid-tracker)
+🟡 Some Overlap // nyxito's [Consumable Tracker Classic/TBC](https://www.curseforge.com/wow/addons/consumabletracker)
 
 🟡 Some Overlap // humfras's [Poisoner](https://www.curseforge.com/wow/addons/poisoner)
 
@@ -193,8 +193,8 @@ Please reach out if you would like to be involved!
 
 🔴 Direct Alternative // mZHg's [Buffet](https://www.curseforge.com/wow/addons/buffet)
 
+🔴 Direct Alternative // funki's [DrinkBot](https://www.curseforge.com/wow/addons/drinkbot)
+
 🔴 Direct Alternative // executedpoorly's [Feed Me](https://www.curseforge.com/wow/addons/feed-me)
 
-🔴 Direct Alternative // noobsgonewild's [Feed Pet Plus Macro](https://www.curseforge.com/wow/addons/feed-pet-plus-macro)
-
-🔴 Direct Alternative // IzC's [IzC Auto Consumables](https://www.curseforge.com/wow/addons/izc-auto-consumables)
+🔴 Direct Alternative // noobsgonewild's [FeedPetPlusMacro TBC](https://www.curseforge.com/wow/addons/feedpetplusmacro-tbc)
