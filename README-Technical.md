@@ -20,7 +20,7 @@ Consumable-Connoisseur/
 │   ├── Scrolls.lua                             ns.ScrollData and ns.SCROLL_CHECK_ORDER
 │   └── Bandages … Soulstones.lua               Static item data, one file per category (SQL-sourced)
 ├── Features/
-│   ├── Core.lua                                Central event dispatcher, AceDB lifecycle, migrations, update throttle
+│   ├── Core.lua                                Central event dispatcher, AceDB lifecycle, update throttle
 │   ├── Utilities.lua                           ns.GetColor, API shims, ns.IsEra/ns.IsTBC, small predicates
 │   ├── Announcements.lua                       ns.PrintMessage and the once-per-session welcome (player prints only)
 │   ├── Item-Cache.lua                          Derives and caches per-item data; Ignore List pruning
@@ -58,13 +58,12 @@ Consumable-Connoisseur/
 ├── Options/
 │   ├── Options-Utilities.lua                   Shared widget constructors and the item-list builder
 │   ├── Options-General.lua                     Root General panel
-│   ├── Options-Macros.lua                      Macros panel (every macro-behaviour setting)
+│   ├── Options-Macros.lua                      Macros panel (macro toggles, behaviour settings, Ignore List)
 │   ├── Options-Restocker.lua                   Restocker panel (reminders, auto-open, debug)
 │   ├── Options-Starter-List-Popup.lua          The first-run Starter List window; never in the Blizzard tree
 │   ├── Options-Profiles.lua                    Stock AceDBOptions-3.0 panel
 │   ├── Options-Diagnostics.lua                 Diagnostic Tools panel
 │   └── Options.lua                             Registration only, plus the /foodie slash command
-├── tools/parity/                               Dev-only offline macro-parity harness (repo only, not in the TOC)
 ├── README.md                                   End-user documentation
 ├── README-Technical.md                         This file
 ├── README-Testing.md                           Manual test plan
@@ -113,7 +112,9 @@ Usability gates run before ranking, all in `ScanBags`: character level, First Ai
 
 ### Item Data Caching
 
-`ns.CacheItemData` (`Features/Item-Cache.lua`) derives a canonical record per item into `ns.db.profile.itemCache`; items that match no `ns.RawData` table are cached as the string `"IGNORE"` so they are never looked up twice. A `GetItemInfo` cold-call nil marks the scan dirty; `ns.RegisterDataRetry` listens for `GET_ITEM_INFO_RECEIVED` plus a 2 s timer and rescans. Invalidation is two-layered: a version stamp (`itemCacheVersion ~= ns.Version`) wipes on release bumps, and a nil-test of the newest schema field catches same-version dev edits — when adding a cache field, extend that nil-test in `Scanner-Inventory.lua`.
+`ns.CacheItemData` (`Features/Item-Cache.lua`) derives a canonical record per item into `ns.db.profile.itemCache`; items that match no `ns.RawData` table are cached as the string `"IGNORE"` so they are never looked up twice. A `GetItemInfo` cold-call nil marks the scan dirty; `ns.RegisterDataRetry` listens for `GET_ITEM_INFO_RECEIVED` plus a 2 s timer and rescans. The timer carries a budget (`DATA_RETRY_MAX_ATTEMPTS`, 10) because a scan that ends unresolved re-arms the timer that starts the next scan — an id the server never answers for would otherwise spin forever with nothing outside the pair to stop it. The event itself stays registered past the budget: it costs nothing while idle, and a late answer still rebuilds.
+
+Invalidation is two-layered: a version stamp (`itemCacheVersion ~= ns.Version`) wipes on release bumps, and a nil-test of the newest schema field catches same-version dev edits — when adding a cache field, extend that nil-test in `Scanner-Inventory.lua`.
 
 ### State Encoding
 
@@ -151,7 +152,7 @@ Connoisseur never calls `SendChatMessage` — it has no cross-player chat path a
 
 ## Era vs TBC: Warlock Rank Pinning (recurring bug)
 
-Warlock Healthstones/Soulstones are distinctly-named spells on Era (cast bare; appending `(Rank N)` silently no-ops) but numeric ranks on TBC (must pin `(Rank N)`). The split is declared as data — `rankIsTBCOnly` on the `ns.ConjureSpells` lists — and applied only by `ns.GetSmartSpell`. Mage Conjure Food/Water are numeric-rank on both flavors. Read the RECURRING BUG note on `WarlockCreateHealthstone` in `Data/Data.lua` before touching any of it; fixtures 01/03 in the parity harness lock the behavior.
+Warlock Healthstones/Soulstones are distinctly-named spells on Era (cast bare; appending `(Rank N)` silently no-ops) but numeric ranks on TBC (must pin `(Rank N)`). The split is declared as data — `rankIsTBCOnly` on the `ns.ConjureSpells` lists — and applied only by `ns.GetSmartSpell`. Mage Conjure Food/Water are numeric-rank on both flavors. Read the RECURRING BUG note on `WarlockCreateHealthstone` in `Data/Data.lua` before touching any of it, and test any change on both clients: the Era representation is the one that breaks silently.
 
 ## Feed Pet (Hunter)
 
@@ -202,7 +203,7 @@ Runtime-only (`ns.diagnostics`, never saved; everything defaults off each login)
 
 Two kinds of noise control keep the 500-entry event buffer honest, and both count rather than delete — suppressed traffic renders as a per-message tally at the end of the report, biggest offender first:
 
-- `ns.DIAGNOSTIC_EVENT_EXCLUDE` holds `UNIT_AURA`, the one firehose this add-on registers where no single firing is ever signal.
+- `ns.DIAGNOSTIC_EVENT_EXCLUDE` holds `UNIT_AURA`, the one firehose this add-on registers whose signal firings cannot be told apart *at capture* — `ns:LogEvent` runs from the dispatcher before the handler, so nothing yet knows whether this aura change moved anything. The firings that did are written from the other end: `ns.HandleUnitAura` calls `ns:LogEventNow` once it has decided, so the log agrees with what the add-on actually reacted to.
 - `ns.MESSAGE_ID_FILTERED_EVENTS` names `UI_ERROR_MESSAGE` and the argument position carrying the text to classify by. `IsCorrelatedMessage` is an **allowlist** of exactly the globals the live handlers compare against — `ERR_ITEM_WRONG_ZONE`, `SPELL_FAILED_TARGETS_DEAD`, `ERR_INV_FULL`, `ERR_BANK_FULL` — read fresh on every call, so the filter cannot drift from the handlers. Never invert it into a denylist of noise ids: noise is unbounded and renumbers across patches. A firing that does not carry the field is logged verbatim, because unclassifiable is signal.
 
 ## Saved Variables
@@ -221,14 +222,11 @@ Under the plain rule, Per-Character puts settings on `global` and only per-chara
   `profileKeys` maps characters to profiles. `OnProfileChanged` / `OnProfileCopied` / `OnProfileReset` all run one `OnProfileChange` handler that resets macro state, refreshes aura tracking, re-pushes the two imperatively-applied global settings (mini-map visibility, macro-name text), notifies every panel in `ns.OPTIONS_REGISTRY`, and requests a rebuild — so a reset or switch takes effect immediately rather than at the next `/reload`.
 - **`ConnoisseurRestockerDB`** — Restocker's own account-wide table (accepted interim; an AceDB merge is planned). It holds the shopping profiles (`profiles`, one-line item strings keyed by itemID; `profileKeys` mapping "Name-Realm" to the active profile; `currentProfile`), the window's `framePos`, the reminder settings (`restockReminderChat`, `restockReminderSound`, `restockReminderMode`, `merchantReminder`, `merchantReminderMode`, `bankReminder`, `bankReminderMode`), the auto-open toggles (`autoOpenAtBank`, `autoOpenAtMerchant`), the per-character `starterListDismissed` flags, `debugMessages`, and `dataVersion`. Its defaults are applied by hand in `RS:loadSettings` rather than by AceDB; the three-state ones test for `nil` instead of using `or`, since `or` would rewrite a deliberate `false` on every login.
 
-### Migration Chain
-
-- All `ConnoisseurDB` conversions live in `ns.RunDatabaseMigrations` (`Core.lua`), one block to delete: `ConnoisseurCharDB` (legacy per-character) → AceDB profile; legacy root keys → profile/global; a legacy character moved off the shared "Default" profile onto its own; the five account-wide keys promoted to `global`; and every other setting demoted from `global` back down to each character's profile. The demotion reads leftovers on `global` directly — once a key is no longer declared in the global defaults, AceDB neither fills it in nor strips it, so `ns.db.global[key]` is exactly what the user saved. Characters are seeded once each, recorded in `global.migrationSeeded[charKey]` (on `global`, not the profile, so Reset Profile isn't undone by the next login). Remove after 2026-08-15 (tagged in `Core.lua`, `Default-Settings.lua`, and the TOC's `ConnoisseurCharDB` line).
-- Standalone `RestockerDB` adoption and `RestockerSettings` per-character import → `ConnoisseurRestockerDB`; pre-v5 saved-line tolerances — remove after 2026-08-15 (tagged in `Restocker.lua`).
+There is no migration code in either table. Both add-on-side and Restocker-side conversions had dated `MIGRATION` tags that reached their cutoff and were deleted, along with the TOC's legacy `SavedVariables` entry; a returning player whose data was never converted falls back to defaults. Any future migration carries its own dated tag and is deleted on that date — see Style Guide → SAVED VARIABLES → Migration Windows.
 
 Defaults come from `ns.DATABASE_DEFAULTS` and are applied by AceDB-3.0 when a scope is first accessed — explicit user values, including `false`, are never overridden. Note that scalar and table defaults are physically copied into the saved table (`copyDefaults` via `rawset`); only `*`/`**` wildcard defaults resolve through metatables.
 
-There is no refill-on-empty list logic: Connoisseur ships no user-editable default item lists (the static tables in `Data/` are code, not saved data), and settings maps like `enabledMacros` deliberately survive being all-false. The derived `itemCache` is lazy-initialized outside the defaults table because Core owns its invalidation, and the same goes for the migration bookkeeping flags.
+There is no refill-on-empty list logic: Connoisseur ships no user-editable default item lists (the static tables in `Data/` are code, not saved data), and settings maps like `enabledMacros` deliberately survive being all-false. The derived `itemCache` is lazy-initialized outside the defaults table because Core owns its invalidation.
 
 ## Adding a New Consumable Category
 
@@ -237,7 +235,7 @@ There is no refill-on-empty list logic: Connoisseur ships no user-editable defau
 3. Extend `ns.CacheItemData` with a branch deriving the canonical record (`itemType`, values, requirements), and add the table to `ns.IsKnownConsumable` so Ignore List pruning recognizes it.
 4. Create `Features/Macros/<Category>.lua` calling `ns.RegisterMacroType` (see the definition protocol at the top of `Engine.lua`); add the TOC line among the definitions.
 5. Add the macro to `ns.Config` in `Data/Data.lua` (macro name ≤ 16 characters), `enabledMacros` in `Data/Default-Settings.lua`, an Enable Macros toggle in `Options/Options-Macros.lua`, and `MACRO_*`/`LABEL_*` keys in `Locales/enUS.lua` only.
-6. Mind the 255 macro ceiling if the body stacks lines — ruRU is the canary. Add a parity fixture in `tools/parity/fixtures/` and refresh `baseline/`.
+6. Mind the 255 macro ceiling if the body stacks lines — ruRU is the canary. Check the written body in-game on both clients before shipping.
 
 ## Adding a New Registered Event
 
@@ -277,19 +275,19 @@ Restocker is the exception: it keeps its own frame and its own `RS:RegisterEvent
 - **Passing a numeric `1` to `CreateMacro`'s `perCharacter` argument**: the client boolean-checks it, so a number lands in General only by accident. Omit the argument — that is the unambiguous spelling of "General tab".
 - **`UseContainerItem` at a merchant sells the item**: the bank restock loop must never run with the merchant window open — guarded in `RunRestockLogic`.
 - **Registering a second handler for an event Restocker already uses**: its dispatcher keeps one handler per event, so the later registration silently replaces the earlier one. Share the existing registration instead (see `Events.lua`).
-- **Assuming AceDB's defaults resolve through metatables**: only `*`/`**` wildcard defaults do. Scalars and tables are copied into the saved table with `rawset`, which is exactly why the migration block can read a no-longer-declared key off `ns.db.global` and trust it.
+- **Assuming AceDB's defaults resolve through metatables**: only `*`/`**` wildcard defaults do. Scalars and tables are copied into the saved table with `rawset`, so a key that is no longer declared in the defaults is neither filled in nor stripped — whatever the user last saved is still sitting there to be read.
 - **`UIDropDownMenu_SetWidth` padding**: the dropdown's invisible frame is width + padding (620 px in the Restocker footer) — anchor neighbors to the window, not the dropdown frame.
 - **`PLAYER_ENTERING_WORLD` refires on every loading screen**: init is guarded (`ns.db` nil-check, `varsInitialized`, welcome once-flag), and Restocker's Starter List trigger checks `isInitialLogin`; keep new login work behind those guards.
 - **Putting a new setting on the wrong scope**: the profile is the default under this add-on's granted exception, because consumable choices genuinely differ per character. Only add to `global` when the setting is account-wide for a concrete reason — and document that reason in `Data/Default-Settings.lua` alongside the existing five.
 - **Editing non-enUS locale files by hand**: they're owned by the Localization pass; hand edits get overwritten. enUS only.
-- **StyLua**: run `stylua` (default config) over Connoisseur-proper Lua before committing; `Features/Restocker/` keeps its vendored style and `Includes/` is never touched. Verify macro-path changes with `tools/parity/check.sh` and Restocker moves with `lua Features/Restocker/Tests/RestockPlannerTest.lua`.
+- **StyLua**: run `stylua` (default config) over Connoisseur-proper Lua before committing; `Features/Restocker/` keeps its vendored style and `Includes/` is never touched. Verify Restocker move logic with `lua Features/Restocker/Tests/RestockPlannerTest.lua`.
 
 ## Contributing
 
 - **Issues**: [GitHub Issues](https://github.com/Gogo1951/Connoisseur/issues).
 - **Bug reports**: include game version + locale, class + level, repro steps, and the relevant macro body or chat output. The in-game **Diagnostic Tools** panel (Options → AddOns → Connoisseur, or `/foodie`) generates pasteable reports — the Event Log, Connoisseur Context, and Selection Report sections answer most "my macro didn't update" reports.
 - **Discord**: <https://discord.gg/eh8hKq992Q>.
-- **PR guidelines**: keep PRs scoped to one change; match house style (StyLua defaults; Restocker keeps its vendored style); tag any data migration with a dated `MIGRATION (remove after 2026-08-15)` comment; check the 255 macro ceiling for any macro-body change (`./tools/parity/check.sh` must report byte-identical or intentionally-changed baselines); update this document when the architecture or file map changes.
+- **PR guidelines**: keep PRs scoped to one change; match house style (StyLua defaults; Restocker keeps its vendored style); tag any data migration with its own dated `MIGRATION (remove after YYYY-MM-DD)` comment, 30 days out from the release that ships it, and delete it on that date; check the 255 macro ceiling for any macro-body change; update this document when the architecture or file map changes.
 - **Commit and PR descriptions require a User Story.** Don't just say "I changed X." Frame it:
 
   **Format:** *As a [role], I [needed / wanted] [behavior] so that [outcome]. This change [does X].*
