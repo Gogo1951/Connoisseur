@@ -78,7 +78,7 @@ This release deletes code rather than adding features: the one-time conversions 
 
 **14.** Click **List Installed Add-ons**. The box must fill with every installed add-on, each with a version and a load state — those three add-on-info calls are now made directly, with nothing to fall back on. Failure is an empty box, an error, or every version reading `?`.
 
-**15.** Read the last line of the main **Connoisseur** panel. It must read **Version** followed by a version — a real number in a packaged build, or **"Version Dev"** in an unpackaged working copy. Failure is a blank, a `nil`, or a raw `@project-version@` on screen.
+**15.** Read the last line of the main **Connoisseur** panel. It must read **Version** followed by a version — a real number in a packaged build, or **"Version Dev"** in an unpackaged working copy. Failure is a blank, a `nil`, or a raw `2026.08.18.A` on screen.
 
 **16.** Loot, buy, or trade yourself a food better than your current pick. Within about a second the `- Food` macro body must rewrite to the new item. This is the bag scan running through the container shim the removal touched. Failure is a macro that only updates after a `/reload`.
 
