@@ -23,8 +23,6 @@
 ## X-Wago-ID: aN0XyQNj
 
 ## SavedVariables: ConnoisseurDB, ConnoisseurRestockerDB
-# MIGRATION (remove after 2026-08-15): drop ConnoisseurCharDB once window closes
-## SavedVariablesPerCharacter: ConnoisseurCharDB
 
 # Includes
 Includes/Libraries/LibStub/LibStub.lua

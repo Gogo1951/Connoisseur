@@ -38,7 +38,6 @@
 ---@field SetAttribute function
 ---@field SetFrameStrata fun(self: WowControl, strata: string)
 ---@field SetHeight fun(self: WowControl, height: number)
----@field SetMinResize function
 ---@field SetOwner fun(self: WowControl, owner: WowControl, anchor: string)
 ---@field SetParent fun(self: WowControl, parent: WowControl|nil)
 ---@field SetPoint function # fun(self: WowControl, point: string, relativeTo: WowControl|nil, relativePoint: string, xOfs: number, yOfs: number)|fun(self: WowControl, point: string, x: number, y: number)

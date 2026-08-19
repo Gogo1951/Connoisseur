@@ -65,10 +65,11 @@ ns.IsTBC = (WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC)
     Item readers live on C_Item on retail and as globals on Classic/TBC, and
     the two surfaces return the same shape, so those fall back freely.
 
-    C_Container is the ONLY container surface on the target clients (see the
-    TOC ## Interface line) — which is why Diagnostics ships no legacy container
-    rows in ns.DIAGNOSTIC_API_CHECKS and Features/Restocker/Item.lua calls
-    C_Container.GetContainerItemInfo directly with no shim at all.
+    C_Container is the container surface on the target clients (see the TOC
+    ## Interface line), which is why Features/Restocker/Item.lua calls
+    C_Container.GetContainerItemInfo directly with no shim at all. Both
+    surfaces GetContainerNumSlots can resolve to carry a row in
+    ns.DIAGNOSTIC_API_CHECKS.
 
     GetContainerItemInfo therefore has no fallback, and must not be given one:
     the legacy global returns a flat list of values where C_Container returns a

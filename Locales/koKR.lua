@@ -131,6 +131,12 @@ L["UI_BEST_PET_FOOD"] = "현재 소환수 먹이"
 -- Weapon-slot titles over the rogue's resolved poison, inside the Poisons block.
 L["UI_MAIN_HAND"] = "주 무기"
 L["UI_OFF_HAND"] = "보조 무기"
+--[[
+    The value shown beside an item title when nothing resolved. Kept to a single
+    word so it fits in the tooltip's right column, which never wraps -- the full
+    sentence, MSG_NO_ITEM, explains it on the wrapping line underneath.
+]]
+L["UI_NONE"] = "없음"
 L["UI_IGNORE_LIST"] = "차단 목록"
 L["MENU_IGNORE"] = "차단"
 L["MENU_CLEAR_IGNORE"] = "차단 목록 초기화"
@@ -140,15 +146,21 @@ L["MENU_CLEAR_IGNORE"] = "차단 목록 초기화"
     are still outstanding, never the items themselves. An order is one row of
     the Restock List, so the count is of rows below target and not of missing
     units -- nine outstanding orders can be nine single juices or nine full
-    stacks. The header above supplies the "restocking", so the lines under it
-    only need the noun.
+    stacks. The header beside it supplies the "restocking", so the count only
+    needs the noun.
 
     Separate singular and plural strings rather than a composed "%d order(s)",
     so every locale can phrase the count its own way.
+
+    The count sits in the tooltip's right column, beside the header, so each of
+    these has to stay short enough to read as a value rather than a sentence --
+    which is why the all-stocked case is two strings: STOCKED_SHORT for the
+    column, and the full congratulation on the wrapping line below it.
 ]]
 L["UI_RESTOCKER_REPORT"] = "보충 보고서"
 L["UI_RESTOCKER_NEEDED_ONE"] = "미완료 주문 1건"
 L["UI_RESTOCKER_NEEDED"] = "미완료 주문 %d건"
+L["UI_RESTOCKER_STOCKED_SHORT"] = "보급 완료"
 L["UI_RESTOCKER_STOCKED"] = "축하합니다, 보급품이 모두 채워졌습니다!"
 
 -- Options entry at the bottom of the mini-map tooltip.
@@ -172,7 +184,7 @@ L["PREFIX_WARLOCK"] = "흑마법사 주의"
 --[[
     Subtitle under each class header, naming the macros the tips below apply
     to. Each tip below is one instruction, rendered on its own line, and every
-    tip names the macro it belongs to — the blocks cover more than one macro,
+    tip names the macro it belongs to -- the blocks cover more than one macro,
     and a bare "Right-Click" would be ambiguous.
 
     The verb tracks the real spell names, which differ by class: mages get
@@ -275,7 +287,7 @@ L["OPTIONS_MINIMAP_BUTTON_DESCRIPTION"] = "미니맵 버튼을 표시합니다."
 -- Macro Names on Buttons
 L["OPTIONS_MACRO_NAMES"] = "버튼에 매크로 이름 표시"
 L["OPTIONS_MACRO_NAMES_DESCRIPTION"] =
-	"행동 단축바 버튼에 매크로 이름 텍스트를 표시합니다. 기본값은 꺼짐이며, 블리자드가 최근 다시 표시하기 시작한 이름을 숨깁니다."
+	"행동 단축바 버튼에 매크로 이름 텍스트를 표시합니다. 기본값은 꺼짐이며, 게임이 자체적으로 표시하는 이름을 숨깁니다."
 
 -- Potions & Healthstones
 L["OPTIONS_POTIONS_HEADER"] = "물약 및 생명석"
@@ -502,7 +514,6 @@ L["VERSION_LABEL"] = "버전"
 --------------------------------------------------------------------------------
 
 -- Chat messages printed by the Restocker feature (Features/Restocker/).
-L["RESTOCKER_IMPORTED_LISTS"] = "Restocker 목록을 가져왔습니다."
 L["RESTOCKER_PROFILE_EXISTS"] = '"%s" 이름의 프로필이 이미 있습니다.'
 L["RESTOCKER_BANK_NOT_OPEN"] = "은행이 열려 있지 않습니다."
 --[[

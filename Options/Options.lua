@@ -91,11 +91,6 @@ function ns:OpenOptionsPanel()
 		Settings.OpenToCategory(mainCategoryID)
 		return
 	end
-	if InterfaceOptionsFrame_OpenToCategory then
-		InterfaceOptionsFrame_OpenToCategory(mainPanel)
-		InterfaceOptionsFrame_OpenToCategory(mainPanel)
-		return
-	end
 	AceConfigDialog:Open(REGISTRY.General)
 end
 

@@ -602,15 +602,6 @@ local function rsItemFromString(s, key)
   dataStart = dataStart or (#f + 1)
   local labelEnd = dataStart - 1
 
-  -- MIGRATION (remove after 2026-08-15): pre-v5 saved-line tolerance; drop this
-  -- repeated-id skip when the import blocks above go.
-  -- Legacy form repeated the id right after the name ("name, id, amount, +3 flags").
-  -- Detect it (first numeric equals this item's id, with enough trailing fields) and
-  -- skip it. The >=4 guard distinguishes it from an amount that happens to equal the id.
-  if tonumber(f[dataStart]) == itemID and (#f - dataStart) >= 4 then
-    dataStart = dataStart + 1
-  end
-
   local amount = tonumber(f[dataStart]) or 0
   local stash = tonumber(f[dataStart + 1])
   local fromBank = tonumber(f[dataStart + 2])
@@ -707,60 +698,6 @@ end
 ---method so the events module (which can't see the file-local rsDeflate) can call it.
 function RS:DeflateForSave()
   rsDeflate(restockerModule.settings)
-end
-
--- MIGRATION (remove after 2026-08-15): delete this function together with its call
--- site in RS:OnEnable and the RsSettings.migratedToAccount field annotation in
--- RestockerClass.lua.
----One-time import of a character's old per-character data (RestockerSettings, a v1
----array-of-items layout) into the account-wide DB. Each profile is converted from an
----array into a table keyed by itemID and stored under a name that is namespaced to
----this character, so different characters keep separate lists in the shared file:
----  old "default"  -> "<charKey>"            (the character's main list)
----  old "raid" etc -> "<charKey> - raid"     (extra named profiles, kept distinct)
----The character is then pointed (via profileKeys) at the imported version of whatever
----profile it was using. Existing account entries win, so re-running is harmless.
----@param legacy RsSettings|nil The old per-character saved table
----@param db RsSettings The account-wide saved table
----@param charKey string This character's "Name-Realm" key
-local function rsImportLegacyPerChar(legacy, db, charKey)
-  if type(legacy) ~= "table" then
-    return
-  end
-
-  db.profiles = db.profiles or {}
-  db.profileKeys = db.profileKeys or {}
-
-  -- Adopt shared scalar settings from the first character that migrates
-  if db.framePos == nil then db.framePos = legacy.framePos end
-  if db.autoOpenAtBank == nil then db.autoOpenAtBank = legacy.autoOpenAtBank end
-  if db.autoOpenAtMerchant == nil then db.autoOpenAtMerchant = legacy.autoOpenAtMerchant end
-
-  -- Map an old profile name to this character's namespaced name
-  local function targetName(oldName)
-    if oldName == nil or oldName == "default" then
-      return charKey
-    end
-    return charKey .. " - " .. oldName
-  end
-
-  for name, oldProfile in pairs(legacy.profiles or {}) do
-    local target = targetName(name)
-    local dst = db.profiles[target] or {}
-    -- Old profiles are arrays, so ipairs walks every saved item
-    for _, item in ipairs(--[[---@not nil]] oldProfile) do
-      local id = tonumber(item.itemID)
-      if id and dst[id] == nil then
-        dst[id] = rsCleanItem(CopyTable(item), id)
-      end
-    end
-    db.profiles[target] = dst
-  end
-
-  -- Default this character to the imported version of its previously active profile
-  if db.profileKeys[charKey] == nil then
-    db.profileKeys[charKey] = targetName(legacy.currentProfile)
-  end
 end
 
 ---Stable per-character identity used to pick that character's own list.
@@ -955,29 +892,11 @@ function RS:OnEnable()
   -- separate lists.
   ConnoisseurRestockerDB = ConnoisseurRestockerDB or --[[---@type RsSettings]] {}
 
-  -- MIGRATION (remove after 2026-08-15): delete this whole adoption block; it copies
-  -- the standalone Restocker add-on's RestockerDB into ConnoisseurRestockerDB.
-  -- One-time adoption: a player who ran standalone Restocker gets their lists copied
-  -- in the first time this loads (only while Connoisseur's own DB is still empty).
-  if next(ConnoisseurRestockerDB) == nil and type(RestockerDB) == "table" then
-    ConnoisseurRestockerDB = CopyTable(RestockerDB)
-    ns.PrintMessage(L["RESTOCKER_IMPORTED_LISTS"])
-  end
-
   if ConnoisseurRestockerDB.dataVersion == nil then
     ConnoisseurRestockerDB.profiles = ConnoisseurRestockerDB.profiles or {}
     ConnoisseurRestockerDB.dataVersion = RS_DATA_VERSION
   end
   ConnoisseurRestockerDB.profileKeys = ConnoisseurRestockerDB.profileKeys or {}
-
-  -- MIGRATION (remove after 2026-08-15): delete this block (and rsImportLegacyPerChar
-  -- above, plus the migratedToAccount annotation in RestockerClass.lua).
-  -- One-time per-character import: fold this character's old per-character list into
-  -- its own profile in the account-wide DB the first time it logs in after the update.
-  if RestockerSettings and not RestockerSettings.migratedToAccount then
-    rsImportLegacyPerChar( --[[---@type RsSettings]] RestockerSettings, ConnoisseurRestockerDB, self:GetCharKey())
-    RestockerSettings.migratedToAccount = true
-  end
 
   restockerModule.settings = ConnoisseurRestockerDB
 

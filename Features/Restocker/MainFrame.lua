@@ -95,15 +95,9 @@ function mainFrameModule:CreateAddonFrame()
     RS.SaveFrameGeometry()
   end)
 
-  --[[
-    SetResizeBounds is the modern single call; SetMinResize/SetMaxResize are
-    the pair it replaced. Both are probed in Diagnostics' API checks.
-  ]]
+  -- SetResizeBounds is probed in Diagnostics' API checks.
   if addonFrame.SetResizeBounds then
     addonFrame:SetResizeBounds(MIN_WIDTH, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT)
-  elseif addonFrame.SetMinResize then
-    addonFrame:SetMinResize(MIN_WIDTH, MIN_HEIGHT)
-    addonFrame:SetMaxResize(MAX_WIDTH, MAX_HEIGHT)
   end
 
   --[[
