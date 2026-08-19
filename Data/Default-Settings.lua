@@ -38,8 +38,7 @@ local _, ns = ...
 
     The derived item cache (itemCache / itemCacheVersion) is deliberately NOT
     declared here: Core lazy-inits it on the profile and owns its version-stamp
-    invalidation, so it never needs a default. The same goes for the migration
-    bookkeeping flag (ignoreListSeeded).
+    invalidation, so it never needs a default.
 ]]
 ns.DATABASE_DEFAULTS = {
 	profile = {
@@ -151,16 +150,4 @@ ns.DATABASE_DEFAULTS = {
 			hide = false,
 		},
 	},
-}
-
---[[
-    MIGRATION (remove after 2026-08-15): declared profile keys that are not user
-    settings, so the settings migration in Core.lua skips them. Only ignoreList
-    is actually reachable -- the migration walks DATABASE_DEFAULTS.profile, and
-    the item cache and bookkeeping flags are deliberately undeclared -- but it
-    is listed by name rather than special-cased so the intent survives a future
-    key being added here.
-]]
-ns.PROFILE_NON_SETTINGS = {
-	ignoreList = true,
 }

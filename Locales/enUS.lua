@@ -126,6 +126,12 @@ L["UI_BEST_PET_FOOD"] = "Current Pet Food"
 -- Weapon-slot titles over the rogue's resolved poison, inside the Poisons block.
 L["UI_MAIN_HAND"] = "Main Hand"
 L["UI_OFF_HAND"] = "Off Hand"
+--[[
+    The value shown beside an item title when nothing resolved. Kept to a single
+    word so it fits in the tooltip's right column, which never wraps -- the full
+    sentence, MSG_NO_ITEM, explains it on the wrapping line underneath.
+]]
+L["UI_NONE"] = "None"
 L["UI_IGNORE_LIST"] = "Ignore List"
 L["MENU_IGNORE"] = "Ignore"
 L["MENU_CLEAR_IGNORE"] = "Clear Ignore List"
@@ -135,15 +141,21 @@ L["MENU_CLEAR_IGNORE"] = "Clear Ignore List"
     are still outstanding, never the items themselves. An order is one row of
     the Restock List, so the count is of rows below target and not of missing
     units -- nine outstanding orders can be nine single juices or nine full
-    stacks. The header above supplies the "restocking", so the lines under it
-    only need the noun.
+    stacks. The header beside it supplies the "restocking", so the count only
+    needs the noun.
 
     Separate singular and plural strings rather than a composed "%d order(s)",
     so every locale can phrase the count its own way.
+
+    The count sits in the tooltip's right column, beside the header, so each of
+    these has to stay short enough to read as a value rather than a sentence --
+    which is why the all-stocked case is two strings: STOCKED_SHORT for the
+    column, and the full congratulation on the wrapping line below it.
 ]]
 L["UI_RESTOCKER_REPORT"] = "Restocker Report"
 L["UI_RESTOCKER_NEEDED_ONE"] = "1 Order Outstanding"
 L["UI_RESTOCKER_NEEDED"] = "%d Orders Outstanding"
+L["UI_RESTOCKER_STOCKED_SHORT"] = "Fully Stocked"
 L["UI_RESTOCKER_STOCKED"] = "Congratulations, you're fully stocked up!"
 
 -- Options entry at the bottom of the mini-map tooltip.
@@ -167,7 +179,7 @@ L["PREFIX_WARLOCK"] = "Attention Warlocks"
 --[[
     Subtitle under each class header, naming the macros the tips below apply
     to. Each tip below is one instruction, rendered on its own line, and every
-    tip names the macro it belongs to — the blocks cover more than one macro,
+    tip names the macro it belongs to -- the blocks cover more than one macro,
     and a bare "Right-Click" would be ambiguous.
 
     The verb tracks the real spell names, which differ by class: mages get
@@ -268,12 +280,12 @@ L["OPTIONS_MINIMAP_BUTTON_DESCRIPTION"] = "Show the mini-map button."
 -- Macro Names on Buttons
 L["OPTIONS_MACRO_NAMES"] = "Enable Macro Names on Buttons"
 L["OPTIONS_MACRO_NAMES_DESCRIPTION"] =
-	"Show the macro name text on your action bar buttons. Off by default, which hides the names Blizzard recently began showing again."
+	"Show the macro name text on your action bar buttons. Off by default, which hides the names the game shows on its own."
 
 -- Potions & Healthstones
 L["OPTIONS_POTIONS_HEADER"] = "Potions & Healthstones"
 L["OPTIONS_POTIONS_DESCRIPTION"] =
-	"Macros cannot change during combat (this is a Blizzard restriction), so each Potion & Healthstone macro is pre-built with your best item plus up to two fallbacks. On longer fights the icon and tooltip can go stale and show the wrong item, but clicking the macro will always use the best item you actually have in your bags."
+	"Macros cannot change during combat (this is a Blizzard restriction), so each Potion and Healthstone macro is pre-built with your best item plus up to two fallbacks. On longer fights the icon and tooltip can go stale and show the wrong item, but clicking the macro will always use the best item you actually have in your bags."
 L["OPTIONS_COMBINE_HEALTHSTONES"] = "Combine Healthstones into Health Potion Macro"
 L["OPTIONS_COMBINE_HEALTHSTONES_DESCRIPTION"] =
 	"Adds your best Healthstone to the bottom of the Health Potion macro, so one press uses a potion and a Healthstone."
@@ -488,7 +500,6 @@ L["VERSION_LABEL"] = "Version"
 --------------------------------------------------------------------------------
 
 -- Chat messages printed by the Restocker feature (Features/Restocker/).
-L["RESTOCKER_IMPORTED_LISTS"] = "Imported your Restocker lists."
 L["RESTOCKER_PROFILE_EXISTS"] = 'A profile named "%s" already exists.'
 L["RESTOCKER_BANK_NOT_OPEN"] = "The bank is not open."
 --[[

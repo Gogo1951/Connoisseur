@@ -129,6 +129,12 @@ L["UI_BEST_PET_FOOD"] = "Aktuelles Tierfutter"
 -- Weapon-slot titles over the rogue's resolved poison, inside the Poisons block.
 L["UI_MAIN_HAND"] = "Waffenhand"
 L["UI_OFF_HAND"] = "Schildhand"
+--[[
+    The value shown beside an item title when nothing resolved. Kept to a single
+    word so it fits in the tooltip's right column, which never wraps -- the full
+    sentence, MSG_NO_ITEM, explains it on the wrapping line underneath.
+]]
+L["UI_NONE"] = "Keins"
 L["UI_IGNORE_LIST"] = "Ignorierliste"
 L["MENU_IGNORE"] = "Ignorieren"
 L["MENU_CLEAR_IGNORE"] = "Ignorierliste löschen"
@@ -138,15 +144,21 @@ L["MENU_CLEAR_IGNORE"] = "Ignorierliste löschen"
     are still outstanding, never the items themselves. An order is one row of
     the Restock List, so the count is of rows below target and not of missing
     units -- nine outstanding orders can be nine single juices or nine full
-    stacks. The header above supplies the "restocking", so the lines under it
-    only need the noun.
+    stacks. The header beside it supplies the "restocking", so the count only
+    needs the noun.
 
     Separate singular and plural strings rather than a composed "%d order(s)",
     so every locale can phrase the count its own way.
+
+    The count sits in the tooltip's right column, beside the header, so each of
+    these has to stay short enough to read as a value rather than a sentence --
+    which is why the all-stocked case is two strings: STOCKED_SHORT for the
+    column, and the full congratulation on the wrapping line below it.
 ]]
 L["UI_RESTOCKER_REPORT"] = "Nachschubbericht"
 L["UI_RESTOCKER_NEEDED_ONE"] = "1 offener Posten"
 L["UI_RESTOCKER_NEEDED"] = "%d offene Posten"
+L["UI_RESTOCKER_STOCKED_SHORT"] = "Vorrat komplett"
 L["UI_RESTOCKER_STOCKED"] = "Glückwunsch, dein Vorrat ist komplett!"
 
 -- Options entry at the bottom of the mini-map tooltip.
@@ -170,7 +182,7 @@ L["PREFIX_WARLOCK"] = "Achtung Hexenmeister"
 --[[
     Subtitle under each class header, naming the macros the tips below apply
     to. Each tip below is one instruction, rendered on its own line, and every
-    tip names the macro it belongs to — the blocks cover more than one macro,
+    tip names the macro it belongs to -- the blocks cover more than one macro,
     and a bare "Right-Click" would be ambiguous.
 
     The verb tracks the real spell names, which differ by class: mages get
@@ -273,7 +285,7 @@ L["OPTIONS_MINIMAP_BUTTON_DESCRIPTION"] = "Zeigt den Minikarten-Button an."
 -- Macro Names on Buttons
 L["OPTIONS_MACRO_NAMES"] = "Makronamen auf Buttons aktivieren"
 L["OPTIONS_MACRO_NAMES_DESCRIPTION"] =
-	"Zeigt den Makronamen-Text auf den Buttons deiner Aktionsleisten an. Standardmäßig aus, wodurch die Namen ausgeblendet werden, die Blizzard kürzlich wieder eingeblendet hat."
+	"Zeigt den Makronamen-Text auf den Buttons deiner Aktionsleisten an. Standardmäßig aus, wodurch die Namen ausgeblendet werden, die das Spiel von sich aus anzeigt."
 
 -- Potions & Healthstones
 L["OPTIONS_POTIONS_HEADER"] = "Tränke & Gesundheitssteine"
@@ -500,7 +512,6 @@ L["VERSION_LABEL"] = "Version"
 --------------------------------------------------------------------------------
 
 -- Chat messages printed by the Restocker feature (Features/Restocker/).
-L["RESTOCKER_IMPORTED_LISTS"] = "Deine Restocker-Listen wurden importiert."
 L["RESTOCKER_PROFILE_EXISTS"] = 'Ein Profil namens "%s" existiert bereits.'
 L["RESTOCKER_BANK_NOT_OPEN"] = "Die Bank ist nicht geöffnet."
 --[[

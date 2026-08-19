@@ -437,21 +437,9 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	{
-		"GetAddOnMetadata (legacy)",
-		function()
-			return type(GetAddOnMetadata) == "function"
-		end,
-	},
-	{
 		"C_AddOns.GetAddOnInfo",
 		function()
 			return type(C_AddOns) == "table" and type(C_AddOns.GetAddOnInfo) == "function"
-		end,
-	},
-	{
-		"GetAddOnInfo (legacy)",
-		function()
-			return type(GetAddOnInfo) == "function"
 		end,
 	},
 	{
@@ -460,22 +448,24 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(C_AddOns) == "table" and type(C_AddOns.GetNumAddOns) == "function"
 		end,
 	},
-	{
-		"GetNumAddOns (legacy)",
-		function()
-			return type(GetNumAddOns) == "function"
-		end,
-	},
 	--[[
-        C_Container has no legacy-global rows by design: GetContainerNumSlots /
-        GetContainerItemInfo are absent on the target clients (see the TOC
-        ## Interface line), where C_Container is the only container API. See
-        the container shims in Utilities.
+        GetContainerNumSlots is probed on both surfaces because its shim keeps
+        a legacy fallback (see the container shims in Utilities).
+        GetContainerItemInfo gets no legacy row because it has no fallback and
+        must not be given one: the two surfaces return different shapes -- a
+        table against a flat list of values -- and every call site indexes the
+        result.
     ]]
 	{
 		"C_Container.GetContainerNumSlots",
 		function()
 			return type(C_Container) == "table" and type(C_Container.GetContainerNumSlots) == "function"
+		end,
+	},
+	{
+		"GetContainerNumSlots (legacy)",
+		function()
+			return type(GetContainerNumSlots) == "function"
 		end,
 	},
 	{
@@ -491,12 +481,11 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	--[[
-        The two routes ns:OpenOptionsPanel picks between (Options/Options.lua):
-        the first docks the panel inside the Blizzard Settings interface, the
-        second is the legacy opener. Which one a client provides is what makes
-        a misrouted panel client-specific -- it opens as a standalone floating
-        window on one flavor while still docking on the other -- so a report
-        that names neither cannot say which route the player took.
+        The route ns:OpenOptionsPanel docks the panel with
+        (Options/Options.lua). A client that does not provide it falls through
+        to AceConfigDialog, which opens a standalone floating window instead of
+        docking -- so a report where this row FAILs is the one that explains a
+        panel the player says opened in the wrong place.
     ]]
 	{
 		"Settings.OpenToCategory",
@@ -504,28 +493,15 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(Settings) == "table" and type(Settings.OpenToCategory) == "function"
 		end,
 	},
-	{
-		"InterfaceOptionsFrame_OpenToCategory (legacy)",
-		function()
-			return type(InterfaceOptionsFrame_OpenToCategory) == "function"
-		end,
-	},
 	--[[
-        Frame methods, read off UIParent because every frame shares one
-        metatable. The Restocker window's resize grip prefers SetResizeBounds
-        and falls back to the SetMinResize/SetMaxResize pair it replaced; if
-        both rows FAIL the window still opens, it just cannot be resized.
+        A frame method, read off UIParent because every frame shares one
+        metatable. The Restocker window's resize grip uses SetResizeBounds; if
+        this row FAILs the window still opens, it just cannot be resized.
     ]]
 	{
 		"Frame:SetResizeBounds",
 		function()
 			return type(UIParent.SetResizeBounds) == "function"
-		end,
-	},
-	{
-		"Frame:SetMinResize (legacy)",
-		function()
-			return type(UIParent.SetMinResize) == "function"
 		end,
 	},
 	{
@@ -1062,9 +1038,9 @@ end
 
 function ns:BuildAddOnReport()
 	local lines = { GetClientHeader(), "" }
-	local getInfo = (C_AddOns and C_AddOns.GetAddOnInfo) or GetAddOnInfo
-	local getMeta = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
-	local count = (C_AddOns and C_AddOns.GetNumAddOns and C_AddOns.GetNumAddOns()) or GetNumAddOns()
+	local getInfo = C_AddOns.GetAddOnInfo
+	local getMeta = C_AddOns.GetAddOnMetadata
+	local count = C_AddOns.GetNumAddOns()
 	for index = 1, count do
 		local name, _, _, loadable = getInfo(index)
 		local version = getMeta(index, "Version") or "?"
@@ -1158,19 +1134,6 @@ function ns:BuildSavedVariablesReport()
 	lines[#lines + 1] = "ConnoisseurRestockerDB = {"
 	DumpTable(restockerView, "    ", 1, lines)
 	lines[#lines + 1] = "}"
-
-	--[[
-        MIGRATION (remove after 2026-08-15): also dump the legacy per-character
-        table while the migration window is open, so a bug report from a user
-        whose ConnoisseurCharDB hasn't been folded into a profile yet still
-        carries their old configuration.
-    ]]
-	if ConnoisseurCharDB then
-		lines[#lines + 1] = ""
-		lines[#lines + 1] = "ConnoisseurCharDB = {"
-		DumpTable(ConnoisseurCharDB, "    ", 1, lines)
-		lines[#lines + 1] = "}"
-	end
 
 	return table.concat(lines, "\n")
 end

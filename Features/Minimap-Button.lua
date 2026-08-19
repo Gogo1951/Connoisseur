@@ -107,16 +107,33 @@ local function AddSpacedLines(tooltip, color, lines)
 end
 
 --[[
-    One "section title + resolved item" block, matching the Current Pet Food
-    and Main Hand / Off Hand sections. Falls back to the standard "no suitable
-    item" line when nothing resolved, or while the item cache is still cold.
+    The right-hand value of an item row: icon and name as one string, so the
+    pair can never split across the tooltip's two columns. An item link carries
+    its own quality color, so the resolved case needs no color of its own.
+
+    Nothing resolved -- or an item cache still cold -- renders the one-word
+    UI_NONE instead, leaving the full explanation to the line below it.
+]]
+local function ItemValue(itemID, itemLink)
+	if itemID and itemLink then
+		return format("|T%s:14:14|t %s", ns.GetItemIcon(itemID), itemLink)
+	end
+	return GetColor("BODY") .. L["UI_NONE"] .. "|r"
+end
+
+--[[
+    One "section title + resolved item" row, matching the Current Pet Food and
+    Main Hand / Off Hand sections. Title on the left, item on the right -- the
+    house pattern of a name and its current value sharing a row.
+
+    The "no suitable item" sentence stays on its own wrapping line rather than
+    moving into the right column, because that column never wraps: a sentence
+    there would stretch the tooltip to the width of the whole sentence.
 ]]
 local function AddItemSection(tooltip, title, itemID, itemLink, missingLabel)
 	tooltip:AddLine(" ")
-	tooltip:AddLine(GetColor("TITLE") .. title .. "|r")
-	if itemID and itemLink then
-		tooltip:AddLine(format("|T%s:14:14|t %s", ns.GetItemIcon(itemID), itemLink))
-	else
+	tooltip:AddDoubleLine(GetColor("TITLE") .. title .. "|r", ItemValue(itemID, itemLink))
+	if not (itemID and itemLink) then
 		tooltip:AddLine(GetColor("BODY") .. format(L["MSG_NO_ITEM"], missingLabel) .. "|r", 1, 1, 1, true)
 	end
 end
@@ -150,12 +167,14 @@ UpdateTooltip = function(anchor)
 	tooltip:AddLine(GetColor("BODY") .. L["MENU_SCROLL_BUFFS_DESCRIPTION"] .. "|r", 1, 1, 1, true)
 	tooltip:AddDoubleLine(GetColor("INFO") .. L["UI_SHIFT_LEFT"] .. "|r", GetColor("INFO") .. L["UI_TOGGLE"] .. "|r")
 
-	-- Current Best Food
+	-- Current Best Food. Shares AddItemSection's row shape, but keeps its own
+	-- block: the Ignore hint only belongs here when there is an item to ignore.
 	tooltip:AddLine(" ")
-	tooltip:AddLine(GetColor("TITLE") .. L["UI_BEST_FOOD"] .. "|r")
+	tooltip:AddDoubleLine(
+		GetColor("TITLE") .. L["UI_BEST_FOOD"] .. "|r",
+		ItemValue(ns.BestFoodID, ns.BestFoodLink)
+	)
 	if ns.BestFoodID and ns.BestFoodLink then
-		local foodIcon = ns.GetItemIcon(ns.BestFoodID)
-		tooltip:AddLine(format("|T%s:14:14|t %s", foodIcon, ns.BestFoodLink))
 		tooltip:AddDoubleLine(
 			GetColor("INFO") .. L["UI_RIGHT_CLICK"] .. "|r",
 			GetColor("INFO") .. L["MENU_IGNORE"] .. "|r"
@@ -307,13 +326,19 @@ UpdateTooltip = function(anchor)
 	if restocker and restocker.BuildGroceryList then
 		local shortCount = #restocker.BuildGroceryList()
 		tooltip:AddLine(" ")
-		tooltip:AddLine(GetColor("TITLE") .. L["UI_RESTOCKER_REPORT"] .. "|r")
 		if shortCount == 0 then
+			tooltip:AddDoubleLine(
+				GetColor("TITLE") .. L["UI_RESTOCKER_REPORT"] .. "|r",
+				GetColor("ON") .. L["UI_RESTOCKER_STOCKED_SHORT"] .. "|r"
+			)
 			tooltip:AddLine(GetColor("ON") .. L["UI_RESTOCKER_STOCKED"] .. "|r", 1, 1, 1, true)
-		elseif shortCount == 1 then
-			tooltip:AddLine(GetColor("BODY") .. L["UI_RESTOCKER_NEEDED_ONE"] .. "|r", 1, 1, 1, true)
 		else
-			tooltip:AddLine(GetColor("BODY") .. format(L["UI_RESTOCKER_NEEDED"], shortCount) .. "|r", 1, 1, 1, true)
+			local countText = (shortCount == 1) and L["UI_RESTOCKER_NEEDED_ONE"]
+				or format(L["UI_RESTOCKER_NEEDED"], shortCount)
+			tooltip:AddDoubleLine(
+				GetColor("TITLE") .. L["UI_RESTOCKER_REPORT"] .. "|r",
+				GetColor("BODY") .. countText .. "|r"
+			)
 		end
 	end
 

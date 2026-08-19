@@ -49,4 +49,3 @@
 ---@field debugMessages boolean
 ---@field dataVersion number Saved-data layout version (see RS_DATA_VERSION)
 ---@field starterListDismissed {[string]: boolean}|nil Characters ("Name-Realm") that opted out of the Starter List popup
----@field migratedToAccount boolean|nil Set on the old per-character table once imported
