@@ -1,4 +1,4 @@
-# Connoisseur
+# Connoisseur & Restocker
 
 Macros that automatically use your best food, buff food, water, potions, healthstones, bandages, and scrolls, plus a Restock List that keeps your bags full and upgrades your consumables as you level. Quality of life automation, peak performance.
 
