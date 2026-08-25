@@ -84,6 +84,7 @@ ns.OPTIONS_REGISTRY = {
 	Restocker = ADDON_NAME .. "_Restocker",
 	-- Registered but never added to the Blizzard tree: it opens as its own window.
 	StarterListPopup = ADDON_NAME .. "_StarterListPopup",
+	IgnoreList = ADDON_NAME .. "_IgnoreList",
 	Profiles = ADDON_NAME .. "_Profiles",
 	Diagnostics = ADDON_NAME .. "_Diagnostics",
 }
@@ -116,6 +117,19 @@ ns.OPTIONS_REMOVE_ICON_WIDTH = 0.25
 -- The blank cell a sub-option row leads with, sized to the parent's checkbox.
 ns.OPTIONS_SUB_INDENT_WIDTH = 0.115
 
+-- The item lists' promote column, sized to hold its button caption.
+ns.OPTIONS_PROMOTE_WIDTH = 0.6
+
+--[[
+    A tree panel's sidebar eats into the pane its rows are laid out in, so rows
+    inside one spend a shorter budget than ns.OPTIONS_ROW_WIDTH. AceGUI's tree
+    defaults to 175px, which truncates the longer "Name - Realm" scope keys;
+    widening it costs the item pane exactly what it gains, hence the paired
+    constant. The tree stays drag-resizable, and a drag wins over this seed.
+]]
+ns.OPTIONS_TREE_WIDTH = 220
+ns.OPTIONS_TREE_ROW_WIDTH = 2.3
+
 --------------------------------------------------------------------------------
 -- Item List Widget
 --------------------------------------------------------------------------------
@@ -127,6 +141,19 @@ ns.OPTIONS_SUB_INDENT_WIDTH = 0.115
     collide with another add-on's widget of the same shape.
 ]]
 ns.ITEM_LINK_WIDGET_TYPE = ADDON_NAME .. "_ItemLink"
+
+--------------------------------------------------------------------------------
+-- Ignore List Scopes
+--------------------------------------------------------------------------------
+
+--[[
+    The Ignore List panel names one scope per list on the account. Every scope
+    but one is an AceDB profile name ("Name - Realm", never localized), so the
+    account-wide list needs a key that no profile can collide with -- hence the
+    asterisks, which the profile picker's name box would never produce. Read by
+    ns:GetIgnoreListForScope in Features/Ignore-List.lua.
+]]
+ns.IGNORE_SCOPE_GLOBAL = "**global**"
 
 --------------------------------------------------------------------------------
 -- Macro Configuration

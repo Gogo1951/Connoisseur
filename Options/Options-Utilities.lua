@@ -294,7 +294,12 @@ function ns:BuildItemListOptions(spec)
 
 	ns:SortItemIdentifiersByName(identifiers)
 
+	local actionColumn = spec.actionColumn
 	local itemWidth = rowWidth - ns.OPTIONS_REMOVE_ICON_WIDTH
+	if actionColumn then
+		itemWidth = itemWidth - actionColumn.width
+	end
+
 	local coldItemIds = {}
 
 	for _, itemId in ipairs(identifiers) do
@@ -326,6 +331,38 @@ function ns:BuildItemListOptions(spec)
 				set = function() end,
 			},
 		}
+
+		if actionColumn then
+			if actionColumn.type == "execute" then
+				cells.action = {
+					type = "execute",
+					name = actionColumn.name,
+					desc = actionColumn.desc,
+					width = actionColumn.width,
+					order = 2,
+					func = function()
+						actionColumn.func(capturedId)
+						AceConfigRegistry:NotifyChange(spec.notifyKey)
+					end,
+				}
+			else
+				cells.action = {
+					type = "select",
+					name = "",
+					desc = actionColumn.desc,
+					values = actionColumn.values,
+					sorting = actionColumn.sorting,
+					width = actionColumn.width,
+					order = 2,
+					get = function()
+						return actionColumn.get(capturedId)
+					end,
+					set = function(_, value)
+						actionColumn.set(capturedId, value)
+					end,
+				}
+			end
+		end
 
 		-- Removing one row takes one click and no confirm.
 		cells.remove = {

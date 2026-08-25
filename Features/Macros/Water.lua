@@ -24,13 +24,6 @@ ns.RegisterMacroType({
 	end,
 	allowBuffFood = true,
 	preferHybrid = false,
-	winnerExtras = function(winner, data)
-		winner.isBuffFood = data.isBuffFood
-		winner.isPercent = data.isPercent
-		winner.isHybrid = (data.itemType == "foodwater")
-		winner.isConjured = data.isConjured
-	end,
-
 	-- Mage conjure: shared Water/Food resolution (Refreshment Table on
 	-- middle-click) lives in Tools-Mages.lua; called at update time.
 	conjure = function()

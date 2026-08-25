@@ -75,6 +75,8 @@ local COLUMN_GUTTER_WIDTH = 0.2
 -- Options Table Builder
 --------------------------------------------------------------------------------
 
+-- Every category argument below is one entry from CRS_ADDON.GetStarterCategories().
+
 --[[
     "1 Stack" .. "N Stacks" choice lists, one per distinct cap -- the food
     dropdowns stop at 4 stacks where the ammo ones run to 18, so the lists
@@ -93,8 +95,6 @@ local COLUMN_GUTTER_WIDTH = 0.2
 ]]
 local stackOptionsByCap = {}
 
----@param category table From RS.GetStarterCategories
----@return table values, table sorting
 local function StackOptions(category)
 	local counting = category.stackSize == 1
 	local choices = category.choices
@@ -132,14 +132,12 @@ local function StackOptions(category)
 	return cached.values, cached.sorting
 end
 
----One staple checkbox. Ticking adds the item -- StarterList.lua picks the
----tier for the character's level -- and unticking removes it, whichever tier
----the list is holding by then. The tooltip names the exact item and count a
----tick adds right now.
----@param category table From RS.GetStarterCategories
----@param order number
----@param width number
----@return table
+--[[
+    One staple checkbox. Ticking adds the item -- StarterList.lua picks the
+    tier for the character's level -- and unticking removes it, whichever tier
+    the list is holding by then. The tooltip names the exact item and count a
+    tick adds right now.
+]]
 local function StapleToggle(category, order, width)
 	return {
 		type = "toggle",
@@ -158,14 +156,12 @@ local function StapleToggle(category, order, width)
 	}
 end
 
----The stacks dropdown beside a staple's checkbox. Live either way round:
----picked first, it decides what a later tick adds; changed after, it rewrites
----the listed entry's amount on the spot. Captionless like every
----beside-a-control dropdown in the options panels.
----@param category table From RS.GetStarterCategories
----@param order number
----@param width number
----@return table
+--[[
+    The stacks dropdown beside a staple's checkbox. Live either way round:
+    picked first, it decides what a later tick adds; changed after, it rewrites
+    the listed entry's amount on the spot. Captionless like every
+    beside-a-control dropdown in the options panels.
+]]
 local function StapleStacks(category, order, width)
 	local values, sorting = StackOptions(category)
 	return {
@@ -190,16 +186,12 @@ local function StapleStacks(category, order, width)
 	}
 end
 
----Adds one staple's checkbox-and-dropdown pair to args; returns the next
----order. A fixedAmount category has no stack choice to offer, so its
----checkbox takes the dropdown's width too and the pair stays one cell wide
----to its neighbors.
----@param args table
----@param category table
----@param order number
----@param toggleWidth number
----@param stacksWidth number
----@return number order
+--[[
+    Adds one staple's checkbox-and-dropdown pair to args; returns the next
+    order. A fixedAmount category has no stack choice to offer, so its
+    checkbox takes the dropdown's width too and the pair stays one cell wide
+    to its neighbors.
+]]
 local function AddStaplePair(args, category, order, toggleWidth, stacksWidth)
 	if category.fixedAmount then
 		args["toggle" .. category.key] = StapleToggle(category, order, toggleWidth + stacksWidth)
@@ -224,14 +216,9 @@ end
     The gutter is a blank cell between the columns, not after them -- the
     right column's air comes from the window edge -- so a row with a single
     pair (Water) takes no gutter at all. Cell widths default to the standard
-    pair; the reagent section passes its own.
+    pair; the reagent section passes its own. The categories arrive already in
+    the display order SectionCategories computed.
 ]]
----@param args table
----@param categories table[] The section's categories, in display order
----@param order number
----@param toggleWidth? number
----@param stacksWidth? number
----@return number order
 local function AddStapleRows(args, categories, order, toggleWidth, stacksWidth)
 	toggleWidth = toggleWidth or STAPLE_TOGGLE_WIDTH
 	stacksWidth = stacksWidth or STAPLE_STACKS_WIDTH
@@ -264,12 +251,12 @@ local function AddStapleRows(args, categories, order, toggleWidth, stacksWidth)
 	return order
 end
 
----One section's categories in display order, holding only the ones this
----class is offered right now -- StarterList.lua's class and availability
----rules keep another class's reagents, a not-yet-trained spell's reagent,
----and another expansion's items out of the window.
----@param section string
----@return table[]
+--[[
+    One section's categories in display order, holding only the ones this
+    class is offered right now -- StarterList.lua's class and availability
+    rules keep another class's reagents, a not-yet-trained spell's reagent,
+    and another expansion's items out of the window.
+]]
 local function SectionCategories(section)
 	local categories = {}
 	for _, category in ipairs(CRS_ADDON.GetStarterCategories()) do
@@ -305,7 +292,6 @@ end
     logic exactly: a section contributes only when it holds at least one
     offerable staple, and pairs pack two to a row.
 ]]
----@return number
 local function PopupHeight()
 	local height = POPUP_BASE_HEIGHT
 
@@ -331,7 +317,6 @@ local function PopupHeight()
 	return math.min(height, POPUP_MAX_HEIGHT)
 end
 
----@return table
 function ns.BuildStarterListPopupOptions()
 	local args = {}
 	local order = 1
@@ -456,7 +441,6 @@ function ns.BuildStarterListPopupOptions()
 		order = order + 1
 		order = AddStapleRows(args, ammoCategories, order)
 		args.spacerAmmo = Spacer(order)
-		order = order + 1
 	end
 
 	return {
@@ -500,9 +484,9 @@ local starterPopupOpen = false
     window. So the checkbox is re-adopted on every open, orphaned again the
     moment its host hides, and the hide-hook is installed once per recycled
     frame -- a HookScript can never be removed, so it is flagged rather than
-    stacked.
+    stacked. The host passed in is that widget's underlying WoW frame, not the
+    widget itself.
 ]]
----@param host table The AceGUI Frame widget's underlying WoW frame
 local function AttachDismissCheckbox(host)
 	if not dismissCheckbox then
 		dismissCheckbox = CreateFrame("CheckButton", nil, UIParent, "UICheckButtonTemplate")
@@ -554,7 +538,6 @@ local function AttachDismissCheckbox(host)
 	end
 end
 
----@return nil
 function ns:ShowStarterListPopup()
 	AceConfigDialog:SetDefaultSize(ns.OPTIONS_REGISTRY.StarterListPopup, POPUP_WIDTH, PopupHeight())
 	AceConfigDialog:Open(ns.OPTIONS_REGISTRY.StarterListPopup)

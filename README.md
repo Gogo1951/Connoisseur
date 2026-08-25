@@ -1,4 +1,4 @@
-# Connoisseur & Restocker
+# Connoisseur
 
 Macros that automatically use your best food, buff food, water, potions, healthstones, bandages, and scrolls, plus a Restock List that keeps your bags full and upgrades your consumables as you level. Quality of life automation, peak performance.
 
@@ -23,44 +23,48 @@ Macros that automatically use your best food, buff food, water, potions, healths
 3.  Drag the dash-prefixed macros (`- Food`, `- Water`, `- Health Potion`, etc.) onto your action bars.
 4.  Optional: type `/foodie` to fine-tune scroll buffs, buff food, pet food, and class options.
 5.  Around level 6, tick your staples in the Restock List window when it offers itself — or type `/crs` any time to build the list yourself.
-6.  Connoisseur // Never miss a meal! Breakfast, second breakfast, elevenses, luncheon, afternoon tea, dinner, supper… (=
+6.  *"Eat like a king, drink like a fish."*
 
 ## How It Works
 
 ### Macros Created
 
-| Macro Name      |Category                                                                |
-| --------------- |----------------------------------------------------------------------- |
-| <code>- Food</code> |Best food (with optional buff food, scroll stacking, and pet buff food) |
-| <code>- Water</code> |Best drink                                                              |
-| <code>- Health Potion</code> |Best healing potion (optionally with your best Healthstone stacked underneath) |
-| <code>- Mana Potion</code> |Best mana potion                                                        |
-| <code>- Bandage</code> |Best bandage (requires First Aid skill)                                 |
-| <code>- Explosives</code> |Highest-damage bomb, grenade, or sapper (requires Engineering skill; Ez-Thro usable by anyone) |
-| <code>- Feed Pet</code> |All-in-one pet button (Hunter only)                                     |
-| <code>- Healthstone</code> |Best Healthstone (Warlock)                                              |
-| <code>- Mana Gem</code> |Best Mana Gem (Mage)                                                    |
-| <code>- Poisons</code> |Dual-hand poison applier (Rogue only)                                   |
-| <code>- Soulstone</code> |Best Soulstone (Warlock)                                                |
+| Macro Name | Category |
+| --- | --- |
+| `- Food` | Best food (with optional buff food, scroll stacking, and pet buff food) |
+| `- Water` | Best drink |
+| `- Health Potion` | Best healing potion (optionally with your best Healthstone stacked underneath) |
+| `- Mana Potion` | Best mana potion |
+| `- Bandage` | Best bandage (requires First Aid skill) |
+| `- Explosives` | Highest-damage bomb, grenade, or sapper (requires Engineering skill; Ez-Thro usable by anyone) |
+| `- Feed Pet` | All-in-one pet button (Hunter only) |
+| `- Healthstone` | Best Healthstone (Warlock) |
+| `- Mana Gem` | Best Mana Gem (Mage) |
+| `- Poisons` | Dual-hand poison applier (Rogue only) |
+| `- Soulstone` | Best Soulstone (Warlock) |
+
+The game forbids editing a macro in combat, so your Potion and Healthstone macros are pre-built with your best item plus a couple of fallbacks. On a long fight the icon and tooltip can go stale, but the press still uses the best item actually in your bags.
 
 ### Slash Commands
 
 | Command | Effect |
 | ------- | ------ |
-| `/foodie` | Opens the Connoisseur options interface |
+| `/foodie` | Opens the Connoisseur Options Interface |
 | `/crs` | Opens the Restocker window to manage your Restock List |
 
 ### Minimap Button
 
-Hover for a tooltip showing the current state of every feature, your best food, the ignore list, and class-specific tips. The icon updates to match your current best food.
+Hover for a tooltip showing the current state of every feature, your best food, your ignore list, class-specific tips, and a Restocker Report counting how many restocking orders are still outstanding. The icon updates to match your current best food.
 
-| Action             |Effect                    |
-| ------------------ |------------------------- |
-| Left-click         |Toggle Buff Food priority |
-| Shift + Left-click |Toggle Scroll Buffs       |
-| Right-click        |Ignore current best food  |
-| Middle-click       |Clear ignore list         |
-| Shift + Middle-click |Open Connoisseur options |
+| Action | Effect |
+| ------ | ------ |
+| Left-click | Toggle Buff Food priority |
+| Shift + Left-click | Toggle Scroll Buffs |
+| Right-click | Ignore current best food |
+| Middle-click | Clear ignore list |
+| Shift + Middle-click | Open Connoisseur options |
+
+Right-click and Middle-click act on this character's own ignore list. The account-wide Global list is edited from the options panel.
 
 <img src="https://github.com/user-attachments/assets/c57060c0-4eee-44ab-af88-48e077d886cc" width="260">
 
@@ -68,15 +72,16 @@ Hover for a tooltip showing the current state of every feature, your best food, 
 
 For each consumable category, Connoisseur compares every usable item in your bags using this priority order:
 
-1.  Buff food preferred (when Buff Food is enabled and Well Fed is missing)
-2.  Percentage-based items preferred over flat values
-3.  Highest restore value wins
-4.  Free conjured items beat purchased items of equal value
-5.  Lowest vendor sell price breaks ties (use up cheap items first)
-6.  Hybrid food+water items preferred or avoided depending on the slot
-7.  Fewest total in bags breaks the final tie
+1.  Buff food first, when Buff Food is enabled and Well Fed is missing
+2.  Percentage-based restores beat flat amounts
+3.  Highest restore value wins (for explosives, highest minimum damage)
+4.  Then it spends whatever loses its worth soonest: conjured items first, then items that only work in one zone, then soulbound ones
+5.  Cheapest to vendor next, so items you'd get nothing for get used up first
+6.  Bigger stack sizes, to spare a bag slot
+7.  The Food macro prefers hybrid food-and-drink items; Water and the potions prefer dedicated ones
+8.  Fewest copies in your bags breaks the final tie
 
-Items are filtered out if you don't meet the level requirement, lack the required profession skill (First Aid for bandages, Alchemy for certain potions, Engineering for explosives), require an engineering specialization you haven't learned (Goblin Engineer), or are in the wrong zone. Explosives are ranked by their minimum damage.
+Items are filtered out if you don't meet the level requirement, lack the required profession skill (First Aid for bandages, Alchemy for certain potions, Engineering for explosives), require an engineering specialization you haven't learned (Goblin Engineer), or are in the wrong zone. Inside a PvP Arena, where the game blocks ordinary food and drink, only conjured items and the arena's own drinks are offered.
 
 ### Restocker
 
@@ -84,11 +89,11 @@ Items are filtered out if you don't meet the level requirement, lack the require
 
 **Your list grows with you.** Food, water, ammo, poisons, and potions all follow clean upgrade paths as you level, and Connoisseur walks your list up them without being asked. Refreshing Spring Water at level 1 becomes Ice Cold Milk at 5, Melon Juice at 15, Sweet Nectar at 25, Moonberry Juice at 35, Morning Glory Dew at 45. You never open the window to do it, and every swap is announced in chat so you know exactly what changed. It only ever moves forward — an item above your level is left alone, because you meant to stock it — and anything without an upgrade path stays exactly where you put it. Each row has its own **Automatic** toggle if you'd rather drive one yourself.
 
-**At a vendor**, Connoisseur buys you back up to your target, with an optional reputation requirement per item since better standing means better prices. Rogues get a bonus here: put the finished poison on your list and the ingredients buy themselves at any vendor that stocks them.
+**At a vendor**, Connoisseur buys you back up to your target, with an optional reputation requirement per item since better standing means better prices. Rogues get a bonus here: put the finished poison on your list and the ingredients buy themselves at any vendor that stocks them all.
 
 **At the bank**, it tops your bags up from your stash and deposits the extra. Each item carries its own Withdraw, Deposit, and Buy toggles, so one list runs your whole consumable logistics chain.
 
-Restocker never sells anything — too many of an item is left untouched. The window can open itself when you reach a bank or a merchant, and optional reminders speak up when you hit an inn or a city short of something, so the errands run without you thinking about them.
+Restocker never sells anything: a surplus goes to your bank if you've asked it to, and is otherwise left alone. The window can open itself when you reach a bank or a merchant, and optional reminders speak up when you hit an inn or a city short of something, or report what's still outstanding as you close a merchant or the bank. Reminders come short or itemised, with an alert sound available for when chat is busy.
 
 Every character keeps its own list, and you can copy, rename, or delete profiles right from the window — handy for raid-night versus farming loadouts.
 
@@ -100,11 +105,11 @@ This feature started life as a separate add-on: Connoisseur ships an updated ver
 
 ### Class Features
 
-**Mages** can right-click Food, Water, or Mana Gem macros to conjure items. Middle-click casts Ritual of Refreshment. Targeting a lower-level friendly player auto-selects the appropriate conjure rank.
+**Mages** can right-click Food, Water, or Mana Gem macros to conjure items — right-click the Mana Gem again for a lower-rank backup. Middle-click Food or Water to cast Ritual of Refreshment. Targeting a lower-level friendly player conjures Food or Water at a rank they can actually use.
 
 <img src="https://github.com/user-attachments/assets/4a4cd1b4-d227-4731-8988-36f505611883" width="260">
 
-**Warlocks** can right-click Healthstone or Soulstone macros to create them. Middle-click casts Ritual of Souls.
+**Warlocks** can right-click Healthstone or Soulstone macros to create them, and right-click Healthstone again for a lower-rank backup. Middle-click Healthstone to cast Ritual of Souls. Targeting a lower-level friendly player makes a stone sized for them.
 
 **Hunters** get an all-in-one `- Feed Pet` macro. Left-click feeds your pet the cheapest food that still gives max happiness. Right-click or entering combat casts Mend Pet. Shift forces Revive Pet. Ctrl dismisses. If your pet is dead but dismissed, it auto-switches to Revive Pet.
 
@@ -120,13 +125,13 @@ Type `/foodie` or open **Options > AddOns > Connoisseur** to configure the add-o
 
 Settings are **per character**, so your raiding 60 and your level-15 alt each keep their own consumable choices — buff food, scrolls, pet food, poisons, and the rest. The **Profiles** tab lets you copy a setup from one character to another, or reset one back to defaults.
 
-Five options stay account-wide: the welcome message, the minimap button, macro names on buttons, **Ready Check**, and **Enable Macros**. Ready Check is a behaviour preference — whether Connoisseur speaks up at all — so you answer it once, though what it reports on still follows each character's own settings. Enable Macros is shared because the macros themselves are: they live in your General macro tab, which every character shares, so turning one off removes it everywhere. Switching characters never adds or removes a macro; it just rewrites the bodies to that character's best items.
+Five options stay account-wide: the welcome message, the mini-map button, macro names on buttons, **Ready Check**, and **Enable Macros** — as does the Global half of the Ignore List. Ready Check is a behaviour preference — whether Connoisseur speaks up at all — so you answer it once, though what it reports on still follows each character's own settings. Enable Macros is shared because the macros themselves are: they live in your General macro tab, which every character shares, so turning one off removes it everywhere. Switching characters never adds or removes a macro; it just rewrites the bodies to that character's best items.
 
 <img src="https://github.com/user-attachments/assets/c0e8e916-b3b9-4ce1-a5ff-d4b023a8ee20" width="800">
 
-**Prioritize Buff Food** // The Food macro prefers items that grant the Well Fed buff, but only when you don't already have it. Can be restricted to party or raid only.
+**Prioritize Buff Food** // The Food macro prefers items that grant the Well Fed buff, but only when you don't already have it. Can be restricted to party or raid only, and targeting yourself makes the macro skip buff food and scrolls entirely. Disabled in Arenas.
 
-**Scroll Buffs** // Your `- Food` macro doubles as a scroll-buff button. When you're missing scroll buffs, the macro turns into a dedicated scroll-applier — one tap fires every missing scroll on you, off the global cooldown, then flips back to food on the next press. Scrolls always target you, are skipped when a class buff already covers the same stat at equal or greater value, and the macro reverts to food mode immediately when you target a friendly player so it stays safe for Mages conjuring for friends. Firing order: Agility, Strength, Protection, Intellect, Spirit, Stamina.
+**Scroll Buffs** // Your `- Food` macro doubles as a scroll-buff button. When you're missing scroll buffs, the macro turns into a dedicated scroll-applier — one tap fires every missing scroll on you, off the global cooldown, then flips back to food on the next press. Scrolls always target you, are skipped when a class buff already covers the same stat at equal or greater value, and the macro reverts to food mode immediately when you target a friendly player so it stays safe for Mages conjuring for friends. Firing order: Agility, Strength, Protection, Intellect, Spirit, Stamina. Disabled in Arenas.
 
 **Buff Re-Application** // Fights outlast buffs. Set a threshold and anything with less time left counts as already expired, so your macros offer a fresh one before the pull rather than halfway through the fight. Applies to Buff Food, Scroll Buffs, and Pet Food Buffs.
 
@@ -136,9 +141,9 @@ Five options stay account-wide: the welcome message, the minimap button, macro n
 
 **Explosives** // Choose the click layout for the `- Explosives` macro. The `@player` option skips the targeting reticle and sets the explosive off right at your feet — ideal when your target is in melee range — while Toss uses the normal targeting reticle. Default: Left-Click @Player, Right-Click Toss. (Keybind presses count as left-click.)
 
-**Pet Food Buffs** // Uses Kibler's Bits or Sporeling Snacks on your pet when its Well Fed buff is missing. Requires level 55+. Can be restricted to party or raid. Pet food only fires in food mode — if you're missing scroll buffs, scrolls go first.
+**Pet Food Buffs** // Uses Kibler's Bits or Sporeling Snacks on your pet when its Well Fed buff is missing. Requires level 55+ and a live pet. Can be restricted to party or raid. Pet food only fires in food mode — if you're missing scroll buffs, scrolls go first. Disabled in Arenas.
 
-**Ignore List** // Tell Connoisseur to skip an item it's currently picking. Right-click the minimap button to add the current best food. Middle-click to clear the list. The settings panel takes items too — paste an item ID or Shift + Click an item link in chat — and clears the whole list on request.
+**Ignore List** // Tell Connoisseur to skip an item it's currently picking, and no macro will offer it again. Right-click the mini-map button to add your current best food, middle-click to clear that character's list. The Ignore List panel holds one list per character plus a **Global** list covering your whole account — type an item ID or Shift + Click an item link in chat to add one, and promote any character's entry up to Global in a click.
 
 ## Testing & Localization Status
 
@@ -163,7 +168,6 @@ Please reach out if you would like to be involved!
 
 👾 **I didn't create this add-on, I just updated it.**
 
-- ChiliFajita's [Auto Restocker](https://www.curseforge.com/wow/addons/autorestocker)
 - kvakvs's [Restocker Classic](https://www.curseforge.com/wow/addons/restocker-classic)
 - guardycmw's [Restocker (MoP)](https://www.curseforge.com/wow/addons/restocker-mop)
 
@@ -179,11 +183,11 @@ Please reach out if you would like to be involved!
 
 🟢 Pairs With // Gogo1951's [Water Dispenser](https://www.curseforge.com/wow/addons/water-dispenser-revisited)
 
-🟡 Some Overlap // wumatic1's [BuffBuddy](https://www.curseforge.com/wow/addons/buffbuddy)
+🟡 Some Overlap // Kemayo's [BankStack](https://www.curseforge.com/wow/addons/bank-stack)
 
 🟡 Some Overlap // kvakvs's [Buffomat Classic](https://www.curseforge.com/wow/addons/buffomat-classic)
 
-🟡 Some Overlap // nyxito's [Consumable Tracker Classic/TBC](https://www.curseforge.com/wow/addons/consumabletracker)
+🟡 Some Overlap // Pupp3h's [Buffwatch Classic](https://www.curseforge.com/wow/addons/buffwatch-classic)
 
 🟡 Some Overlap // humfras's [Poisoner](https://www.curseforge.com/wow/addons/poisoner)
 
@@ -191,9 +195,9 @@ Please reach out if you would like to be involved!
 
 🔴 Direct Alternative // ollidiemaus's [Auto Potion](https://www.curseforge.com/wow/addons/auto-potion)
 
-🔴 Direct Alternative // mZHg's [Buffet](https://www.curseforge.com/wow/addons/buffet)
+🔴 Direct Alternative // DetectivePyralis's [AutoShop](https://www.curseforge.com/wow/addons/autoshop)
 
-🔴 Direct Alternative // funki's [DrinkBot](https://www.curseforge.com/wow/addons/drinkbot)
+🔴 Direct Alternative // mZHg's [Buffet](https://www.curseforge.com/wow/addons/buffet)
 
 🔴 Direct Alternative // executedpoorly's [Feed Me](https://www.curseforge.com/wow/addons/feed-me)
 

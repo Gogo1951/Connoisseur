@@ -145,7 +145,7 @@ end
 
 local REMINDER_MODE_ORDER = { "simple", "verbose" }
 
----A reminder's on/off toggle.
+-- A reminder's on/off toggle.
 local function ReminderToggle(labelKey, descKey, settingKey, order, onSet)
 	return {
 		type = "toggle",
@@ -169,8 +169,10 @@ local function ReminderToggle(labelKey, descKey, settingKey, order, onSet)
 	}
 end
 
----The Simple/Verbose dropdown beside a reminder toggle. Hidden with the
----reminder off -- how loudly a silent reminder speaks is not a question.
+--[[
+    The Simple/Verbose dropdown beside a reminder toggle. Hidden with the
+    reminder off -- how loudly a silent reminder speaks is not a question.
+]]
 local function ReminderMode(settingKey, enabledKey, order)
 	return {
 		type = "select",

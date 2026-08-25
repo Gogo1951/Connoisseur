@@ -10,8 +10,8 @@ local _, ns = ...
     ladder, and the scan loop that dispatches each bag item to every matching
     definition.
 
-    Exposes: ns.ScanBags, ns.AdjustedScore, ns.BestSelection, ns.BestFoodID,
-    ns.BestFoodLink, ns.AllowBuffFood, ns.DiagnosticCandidates.
+    Exposes: ns.ScanBags, ns.BestSelection, ns.BestFoodID, ns.BestFoodLink,
+    ns.AllowBuffFood, ns.DiagnosticCandidates.
 ]]
 
 --------------------------------------------------------------------------------
@@ -57,6 +57,9 @@ local function ResetBest(entry)
 	entry.isPercent = false
 	entry.isHybrid = false
 	entry.isConjured = false
+	entry.hasZones = false
+	entry.isSoulbound = false
+	entry.isHighStack = false
 	if entry.topIDs then
 		wipe(entry.topIDs)
 	end
@@ -81,41 +84,6 @@ local function BuildSelectionTables()
 		end
 	end
 end
-
---------------------------------------------------------------------------------
--- Adjusted Score (Potions & Bandages)
---------------------------------------------------------------------------------
-
---[[
-    Layers two small priority bonuses onto the raw heal/mana value so the
-    scoring still falls back to vendor price → count when items truly tie:
-
-      +2 if the item is zone-restricted (data.zones present). The scanner has
-         already gated on currentMap before this is called, so "has zones" at
-         this point implies "usable here." Zone-locked consumables (Nethergon
-         potions in Tempest Keep, BG-specific bandages, etc.) are worthless
-         outside their zone, so we burn them first when we're inside.
-
-      +1 if the item stacks above 10. Favors Healing/Mana Potion Injectors
-         (stack 20) over the plain potions they are crafted from (stack 5):
-         it preserves the reagent supply and frees bag space.
-
-    The bonuses are intentionally tiny relative to typical heal values, so a
-    stronger raw value still wins; the +1/+2 only matter when raw values tie.
-]]
-
-local function AdjustedScore(data, baseValue)
-	local score = baseValue
-	if data.zones then
-		score = score + 2
-	end
-	if (data.maxStack or 1) > 10 then
-		score = score + 1
-	end
-	return score
-end
--- Exposed for the definitions' score() hooks (Bandage, Health/Mana Potion).
-ns.AdjustedScore = AdjustedScore
 
 --------------------------------------------------------------------------------
 -- Comparison Logic
@@ -150,23 +118,74 @@ local RANKING_PRIORITY = {
 	-- Percent-based restores beat flat values.
 	{ field = "isPercent", kind = "bool" },
 
-	-- Higher restore/damage score (AdjustedScore bonuses included).
+	-- Higher restore/damage, raw from the item data. No bonuses are folded
+	-- in, so this compares exactly what the item restores.
 	{ field = "value", kind = "higher" },
 
 	--[[
-        Conjured food/water beats a non-conjured item of equal restore value.
-        A mage's conjured ration is free and infinite, so at equal food/mana
-        it should always be the pick rather than burning a purchased, quested,
-        or arena-only drink. Below value (a higher-value item still wins) and
-        above price so the preference is deterministic instead of falling
-        through to the incidental price/count/itemID tiebreaks. isConjured is
-        false for every non-food/water type, so this is a no-op for potions,
-        stones, gems, and bandages.
+        THE BURN-FIRST LADDER. Three tiebreaks among items that restore the
+        SAME amount, ordered by SHELF LIFE -- spend the copy that will be
+        worth the least to you soonest:
+
+          isConjured  -- gone at logout, so its shelf life is this session
+                         and nothing else on the list expires on a timer.
+                         Free to replace, too, so spending it costs nothing.
+          hasZones    -- survives logout, but is dead weight the moment you
+                         leave the zone. Spend it while it still does
+                         something.
+          isSoulbound -- keeps its value indefinitely, but only for THIS
+                         character: it cannot be mailed to an alt, traded,
+                         or sold.
+
+        Then price, then isHighStack -- both below, with their own notes. They
+        rank lower because neither is about shelf life: an item that vendors
+        for nothing has simply already lost its gold value, and stack size is
+        pure bag economy.
+
+        This ORDER is the whole specification. Moving a line changes the
+        preference; nothing else needs to change with it.
+
+        They sit BELOW value deliberately. Promote any of them above it and a
+        zone-locked Superior Mana Draught (560) beats a Super Mana Potion
+        (1800) in a battleground -- "worthless elsewhere" is a reason to spend
+        a tie, never a reason to drink the weaker potion.
+
+        The three above plus isHighStack replace four numeric bonuses that
+        used to be added into value (+2 zone, +2 soulbound, +1 stack). Ladder
+        steps are strictly safer:
+        a bonus could outweigh a genuine restore difference of 1 or 2, and two
+        equal bonuses cancelled each other instead of ranking.
+
+        Uniform inside a category is a no-op, which covers most of them:
+        zones and binding only really vary across the potion and bandage
+        families. Note isConjured is set from the food/water data alone, so
+        healthstones, soulstones and mana gems do not carry it even though
+        the game does conjure them -- harmless, because every candidate in
+        those categories is conjured, so the step would never separate two
+        of them anyway.
     ]]
 	{ field = "isConjured", kind = "bool" },
+	{ field = "hasZones", kind = "bool" },
+	{ field = "isSoulbound", kind = "bool" },
 
-	-- Cheaper wins.
+	--[[
+        Cheaper wins, and it sits ABOVE isHighStack because a 0 here does not
+        mean "cheap", it means the item has NO vendor price at all: drinking
+        it forgoes nothing, which outweighs any bag-space argument. The
+        Auchenai potions are the live case -- they vendor for nothing, so
+        they burn ahead of the injectors.
+
+        A separate "has no sell price" step would be redundant. Ascending
+        price already sorts the zero-price items to the front; the only thing
+        that ever kept them behind was isHighStack outranking this step.
+    ]]
 	{ field = "price", kind = "lower" },
+
+	-- Bag economy, and the weakest reason on the list: injectors (stack 20)
+	-- ahead of the potions they are made from spares the reagents and the
+	-- slot. Last of the burn-first steps, so it only separates items already
+	-- equal on restore, shelf life AND price.
+	{ field = "isHighStack", kind = "bool" },
 
 	-- Hybrid food/water: the Food macro prefers hybrids; Water and the
 	-- ranked potion lists prefer dedicated items.
@@ -220,31 +239,39 @@ local function CompareRecords(a, b, allowBuffFood, preferHybrid)
 end
 
 --[[
-    Single-winner form: does this bag item beat the current best entry?
-    The candidate's fields are normalized into a reusable scratch record —
-    score arrives as a parameter because the call sites pass AdjustedScore or
-    a raw restore value, and hybrid is derived from the restore values exactly
-    as before — so CompareRecords reads both sides through the same field
-    names. Best entries already use these names (see ResetBest).
-]]
-local candidateRecord = {}
+    THE one place a comparison field is derived. The running winner, the
+    ranked candidate lists and the diagnostics retention all fill through
+    here, so both sides of every comparison are built the same way by
+    construction -- there is no second reading of an item to drift from the
+    first, and a new ladder step is added in exactly two places: the step
+    list above and this function.
 
---[[
-    Normalizes a bag item into the field names CompareRecords reads. Split out
-    so the diagnostics retention below compares exactly the record the
-    selection itself compared, rather than a second reading of the same item.
+    score arrives as a parameter rather than being read off the item because
+    each category picks its own field (health, mana, damage) in its score()
+    hook.
 ]]
-local function FillCandidateRecord(record, candidate, candidateCount, candidatePrice, score)
+local function FillRecord(record, candidate, candidateCount, candidatePrice, score)
 	record.isBuffFood = candidate.isBuffFood
 	record.isPercent = candidate.isPercent
 	record.value = score
 	record.isConjured = candidate.isConjured
+	record.hasZones = (candidate.zones ~= nil)
+	record.isSoulbound = candidate.isSoulbound
+	record.isHighStack = (candidate.maxStack or 1) > 10
 	record.price = candidatePrice
 	record.isHybrid = (candidate.healthValue > 0 and candidate.manaValue > 0)
 	record.count = candidateCount
 	record.id = candidate.id
 	return record
 end
+
+--[[
+    Single-winner form: does this bag item beat the current best entry? Both
+    sides are FillRecord output, so CompareRecords reads the same field names
+    on each. The scratch record is reused across the whole scan -- FillRecord
+    writes every field, so nothing leaks from one candidate to the next.
+]]
+local candidateRecord = {}
 
 local function IsBetter(candidate, candidateCount, candidatePrice, currentBest, score, allowBuffFood, preferHybrid)
 	if not currentBest.id then
@@ -253,7 +280,7 @@ local function IsBetter(candidate, candidateCount, candidatePrice, currentBest, 
 
 	-- First value only: CompareRecords also returns the deciding field.
 	local better = CompareRecords(
-		FillCandidateRecord(candidateRecord, candidate, candidateCount, candidatePrice, score),
+		FillRecord(candidateRecord, candidate, candidateCount, candidatePrice, score),
 		currentBest,
 		allowBuffFood,
 		preferHybrid
@@ -274,24 +301,17 @@ end
     other categories keep the single-winner IsBetter path.
 ]]
 
-local function AddRankedCandidate(typeName, id, data, score, count)
+local function AddRankedCandidate(typeName, data, score, count)
 	local list = rankedCandidates[typeName]
-	list[#list + 1] = {
-		id = id,
-		value = score,
-		price = data.price,
-		count = count,
-		isPercent = data.isPercent or false,
-		isHybrid = (data.healthValue > 0 and data.manaValue > 0),
-	}
+	list[#list + 1] = FillRecord({}, data, count, data.price, score)
 end
 
 --[[
     Pairwise sort form for the ranked categories — the same RANKING_PRIORITY
     chain with allowBuffFood and preferHybrid always false: percent heals
-    first, then higher score, lower price, non-hybrid, fewer copies, itemID.
-    Ranked records carry no isBuffFood/isConjured fields, so those steps
-    compare nil-to-nil and pass through.
+    first, then higher value, the burn-first steps, price, non-hybrid, fewer
+    copies, itemID. Ranked records come from FillRecord like every other
+    record, so the isBuffFood step is gated off rather than absent.
 ]]
 local function CompareRankedCandidates(a, b)
 	-- First value only: table.sort must see a plain boolean comparator.
@@ -336,14 +356,10 @@ end
     entries below the winner and CaptureDiagnosticCandidates just copies them.
     Only the single-winner categories, which keep no list, retain as they scan.
 
-    One invariant this leans on: retention ranks candidates against each other,
-    while the selection ranks each candidate against the winner record in
-    `best`. The two agree only because every category whose isBuffFood /
-    isPercent / isHybrid / isConjured can actually vary (Food and Water) copies
-    those onto the winner through winnerExtras, and they are constant-false for
-    every other category's item types. A future single-winner category with a
-    varying flag and no winnerExtras would surface here as a runner-up ranked
-    above the winner -- which is a real selection bug, not a reporting one.
+    Retention ranks candidates against each other, while the selection ranks
+    each candidate against the winner record in `best`. The two agree because
+    FillRecord populates both, so no definition has to remember to copy a
+    comparison field onto its winner for the two views to stay in step.
 ]]
 local DIAGNOSTIC_CANDIDATE_LIMIT = 5
 
@@ -552,14 +568,15 @@ function ns.ScanBags()
 		ns.PetBuffOverrideID = ns.FindPetBuffOverride(itemCounts)
 	end
 
-	local ignoreList = (ns.db and ns.db.profile.ignoreList) or {}
+	-- Both halves of the Ignore List hide an item from every macro's selection.
+	local charIgnoreList = ns:GetIgnoreList() or {}
+	local globalIgnoreList = ns:GetGlobalIgnoreList() or {}
 
 	for id, hyperlink in pairs(slotItems) do
-		if not ignoreList[id] then
-			-- Skip scroll items from normal consumable processing
-			if ns.ScrollItemLookup and ns.ScrollItemLookup[id] then
-				-- Scrolls are handled by the scroll override system
-			else
+		if not (charIgnoreList[id] or globalIgnoreList[id]) then
+			-- Scroll items skip normal consumable processing; the scroll
+			-- override system handles them.
+			if not (ns.ScrollItemLookup and ns.ScrollItemLookup[id]) then
 				local data = itemCache[id]
 				--[[
                     Drop cache entries from an older schema so CacheItemData
@@ -567,9 +584,11 @@ function ns.ScanBags()
                     old one: version-stamp invalidation only fires on a release
                     bump, so a same-version update (dev edit) that adds a field
                     would otherwise keep stale entries missing it. The newest
-                    field is damageValue (CacheItemData always writes it);
-                    the older fields are kept in the test to also catch
-                    pre-maxStack/-arenaUsable/-isConjured entries.
+                    field is isSoulbound (CacheItemData always writes it, as
+                    a plain boolean, so == nil only ever means "older
+                    schema"); the older fields are kept in the test to also
+                    catch pre-maxStack/-arenaUsable/-isConjured/-damageValue
+                    entries.
                 ]]
 				if
 					data
@@ -579,6 +598,7 @@ function ns.ScanBags()
 						or data.arenaUsable == nil
 						or data.isConjured == nil
 						or data.damageValue == nil
+						or data.isSoulbound == nil
 					)
 				then
 					data = nil
@@ -676,7 +696,7 @@ function ns.ScanBags()
 							then
 								local score = def.score(data)
 								if def.ranked then
-									AddRankedCandidate(def.typeName, id, data, score, totalCount)
+									AddRankedCandidate(def.typeName, data, score, totalCount)
 								else
 									local entry = best[def.typeName]
 									-- allowBuffFood defs track the live scan
@@ -694,10 +714,7 @@ function ns.ScanBags()
 											def.preferHybrid
 										)
 									then
-										entry.id = id
-										entry.value = score
-										entry.price = data.price
-										entry.count = totalCount
+										FillRecord(entry, data, totalCount, data.price, score)
 										if def.winnerExtras then
 											def.winnerExtras(entry, data, hyperlink)
 										end
@@ -706,7 +723,7 @@ function ns.ScanBags()
 									if ns.diagnostics.enabled then
 										RetainCandidate(
 											def.typeName,
-											FillCandidateRecord(candidateRecord, data, totalCount, data.price, score),
+											FillRecord(candidateRecord, data, totalCount, data.price, score),
 											allowBuffFood,
 											def.preferHybrid
 										)

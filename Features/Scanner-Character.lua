@@ -302,15 +302,18 @@ end
     scroll we would use — otherwise the scroll would still improve the stat.
 ]]
 
----@param snapshot table|nil A snapshot from ns.GetPlayerBuffSnapshot to read from.
----Callers asking about more than one scroll type pass one in, so a single walk
----of the player's auras serves the whole set; omitting it takes a fresh one.
-function ns.HasScrollBuff(scrollType, scrollAmount, snapshot)
+--[[
+    callerSnapshot is an optional snapshot from ns.GetPlayerBuffSnapshot.
+    Callers asking about more than one scroll type pass one in, so a single
+    walk of the player's auras serves the whole set; omitting it takes a
+    fresh one.
+]]
+function ns.HasScrollBuff(scrollType, scrollAmount, callerSnapshot)
 	if not ns.ScrollData or not ns.ScrollData[scrollType] then
 		return true
 	end
 
-	local entry = (snapshot or ns.GetPlayerBuffSnapshot()).scrolls[scrollType]
+	local entry = (callerSnapshot or ns.GetPlayerBuffSnapshot()).scrolls[scrollType]
 
 	-- Already have a scroll buff active for this stat
 	if entry.expiration ~= nil and BuffCountsAsActive(entry.expiration) then
@@ -340,7 +343,9 @@ local function FindBestScroll(scrollType, bagItemCounts)
 	local playerLevel = ns.CachedPlayerLevel or 1
 	local items = ns.ScrollData[scrollType].items
 	for _, entry in ipairs(items) do
-		if entry[3] <= playerLevel then
+		-- The scroll override path never passes the scanner's ignore filter
+		-- (it reads the raw bag counts), so it honors the Ignore List itself.
+		if entry[3] <= playerLevel and not ns:IsIgnored(entry[1]) then
 			if bagItemCounts[entry[1]] and bagItemCounts[entry[1]] > 0 then
 				return entry[1], entry[4]
 			end
@@ -376,12 +381,12 @@ function ns.FindScrollOverrides(bagItemCounts)
         its own snapshot re-read the player's 40 aura slots once per enabled
         scroll type, on a path that re-runs with every bag scan.
     ]]
-	local snapshot = ns.GetPlayerBuffSnapshot()
+	local currentSnapshot = ns.GetPlayerBuffSnapshot()
 
 	for _, scrollType in ipairs(ns.SCROLL_CHECK_ORDER) do
 		if scrollTypes[scrollType] then
 			local scrollItemID, scrollAmount = FindBestScroll(scrollType, bagItemCounts)
-			if scrollItemID and not ns.HasScrollBuff(scrollType, scrollAmount, snapshot) then
+			if scrollItemID and not ns.HasScrollBuff(scrollType, scrollAmount, currentSnapshot) then
 				results = results or {}
 				results[#results + 1] = scrollItemID
 			end

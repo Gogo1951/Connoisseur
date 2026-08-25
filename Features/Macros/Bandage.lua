@@ -8,10 +8,10 @@ local _, ns = ...
 ns.RegisterMacroType({
 	typeName = "Bandage",
 
-	-- Selection: best bandage by adjusted heal (zone-restricted bandages
-	-- get the +2 burn-first bonus — see ns.AdjustedScore).
+	-- Selection: best bandage by raw heal; the BG-only bandages win ties
+	-- through the ladder's hasZones step.
 	itemTypes = { bandage = true },
 	score = function(data)
-		return ns.AdjustedScore(data, data.healthValue)
+		return data.healthValue
 	end,
 })

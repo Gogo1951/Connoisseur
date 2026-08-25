@@ -345,20 +345,24 @@ L["EXPLOSIVES_MODE_ATPLAYER"] = "Left-Click @player, Right-Click Toss"
 L["EXPLOSIVES_MODE_TOSS"] = "Left-Click Toss, Right-Click @player"
 
 --[[
-    Ignore List. The rows are items, so the only copy here is the add box and
-    the placeholder shown while the client is still resolving an item's name.
-    The section header and the clear-all button reuse UI_IGNORE_LIST and
-    MENU_CLEAR_IGNORE, which the mini-map tooltip already carries.
+    Ignore List panel (Options-Ignore-List.lua). One tree scope per list: the
+    account-wide Global list, then one per character. The rows are items, so
+    the copy here is the panel description, the scope and promote labels, the
+    add box, and the placeholder shown while the client is still resolving an
+    item's name. The mini-map tooltip's section keeps its own UI_IGNORE_LIST
+    and MENU_CLEAR_IGNORE keys.
 ]]
-L["OPTIONS_IGNORE_DESCRIPTION"] =
-	"Items Connoisseur will never pick, no matter how good they are. Right-Click the mini-map button to ignore the food it is currently offering, or add an item below."
+L["OPTIONS_IGNORE_LIST_TAB"] = "Ignore List"
+L["OPTIONS_IGNORE_LIST_DESCRIPTION"] =
+	"Ignored items are never picked by any macro. Food, water, potions, anything. The Global list covers every character, a character's list covers only that one. Right-Click the mini-map button to ignore your current best food."
+L["OPTIONS_IGNORE_GLOBAL"] = "Global"
+L["OPTIONS_IGNORE_PROMOTE_DESCRIPTION"] = "Move this item to the Global list, so it is ignored on every character."
 L["OPTIONS_IGNORE_ADD_ID"] = "Add by Item ID"
 L["OPTIONS_IGNORE_ADD_ID_DESCRIPTION"] =
 	"Type an item ID, or Shift + Click an item link in chat while this box has focus."
 L["OPTIONS_IGNORE_ADD_ID_INVALID"] = "Type an item ID, or Shift + Click an item link in chat."
 L["OPTIONS_IGNORE_REMOVE"] = "Remove"
 L["OPTIONS_IGNORE_EMPTY"] = "This list is empty."
-L["OPTIONS_IGNORE_CLEAR_CONFIRM"] = "Remove every item from your Ignore List?"
 -- %d is the item ID, shown while the client is still resolving the item.
 L["LOADING_ITEM"] = "Loading ID: %d"
 
@@ -423,7 +427,7 @@ L["OPTIONS_RESTOCKER_BANK_REMIND_DESCRIPTION"] =
 	"Reports outstanding restocking orders when you close the bank. Silent when there are none."
 
 --[[
-    The starter List Builder pop-up. This toggle and the pop-up's own "Don't
+    The Starter List Builder pop-up. This toggle and the pop-up's own "Don't
     show this again" box are the same per-character choice read from opposite
     ends, which is why one ships on and the other off: a settings row reads
     naturally as "enable", a dismissal reads naturally as "stop".
@@ -519,6 +523,13 @@ L["RESTOCKER_STUCK_ITEM_FORMAT"] = "%dx %s"
 L["RESTOCKER_STUCK_ITEM_EXTRA_FORMAT"] = "%dx %s (extra)"
 L["RESTOCKER_STOPPED_ERROR"] = "Restocking stopped due to an error: %s"
 L["RESTOCKER_BAGS_FULL_SKIP_MERCHANT"] = "Your bags are full. Skipping merchant restock."
+--[[
+    Printed once per vendor visit when the crafting-reagent buyer stands down:
+    this merchant stocks some of the reagents the Restock List needs but not
+    all of them, and reagents buy all-or-nothing (VendorStocksAllReagents in
+    Features/Restocker/Merchant.lua). Silent at vendors stocking none.
+]]
+L["RESTOCKER_REAGENTS_SKIPPED"] = "This merchant doesn't stock every ingredient your poisons need. Skipping them all."
 -- Printed on reaching an inn or a city with something left on the Grocery List.
 L["RESTOCKER_TOWN_REMINDER"] = "Don't forget to restock while you are in town!"
 
@@ -555,7 +566,7 @@ L["RESTOCKER_STILL_SHORT_MANY"] = "%d restocking orders outstanding."
     sum rather than the old amount moved across.
 ]]
 L["RESTOCKER_UPGRADED"] = "Your Restock List has been upgraded."
-L["RESTOCKER_UPGRADED_ITEM"] = "%sx%d upgrade to %sx%d."
+L["RESTOCKER_UPGRADED_ITEM"] = "%sx%d upgrades to %sx%d."
 
 --[[
     Verbose follow-up line, one per short item: { have, wanted, item link }.
@@ -644,7 +655,7 @@ L["STARTER_POPUP_REAGENTS_HEADER"] = "Reagents & Tools"
 L["STARTER_POPUP_POISONS_HEADER"] = "Poisons"
 -- %s is the rogue-colored PREFIX_ROGUE; the spaced colon is deliberate.
 L["STARTER_POPUP_POISONS_NOTE"] =
-	"%s : Add the finished poison to your list, and Connoisseur buys the ingredients automatically at any vendor that stocks them."
+	"%s : Add the finished poison to your list, and Connoisseur buys the ingredients automatically at any vendor that stocks them all."
 L["STARTER_POPUP_POISON_ANESTHETIC"] = "Anesthetic"
 L["STARTER_POPUP_POISON_CRIPPLING"] = "Crippling"
 L["STARTER_POPUP_POISON_DEADLY"] = "Deadly"

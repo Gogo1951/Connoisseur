@@ -8,14 +8,14 @@ ns.RegisterMacroType({
 	typeName = "Health Potion",
 
 	-- Selection: every potion with a heal value competes (a hybrid potion
-	-- also feeds Mana Potion), ranked by adjusted heal into topIDs for the
-	-- stacked /use fallback lines.
+	-- also feeds Mana Potion), ranked by raw heal — then by the ladder's
+	-- burn-first steps — into topIDs for the stacked /use fallback lines.
 	itemTypes = { potion = true },
 	accepts = function(data)
 		return data.healthValue > 0
 	end,
 	score = function(data)
-		return ns.AdjustedScore(data, data.healthValue)
+		return data.healthValue
 	end,
 	ranked = true,
 
