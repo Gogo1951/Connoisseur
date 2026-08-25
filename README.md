@@ -123,27 +123,7 @@ This feature started life as a separate add-on: Connoisseur ships an updated ver
 
 Type `/foodie` or open **Options > AddOns > Connoisseur** to configure the add-on.
 
-Settings are **per character**, so your raiding 60 and your level-15 alt each keep their own consumable choices — buff food, scrolls, pet food, poisons, and the rest. The **Profiles** tab lets you copy a setup from one character to another, or reset one back to defaults.
-
-Five options stay account-wide: the welcome message, the mini-map button, macro names on buttons, **Ready Check**, and **Enable Macros** — as does the Global half of the Ignore List. Ready Check is a behaviour preference — whether Connoisseur speaks up at all — so you answer it once, though what it reports on still follows each character's own settings. Enable Macros is shared because the macros themselves are: they live in your General macro tab, which every character shares, so turning one off removes it everywhere. Switching characters never adds or removes a macro; it just rewrites the bodies to that character's best items.
-
 <img src="https://github.com/user-attachments/assets/c0e8e916-b3b9-4ce1-a5ff-d4b023a8ee20" width="800">
-
-**Prioritize Buff Food** // The Food macro prefers items that grant the Well Fed buff, but only when you don't already have it. Can be restricted to party or raid only, and targeting yourself makes the macro skip buff food and scrolls entirely. Disabled in Arenas.
-
-**Scroll Buffs** // Your `- Food` macro doubles as a scroll-buff button. When you're missing scroll buffs, the macro turns into a dedicated scroll-applier — one tap fires every missing scroll on you, off the global cooldown, then flips back to food on the next press. Scrolls always target you, are skipped when a class buff already covers the same stat at equal or greater value, and the macro reverts to food mode immediately when you target a friendly player so it stays safe for Mages conjuring for friends. Firing order: Agility, Strength, Protection, Intellect, Spirit, Stamina. Disabled in Arenas.
-
-**Buff Re-Application** // Fights outlast buffs. Set a threshold and anything with less time left counts as already expired, so your macros offer a fresh one before the pull rather than halfway through the fight. Applies to Buff Food, Scroll Buffs, and Pet Food Buffs.
-
-**Ready Check** // When a ready check starts, Connoisseur prints what you're still missing and how long your tracked buffs have left. Only you see it — nothing is ever sent to group chat. It reports only what you can fix in those few seconds: Well Fed, scrolls, pet food, and a Healthstone when there's a Warlock around to ask.
-
-**Combine Healthstones** // Adds your best Healthstone to the bottom of the Health Potion macro, so one press uses a potion and a stone.
-
-**Explosives** // Choose the click layout for the `- Explosives` macro. The `@player` option skips the targeting reticle and sets the explosive off right at your feet — ideal when your target is in melee range — while Toss uses the normal targeting reticle. Default: Left-Click @Player, Right-Click Toss. (Keybind presses count as left-click.)
-
-**Pet Food Buffs** // Uses Kibler's Bits or Sporeling Snacks on your pet when its Well Fed buff is missing. Requires level 55+ and a live pet. Can be restricted to party or raid. Pet food only fires in food mode — if you're missing scroll buffs, scrolls go first. Disabled in Arenas.
-
-**Ignore List** // Tell Connoisseur to skip an item it's currently picking, and no macro will offer it again. Right-click the mini-map button to add your current best food, middle-click to clear that character's list. The Ignore List panel holds one list per character plus a **Global** list covering your whole account — type an item ID or Shift + Click an item link in chat to add one, and promote any character's entry up to Global in a click.
 
 ## Testing & Localization Status
 
