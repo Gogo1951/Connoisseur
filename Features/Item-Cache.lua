@@ -5,8 +5,7 @@ local _, ns = ...
     ns.db.profile.itemCache (the stateful item-metadata layer) and answers
     whether an item is a known consumable.
 
-    Exposes: ns.RawData, ns.IsKnownConsumable, ns.CacheItemData,
-    ns.PruneIgnoreList.
+    Exposes: ns.RawData, ns.IsKnownConsumable, ns.CacheItemData.
 ]]
 
 --------------------------------------------------------------------------------
@@ -38,6 +37,11 @@ function ns.IsKnownConsumable(itemID)
 	if ns.ScrollItemLookup and ns.ScrollItemLookup[itemID] then
 		return true
 	end
+	-- Pet-only foods (Kibler's Bits and kin) are consumables the Feed Pet
+	-- macro selects from, even though no RawData table carries them.
+	if ns.PetFoodData and ns.PetFoodData[itemID] then
+		return true
+	end
 	return ns.RawData.FoodAndWater[itemID] ~= nil
 		or ns.RawData.Potions[itemID] ~= nil
 		or ns.RawData.Healthstone[itemID] ~= nil
@@ -45,24 +49,6 @@ function ns.IsKnownConsumable(itemID)
 		or ns.RawData.Bandage[itemID] ~= nil
 		or ns.RawData.ManaGem[itemID] ~= nil
 		or ns.RawData.Explosives[itemID] ~= nil
-end
-
---------------------------------------------------------------------------------
--- Ignore List
---------------------------------------------------------------------------------
-
---[[
-    On logout, drop ignore-list entries no longer recognized as consumables
-    (e.g. the data changed between versions) so the list can't accumulate stale
-    item IDs. Routed from Core's PLAYER_LOGOUT handler.
-]]
-function ns.PruneIgnoreList()
-	local ignoreList = (ns.db and ns.db.profile.ignoreList) or {}
-	for itemID in pairs(ignoreList) do
-		if not ns.IsKnownConsumable(itemID) then
-			ignoreList[itemID] = nil
-		end
-	end
 end
 
 --------------------------------------------------------------------------------
@@ -96,7 +82,7 @@ function ns.CacheItemData(itemID)
 		return nil
 	end
 
-	local name, _, _, _, minLevel, _, _, maxStack, _, _, vendorPrice = GetItemInfo(itemID)
+	local name, _, _, _, minLevel, _, _, maxStack, _, _, vendorPrice, _, _, bindType = GetItemInfo(itemID)
 	if not name then
 		return nil
 	end
@@ -129,6 +115,15 @@ function ns.CacheItemData(itemID)
 		requiredSpellID = nil,
 		price = vendorPrice or 0,
 		maxStack = maxStack or 1,
+		--[[
+            bindType 1 is Enum.ItemBind.OnAcquire. For a consumable that is
+            the exact test for "the stack in the bag is soulbound": you can
+            only be holding one by having acquired it, so the item's binding
+            rule and the state of this copy always agree, and no per-slot
+            lookup is needed. Bind-on-use (3) is deliberately NOT soulbound
+            -- it stays tradeable right up until it is consumed.
+        ]]
+		isSoulbound = (bindType == 1),
 		isBuffFood = false,
 		isPercent = false,
 		zones = nil,

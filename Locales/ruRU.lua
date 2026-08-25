@@ -365,13 +365,19 @@ L["EXPLOSIVES_MODE_ATPLAYER"] = "ЛКМ @player, ПКМ Бросок"
 L["EXPLOSIVES_MODE_TOSS"] = "ЛКМ Бросок, ПКМ @player"
 
 --[[
-    Ignore List. The rows are items, so the only copy here is the add box and
-    the placeholder shown while the client is still resolving an item's name.
-    The section header and the clear-all button reuse UI_IGNORE_LIST and
-    MENU_CLEAR_IGNORE, which the mini-map tooltip already carries.
+    Ignore List panel (Options-Ignore-List.lua). One tree scope per list: the
+    account-wide Global list, then one per character. The rows are items, so
+    the copy here is the panel description, the scope and promote labels, the
+    add box, and the placeholder shown while the client is still resolving an
+    item's name. The mini-map tooltip's section keeps its own UI_IGNORE_LIST
+    and MENU_CLEAR_IGNORE keys.
 ]]
-L["OPTIONS_IGNORE_DESCRIPTION"] =
-	"Предметы, которые Connoisseur никогда не выберет, какими бы хорошими они ни были. Щёлкните правой кнопкой по значку у миникарты, чтобы игнорировать предлагаемую сейчас еду, или добавьте предмет ниже."
+L["OPTIONS_IGNORE_LIST_TAB"] = "Список игнорирования"
+L["OPTIONS_IGNORE_LIST_DESCRIPTION"] =
+	"Игнорируемые предметы никогда не выбираются ни одним макросом. Еда, вода, зелья, что угодно. Общий список действует для всех персонажей, а список персонажа только для него. Щёлкните правой кнопкой по значку у миникарты, чтобы игнорировать текущую лучшую еду."
+L["OPTIONS_IGNORE_GLOBAL"] = "Общий"
+L["OPTIONS_IGNORE_PROMOTE_DESCRIPTION"] =
+	"Переносит предмет в общий список, чтобы он игнорировался у всех персонажей."
 L["OPTIONS_IGNORE_ADD_ID"] = "Добавить по ID предмета"
 L["OPTIONS_IGNORE_ADD_ID_DESCRIPTION"] =
 	"Введите ID предмета или сделайте Shift + Клик по ссылке на предмет в чате, пока это поле активно."
@@ -379,7 +385,6 @@ L["OPTIONS_IGNORE_ADD_ID_INVALID"] =
 	"Введите ID предмета или сделайте Shift + Клик по ссылке на предмет в чате."
 L["OPTIONS_IGNORE_REMOVE"] = "Убрать"
 L["OPTIONS_IGNORE_EMPTY"] = "Список пуст."
-L["OPTIONS_IGNORE_CLEAR_CONFIRM"] = "Убрать все предметы из списка игнорирования?"
 -- %d is the item ID, shown while the client is still resolving the item.
 L["LOADING_ITEM"] = "Загрузка ID: %d"
 
@@ -555,6 +560,14 @@ L["RESTOCKER_STUCK_ITEM_EXTRA_FORMAT"] = "%dx %s (лишнее)"
 L["RESTOCKER_STOPPED_ERROR"] = "Пополнение остановлено из-за ошибки: %s"
 L["RESTOCKER_BAGS_FULL_SKIP_MERCHANT"] =
 	"Ваши сумки переполнены. Пополнение у торговца пропущено."
+--[[
+    Printed once per vendor visit when the crafting-reagent buyer stands down:
+    this merchant stocks some of the reagents the Restock List needs but not
+    all of them, and reagents buy all-or-nothing (VendorStocksAllReagents in
+    Features/Restocker/Merchant.lua). Silent at vendors stocking none.
+]]
+L["RESTOCKER_REAGENTS_SKIPPED"] =
+	"У этого торговца есть не все ингредиенты, необходимые для ваших ядов. Ничего куплено не будет."
 -- Printed on reaching an inn or a city with something left on the Grocery List.
 L["RESTOCKER_TOWN_REMINDER"] = "Не забудьте пополнить запасы, пока вы в городе!"
 
@@ -684,7 +697,7 @@ L["STARTER_POPUP_REAGENTS_HEADER"] = "Реагенты и инструменты
 L["STARTER_POPUP_POISONS_HEADER"] = "Яды"
 -- %s is the rogue-colored PREFIX_ROGUE; the spaced colon is deliberate.
 L["STARTER_POPUP_POISONS_NOTE"] =
-	"%s : Добавьте готовый яд в список, и Connoisseur автоматически купит ингредиенты у любого торговца, который их продает."
+	"%s : Добавьте готовый яд в список, и Connoisseur автоматически купит ингредиенты у любого торговца, который продает их все."
 L["STARTER_POPUP_POISON_ANESTHETIC"] = "Анестезия"
 L["STARTER_POPUP_POISON_CRIPPLING"] = "Калечащий"
 L["STARTER_POPUP_POISON_DEADLY"] = "Смертельный"

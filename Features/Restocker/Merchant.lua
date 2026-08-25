@@ -128,6 +128,65 @@ function merchantModule:UpdatePurchaseOrdersWithCraftingReagents(purchaseOrders,
 end
 
 --[[
+  ALL-OR-NOTHING REAGENTS
+
+  Crafting reagents (rogue poison ingredients) are bought only at a vendor
+  that stocks EVERY reagent the crafting order still needs. Half a recipe is
+  worse than none: a trade-goods vendor that carries Crystal Vials but no
+  Dust of Deterioration used to fill the bags with vials that could not
+  become poisons until some other vendor supplied the rest. A poison
+  supplier carries the full set, so this gate simply keeps the reagent
+  buying at poison suppliers.
+
+  "Needs" means an amount still to buy after bags were counted -- a reagent
+  the bags already cover is not required of the vendor, so dust-only is fine
+  when the vials are in the bags. "Stocks" means the slot is purchasable
+  right now: unlimited (-1) or a limited count above zero. A sold-out
+  limited slot counts as NOT stocked -- buying the others would strand the
+  player exactly the way this rule forbids.
+
+  Quantity coverage is deliberately not required: a limited slot holding 4
+  of the 6 dust wanted still crafts 4 poisons, and the chunked buy loop
+  already caps to vendor stock. The rule is about missing reagent TYPES.
+
+  This gate covers the crafting order only. An item the player put on the
+  Restock List directly (vials included) is their explicit ask and buys
+  exactly as before.
+]]
+---@param craftingPurchaseOrder table<string, number> Localized reagent name to amount still to buy
+---@return boolean allStocked Every needed reagent is purchasable at this vendor
+---@return boolean anyStocked At least one needed reagent is purchasable at this vendor
+function merchantModule:VendorStocksAllReagents(craftingPurchaseOrder)
+  local needed = {} ---@type {[string]: boolean}
+  local neededCount = 0
+  for reagentName, amount in pairs(craftingPurchaseOrder) do
+    if amount > 0 then
+      needed[reagentName] = true
+      neededCount = neededCount + 1
+    end
+  end
+
+  -- Nothing left to buy: the gate passes and no reagent line is at stake.
+  if neededCount == 0 then
+    return true, false
+  end
+
+  local stockedCount = 0
+  for i = 1, GetMerchantNumItems() do
+    local itemName, _, _, _, numAvailable = GetMerchantItemInfo(i)
+    if itemName and needed[itemName] and (numAvailable == -1 or numAvailable > 0) then
+      needed[itemName] = nil -- count each reagent once, however many slots carry it
+      stockedCount = stockedCount + 1
+      if stockedCount == neededCount then
+        return true, true
+      end
+    end
+  end
+
+  return false, stockedCount > 0
+end
+
+--[[
   Buys one merchant slot if it is on the purchase order, and returns how many
   UNITS were ordered plus whether that covered the whole order.
 
@@ -234,6 +293,22 @@ function merchantModule:Restock()
   end
 
   local craftingPurchaseOrder = buyIngredientsModule:CraftingPurchaseOrder() or {}
+
+  --[[
+    All-or-nothing (see VendorStocksAllReagents above): a vendor missing any
+    needed reagent buys NO reagents. The print fires only when this vendor
+    stocked some of them -- the case that used to buy vials on their own --
+    and stays silent at vendors that stock none, where a skipped reagent
+    order is not news.
+  ]]
+  local allReagentsStocked, anyReagentStocked = self:VendorStocksAllReagents(craftingPurchaseOrder)
+  if not allReagentsStocked then
+    if anyReagentStocked then
+      RS:Print(L["RESTOCKER_REAGENTS_SKIPPED"])
+    end
+    craftingPurchaseOrder = {}
+  end
+
   local purchaseOrders = --[[---@type RsTradeCommandsByName]] {}
   local restockList = settings.profiles[settings.currentProfile]
   -- "npc" is the unit we are actually interacting with; the vendor is usually not targeted.

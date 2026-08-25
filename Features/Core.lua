@@ -143,8 +143,8 @@ local function InitVars()
             third argument (defaultProfile) is deliberately omitted, so every
             character lands on its own "Name - Realm" profile -- and that is
             where the settings live, so each character configures its own
-            consumables. The five account-wide keys live on ns.db.global
-            instead, each with its reason (see Data/Default-Settings.lua).
+            consumables. The account-wide keys live on ns.db.global instead,
+            each with its reason (see Data/Default-Settings.lua).
             AceDB applies ns.DATABASE_DEFAULTS itself -- no hand-merge. It
             copies scalar and table defaults into the saved table (rawset)
             when a scope is first accessed; only */** wildcard defaults
@@ -157,7 +157,7 @@ local function InitVars()
             Switching, copying, or resetting a profile now swaps the settings
             themselves as well as the Ignore List, so the macro bodies and aura
             tracking must rebuild. Which macros exist does NOT change --
-            enabledMacros is account-wide, like the macros themselves. The five
+            enabledMacros is account-wide, like the macros themselves. The
             account-wide keys survive untouched, but the two applied
             imperatively (minimap visibility, macro-name text) have to be pushed
             again from global because nothing else re-reads them, and an open
@@ -376,7 +376,7 @@ function ns.UnregisterDataRetry()
 	frame:UnregisterEvent("GET_ITEM_INFO_RECEIVED")
 end
 
-local function OnUpdateHandler(self, elapsed)
+local function OnUpdateHandler(_, elapsed)
 	if InCombatLockdown() then
 		--[[
             Macros can't be written in combat. Disarm the tick but leave the
@@ -430,7 +430,7 @@ end
 -- Event Handling
 --------------------------------------------------------------------------------
 
-frame:SetScript("OnEvent", function(self, event, ...)
+frame:SetScript("OnEvent", function(_, event, ...)
 	-- Diagnostics event-log tap; the boolean is read first so logging-off is free.
 	if ns.diagnostics.logging then
 		ns:LogEvent(event, ...)
@@ -643,8 +643,8 @@ ns.EVENT_NAMES = {
 --[[
     Names NOT registered by the plain loop: unit-filtered events use
     RegisterUnitEvent, and the on-demand events are registered only while needed
-    (UNIT_AURA via UpdateAuraTracking, QUEST_LOG_UPDATE for hunters in InitVars,
-    GET_ITEM_INFO_RECEIVED via RegisterDataRetry).
+    (UNIT_AURA via UpdateAuraTracking, QUEST_LOG_UPDATE for hunters in
+    RefreshArrivalState, GET_ITEM_INFO_RECEIVED via RegisterDataRetry).
 ]]
 local DEFERRED_EVENTS = {
 	UNIT_PET = true,
@@ -664,7 +664,7 @@ frame:RegisterUnitEvent("UNIT_PET", "player")
 frame:RegisterUnitEvent("UNIT_SPELLCAST_SUCCEEDED", "player")
 
 --[[
-    QUEST_LOG_UPDATE is registered dynamically in InitVars — Hunters only.
+    QUEST_LOG_UPDATE is registered dynamically in RefreshArrivalState — Hunters only.
     It is the only event whose sole consumer is Hunter pet-food quest-skipping,
     and it fires too often to justify a full rescan on non-Hunter characters.
 ]]

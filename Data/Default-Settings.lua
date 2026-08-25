@@ -19,7 +19,7 @@ local _, ns = ...
     pairs. The stock Profiles panel (Options/Options-Profiles.lua) is therefore
     meaningful: switching, copying, or resetting a profile moves real settings.
 
-    Five things stay under `global` (account-wide), each for a concrete reason
+    Six things stay under `global` (account-wide), each for a concrete reason
     rather than convenience:
       * showWelcome    -- one login greeting per account, not per character.
       * showMacroNames -- a client-wide action-bar appearance tweak.
@@ -35,6 +35,10 @@ local _, ns = ...
                           contents (position etc.), so keeping it off the
                           profile means switching, resetting, or deleting a
                           profile never moves the minimap button.
+      * ignoreList     -- the account-wide half of the Ignore List, hiding an
+                          item from every character's macros at once; the
+                          per-character half keeps the same key on the profile,
+                          and Features/Ignore-List.lua reads both.
 
     The derived item cache (itemCache / itemCacheVersion) is deliberately NOT
     declared here: Core lazy-inits it on the profile and owns its version-stamp
@@ -101,6 +105,7 @@ ns.DATABASE_DEFAULTS = {
 		offHandPoisonGroup = 4,
 	},
 	global = {
+		ignoreList = {},
 		showWelcome = true,
 		--[[
             Macro-name text on the default action bars. Off by default so the

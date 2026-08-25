@@ -91,6 +91,7 @@ Features/Macros/Water.lua
 Features/Macros/Integration-Druid-Macro-Helper.lua
 Features/Action-Button-Text.lua
 Features/Readiness.lua
+Features/Ignore-List.lua
 
 # Restocker
 Features/Restocker/Module.lua
@@ -120,6 +121,7 @@ Options/Options-General.lua
 Options/Options-Macros.lua
 Options/Options-Restocker.lua
 Options/Options-Starter-List-Popup.lua
+Options/Options-Ignore-List.lua
 Options/Options-Profiles.lua
 Options/Options-Diagnostics.lua
 Options/Options.lua

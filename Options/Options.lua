@@ -9,7 +9,6 @@ local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 --------------------------------------------------------------------------------
 
 local REGISTRY = ns.OPTIONS_REGISTRY
-local mainPanel
 local mainCategoryID
 
 --[[
@@ -19,9 +18,9 @@ local mainCategoryID
     AceDBOptions-3.0 table (ns.BuildProfilesOptions().name), which needs the
     database to exist. Child-panel order in Blizzard's settings tree is the
     order of the AddToBlizOptions calls: General (root) -> Macros -> Restocker
-    -> Profiles -> Diagnostic Tools. The third AddToBlizOptions argument is the
-    parent's display name (L["ADDON_TITLE"]) so each child nests under the
-    root.
+    -> Ignore List -> Profiles -> Diagnostic Tools. The third AddToBlizOptions
+    argument is the parent's display name (L["ADDON_TITLE"]) so each child
+    nests under the root.
 ]]
 local function RegisterChild(appName, builder, displayName)
 	AceConfig:RegisterOptionsTable(appName, builder)
@@ -30,7 +29,7 @@ end
 
 function ns.InitializeOptions()
 	AceConfig:RegisterOptionsTable(REGISTRY.General, ns.BuildGeneralOptions)
-	mainPanel, mainCategoryID = AceConfigDialog:AddToBlizOptions(REGISTRY.General, L["ADDON_TITLE"])
+	mainCategoryID = select(2, AceConfigDialog:AddToBlizOptions(REGISTRY.General, L["ADDON_TITLE"]))
 
 	--[[
         Macros panel (Options-Macros.lua) -- the Enable Macros section, given
@@ -52,6 +51,24 @@ function ns.InitializeOptions()
 	    window over an empty Restock List (Features/Restocker/StarterList.lua).
 	]]
 	AceConfig:RegisterOptionsTable(REGISTRY.StarterListPopup, ns.BuildStarterListPopupOptions)
+
+	--[[
+	    Ignore List panel (Options-Ignore-List.lua). The builder function, not a
+	    built table: its rows are the ignore lists themselves, so AceConfig
+	    re-invokes it on every open and every NotifyChange and the panel never
+	    renders a stale list.
+	]]
+	RegisterChild(REGISTRY.IgnoreList, ns.BuildIgnoreListOptions, L["OPTIONS_IGNORE_LIST_TAB"])
+
+	--[[
+	    Widen the Ignore List tree. AceGUI defaults it to 175px, which truncates
+	    the longer "Name - Realm" scope keys, and its SetStatusTable fills
+	    treewidth in only when the key is absent -- so seeding it here wins,
+	    while a player dragging the splitter still overwrites it from then on.
+	]]
+	local ignoreStatus = AceConfigDialog:GetStatusTable(REGISTRY.IgnoreList)
+	ignoreStatus.groups = ignoreStatus.groups or {}
+	ignoreStatus.groups.treewidth = ns.OPTIONS_TREE_WIDTH
 
 	--[[
         Profiles panel: the stock AceDBOptions-3.0 table, unmodified

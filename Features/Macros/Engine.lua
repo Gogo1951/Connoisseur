@@ -25,8 +25,10 @@ local Config = ns.Config
                            category consumes, e.g. {potion = true}
       accepts(data)     -- optional extra gate on the cached item data
                            (Health Potion: data.healthValue > 0)
-      score(data)       -- the value fed to the ranking ladder, e.g.
-                           ns.AdjustedScore(data, data.healthValue)
+      score(data)       -- the raw restore/damage value fed to the ladder's
+                           value step, e.g. data.healthValue. Burn-first
+                           preferences (conjured, zone-locked, soulbound,
+                           high-stack) are ladder steps, not score bonuses
       ranked            -- true: collect all candidates and rank into the
                            winner's topIDs (the multi-use types); otherwise
                            a single running winner is kept
@@ -36,10 +38,10 @@ local Config = ns.Config
       preferHybrid      -- direction of the ladder's hybrid step: true
                            prefers hybrid food/water (Food), false prefers
                            dedicated items (Water)
-      winnerExtras(winner, data, hyperlink) -- store extra fields on the
-                           winning record (Food: isBuffFood, isPercent, link,
-                           isHybrid, isConjured; Water: the same minus link —
-                           nothing reads a water link)
+      winnerExtras(winner, data, hyperlink) -- store NON-comparison fields on
+                           the winning record (Food: link, for
+                           ns.BestFoodLink). Everything the ladder compares is
+                           filled by the scanner's FillRecord
 
     Body hooks — what the written macro looks like.
 

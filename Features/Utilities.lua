@@ -105,7 +105,12 @@ function ns.KnowsAny(spellList)
 		return false
 	end
 	for _, data in ipairs(spellList) do
-		if IsSpellKnown(data[1]) then
+		-- Same two-step knowledge check as ns.GetSmartSpell.
+		local known = IsSpellKnown(data[1])
+		if not known and IsPlayerSpell then
+			known = IsPlayerSpell(data[1])
+		end
+		if known then
 			return true
 		end
 	end

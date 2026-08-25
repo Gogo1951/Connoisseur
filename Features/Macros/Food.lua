@@ -57,7 +57,7 @@ ns.RegisterMacroType({
         and the allowBuffFood flag additionally makes the ladder prefer buff
         food outright when it is. Hybrids beat dedicated food on ties —
         one bag slot covering both needs. The winner record carries the
-        extra fields the Food body hooks and ns.BestFoodLink read.
+        item link that ns.BestFoodLink and the Food body hooks read.
     ]]
 	itemTypes = { food = true, foodwater = true },
 	accepts = function(data)
@@ -68,12 +68,10 @@ ns.RegisterMacroType({
 	end,
 	allowBuffFood = true,
 	preferHybrid = true,
-	winnerExtras = function(winner, data, hyperlink)
-		winner.isBuffFood = data.isBuffFood
-		winner.isPercent = data.isPercent
+	-- Only the link: every field the ladder compares is filled by the
+	-- scanner's FillRecord, for this category and all the others.
+	winnerExtras = function(winner, _, hyperlink)
 		winner.link = hyperlink
-		winner.isHybrid = (data.itemType == "foodwater")
-		winner.isConjured = data.isConjured
 	end,
 
 	-- Mage conjure: shared Water/Food resolution (Refreshment Table on

@@ -223,55 +223,6 @@ local function GatedDesc(text, order, hiddenFn)
 end
 
 --------------------------------------------------------------------------------
--- Ignore List
---------------------------------------------------------------------------------
-
---[[
-    The items the scanner will never pick. Rendered through the shared item-list
-    builder (ns:BuildItemListOptions), so it adds and removes exactly like every
-    other player-managed list in these add-ons; this file supplies only the
-    section's own head and the callbacks.
-
-    Every mutation resets macro state and requests a rebuild, because the list is
-    a scan input: an item ignored while its macro already names it has to be
-    written out of that body, not just out of the list. The builder issues the
-    NotifyChange that redraws the panel.
-]]
-local function IgnoreListTable()
-	return (ns.db and ns.db.profile.ignoreList) or {}
-end
-
-local function IgnoreListChanged()
-	if ns.ResetMacroState then
-		ns.ResetMacroState()
-	end
-	ns.RequestUpdate()
-end
-
-local function BuildIgnoreListArgs()
-	return ns:BuildItemListOptions({
-		startOrder = 410,
-		notifyKey = ns.OPTIONS_REGISTRY.Macros,
-		getSourceTable = IgnoreListTable,
-		onAdd = function(itemId)
-			IgnoreListTable()[itemId] = true
-			IgnoreListChanged()
-		end,
-		onRemove = function(itemId)
-			IgnoreListTable()[itemId] = nil
-			IgnoreListChanged()
-		end,
-		labels = {
-			addName = L["OPTIONS_IGNORE_ADD_ID"],
-			addHelp = L["OPTIONS_IGNORE_ADD_ID_DESCRIPTION"],
-			addInvalid = L["OPTIONS_IGNORE_ADD_ID_INVALID"],
-			removeDesc = L["OPTIONS_IGNORE_REMOVE"],
-			empty = L["OPTIONS_IGNORE_EMPTY"],
-		},
-	})
-end
-
---------------------------------------------------------------------------------
 -- Macros Panel
 --------------------------------------------------------------------------------
 
@@ -279,9 +230,10 @@ end
     Everything that shapes the macros Connoisseur builds, in one page: which
     macros exist, then how each behaves. Page order is Macro Names on Buttons,
     Enable Macros, Potions & Healthstones, Buff Re-Application, Buff Food,
-    Scroll Buffs, Pet Food Buffs, Explosives, Ignore List, then the
-    class/race-gated Druids, Rogues, and Night Elves sections, which hide
-    themselves for characters they do not apply to.
+    Scroll Buffs, Pet Food Buffs, Explosives, then the class/race-gated Druids,
+    Rogues, and Night Elves sections, which hide themselves for characters they
+    do not apply to. The Ignore List has its own panel
+    (Options-Ignore-List.lua).
 
     Order values keep the spaced blocks these sections used on the General page
     so a section can be reordered or extended without renumbering its
@@ -291,7 +243,7 @@ end
 
     Registered as this builder function rather than a built table (see
     Options/Options.lua), so AceConfig re-invokes it on every open and every
-    NotifyChange -- which is what keeps the Ignore List rows current.
+    NotifyChange, matching how every panel here registers.
 ]]
 
 function ns.BuildMacrosOptions()
@@ -563,35 +515,6 @@ function ns.BuildMacrosOptions()
 			end,
 		},
 
-		--[[
-                Ignore List. The head sits here; the add box and the rows are
-                merged in from the shared builder below, starting at order 410.
-                Clearing the whole list is the destructive action, so it is the
-                one control here that confirms -- removing a single row is one
-                click and no confirm.
-            ]]
-		spaceIgnore0 = Spacer(400),
-		headerIgnore = Header(L["UI_IGNORE_LIST"], 401),
-		spaceIgnore1 = Spacer(402),
-		descIgnore = Desc(GetColor("BODY") .. L["OPTIONS_IGNORE_DESCRIPTION"] .. "|r", 403),
-		spaceIgnore2 = Spacer(404),
-		clearIgnoreList = {
-			type = "execute",
-			name = L["MENU_CLEAR_IGNORE"],
-			width = "double",
-			order = 405,
-			confirm = true,
-			confirmText = L["OPTIONS_IGNORE_CLEAR_CONFIRM"],
-			disabled = function()
-				return next(IgnoreListTable()) == nil
-			end,
-			func = function()
-				wipe(IgnoreListTable())
-				IgnoreListChanged()
-			end,
-		},
-		spaceIgnore3 = Spacer(406),
-
 		-- Druids
 		spaceDruid0 = GatedSpacer(500, NotDruid),
 		headerDruid = Header(L["OPTIONS_DRUIDS_HEADER"], 501, NotDruid),
@@ -728,11 +651,6 @@ function ns.BuildMacrosOptions()
 		spaceNightElf2 = GatedSpacer(605, NotNightElf),
 		descStealthPickOne = GatedDesc(GetColor("HELP") .. L["OPTIONS_STEALTH_PICK_ONE"] .. "|r", 606, NotNightElf),
 	}
-
-	-- The Ignore List's add box and item rows, seated under the head above.
-	for key, option in pairs(BuildIgnoreListArgs()) do
-		args[key] = option
-	end
 
 	return {
 		type = "group",

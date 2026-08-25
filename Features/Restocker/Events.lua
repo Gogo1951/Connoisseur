@@ -38,6 +38,11 @@ end
   The short delay is for bag counts. Purchases and bank moves settle on
   BAG_UPDATE, which can land after the window closes; reading the shortfall on
   the same frame would count items you are already holding as missing.
+
+  The client fires MERCHANT_CLOSED and BANKFRAME_CLOSED on loading-screen
+  teardown (boat crossings included) with no matching open -- and can double-fire
+  them -- so each close handler keys the reminder off its tracked open flag: a
+  _CLOSED event alone does not mean a window was ever open.
 ]]
 local SETTLE_DELAY = 0.3
 
@@ -55,11 +60,12 @@ local function rsRemindOnClose(enabled, mode)
 end
 
 function eventsModule.OnMerchantClose()
+  local merchantWasOpen = merchantModule.merchantIsOpen
   merchantModule.merchantIsOpen = false
   RS:Hide()
 
   local settings = restockerModule.settings
-  if settings then
+  if settings and merchantWasOpen then
     rsRemindOnClose(settings.merchantReminder, settings.merchantReminderMode)
   end
 end
@@ -81,12 +87,13 @@ function eventsModule.OnBankOpen()
 end
 
 function eventsModule.OnBankClose()
+  local bankWasOpen = bankModule.bankIsOpen
   bankModule.bankIsOpen = false
   bankModule.currentlyRestocking = false
   RS:Hide()
 
   local settings = restockerModule.settings
-  if settings then
+  if settings and bankWasOpen then
     rsRemindOnClose(settings.bankReminder, settings.bankReminderMode)
   end
 end

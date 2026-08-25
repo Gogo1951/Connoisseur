@@ -353,13 +353,19 @@ L["EXPLOSIVES_MODE_ATPLAYER"] = "좌클릭 @player, 우클릭 던지기"
 L["EXPLOSIVES_MODE_TOSS"] = "좌클릭 던지기, 우클릭 @player"
 
 --[[
-    Ignore List. The rows are items, so the only copy here is the add box and
-    the placeholder shown while the client is still resolving an item's name.
-    The section header and the clear-all button reuse UI_IGNORE_LIST and
-    MENU_CLEAR_IGNORE, which the mini-map tooltip already carries.
+    Ignore List panel (Options-Ignore-List.lua). One tree scope per list: the
+    account-wide Global list, then one per character. The rows are items, so
+    the copy here is the panel description, the scope and promote labels, the
+    add box, and the placeholder shown while the client is still resolving an
+    item's name. The mini-map tooltip's section keeps its own UI_IGNORE_LIST
+    and MENU_CLEAR_IGNORE keys.
 ]]
-L["OPTIONS_IGNORE_DESCRIPTION"] =
-	"아무리 좋아도 Connoisseur가 절대 고르지 않을 아이템입니다. 미니맵 버튼을 우클릭하면 지금 제안 중인 음식을 차단하고, 아래에서 아이템을 직접 추가할 수도 있습니다."
+L["OPTIONS_IGNORE_LIST_TAB"] = "차단 목록"
+L["OPTIONS_IGNORE_LIST_DESCRIPTION"] =
+	"차단한 아이템은 어떤 매크로에서도 선택되지 않습니다. 음식, 물, 물약 등 무엇이든 해당됩니다. 전체 목록은 모든 캐릭터에 적용되고, 캐릭터 목록은 해당 캐릭터에만 적용됩니다. 미니맵 버튼을 우클릭하면 현재 최적의 음식을 차단합니다."
+L["OPTIONS_IGNORE_GLOBAL"] = "전체"
+L["OPTIONS_IGNORE_PROMOTE_DESCRIPTION"] =
+	"이 아이템을 전체 목록으로 옮겨 모든 캐릭터에서 차단합니다."
 L["OPTIONS_IGNORE_ADD_ID"] = "아이템 ID로 추가"
 L["OPTIONS_IGNORE_ADD_ID_DESCRIPTION"] =
 	"아이템 ID를 입력하거나, 이 입력란이 선택된 상태에서 대화창의 아이템 링크를 Shift + 클릭하세요."
@@ -367,7 +373,6 @@ L["OPTIONS_IGNORE_ADD_ID_INVALID"] =
 	"아이템 ID를 입력하거나, 대화창의 아이템 링크를 Shift + 클릭하세요."
 L["OPTIONS_IGNORE_REMOVE"] = "제거"
 L["OPTIONS_IGNORE_EMPTY"] = "목록이 비어 있습니다."
-L["OPTIONS_IGNORE_CLEAR_CONFIRM"] = "차단 목록에서 모든 아이템을 제거할까요?"
 -- %d is the item ID, shown while the client is still resolving the item.
 L["LOADING_ITEM"] = "ID 불러오는 중: %d"
 
@@ -535,6 +540,14 @@ L["RESTOCKER_STUCK_ITEM_FORMAT"] = "%dx %s"
 L["RESTOCKER_STUCK_ITEM_EXTRA_FORMAT"] = "%dx %s (초과분)"
 L["RESTOCKER_STOPPED_ERROR"] = "오류로 보충이 중단되었습니다: %s"
 L["RESTOCKER_BAGS_FULL_SKIP_MERCHANT"] = "가방이 가득 찼습니다. 상인 보충을 건너뜁니다."
+--[[
+    Printed once per vendor visit when the crafting-reagent buyer stands down:
+    this merchant stocks some of the reagents the Restock List needs but not
+    all of them, and reagents buy all-or-nothing (VendorStocksAllReagents in
+    Features/Restocker/Merchant.lua). Silent at vendors stocking none.
+]]
+L["RESTOCKER_REAGENTS_SKIPPED"] =
+	"이 상인은 독 제조에 필요한 재료를 모두 취급하지 않습니다. 아무것도 구매하지 않습니다."
 -- Printed on reaching an inn or a city with something left on the Grocery List.
 L["RESTOCKER_TOWN_REMINDER"] = "마을에 있는 동안 보충하는 것을 잊지 마세요!"
 
@@ -663,7 +676,7 @@ L["STARTER_POPUP_REAGENTS_HEADER"] = "재료 및 도구"
 L["STARTER_POPUP_POISONS_HEADER"] = "독"
 -- %s is the rogue-colored PREFIX_ROGUE; the spaced colon is deliberate.
 L["STARTER_POPUP_POISONS_NOTE"] =
-	"%s : 완성된 독을 목록에 추가하면 Connoisseur가 재료를 취급하는 모든 상인에게서 자동으로 구매합니다."
+	"%s : 완성된 독을 목록에 추가하면 Connoisseur가 재료를 모두 취급하는 상인에게서 자동으로 구매합니다."
 L["STARTER_POPUP_POISON_ANESTHETIC"] = "마취"
 L["STARTER_POPUP_POISON_CRIPPLING"] = "무력화"
 L["STARTER_POPUP_POISON_DEADLY"] = "치명적인"

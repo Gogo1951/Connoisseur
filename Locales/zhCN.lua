@@ -347,20 +347,24 @@ L["EXPLOSIVES_MODE_ATPLAYER"] = "左键点击 @player，右键点击投掷"
 L["EXPLOSIVES_MODE_TOSS"] = "左键点击投掷，右键点击 @player"
 
 --[[
-    Ignore List. The rows are items, so the only copy here is the add box and
-    the placeholder shown while the client is still resolving an item's name.
-    The section header and the clear-all button reuse UI_IGNORE_LIST and
-    MENU_CLEAR_IGNORE, which the mini-map tooltip already carries.
+    Ignore List panel (Options-Ignore-List.lua). One tree scope per list: the
+    account-wide Global list, then one per character. The rows are items, so
+    the copy here is the panel description, the scope and promote labels, the
+    add box, and the placeholder shown while the client is still resolving an
+    item's name. The mini-map tooltip's section keeps its own UI_IGNORE_LIST
+    and MENU_CLEAR_IGNORE keys.
 ]]
-L["OPTIONS_IGNORE_DESCRIPTION"] =
-	"无论多好，Connoisseur 都不会选择这些物品。右键点击小地图按钮可忽略它当前推荐的食物，也可以在下方添加物品。"
+L["OPTIONS_IGNORE_LIST_TAB"] = "忽略列表"
+L["OPTIONS_IGNORE_LIST_DESCRIPTION"] =
+	"被忽略的物品不会被任何宏选中。食物、水、药水，任何东西都一样。全局列表对所有角色生效，角色列表只对该角色生效。右键点击小地图按钮可忽略当前最佳食物。"
+L["OPTIONS_IGNORE_GLOBAL"] = "全局"
+L["OPTIONS_IGNORE_PROMOTE_DESCRIPTION"] = "将该物品移到全局列表，使其在所有角色上都被忽略。"
 L["OPTIONS_IGNORE_ADD_ID"] = "按物品 ID 添加"
 L["OPTIONS_IGNORE_ADD_ID_DESCRIPTION"] =
 	"输入物品 ID，或在此输入框处于焦点时按住 Shift + 点击聊天中的物品链接。"
 L["OPTIONS_IGNORE_ADD_ID_INVALID"] = "输入物品 ID，或按住 Shift + 点击聊天中的物品链接。"
 L["OPTIONS_IGNORE_REMOVE"] = "移除"
 L["OPTIONS_IGNORE_EMPTY"] = "此列表为空。"
-L["OPTIONS_IGNORE_CLEAR_CONFIRM"] = "要从忽略列表中移除所有物品吗？"
 -- %d is the item ID, shown while the client is still resolving the item.
 L["LOADING_ITEM"] = "正在载入 ID：%d"
 
@@ -523,6 +527,14 @@ L["RESTOCKER_STUCK_ITEM_FORMAT"] = "%dx %s"
 L["RESTOCKER_STUCK_ITEM_EXTRA_FORMAT"] = "%dx %s (多余)"
 L["RESTOCKER_STOPPED_ERROR"] = "补货因错误而停止：%s"
 L["RESTOCKER_BAGS_FULL_SKIP_MERCHANT"] = "你的背包已满。跳过商人补货。"
+--[[
+    Printed once per vendor visit when the crafting-reagent buyer stands down:
+    this merchant stocks some of the reagents the Restock List needs but not
+    all of them, and reagents buy all-or-nothing (VendorStocksAllReagents in
+    Features/Restocker/Merchant.lua). Silent at vendors stocking none.
+]]
+L["RESTOCKER_REAGENTS_SKIPPED"] =
+	"这个商人没有出售你的毒药所需的全部材料。跳过购买这些材料。"
 -- Printed on reaching an inn or a city with something left on the Grocery List.
 L["RESTOCKER_TOWN_REMINDER"] = "在城里的时候别忘了补货！"
 
@@ -649,7 +661,7 @@ L["STARTER_POPUP_REAGENTS_HEADER"] = "材料与工具"
 L["STARTER_POPUP_POISONS_HEADER"] = "毒药"
 -- %s is the rogue-colored PREFIX_ROGUE; the spaced colon is deliberate.
 L["STARTER_POPUP_POISONS_NOTE"] =
-	"%s ：把成品毒药加入清单，Connoisseur 会自动在任何出售材料的商人处购买。"
+	"%s ：把成品毒药加入清单，Connoisseur 会自动在任何出售全部所需材料的商人处购买。"
 L["STARTER_POPUP_POISON_ANESTHETIC"] = "麻醉"
 L["STARTER_POPUP_POISON_CRIPPLING"] = "致残"
 L["STARTER_POPUP_POISON_DEADLY"] = "致命"

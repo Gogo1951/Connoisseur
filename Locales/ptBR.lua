@@ -352,20 +352,25 @@ L["EXPLOSIVES_MODE_ATPLAYER"] = "Clique Esquerdo @player, Clique Direito Arremes
 L["EXPLOSIVES_MODE_TOSS"] = "Clique Esquerdo Arremessar, Clique Direito @player"
 
 --[[
-    Ignore List. The rows are items, so the only copy here is the add box and
-    the placeholder shown while the client is still resolving an item's name.
-    The section header and the clear-all button reuse UI_IGNORE_LIST and
-    MENU_CLEAR_IGNORE, which the mini-map tooltip already carries.
+    Ignore List panel (Options-Ignore-List.lua). One tree scope per list: the
+    account-wide Global list, then one per character. The rows are items, so
+    the copy here is the panel description, the scope and promote labels, the
+    add box, and the placeholder shown while the client is still resolving an
+    item's name. The mini-map tooltip's section keeps its own UI_IGNORE_LIST
+    and MENU_CLEAR_IGNORE keys.
 ]]
-L["OPTIONS_IGNORE_DESCRIPTION"] =
-	"Itens que o Connoisseur nunca vai escolher, por melhores que sejam. Clique com o botão direito no botão do minimapa para ignorar a comida que ele está oferecendo no momento, ou adicione um item abaixo."
+L["OPTIONS_IGNORE_LIST_TAB"] = "Lista de Ignorados"
+L["OPTIONS_IGNORE_LIST_DESCRIPTION"] =
+	"Itens ignorados nunca são escolhidos por nenhuma macro. Comida, bebida, poções, qualquer coisa. A lista global vale para todos os personagens; a de um personagem vale só para ele. Clique com o botão direito no botão do minimapa para ignorar sua melhor comida atual."
+L["OPTIONS_IGNORE_GLOBAL"] = "Global"
+L["OPTIONS_IGNORE_PROMOTE_DESCRIPTION"] =
+	"Move este item para a lista global, para que seja ignorado em todos os personagens."
 L["OPTIONS_IGNORE_ADD_ID"] = "Adicionar por ID do item"
 L["OPTIONS_IGNORE_ADD_ID_DESCRIPTION"] =
 	"Digite um ID de item, ou dê Shift + Clique em um link de item no chat enquanto este campo estiver ativo."
 L["OPTIONS_IGNORE_ADD_ID_INVALID"] = "Digite um ID de item, ou dê Shift + Clique em um link de item no chat."
 L["OPTIONS_IGNORE_REMOVE"] = "Remover"
 L["OPTIONS_IGNORE_EMPTY"] = "Esta lista está vazia."
-L["OPTIONS_IGNORE_CLEAR_CONFIRM"] = "Remover todos os itens da sua Lista de Ignorados?"
 -- %d is the item ID, shown while the client is still resolving the item.
 L["LOADING_ITEM"] = "Carregando ID: %d"
 
@@ -532,6 +537,14 @@ L["RESTOCKER_STUCK_ITEM_FORMAT"] = "%dx %s"
 L["RESTOCKER_STUCK_ITEM_EXTRA_FORMAT"] = "%dx %s (excedente)"
 L["RESTOCKER_STOPPED_ERROR"] = "Reabastecimento interrompido por um erro: %s"
 L["RESTOCKER_BAGS_FULL_SKIP_MERCHANT"] = "Suas bolsas estão cheias. Pulando o reabastecimento no vendedor."
+--[[
+    Printed once per vendor visit when the crafting-reagent buyer stands down:
+    this merchant stocks some of the reagents the Restock List needs but not
+    all of them, and reagents buy all-or-nothing (VendorStocksAllReagents in
+    Features/Restocker/Merchant.lua). Silent at vendors stocking none.
+]]
+L["RESTOCKER_REAGENTS_SKIPPED"] =
+	"Este vendedor não tem todos os ingredientes de que seus venenos precisam. Nenhum será comprado."
 -- Printed on reaching an inn or a city with something left on the Grocery List.
 L["RESTOCKER_TOWN_REMINDER"] = "Não esqueça de se reabastecer enquanto está na cidade!"
 
@@ -659,7 +672,7 @@ L["STARTER_POPUP_REAGENTS_HEADER"] = "Componentes e ferramentas"
 L["STARTER_POPUP_POISONS_HEADER"] = "Venenos"
 -- %s is the rogue-colored PREFIX_ROGUE; the spaced colon is deliberate.
 L["STARTER_POPUP_POISONS_NOTE"] =
-	"%s : Adicione o veneno pronto à sua lista, e o Connoisseur compra os ingredientes automaticamente em qualquer vendedor que os tenha."
+	"%s : Adicione o veneno pronto à sua lista, e o Connoisseur compra os ingredientes automaticamente em qualquer vendedor que tenha todos eles."
 L["STARTER_POPUP_POISON_ANESTHETIC"] = "Anestésico"
 L["STARTER_POPUP_POISON_CRIPPLING"] = "Aleijante"
 L["STARTER_POPUP_POISON_DEADLY"] = "Mortal"

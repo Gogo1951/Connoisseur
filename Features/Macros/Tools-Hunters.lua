@@ -142,7 +142,9 @@ function ns.ScanPetFood()
 	-- Snapshot the player's active quests once per scan
 	BuildActiveQuestSet()
 
-	local ignoreList = (ns.db and ns.db.profile.ignoreList) or {}
+	-- Both halves of the Ignore List hide an item from every macro's selection.
+	local charIgnoreList = ns:GetIgnoreList() or {}
+	local globalIgnoreList = ns:GetGlobalIgnoreList() or {}
 
 	local bestID, bestLink
 	local bestLevel = 999
@@ -165,7 +167,7 @@ function ns.ScanPetFood()
 				local id = info.itemID
 				local foodData = ns.PetFoodData[id]
 
-				if foodData and not ignoreList[id] then
+				if foodData and not (charIgnoreList[id] or globalIgnoreList[id]) then
 					local foodLevel = foodData[1]
 					local foodDiet = foodData[2]
 					local sellPrice = foodData[3]
@@ -188,7 +190,7 @@ function ns.ScanPetFood()
 
 								if inHappyBracket then
 									-- Prefer: lowest itemLevel, then lowest sell price, then fewest in bags
-									local isBetter = false
+									local isBetter
 									if not bestID then
 										isBetter = true
 									elseif foodLevel ~= bestLevel then
@@ -214,7 +216,7 @@ function ns.ScanPetFood()
                                         closest to pet level (lowest), then cheapest, then
                                         fewest in bags.
                                     ]]
-									local isBetter = false
+									local isBetter
 									if not fallbackID then
 										isBetter = true
 									elseif foodLevel ~= fallbackLevel then
@@ -281,10 +283,13 @@ function ns.FindPetBuffOverride(bagItemCounts)
 
 	local petTypes = ns.db.profile.petBuffTypes
 
+	-- The pet-buff override path never passes the scanner's ignore filter
+	-- (it reads the raw bag counts), so it honors the Ignore List itself.
 	if
 		petTypes.KiblersBits
 		and bagItemCounts[ns.KIBLERS_BITS_ITEM_ID]
 		and bagItemCounts[ns.KIBLERS_BITS_ITEM_ID] > 0
+		and not ns:IsIgnored(ns.KIBLERS_BITS_ITEM_ID)
 	then
 		return ns.KIBLERS_BITS_ITEM_ID
 	end
@@ -293,6 +298,7 @@ function ns.FindPetBuffOverride(bagItemCounts)
 		petTypes.SporelingSnacks
 		and bagItemCounts[ns.SPORELING_SNACKS_ITEM_ID]
 		and bagItemCounts[ns.SPORELING_SNACKS_ITEM_ID] > 0
+		and not ns:IsIgnored(ns.SPORELING_SNACKS_ITEM_ID)
 	then
 		return ns.SPORELING_SNACKS_ITEM_ID
 	end

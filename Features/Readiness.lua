@@ -12,6 +12,12 @@ local L = ns.L
     are not reported -- a player who is out of them mid-raid cannot do anything
     about it, so the line would only add noise to the part that matters.
 
+    The whole report is skipped inside a PvP Arena. Arenas block buff food,
+    scrolls and pet food -- which every other surface already suppresses there
+    -- so the only thing left that a player could act on is the Healthstone,
+    and everything else would be a nag about the unfixable. Full silence is
+    the maintainer's choice over a stone-only line.
+
     Exposes: ns.ReportReadiness.
 ]]
 
@@ -182,7 +188,9 @@ end
 --[[
     Routed from Core's dispatcher on READY_CHECK. The group test is a
     belt-and-braces guard: a ready check can only start in a group, but the
-    report is worthless solo and cheap to skip.
+    report is worthless solo and cheap to skip. The arena test is the silence
+    described above, read live from IsInInstance so every arena is covered
+    with no map IDs to maintain -- the same detection ns.ScanBags uses.
 ]]
 function ns.ReportReadiness()
 	-- The report toggle is account-wide; the buffs it reports on are per-character.
@@ -190,6 +198,9 @@ function ns.ReportReadiness()
 		return
 	end
 	if not IsInGroup() then
+		return
+	end
+	if select(2, IsInInstance()) == "arena" then
 		return
 	end
 

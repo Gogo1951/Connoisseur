@@ -170,10 +170,7 @@ UpdateTooltip = function(anchor)
 	-- Current Best Food. Shares AddItemSection's row shape, but keeps its own
 	-- block: the Ignore hint only belongs here when there is an item to ignore.
 	tooltip:AddLine(" ")
-	tooltip:AddDoubleLine(
-		GetColor("TITLE") .. L["UI_BEST_FOOD"] .. "|r",
-		ItemValue(ns.BestFoodID, ns.BestFoodLink)
-	)
+	tooltip:AddDoubleLine(GetColor("TITLE") .. L["UI_BEST_FOOD"] .. "|r", ItemValue(ns.BestFoodID, ns.BestFoodLink))
 	if ns.BestFoodID and ns.BestFoodLink then
 		tooltip:AddDoubleLine(
 			GetColor("INFO") .. L["UI_RIGHT_CLICK"] .. "|r",
@@ -183,8 +180,10 @@ UpdateTooltip = function(anchor)
 		tooltip:AddLine(GetColor("BODY") .. format(L["MSG_NO_ITEM"], L["LABEL_FOOD"]) .. "|r", 1, 1, 1, true)
 	end
 
-	-- Ignore List
-	local ignoreList = ns.db.profile.ignoreList or {}
+	-- Ignore List (the tooltip shows the character's own list, the one the
+	-- Right-Click and Middle-Click below act on; the Global list lives in the
+	-- Ignore List panel).
+	local ignoreList = ns:GetIgnoreList() or {}
 	local hasIgnoredItems = next(ignoreList) ~= nil
 	if hasIgnoredItems then
 		tooltip:AddLine(" ")
@@ -209,7 +208,7 @@ UpdateTooltip = function(anchor)
 				local _, _, _, colorHex = GetItemQualityColor(item.quality)
 				tooltip:AddLine(format("|T%s:14:14|t |c%s[%s]|r", item.texture, colorHex, item.name))
 			else
-				tooltip:AddLine(GetColor("MUTED") .. "ID: " .. item.id .. "|r")
+				tooltip:AddLine(GetColor("MUTED") .. format(L["LOADING_ITEM"], item.id) .. "|r")
 			end
 		end
 
@@ -359,7 +358,7 @@ if LDB then
 		type = "data source",
 		text = L["ADDON_TITLE"],
 		icon = "Interface\\Icons\\INV_Misc_Food_02",
-		OnClick = function(self, button)
+		OnClick = function(_, button)
 			-- Shift + Middle-Click always opens the options panel; checked first (matches every Gogo1951 add-on).
 			if button == "MiddleButton" and IsShiftKeyDown() then
 				if ns.OpenOptionsPanel then
@@ -368,12 +367,10 @@ if LDB then
 				return
 			end
 			if button == "RightButton" and ns.BestFoodID then
-				if ns.db and ns.db.profile then
-					ns.db.profile.ignoreList = ns.db.profile.ignoreList or {}
-					ns.db.profile.ignoreList[ns.BestFoodID] = true
-				end
-				if ns.UpdateMacros then
-					ns.UpdateMacros(true)
+				-- BestFoodID is never already ignored (the scanner filters both
+				-- lists), so the toggle only ever adds here.
+				if ns.ToggleIgnore then
+					ns:ToggleIgnore(ns.BestFoodID)
 				end
 			elseif button == "LeftButton" and IsShiftKeyDown() then
 				if ns.ToggleScrollBuffs then
@@ -384,12 +381,8 @@ if LDB then
 					ns.ToggleBuffFood()
 				end
 			elseif button == "MiddleButton" then
-				if ns.db and ns.db.profile then
-					ns.db.profile.ignoreList = ns.db.profile.ignoreList or {}
-					wipe(ns.db.profile.ignoreList)
-				end
-				if ns.UpdateMacros then
-					ns.UpdateMacros(true)
+				if ns.ClearIgnoreList then
+					ns:ClearIgnoreList()
 				end
 			end
 
