@@ -2,37 +2,37 @@ local _, ns = ...
 ns.RawData = ns.RawData or {}
 
 --[[
-SELECT CONCAT(
-    '[', entry, '] = {',
-    MinDamage, ', ', MaxDamage, ', ', RequiredSkillRank,
-    CASE WHEN requiredspell <> 0 THEN CONCAT(', ', requiredspell) ELSE '' END,
-    '}, -- ', name
-) AS LuaLine
-FROM (
-    SELECT
-      i.entry, i.name, i.RequiredSkillRank, i.requiredspell,
-      CASE
-        WHEN s.Effect1 = 2 THEN s.EffectBasePoints1 + 1
-        WHEN s.Effect2 = 2 THEN s.EffectBasePoints2 + 1
-        WHEN s.Effect3 = 2 THEN s.EffectBasePoints3 + 1
-      END AS MinDamage,
-      CASE
-        WHEN s.Effect1 = 2 THEN s.EffectBasePoints1 + s.EffectDieSides1
-        WHEN s.Effect2 = 2 THEN s.EffectBasePoints2 + s.EffectDieSides2
-        WHEN s.Effect3 = 2 THEN s.EffectBasePoints3 + s.EffectDieSides3
-      END AS MaxDamage
-    FROM item_template i
-    JOIN spell_template s ON s.Id = i.spellid_1
-    JOIN (
-        SELECT spellcategory_1 AS cat, class AS cls, subclass AS sub
-        FROM item_template WHERE entry = 4365
-    ) ref
-      ON i.spellcategory_1 = ref.cat AND i.class = ref.cls AND i.subclass = ref.sub
-    WHERE i.name NOT LIKE '%Test%'
-      AND i.name NOT LIKE '%[PH]%'
-      AND (s.Effect1 = 2 OR s.Effect2 = 2 OR s.Effect3 = 2)
-) t
-ORDER BY name;
+    SELECT CONCAT(
+        '[', entry, '] = {',
+        MinDamage, ', ', MaxDamage, ', ', RequiredSkillRank,
+        CASE WHEN requiredspell <> 0 THEN CONCAT(', ', requiredspell) ELSE '' END,
+        '}, -- ', name
+    ) AS LuaLine
+    FROM (
+        SELECT
+          i.entry, i.name, i.RequiredSkillRank, i.requiredspell,
+          CASE
+            WHEN s.Effect1 = 2 THEN s.EffectBasePoints1 + 1
+            WHEN s.Effect2 = 2 THEN s.EffectBasePoints2 + 1
+            WHEN s.Effect3 = 2 THEN s.EffectBasePoints3 + 1
+          END AS MinDamage,
+          CASE
+            WHEN s.Effect1 = 2 THEN s.EffectBasePoints1 + s.EffectDieSides1
+            WHEN s.Effect2 = 2 THEN s.EffectBasePoints2 + s.EffectDieSides2
+            WHEN s.Effect3 = 2 THEN s.EffectBasePoints3 + s.EffectDieSides3
+          END AS MaxDamage
+        FROM item_template i
+        JOIN spell_template s ON s.Id = i.spellid_1
+        JOIN (
+            SELECT spellcategory_1 AS cat, class AS cls, subclass AS sub
+            FROM item_template WHERE entry = 4365
+        ) ref
+          ON i.spellcategory_1 = ref.cat AND i.class = ref.cls AND i.subclass = ref.sub
+        WHERE i.name NOT LIKE '%Test%'
+          AND i.name NOT LIKE '%[PH]%'
+          AND (s.Effect1 = 2 OR s.Effect2 = 2 OR s.Effect3 = 2)
+    ) t
+    ORDER BY name;
 ]]
 
 ns.RawData.Explosives = {

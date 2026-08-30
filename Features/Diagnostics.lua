@@ -55,6 +55,9 @@ ns.DiagnosticsStrings = {
 	CONTEXT_BUTTON = "Show Connoisseur Context",
 	SELECTION_TITLE = "Item Selection",
 	SELECTION_BUTTON = "Show Selection Report",
+	READINESS_TITLE = "Readiness Report",
+	READINESS_BUTTON = "Show Readiness Report",
+	READINESS_HINT = "Renders the Readiness Report as it would print right now, without waiting for a ready check. The tool for 'I turned a switch on and nothing happened': it tells a report that is quiet because you are ready apart from one that never ran, and lists which switches are on.",
 	SELECTION_HINT = "Shows what each macro picked and which runners-up it beat, naming the ranking step that decided each one. The tool for 'why did it choose that item?' reports. Candidates are only kept while these tools are enabled, so trigger a rescan (loot something, or change zone) after turning them on.",
 	ADDONS_TITLE = "Other Add-ons",
 	ADDONS_BUTTON = "List Installed Add-ons",
@@ -76,10 +79,10 @@ ns.DiagnosticsStrings = {
 -- Enable Gate
 --------------------------------------------------------------------------------
 
-function ns:SetDiagnosticsEnabled(value)
+function ns.SetDiagnosticsEnabled(value)
 	ns.diagnostics.enabled = value and true or false
 	if not ns.diagnostics.enabled then
-		ns:StopEventLog()
+		ns.DiscardEventLog()
 	end
 end
 
@@ -122,11 +125,11 @@ local EVENT_LOG_MAX_ARG_LENGTH = 255
     report still proves the event fired and how often.
 
     UNIT_AURA is the one entry, and it is here for a narrow reason: it is a
-    firehose whose signal firings cannot be told apart AT CAPTURE. ns:LogEvent
+    firehose whose signal firings cannot be told apart AT CAPTURE. ns.LogEvent
     runs from Core's dispatcher BEFORE the real handler, so at that moment
     nothing yet knows whether this particular aura change moved anything the
     add-on tracks. Its signal firings are therefore logged from the other end --
-    ns.HandleUnitAura (Features/Scanner-Character.lua) calls ns:LogEventNow once
+    ns.HandleUnitAura (Features/Scanner-Character.lua) calls ns.LogEventNow once
     it has decided something changed, so a stale-macro report shows the aura
     change that preceded the rebuild in full, with the rest of the traffic
     counted beneath it.
@@ -166,7 +169,7 @@ ns.MESSAGE_ID_FILTERED_EVENTS = {
     is the exact global its live handler compares against -- ERR_ITEM_WRONG_ZONE
     (ns.ReportZoneRestriction, Macros/Runtime.lua), SPELL_FAILED_TARGETS_DEAD
     (ns.HandleHunterPetError, Macros/Tools-Hunters.lua), and ERR_INV_FULL /
-    ERR_BANK_FULL (eventsModule.OnUiErrorMessage, Restocker/Events.lua) -- read
+    ERR_BANK_FULL (ns.OnRestockerUiErrorMessage, Restocker/Restocker-Events.lua) -- read
     live on every call and never persisted, so the filter cannot drift from the
     handlers and start making the log lie about what fired.
 
@@ -210,17 +213,17 @@ end
     report still proves what fired and how often -- and a tester can spot a
     message the add-on should be correlating and isn't.
 ]]
-function ns:SuppressUncorrelatedMessage(event, ...)
+function ns.SuppressUncorrelatedMessage(event, ...)
 	local position = ns.MESSAGE_ID_FILTERED_EVENTS[event]
 	if not position then
 		return false
 	end
 
 	--[[
-        Unclassifiable is signal: a firing that doesn't carry the field we
-        classify by is exactly the unexpected shape a bug report needs to show,
-        so it is logged verbatim rather than suppressed.
-    ]]
+	    Unclassifiable is signal: a firing that doesn't carry the field we
+	    classify by is exactly the unexpected shape a bug report needs to show,
+	    so it is logged verbatim rather than suppressed.
+	]]
 	local text = select(position, ...)
 	if type(text) ~= "string" then
 		return false
@@ -235,13 +238,27 @@ function ns:SuppressUncorrelatedMessage(event, ...)
 	return true
 end
 
-function ns:StartEventLog()
+function ns.StartEventLog()
 	ns.diagnostics.log = {}
 	ns.diagnostics.suppressed = {}
 	ns.diagnostics.logging = true
 end
 
-function ns:StopEventLog()
+--[[
+    Stops capturing but KEEPS what was captured. The panel's buttons read Start,
+    Stop, Show, so the obvious way to use them is start, reproduce the problem,
+    stop, then read the report -- and discarding the buffer here made every
+    report taken that way come back "(no events captured)".
+
+    Nothing leaks by holding it: Start replaces the buffer, and switching
+    diagnostics off entirely releases it through ns.DiscardEventLog.
+]]
+function ns.StopEventLog()
+	ns.diagnostics.logging = false
+end
+
+-- Stop and release the buffer, for when diagnostics is switched off altogether.
+function ns.DiscardEventLog()
 	ns.diagnostics.logging = false
 	ns.diagnostics.log = nil
 	ns.diagnostics.suppressed = nil
@@ -277,31 +294,31 @@ local function AppendLogEntry(event, ...)
 	end
 end
 
-function ns:LogEvent(event, ...)
+function ns.LogEvent(event, ...)
 	if ns.DIAGNOSTIC_EVENT_EXCLUDE[event] then
 		--[[
-	        Counted, not dropped: the first argument is what distinguishes these
-	        firings from each other (UNIT_AURA's unit), so it is what the tally is
-	        keyed by -- "UNIT_AURA(player) x319". The handler writes the full line
-	        for the firings that mattered; see ns:LogEventNow.
-	    ]]
+		    Counted, not dropped: the first argument is what distinguishes these
+		    firings from each other (UNIT_AURA's unit), so it is what the tally is
+		    keyed by -- "UNIT_AURA(player) x319". The handler writes the full line
+		    for the firings that mattered; see ns.LogEventNow.
+		]]
 		local first = select("#", ...) > 0 and tostring((select(1, ...))) or ""
 		CountSuppressed(event, first)
 		return
 	end
 	--[[
-        Filtered at capture, never at render: folding the spam only at display
-        time would still let it push the add-on's own events out of the bounded
-        buffer, and the report would come back clean and empty.
-    ]]
-	if ns:SuppressUncorrelatedMessage(event, ...) then
+	    Filtered at capture, never at render: folding the spam only at display
+	    time would still let it push the add-on's own events out of the bounded
+	    buffer, and the report would come back clean and empty.
+	]]
+	if ns.SuppressUncorrelatedMessage(event, ...) then
 		return
 	end
 	AppendLogEntry(event, ...)
 end
 
 --[[
-    Write a full log line from inside a handler, for an event ns:LogEvent can
+    Write a full log line from inside a handler, for an event ns.LogEvent can
     only count because the capture tap runs before the handler and so cannot yet
     tell signal from noise (ns.DIAGNOSTIC_EVENT_EXCLUDE).
 
@@ -311,7 +328,7 @@ end
     only on firings the handler actually acted on; everything else is already in
     the suppressed tally.
 ]]
-function ns:LogEventNow(event, ...)
+function ns.LogEventNow(event, ...)
 	if not ns.diagnostics.logging then
 		return
 	end
@@ -352,7 +369,7 @@ local function AppendSuppressedSummary(lines)
 	end
 end
 
-function ns:BuildEventLogReport()
+function ns.BuildEventLogReport()
 	local lines = { GetClientHeader(), "" }
 	local log = ns.diagnostics.log
 	if not log or #log == 0 then
@@ -388,7 +405,7 @@ local function GetProbeFrame()
 	return probeFrame
 end
 
-function ns:RunEventChecks()
+function ns.RunEventChecks()
 	local lines = { GetClientHeader(), "" }
 	local hasIsEventValid = type(C_EventUtils) == "table" and type(C_EventUtils.IsEventValid) == "function"
 	local probe = GetProbeFrame()
@@ -449,23 +466,15 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	--[[
-        GetContainerNumSlots is probed on both surfaces because its shim keeps
-        a legacy fallback (see the container shims in Utilities).
-        GetContainerItemInfo gets no legacy row because it has no fallback and
-        must not be given one: the two surfaces return different shapes -- a
-        table against a flat list of values -- and every call site indexes the
-        result.
-    ]]
+	    C_Container is the container surface on both target clients, so both
+	    readers are probed there and nowhere else. Neither carries a legacy
+	    fallback nor may be given one, so there is no legacy row to pair with
+	    either (see the container shims in Utilities).
+	]]
 	{
 		"C_Container.GetContainerNumSlots",
 		function()
 			return type(C_Container) == "table" and type(C_Container.GetContainerNumSlots) == "function"
-		end,
-	},
-	{
-		"GetContainerNumSlots (legacy)",
-		function()
-			return type(GetContainerNumSlots) == "function"
 		end,
 	},
 	{
@@ -481,12 +490,12 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	--[[
-        The route ns:OpenOptionsPanel docks the panel with
-        (Options/Options.lua). A client that does not provide it falls through
-        to AceConfigDialog, which opens a standalone floating window instead of
-        docking -- so a report where this row FAILs is the one that explains a
-        panel the player says opened in the wrong place.
-    ]]
+	    The route ns.OpenOptionsPanel docks the panel with
+	    (Options/Options.lua). A client that does not provide it falls through
+	    to AceConfigDialog, which opens a standalone floating window instead of
+	    docking -- so a report where this row FAILs is the one that explains a
+	    panel the player says opened in the wrong place.
+	]]
 	{
 		"Settings.OpenToCategory",
 		function()
@@ -494,10 +503,10 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	--[[
-        A frame method, read off UIParent because every frame shares one
-        metatable. The Restocker window's resize grip uses SetResizeBounds; if
-        this row FAILs the window still opens, it just cannot be resized.
-    ]]
+	    A frame method, read off UIParent because every frame shares one
+	    metatable. The Restocker window's resize grip uses SetResizeBounds; if
+	    this row FAILs the window still opens, it just cannot be resized.
+	]]
 	{
 		"Frame:SetResizeBounds",
 		function()
@@ -511,11 +520,11 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	--[[
-        All three load-bearing for the Restocker's entering-town reminder:
-        IsResting is the signal it keys off, UnitOnTaxi is what keeps a flight
-        path over a town from counting as arriving in one, and PlaySoundFile
-        plays the optional alert.
-    ]]
+	    All three load-bearing for the Restocker's entering-town reminder:
+	    IsResting is the signal it keys off, UnitOnTaxi is what keeps a flight
+	    path over a town from counting as arriving in one, and PlaySoundFile
+	    plays the optional alert.
+	]]
 	{
 		"IsResting",
 		function()
@@ -565,10 +574,10 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	--[[
-        Guarded in ns.WarmItemCache (Options/Options-Utilities.lua): without it
-        an options item list can only show ids the client already cached, so the
-        rows sit on their loading text until something else pulls the data.
-    ]]
+	    Guarded in ns.WarmItemCache (Options/Options-Utilities.lua): without it
+	    an options item list can only show ids the client already cached, so the
+	    rows sit on their loading text until something else pulls the data.
+	]]
 	{
 		"C_Item.RequestLoadItemDataByID",
 		function()
@@ -642,9 +651,58 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	{
-		"UnitAura",
+		"C_UnitAuras.GetBuffDataByIndex",
 		function()
-			return type(UnitAura) == "function"
+			return type(C_UnitAuras) == "table" and type(C_UnitAuras.GetBuffDataByIndex) == "function"
+		end,
+	},
+	--[[
+	    The Readiness Report's surface. Every one of these is reached only when
+	    its own switch is on, so a missing one takes a whole line of the report
+	    down and nothing else -- and does it silently, since a client with
+	    scriptErrors off swallows the error. A FAIL here is the fastest
+	    explanation for "I turned that on and the report went quiet".
+	]]
+	{
+		"GetWeaponEnchantInfo",
+		function()
+			return type(GetWeaponEnchantInfo) == "function"
+		end,
+	},
+	{
+		"GetInventoryItemDurability",
+		function()
+			return type(GetInventoryItemDurability) == "function"
+		end,
+	},
+	{
+		"GetInventoryItemLink",
+		function()
+			return type(GetInventoryItemLink) == "function"
+		end,
+	},
+	{
+		"GetNumTalentTabs",
+		function()
+			return type(GetNumTalentTabs) == "function"
+		end,
+	},
+	{
+		"GetTalentTabInfo",
+		function()
+			return type(GetTalentTabInfo) == "function"
+		end,
+	},
+	{
+		"UnitCharacterPoints",
+		function()
+			return type(UnitCharacterPoints) == "function"
+		end,
+	},
+	{
+		"UnitIsPVP",
+		function()
+			return type(UnitIsPVP) == "function"
 		end,
 	},
 	{
@@ -727,12 +785,6 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	{
-		"GetInventorySlotInfo",
-		function()
-			return type(GetInventorySlotInfo) == "function"
-		end,
-	},
-	{
 		"C_Container.GetContainerNumFreeSlots",
 		function()
 			return type(C_Container) == "table" and type(C_Container.GetContainerNumFreeSlots) == "function"
@@ -757,12 +809,6 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	{
-		"C_Container.ContainerIDToInventoryID",
-		function()
-			return type(C_Container) == "table" and type(C_Container.ContainerIDToInventoryID) == "function"
-		end,
-	},
-	{
 		"GetCVar",
 		function()
 			return type(GetCVar) == "function"
@@ -776,7 +822,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 	},
 }
 
-function ns:RunApiChecks()
+function ns.RunApiChecks()
 	local lines = { GetClientHeader(), "" }
 	for _, check in ipairs(ns.DIAGNOSTIC_API_CHECKS) do
 		local ok, result = pcall(check[2])
@@ -810,10 +856,12 @@ ns.DIAGNOSTIC_SPELLS = {
 	{ 982, "Revive Pet" },
 	{ 2641, "Dismiss Pet" },
 	{ 20580, "Shadowmeld" },
+	{ 2842, "Poisons" },
+	{ 1784, "Stealth" },
 	{ 20222, "Goblin Engineer" },
 }
 
-function ns:BuildContextReport()
+function ns.BuildContextReport()
 	local lines = { GetClientHeader(), "" }
 
 	local _, classToken = UnitClass("player")
@@ -845,13 +893,13 @@ function ns:BuildContextReport()
 	lines[#lines + 1] = string.format("PetBuffOverrideID: %s", tostring(ns.PetBuffOverrideID))
 
 	--[[
-        Per-category winners from the last ScanBags pass (ns.BestSelection is
-        the scanner's live best table). The read-out for "category X didn't
-        update" reports: it shows exactly what the scanner picked plus the
-        tiebreak inputs (value/price/count) the comparison ladder ordered on,
-        and the ranked topIDs for multi-use types — none of which BestFoodID
-        alone can reveal.
-    ]]
+	    Per-category winners from the last ScanBags pass (ns.BestSelection is
+	    the scanner's live best table). The read-out for "category X didn't
+	    update" reports: it shows exactly what the scanner picked plus the
+	    tiebreak inputs (value/price/count) the comparison ladder ordered on,
+	    and the ranked topIDs for multi-use types — none of which BestFoodID
+	    alone can reveal.
+	]]
 	local selection = ns.BestSelection
 	if selection then
 		lines[#lines + 1] = ""
@@ -893,6 +941,24 @@ function ns:BuildContextReport()
 			spellID,
 			name and (" = " .. name) or " (no name on this client)"
 		)
+	end
+
+	--[[
+	    The Restock List's shift-click capture claims ChatEdit_InsertLink so a
+	    shift-clicked item lands on the list instead of in chat. Another add-on
+	    replacing that global without chaining silently takes the click, and the
+	    only symptom is a shift-click that appears to do nothing, so the state is
+	    reported rather than left to be guessed at.
+	]]
+	lines[#lines + 1] = ""
+	lines[#lines + 1] = "-- Restocker link capture --"
+	if ns.IsRestockLinkCaptureInstalled then
+		lines[#lines + 1] = string.format(
+			"ChatEdit_InsertLink claimed by Connoisseur: %s",
+			ns.IsRestockLinkCaptureInstalled() and "yes" or "NO (another add-on replaced it)"
+		)
+	else
+		lines[#lines + 1] = "ChatEdit_InsertLink claimed by Connoisseur: capture never installed"
 	end
 
 	lines[#lines + 1] = ""
@@ -962,7 +1028,7 @@ local function AppendCategoryLines(lines, typeName, entry, candidates)
 	end
 end
 
-function ns:BuildSelectionReport()
+function ns.BuildSelectionReport()
 	local lines = { GetClientHeader(), "" }
 
 	local selection = ns.BestSelection
@@ -974,10 +1040,10 @@ function ns:BuildSelectionReport()
 	end
 
 	--[[
-        Candidate retention starts when the tools are enabled, so a report run
-        before the next scan has winners but no runners-up. Say so rather than
-        letting an empty list read as "nothing else was in the running."
-    ]]
+	    Candidate retention starts when the tools are enabled, so a report run
+	    before the next scan has winners but no runners-up. Say so rather than
+	    letting an empty list read as "nothing else was in the running."
+	]]
 	local retained = false
 	for _, list in pairs(candidates) do
 		if #list > 0 then
@@ -997,9 +1063,9 @@ function ns:BuildSelectionReport()
 	lines[#lines + 1] = "-- Ranked by the selection ladder --"
 
 	local typeNames = {}
-	for _, def in ipairs(ns.RegisteredMacroDefs or {}) do
-		if def.itemTypes then
-			typeNames[#typeNames + 1] = def.typeName
+	for _, definition in ipairs(ns.RegisteredMacroDefinitions or {}) do
+		if definition.itemTypes then
+			typeNames[#typeNames + 1] = definition.typeName
 		end
 	end
 	table.sort(typeNames)
@@ -1009,14 +1075,14 @@ function ns:BuildSelectionReport()
 	end
 
 	--[[
-        The custom definitions own their whole update and resolve their item
-        outside the ladder (the Hunter pet-food scan, the Rogue poison walk),
-        so they have no candidate list to show. Naming them keeps the report
-        honest about what it does and does not cover.
-    ]]
+	    The custom definitions own their whole update and resolve their item
+	    outside the ladder (the Hunter pet-food scan, the Rogue poison walk),
+	    so they have no candidate list to show. Naming them keeps the report
+	    honest about what it does and does not cover.
+	]]
 	local customNames = {}
-	for _, def in ipairs(ns.RegisteredCustomMacroDefs or {}) do
-		customNames[#customNames + 1] = def.typeName
+	for _, definition in ipairs(ns.RegisteredCustomMacroDefinitions or {}) do
+		customNames[#customNames + 1] = definition.typeName
 	end
 	table.sort(customNames)
 
@@ -1033,10 +1099,83 @@ function ns:BuildSelectionReport()
 end
 
 --------------------------------------------------------------------------------
+-- Readiness Report
+--------------------------------------------------------------------------------
+
+--[[
+    The Readiness Report as it would print RIGHT NOW, without waiting for a ready
+    check. Read-only: it asks the same probes the report asks and prints nothing
+    to chat.
+
+    This exists because the report has two silences that look identical from a
+    chat window -- "you are ready" and "it never ran" -- and only one of them is
+    a bug. Rendering it on demand separates them in one button press, and the
+    switch states below say which lines were even eligible to speak.
+
+    Colour escapes are stripped: reports are plain text, and a |cff pasted into
+    a bug report is noise.
+]]
+local READINESS_SWITCHES = {
+	"readinessFlask",
+	"readinessWellFed",
+	"readinessPetWellFed",
+	"readinessScrolls",
+	"readinessSoulstone",
+	"readinessMainHandBuff",
+	"readinessOffHandBuff",
+	"readinessExpiring",
+	"readinessHealthstone",
+	"readinessManaGem",
+	"readinessHealingPotion",
+	"readinessManaPotion",
+	"readinessBandages",
+	"readinessDurability",
+	"readinessSpec",
+	"readinessPvP",
+	"readinessQuestionableGear",
+}
+
+function ns.BuildReadinessDiagnosticReport()
+	local lines = { GetClientHeader(), "" }
+
+	local reports = ns.db and ns.db.global
+	if not reports then
+		lines[#lines + 1] = "Saved variables are not loaded yet."
+		return table.concat(lines, "\n")
+	end
+
+	lines[#lines + 1] = string.format("Report enabled: %s", tostring(reports.readinessReportEnabled))
+	lines[#lines + 1] = string.format("Instance type: %s", tostring(select(2, IsInInstance())))
+	lines[#lines + 1] = string.format("In group: %s", tostring(IsInGroup()))
+
+	lines[#lines + 1] = ""
+	lines[#lines + 1] = "-- What it would print now --"
+
+	local body = ns.BuildReadinessLines and ns.BuildReadinessLines() or nil
+	if not body then
+		lines[#lines + 1] = "(nothing -- this character has nothing the report would name)"
+	else
+		lines[#lines + 1] = ns.L["READINESS_TITLE"]
+		for _, line in ipairs(body) do
+			lines[#lines + 1] = line
+		end
+	end
+
+	lines[#lines + 1] = ""
+	lines[#lines + 1] = "-- Category switches --"
+	for _, key in ipairs(READINESS_SWITCHES) do
+		lines[#lines + 1] = string.format("[%s] %s", reports[key] and "ON " or "   ", key)
+	end
+
+	local text = table.concat(lines, "\n")
+	return (text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
+end
+
+--------------------------------------------------------------------------------
 -- Other Add-ons
 --------------------------------------------------------------------------------
 
-function ns:BuildAddOnReport()
+function ns.BuildAddOnReport()
 	local lines = { GetClientHeader(), "" }
 	local getInfo = C_AddOns.GetAddOnInfo
 	local getMeta = C_AddOns.GetAddOnMetadata
@@ -1053,11 +1192,39 @@ end
 -- Saved Variables
 --------------------------------------------------------------------------------
 
-local function DumpTable(value, indent, depth, lines)
+--[[
+    Tables counted rather than printed, because they run to hundreds of rows and
+    a report has to stay readable (see DATA -- large arrays are described, not
+    reproduced).
+
+    itemCache is matched by key at any depth, since under AceDB it moves around
+    with the active profile. The restock lists are matched by the exact path
+    their container sits at, because "profiles" also names AceDB's own profile
+    table one level up -- and that one must print in full, since it holds the
+    settings a bug report is about.
+]]
+local SUMMARIZED_BY_KEY = {
+	itemCache = "cached items",
+}
+
+local SUMMARIZED_CHILDREN_BY_PATH = {
+	["global.restocker.profiles"] = "items",
+}
+
+local function CountEntries(value)
+	local count = 0
+	for _ in pairs(value) do
+		count = count + 1
+	end
+	return count
+end
+
+local function DumpTable(value, indent, depth, lines, path)
 	if depth > 8 then
 		lines[#lines + 1] = indent .. "<max depth>"
 		return
 	end
+	local childNoun = SUMMARIZED_CHILDREN_BY_PATH[path]
 	local keys = {}
 	for key in pairs(value) do
 		keys[#keys + 1] = key
@@ -1067,72 +1234,33 @@ local function DumpTable(value, indent, depth, lines)
 	end)
 	for _, key in ipairs(keys) do
 		local entry = value[key]
-		if type(entry) == "table" then
-			--[[
-                itemCache can hold hundreds of rows; summarize its size rather
-                than dumping every entry (see DATA -- large arrays are described,
-                not reproduced). Matched by key at any depth, since under AceDB
-                it lives inside the active profile rather than at the root.
-            ]]
-			if key == "itemCache" then
-				local count = 0
-				for _ in pairs(entry) do
-					count = count + 1
-				end
-				lines[#lines + 1] = indent .. tostring(key) .. string.format(" = <%d cached items>", count)
-			else
-				lines[#lines + 1] = indent .. tostring(key) .. " = {"
-				DumpTable(entry, indent .. "    ", depth + 1, lines)
-				lines[#lines + 1] = indent .. "}"
-			end
-		else
+		local noun = type(entry) == "table" and (childNoun or SUMMARIZED_BY_KEY[key])
+		if type(entry) ~= "table" then
 			lines[#lines + 1] = indent .. tostring(key) .. " = " .. tostring(entry)
+		elseif noun then
+			lines[#lines + 1] = indent .. tostring(key) .. string.format(" = <%d %s>", CountEntries(entry), noun)
+		else
+			lines[#lines + 1] = indent .. tostring(key) .. " = {"
+			local childPath = (path == "") and tostring(key) or (path .. "." .. tostring(key))
+			DumpTable(entry, indent .. "    ", depth + 1, lines, childPath)
+			lines[#lines + 1] = indent .. "}"
 		end
 	end
 end
 
-function ns:BuildSavedVariablesReport()
+function ns.BuildSavedVariablesReport()
 	local lines = { GetClientHeader(), "" }
 
 	--[[
-        Dump the single AceDB-managed SavedVariable in its real on-disk shape
-        (profiles / global / profileKeys). DumpTable summarizes any itemCache
-        table it meets -- now nested under the active profile -- as
-        "<N cached items>", so the report stays readable and read-only.
-    ]]
+	    Dump the single AceDB-managed SavedVariable in its real on-disk shape
+	    (profiles / global / profileKeys). Everything the add-on saves is in
+	    here, the Restock Lists included. DumpTable counts rather than prints the
+	    two tables that run long -- any itemCache it meets, and each restock list
+	    under global.restocker.profiles -- so the report stays readable, and it
+	    never writes.
+	]]
 	lines[#lines + 1] = "ConnoisseurDB = {"
-	DumpTable(ConnoisseurDB or {}, "    ", 1, lines)
-	lines[#lines + 1] = "}"
-
-	--[[
-        Restocker's own account-wide SavedVariable (see Features/Restocker/
-        Restocker.lua). Its profiles hold one row per tracked item and can run
-        long, so each profile is summarized as "<N items>" -- the same rule
-        DumpTable applies to itemCache. The view table keeps this read-only.
-    ]]
-	local restockerDB = ConnoisseurRestockerDB or {}
-	local restockerView = {}
-	for key, entry in pairs(restockerDB) do
-		restockerView[key] = entry
-	end
-	if type(restockerDB.profiles) == "table" then
-		local profileSummaries = {}
-		for name, profile in pairs(restockerDB.profiles) do
-			if type(profile) == "table" then
-				local count = 0
-				for _ in pairs(profile) do
-					count = count + 1
-				end
-				profileSummaries[name] = string.format("<%d items>", count)
-			else
-				profileSummaries[name] = tostring(profile)
-			end
-		end
-		restockerView.profiles = profileSummaries
-	end
-	lines[#lines + 1] = ""
-	lines[#lines + 1] = "ConnoisseurRestockerDB = {"
-	DumpTable(restockerView, "    ", 1, lines)
+	DumpTable(ConnoisseurDB or {}, "    ", 1, lines, "")
 	lines[#lines + 1] = "}"
 
 	return table.concat(lines, "\n")
@@ -1142,7 +1270,7 @@ end
 -- Library Versions
 --------------------------------------------------------------------------------
 
-function ns:BuildLibraryReport()
+function ns.BuildLibraryReport()
 	local lines = { GetClientHeader(), "" }
 	local names = {}
 	for name in LibStub:IterateLibraries() do
@@ -1165,10 +1293,10 @@ end
     only state the diagnostics panel ever writes.
 ]]
 
-function ns:GetTaintLogState()
+function ns.GetTaintLogState()
 	return tonumber(GetCVar("taintLog")) or 0
 end
 
-function ns:SetTaintLog(enabled)
+function ns.SetTaintLog(enabled)
 	SetCVar("taintLog", enabled and 2 or 0)
 end

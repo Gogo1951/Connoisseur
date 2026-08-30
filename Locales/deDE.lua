@@ -75,28 +75,54 @@ L["CHAT_LOADED"] =
 L["CHAT_OPTIONS_IN_COMBAT"] = "Aus Sicherheitsgründen kann das Optionsmenü im Kampf nicht geöffnet werden."
 
 --------------------------------------------------------------------------------
--- Ready Check
+-- Readiness Report
 --------------------------------------------------------------------------------
 
 --[[
-    The ready-check self-audit, printed as one line: either the missing list or
-    the all-clear, then a segment per tracked buff. Item names come from the
-    LABEL_ keys below, so a consumable is named the same here as it is in
-    MSG_NO_ITEM.
+    Printed when a ready check starts, as a header plus up to three lines. Each
+    line is a set of "Label : a, b, c" clauses joined by ". ", and every part of
+    it is dropped when it has nothing to say -- a clean character prints nothing
+    at all, so there is no all-clear string here and must not be one.
 ]]
 
-L["READY_ALL_CLEAR"] = "Alles bereit!"
--- %s is the comma-separated list of what the character is missing.
-L["READY_MISSING"] = "Fehlt: %s"
+L["READINESS_TITLE"] = "Bereitschaftsbericht"
 
-L["READY_WELL_FED"] = "Satt"
-L["READY_SCROLLS"] = "Schriftrollen"
-L["READY_PET_FED"] = "Tier satt"
+-- Clause labels, in the order the lines print them.
+L["READINESS_MISSING_BUFFS"] = "Fehlende Buffs:"
+L["READINESS_EXPIRING"] = "Läuft bald ab:"
+L["READINESS_MISSING_ITEMS"] = "Fehlende Gegenstände:"
+L["READINESS_DAMAGED_GEAR"] = "Beschädigte Ausrüstung:"
+L["READINESS_CHARACTER"] = "Charakter:"
+L["READINESS_QUESTIONABLE_GEAR"] = "Nicht kampftaugliche Ausrüstung angelegt:"
 
--- { buff label, whole minutes left }
-L["READY_TIME_MINUTES"] = "%s %d Min."
--- %s is the buff label; used when under a minute is left.
-L["READY_TIME_EXPIRING"] = "%s unter 1 Min."
+--[[
+    What the report calls each thing. Deliberately its own set rather than the
+    shared LABEL_* keys the macro messages use: those name an item you are being
+    offered ("Health Potion"), these name a gap in your preparation ("Healing
+    Potion"), and the two want to be reworded independently.
+]]
+L["READINESS_FLASK"] = "Fläschchen oder 2x Elixiere"
+L["READINESS_WELL_FED"] = "Satt"
+L["READINESS_PET_WELL_FED"] = "Satt (Tier)"
+L["READINESS_SCROLLS"] = "Schriftrollen"
+L["READINESS_SOULSTONE"] = "Seelenstein inaktiv"
+L["READINESS_MAIN_HAND"] = "Waffenhand"
+L["READINESS_OFF_HAND"] = "Schildhand"
+L["READINESS_HEALTHSTONE"] = "Gesundheitsstein"
+L["READINESS_MANA_GEM"] = "Manastein"
+L["READINESS_HEALING_POTION"] = "Heiltrank"
+L["READINESS_MANA_POTION"] = "Manatrank"
+L["READINESS_BANDAGES"] = "Verbände"
+L["READINESS_PVP_ON"] = "PvP aktiv!"
+
+-- { buff name, whole minutes left }
+L["READINESS_TIME_MINUTES"] = "%s %d Min."
+-- %s is the buff name; used when under a minute is left.
+L["READINESS_TIME_EXPIRING"] = "%s unter 1 Min."
+-- { dominant talent tree, slash-joined point spread }
+L["READINESS_SPEC_FORMAT"] = "%s (%s)"
+-- %d is the number of talent points the character has not spent.
+L["READINESS_UNSPENT_TALENTS"] = "%d nicht verteilte Talentpunkte"
 
 --------------------------------------------------------------------------------
 -- ConnTip Messages
@@ -230,7 +256,7 @@ L["TIP_ROGUE_WINDOW"] = "Mittelklick öffnet das Gifte-Fenster."
 
 --[[
     Labels that get plugged into MSG_NO_ITEM ("No suitable %s found...").
-    One per macro type (resolved via ns.Config in ConnNoItem), plus Pet Food.
+    One per macro type (resolved via ns.MacroConfig in ConnNoItem), plus Pet Food.
 ]]
 
 L["LABEL_BANDAGE"] = "Verband"
@@ -308,10 +334,112 @@ L["REAPPLY_THRESHOLD_ONE"] = "Wenn < 1 Minute übrig"
 L["REAPPLY_THRESHOLD_N"] = "Wenn < %d Minuten übrig"
 
 -- Ready Check
-L["OPTIONS_READY_CHECK_HEADER"] = "Bereitschaftsprüfung"
-L["OPTIONS_READY_CHECK"] = "Bereitschaft bei Bereitschaftsprüfung melden"
-L["OPTIONS_READY_CHECK_DESCRIPTION"] =
-	"Gibt bei jeder Bereitschaftsprüfung aus, was dir fehlt und wie lange deine verfolgten Buffs noch halten. Nur für dich sichtbar."
+L["OPTIONS_READINESS_HEADER"] = "Bereitschaftsbericht"
+L["OPTIONS_READINESS_ENABLE"] = "Bereitschaftsbericht bei Bereitschaftsprüfung aktivieren"
+--[[
+    Says what the report does AND that it stays quiet, because the quiet is the
+    feature: a player who turns this on and sees nothing for three pulls has to
+    know that is the report working rather than the report broken.
+]]
+L["OPTIONS_READINESS_DESCRIPTION"] =
+	"Gibt beim Start einer Bereitschaftsprüfung eine private Liste dessen aus, was noch fehlt. Nur du siehst sie, und wenn du bereit bist, bleibt sie komplett still."
+
+--[[
+    The reset button under the master toggle. It needs a control of its own
+    because these settings are account-wide: the stock Reset Profile reaches
+    only the character's own profile, so nothing else on any panel can return
+    them to their defaults.
+
+    The confirm names the one consequence a player would not otherwise predict.
+    Off is what the report ships as, so resetting switches it back off, and a
+    page that emptied itself with no warning would read as a bug.
+]]
+L["OPTIONS_READINESS_RESET"] = "Bereitschaftsbericht-Einstellungen zurücksetzen"
+L["OPTIONS_READINESS_RESET_DESCRIPTION"] =
+	"Setzt jeden Schalter auf dieser Seite und beide Schwellenwerte auf die Einstellungen einer frischen Installation zurück. Andere Seiten sind nicht betroffen."
+L["OPTIONS_READINESS_RESET_CONFIRM"] =
+	"Alle Einstellungen des Bereitschaftsberichts auf ihre Standardwerte zurücksetzen? Das schaltet auch den Bericht selbst wieder aus."
+
+--[[
+    The three sections, each a real header over the switches it covers. They name
+    what the line is called in chat, so the panel and the report read as the same
+    feature.
+]]
+L["OPTIONS_READINESS_BUFFS_HEADER"] = "Fehlende Buffs"
+L["OPTIONS_READINESS_ITEMS_HEADER"] = "Fehlende Gegenstände"
+L["OPTIONS_READINESS_CHARACTER_HEADER"] = "Charakter"
+
+-- Missing Buffs
+L["OPTIONS_READINESS_FLASK"] = "Fläschchen oder 2x Elixiere"
+L["OPTIONS_READINESS_FLASK_DESCRIPTION"] =
+	"Zählt ein Fläschchen oder je ein Kampf- und ein Wächterelixier als abgedeckt."
+L["OPTIONS_READINESS_WELL_FED"] = "Satt"
+L["OPTIONS_READINESS_WELL_FED_DESCRIPTION"] = "Erfordert aktiviertes Buff-Essen unter Makros."
+L["OPTIONS_READINESS_PET_WELL_FED"] = "Satt (Tier)"
+L["OPTIONS_READINESS_PET_WELL_FED_DESCRIPTION"] = "Nur für Jäger. Erfordert aktivierte Tierfutter-Buffs unter Makros."
+L["OPTIONS_READINESS_SCROLLS"] = "Schriftrollen-Buffs"
+L["OPTIONS_READINESS_SCROLLS_DESCRIPTION"] =
+	"Richtet sich nach den Schriftrollen, die du unter Makros ausgewählt hast."
+--[[
+    The one entry that asks about the GROUP rather than the player's own bags,
+    which the helper text has to say outright: a raid carrying seven unused
+    stones is not covered, and one deployed stone covers it.
+]]
+L["OPTIONS_READINESS_SOULSTONE"] = "Seelenstein inaktiv"
+L["OPTIONS_READINESS_SOULSTONE_DESCRIPTION"] =
+	"Prüft, ob auf jemandem ein Seelenstein aktiv ist, nicht ob einer in einer Tasche liegt. Erfordert einen Hexenmeister in deiner Gruppe."
+L["OPTIONS_READINESS_MAIN_HAND"] = "Waffenbuff (Waffenhand)"
+L["OPTIONS_READINESS_OFF_HAND"] = "Waffenbuff (Schildhand)"
+L["OPTIONS_READINESS_WEAPON_DESCRIPTION"] =
+	"Jede temporäre Waffenverzauberung zählt: ein Stein, ein Öl, ein Gift oder ein Schamanen-Waffenbuff."
+--[[
+    Says the Shaman exemption outright, because a main-hand line that goes quiet
+    the moment a Shaman joins reads as a broken switch otherwise.
+]]
+L["OPTIONS_READINESS_MAIN_HAND_DESCRIPTION"] =
+	"Jede temporäre Waffenverzauberung zählt. Bleibt still, wenn ein Schamane in deiner Gruppe ist."
+--[[
+    Names the OTHER threshold so the two cannot be mistaken for each other: the
+    Macros panel has one that decides when a macro treats a buff as spent, and
+    this one only decides when the report mentions it.
+]]
+L["OPTIONS_READINESS_EXPIRING"] = "Buffs laufen ab innerhalb von"
+L["OPTIONS_READINESS_EXPIRING_DESCRIPTION"] =
+	"Nennt jeden Buff auf dir, der bald ausläuft, nicht nur die von Connoisseur verwalteten. Unabhängig von der Buff-Erneuerung unter Makros, die bestimmt, wann ein Makro einen frischen Buff anbietet."
+-- %s is a whole or half number of minutes.
+L["OPTIONS_READINESS_EXPIRING_MINUTES"] = "%s Minuten"
+-- The one-minute entry alone; one plural template cannot render it grammatically.
+L["OPTIONS_READINESS_EXPIRING_MINUTES_ONE"] = "1 Minute"
+
+-- Missing Items
+L["OPTIONS_READINESS_HEALTHSTONE"] = "Gesundheitsstein"
+L["OPTIONS_READINESS_HEALTHSTONE_DESCRIPTION"] =
+	"Wird nur angezeigt, wenn ein Hexenmeister in deiner Gruppe ist, den man fragen kann, oder wenn du selbst der Hexenmeister bist."
+L["OPTIONS_READINESS_MANA_GEM"] = "Manastein"
+L["OPTIONS_READINESS_MANA_GEM_DESCRIPTION"] = "Wird nur auf einem Magier angezeigt."
+L["OPTIONS_READINESS_HEALING_POTION"] = "Heiltrank"
+L["OPTIONS_READINESS_HEALING_POTION_DESCRIPTION"] =
+	"Am besten vor dem Pull auffüllen. Mitten im Kampf kann dir niemand einen Trank reichen."
+L["OPTIONS_READINESS_MANA_POTION"] = "Manatrank"
+L["OPTIONS_READINESS_MANA_POTION_DESCRIPTION"] = "Wird nur auf Klassen angezeigt, die Mana verwenden."
+L["OPTIONS_READINESS_BANDAGES"] = "Verbände"
+L["OPTIONS_READINESS_BANDAGES_DESCRIPTION"] =
+	"Meldet sich, sobald du keinen verwendbaren Verband hast, Erste-Hilfe-Skill eingerechnet."
+L["OPTIONS_READINESS_DURABILITY"] = "Beschädigte Ausrüstung unter"
+L["OPTIONS_READINESS_DURABILITY_DESCRIPTION"] =
+	"Verlinkt jeden angelegten Gegenstand unter dieser Haltbarkeit. Pro Gegenstand gemessen, damit eine einzelne kaputte Waffe trotzdem auffällt."
+-- %d is a durability percentage.
+L["OPTIONS_READINESS_DURABILITY_PERCENT"] = "%d%%"
+
+-- Character
+L["OPTIONS_READINESS_SPEC"] = "Aktuelle Skillung"
+L["OPTIONS_READINESS_SPEC_DESCRIPTION"] =
+	"Gibt deine Talentverteilung aus, und alle Punkte, die du noch nicht verteilt hast."
+L["OPTIONS_READINESS_PVP"] = "PvP-Modus aktiv"
+L["OPTIONS_READINESS_PVP_DESCRIPTION"] = "Warnt, wenn dein PvP-Modus aktiv ist."
+L["OPTIONS_READINESS_QUESTIONABLE_GEAR"] = "Nicht kampftaugliche Ausrüstung angelegt"
+L["OPTIONS_READINESS_QUESTIONABLE_GEAR_DESCRIPTION"] =
+	"Verlinkt angelegte Gegenstände, die nicht in einen Kampf gehören, etwa ein PvP-Schmuckstück oder eine Angel."
 
 --[[
     Three features are suppressed in a PvP Arena, and each says so with the
@@ -439,7 +567,7 @@ L["OPTIONS_RESTOCKER_BANK_REMIND_DESCRIPTION"] =
 	"Meldet offene Nachschubposten, wenn du die Bank schließt. Bleibt still, wenn keine offen sind."
 
 --[[
-    The starter List Builder pop-up. This toggle and the pop-up's own "Don't
+    The Starter List Builder pop-up. This toggle and the pop-up's own "Don't
     show this again" box are the same per-character choice read from opposite
     ends, which is why one ships on and the other off: a settings row reads
     naturally as "enable", a dismissal reads naturally as "stop".
@@ -462,12 +590,8 @@ L["OPTIONS_RESTOCKER_REMIND_SOUND"] = "Ton abspielen"
 L["OPTIONS_RESTOCKER_REMIND_SOUND_DESCRIPTION"] =
 	"Spielt zusätzlich zur Erinnerung einen Hinweiston, falls im Chat gerade viel los ist."
 L["OPTIONS_RESTOCKER_SOUND_PREVIEW"] = "Klicke, um den Hinweiston zu hören."
-L["OPTIONS_RESTOCKER_DEBUG"] = "Restocker-Debugmeldungen aktivieren"
-L["OPTIONS_RESTOCKER_DEBUG_DESCRIPTION"] =
-	"Gibt Restockers schrittweise Bank- und Händlerentscheidungen im Chat aus. Gesprächig; bleibt über Sitzungen hinweg aktiv, bis es abgeschaltet wird."
 
 L["OPTIONS_RESTOCKER_WINDOW_HEADER"] = "Nachschubfenster"
-L["OPTIONS_RESTOCKER_ADVANCED_HEADER"] = "Erweitert"
 
 --[[
     Praise for the adopted Restocker code. The three names are proper nouns and
@@ -517,12 +641,12 @@ L["VERSION_LABEL"] = "Version"
 --------------------------------------------------------------------------------
 
 -- Chat messages printed by the Restocker feature (Features/Restocker/).
-L["RESTOCKER_PROFILE_EXISTS"] = 'Ein Profil namens "%s" existiert bereits.'
+L["RESTOCKER_PROFILE_EXISTS"] = 'Eine Liste namens "%s" existiert bereits.'
 L["RESTOCKER_BANK_NOT_OPEN"] = "Die Bank ist nicht geöffnet."
 --[[
     %s is the /crs slash command, colored at the call site. Only the bank flow
     prints this, so the Shift hint names the bank; Shift is read as the window
-    opens (eventsModule.OnBankOpen), not stored as a preference.
+    opens (ns.OnRestockerBankOpen), not stored as a preference.
 ]]
 L["RESTOCKER_COMPLETE"] =
 	"Auffüllen abgeschlossen. Halte Shift beim Öffnen der Bank, um das Auffüllen zu überspringen. Tippe %s, um deine Nachschubliste zu bearbeiten."
@@ -542,7 +666,7 @@ L["RESTOCKER_BAGS_FULL_SKIP_MERCHANT"] = "Deine Taschen sind voll. Händler-Auff
     Printed once per vendor visit when the crafting-reagent buyer stands down:
     this merchant stocks some of the reagents the Restock List needs but not
     all of them, and reagents buy all-or-nothing (VendorStocksAllReagents in
-    Features/Restocker/Merchant.lua). Silent at vendors stocking none.
+    Features/Restocker/Restocker-Merchant.lua). Silent at vendors stocking none.
 ]]
 L["RESTOCKER_REAGENTS_SKIPPED"] =
 	"Dieser Händler führt nicht alle Zutaten, die deine Gifte benötigen. Es wird keine davon gekauft."
@@ -600,7 +724,7 @@ L["RESTOCKER_REMINDER_ITEM"] = "%d/%d %s"
     filled; six of a requested twenty is not one at all, and belongs to the
     partial line below.
 
-    The claim has to be earned, which is why merchantModule:PurchaseMerchantItem
+    The claim has to be earned, which is why the merchant restock's PurchaseMerchantItem
     reports whether it got the full amount instead of the caller inferring it
     from a unit count. What the vendor did not stock is deliberately not
     mentioned here: the mini-map's Restocker Report owns the outstanding state,
@@ -623,15 +747,15 @@ L["RESTOCKER_RESTOCKED_PARTIAL_MANY"] = "%d Nachschubposten teilweise erfüllt."
 
 -- /crs help lines. The command literals stay in code; these are the descriptions.
 L["RESTOCKER_HELP_SHOW"] = "Zeigt das Restocker-Fenster."
-L["RESTOCKER_HELP_PROFILE_ADD"] = "Legt ein Profil mit diesem Namen an."
-L["RESTOCKER_HELP_PROFILE_DELETE"] = "Löscht das Profil mit diesem Namen."
-L["RESTOCKER_HELP_PROFILE_RENAME"] = "Benennt das aktuelle Profil in diesen Namen um."
-L["RESTOCKER_HELP_PROFILE_COPY"] = "Kopiert dieses Profil in das aktuelle Profil."
-L["RESTOCKER_HELP_PROFILE_USE"] = "Wechselt das aktive Profil zu diesem Namen."
+L["RESTOCKER_HELP_PROFILE_ADD"] = "Legt eine Liste mit diesem Namen an."
+L["RESTOCKER_HELP_PROFILE_DELETE"] = "Löscht die Liste mit diesem Namen."
+L["RESTOCKER_HELP_PROFILE_RENAME"] = "Benennt die aktuelle Liste auf diesen Namen um."
+L["RESTOCKER_HELP_PROFILE_COPY"] = "Kopiert die genannte Liste in die aktuelle Liste."
+L["RESTOCKER_HELP_PROFILE_USE"] = "Wechselt die aktive Liste zu diesem Namen."
 
 --[[
     Starter List pop-up: the login window that offers vendor staples when the
-    Restock List is empty (Features/Restocker/StarterList.lua). Its title
+    Restock List is empty (Features/Restocker/Restocker-Starter-List.lua). Its title
     reuses RESTOCKER_WINDOW_TITLE below, and the six food staples reuse the
     DIET_ keys above, so the popup names bread whatever the pet-food tooltips
     call it.
@@ -642,6 +766,9 @@ L["RESTOCKER_HELP_PROFILE_USE"] = "Wechselt das aktive Profil zu diesem Namen."
 ]]
 L["STARTER_POPUP_INTRO_EMPTY"] =
 	"Deine Nachschubliste ist leer, also lass uns ein paar Gegenstände hinzufügen, damit du loslegen kannst."
+-- Shown instead when the window is opened over a list that already has items on it.
+L["STARTER_POPUP_INTRO_STOCKED"] =
+	"Wähle die Grundvorräte, die aufgefüllt bleiben sollen. Was bereits auf deiner Nachschubliste steht, ist angehakt."
 L["STARTER_POPUP_INTRO_HOW"] =
 	"Alles, was du ankreuzt, wird automatisch aufgefüllt, sobald du einen Händler oder deine Bank öffnest, und Standardwaren werten sich mit deiner Stufe von selbst auf, sodass du immer das Beste dabeihast."
 -- %s is the /crs slash command, colored at the call site.
@@ -658,7 +785,6 @@ L["STARTER_POPUP_AMMO_HEADER"] = "Munition"
 -- The two ammo staples; the Water label reuses LABEL_WATER above.
 L["STARTER_POPUP_BULLETS"] = "Kugeln"
 L["STARTER_POPUP_ARROWS"] = "Pfeile"
-
 --[[
     The Reagents & Tools section: class tools and spell reagents, at most a
     handful per class. Rogues additionally get a Poisons section of their
@@ -734,36 +860,52 @@ L["STARTER_POPUP_DISMISS_DESCRIPTION"] =
 -- Restocker window UI.
 L["RESTOCKER_WINDOW_TITLE"] = "Connoisseur Restocker"
 L["RESTOCKER_FILTER_PLACEHOLDER"] = "Gegenstände filtern..."
+L["RESTOCKER_FILTER_CLEAR_TOOLTIP"] = "Leeren"
 L["RESTOCKER_ADD_BUTTON"] = "Hinzufügen"
+L["RESTOCKER_LIST_BUILDER_BUTTON"] = "Listen-Assistent öffnen"
+L["RESTOCKER_LIST_BUILDER_TOOLTIP"] =
+	"Öffnet den Listen-Assistenten mit denselben Grundvorräten, die ein neuer Charakter angeboten bekommt. Dieses Fenster schließt sich, solange er geöffnet ist."
 L["RESTOCKER_ADD_TOOLTIP_TITLE"] = "Gegenstand hinzufügen"
 L["RESTOCKER_ADD_TOOLTIP_BODY"] =
 	"Ziehe einen Gegenstand aus deiner Tasche hierher oder gib eine numerische Gegenstands-ID ein."
--- In-box placeholder for the add row; the tooltip above carries the detail.
-L["RESTOCKER_ADD_PLACEHOLDER"] = "Gegenstand hierher ziehen oder ID eingeben..."
-L["RESTOCKER_PROFILE_LABEL"] = "Profil:"
-L["RESTOCKER_RENAME_LABEL"] = "Umbenennen:"
-L["RESTOCKER_NEW_PROFILE"] = "Neues Profil"
+--[[
+    In-box placeholder for the add row; the tooltip above carries the detail.
+    Kept to a phrase rather than a sentence: it sets the width of both boxes on
+    that row, and the row cannot afford two fields wide enough for a long one.
+]]
+L["RESTOCKER_ADD_PLACEHOLDER"] = "Gegenstand hierher ziehen oder ID eingeben"
+L["RESTOCKER_PROFILE_LABEL"] = "Liste"
+L["RESTOCKER_PROFILE_TOOLTIP"] =
+	"Die Nachschubliste, die dieser Charakter verwendet. Klicke, um zu einer anderen zu wechseln oder eine neue anzulegen."
+L["RESTOCKER_RENAME_LABEL"] = "Umbenennen"
+L["RESTOCKER_NEW_PROFILE"] = "Neue Liste"
 L["RESTOCKER_COPY_PROFILE"] = "Kopieren"
 --[[
     The three single-argument tooltips below (Copy, Delete, and the row's
-    Remove) render in RS.SetupTooltip's TITLE slot, not its body, so they take
+    Remove) render in ns.SetupRestockerTooltip's TITLE slot, not its body, so they take
     no terminal punctuation -- matching every other title in the window. Don't
     "restore" the period they read as wanting.
 ]]
-L["RESTOCKER_COPY_PROFILE_TOOLTIP"] = "Klont dieses Profil in ein neues"
--- %s becomes "<profile name> Copy"; numbered if that name is taken.
+L["RESTOCKER_COPY_PROFILE_TOOLTIP"] = "Klont diese Liste in eine neue"
+-- %s becomes "<list name> Copy"; numbered if that name is taken.
 L["RESTOCKER_PROFILE_COPY_NAME"] = "%s Kopie"
 L["RESTOCKER_DELETE_PROFILE"] = "Löschen"
-L["RESTOCKER_DELETE_PROFILE_TOOLTIP"] = "Löscht dieses Profil"
--- %s is the profile name, colored at the call site. |n are line breaks.
+L["RESTOCKER_DELETE_PROFILE_TOOLTIP"] = "Löscht diese Liste"
+L["RESTOCKER_RENAME_TOOLTIP"] = "Benennt diese Liste um. Jeder Charakter, der sie verwendet, folgt dem neuen Namen."
+-- %s is the list name, colored at the call site. |n are line breaks.
 L["RESTOCKER_DELETE_PROFILE_CONFIRM"] =
-	"Möchtest du dieses Profil wirklich löschen?|n|n%s|n|nDas kann nicht rückgängig gemacht werden."
+	"Möchtest du diese Liste wirklich löschen?|n|n%s|n|nDas kann nicht rückgängig gemacht werden."
 --[[
-    Row controls in the Restocker window. UPGRADE is disabled on any item that
-    is not on a ladder in Data/Consumable-Upgrade-Paths.lua, which on a real
-    list is most of them.
+    The Upgrade toggle. One string serves both the column heading and every
+    row's checkbox, so it has to read for a single item and for the whole
+    column at once -- which is why it names categories rather than "this item".
+
+    The categories are exactly the ladder kinds in
+    Data/Consumable-Upgrade-Paths.lua: food, water, arrow and bullet, poison,
+    healing and mana potion, and the class reagents. Naming anything else here
+    promises an upgrade that never arrives, since the toggle is disabled on any
+    item that is not on a ladder -- which on a real list is most of them.
 ]]
-L["RESTOCKER_UPGRADE_LABEL"] = "Auto-Aufwertung"
 L["RESTOCKER_UPGRADE_TOOLTIP_TITLE"] = "Mit deiner Stufe aufwerten"
 L["RESTOCKER_UPGRADE_TOOLTIP_BODY"] =
 	"Essen, Wasser, Munition und Tränke haben klare Aufwertungspfade, während du aufsteigst, also zieht Connoisseur diesen Eintrag für dich mit. Alles andere passt du mit der Zeit selbst an."
@@ -777,12 +919,35 @@ L["RESTOCKER_ROW_BANK"] = "Bank"
 L["RESTOCKER_ROW_MERCHANT"] = "Händler"
 L["RESTOCKER_ROW_UPGRADE"] = "Aufwertung"
 
+--[[
+    Column headings over the list.
+
+    Keep these SHORT. A heading sets its column's width, and every pixel a
+    heading takes comes out of the item name beside it. Six full-length
+    headings do not fit beside a readable name at the smallest window size.
+
+    "Take" and "Store" are short because they never appear alone: both sit
+    under a "Bank" band, which is what makes them exact. Translate them as a
+    pair with that band in mind, and keep them a single short word each.
+]]
+L["RESTOCKER_COLUMN_ITEM"] = "Gegenstand"
+L["RESTOCKER_COLUMN_WITHDRAW"] = "Holen"
+L["RESTOCKER_COLUMN_DEPOSIT"] = "Lagern"
+L["RESTOCKER_COLUMN_REPUTATION"] = "Ruf"
+L["RESTOCKER_COLUMN_AMOUNT"] = "Menge"
+
 L["RESTOCKER_GROUP_OTHER"] = "Sonstiges"
 --[[
     Temporary group holding items added during this viewing of the window. It
     sorts above every real item type and disappears when the window closes.
 ]]
 L["RESTOCKER_GROUP_NEW"] = "Neu"
+--[[
+    The category pane's first entry, above the item types. Selected by default,
+    and the only way back to the whole list once a type has been picked, so it
+    has to read as "everything" rather than as another type.
+]]
+L["RESTOCKER_GROUP_ALL"] = "Alle Gegenstände"
 -- Title slot, like the two profile-button tooltips above: no terminal period.
 L["RESTOCKER_REMOVE_TOOLTIP"] = "Entfernt diesen Gegenstand von der Nachschubliste"
 L["RESTOCKER_AMOUNT_TOOLTIP_TITLE"] = "Aufzufüllende Menge"
@@ -790,11 +955,27 @@ L["RESTOCKER_AMOUNT_TOOLTIP_BODY"] = "Drücke Enter, wenn du fertig bist."
 L["RESTOCKER_BUY_LABEL"] = "Kaufen"
 L["RESTOCKER_BUY_TOOLTIP_TITLE"] = "Beim Händler kaufen"
 L["RESTOCKER_BUY_TOOLTIP_BODY"] = "Kauft die benötigte Menge beim Händler, wenn das Händlerfenster geöffnet ist."
-L["RESTOCKER_DEPOSIT_LABEL"] = "Einlagern"
+
+--[[
+    Some vendor slots hold only a few units and trickle back over time, which is
+    how Classic sells its scarce consumables. Extra empties those slots outright
+    rather than buying the shortfall, so the tooltip has to say three things: what
+    it buys, that unlimited stock is never touched, and why anyone would want it.
+]]
+L["RESTOCKER_EXTRA_LABEL"] = "Extra"
+L["RESTOCKER_EXTRA_TOOLTIP_TITLE"] = "Extra kaufen"
+L["RESTOCKER_EXTRA_TOOLTIP_STOCK"] =
+	"Kauft den gesamten Vorrat des Händlers an diesem Gegenstand, auch über deine Zielmenge hinaus."
+L["RESTOCKER_EXTRA_TOOLTIP_LIMITED"] =
+	"Gilt nur für begrenzte Ware, die ein Händler nach und nach wieder auffüllt. Unbegrenzter Vorrat wird ignoriert."
 L["RESTOCKER_DEPOSIT_TOOLTIP_TITLE"] = "In der Bank einlagern"
+--[[
+    Names the Amount column, so it is coupled to RESTOCKER_COLUMN_AMOUNT: a locale
+    that renders that heading differently has to say the same word here, or the
+    sentence points at a column the player cannot find.
+]]
 L["RESTOCKER_DEPOSIT_TOOLTIP_BODY"] =
 	"Lagert überschüssige Gegenstände in der Bank ein, wenn die Bank geöffnet ist. 0 lagert alles ein."
-L["RESTOCKER_WITHDRAW_LABEL"] = "Abheben"
 L["RESTOCKER_WITHDRAW_TOOLTIP_TITLE"] = "Aus der Bank auffüllen"
 L["RESTOCKER_WITHDRAW_TOOLTIP_BODY"] = "Entnimmt benötigte Gegenstände aus der Bank, wenn die Bank geöffnet ist."
 
@@ -819,13 +1000,12 @@ L["RESTOCKER_REPUTATION_EXALTED"] = "Ehrfürchtig"
     "Any" among four verbs. The prefix labels the control, since the window has
     no column headings to do it.
 ]]
-L["RESTOCKER_REPUTATION_BUTTON_FORMAT"] = "Ruf: %s"
 
 L["RESTOCKER_REPUTATION_TOOLTIP_TITLE"] = "Benötigter Händlerruf"
 --[[
-    Quotes the button's own label. That couples this line to
-    RESTOCKER_REPUTATION_BUTTON_FORMAT and RESTOCKER_REPUTATION_ANY -- a locale
-    that renders the button differently has to say so here too.
+    Quotes the cell's own value, which couples this line to
+    RESTOCKER_REPUTATION_ANY: a locale that renders that standing differently
+    has to say so here too.
 ]]
 L["RESTOCKER_REPUTATION_TOOLTIP_STANDING"] =
 	'Wähle einen Ruf, und Connoisseur überspringt Händler, bei denen du ihn nicht erreicht hast. "Ruf: Beliebig" kauft bei jedem Händler.'

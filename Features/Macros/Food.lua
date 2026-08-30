@@ -50,15 +50,15 @@ ns.RegisterMacroType({
 	typeName = "Food",
 
 	--[[
-        Selection: any food competes, including the food half of a foodwater
-        hybrid (which also feeds Water), by raw food value. Buff food only
-        competes while the scanner's live ns.AllowBuffFood preference is on
-        (setting + mode + not Well Fed + not self-targeting + not arena),
-        and the allowBuffFood flag additionally makes the ladder prefer buff
-        food outright when it is. Hybrids beat dedicated food on ties —
-        one bag slot covering both needs. The winner record carries the
-        item link that ns.BestFoodLink and the Food body hooks read.
-    ]]
+	    Selection: any food competes, including the food half of a foodwater
+	    hybrid (which also feeds Water), by raw food value. Buff food only
+	    competes while the scanner's live ns.AllowBuffFood preference is on
+	    (setting + mode + not Well Fed + not self-targeting + not arena),
+	    and the allowBuffFood flag additionally makes the ladder prefer buff
+	    food outright when it is. Hybrids beat dedicated food on ties —
+	    one bag slot covering both needs. The winner record carries the
+	    item link that ns.BestFoodLink and the Food body hooks read.
+	]]
 	itemTypes = { food = true, foodwater = true },
 	accepts = function(data)
 		return not (data.isBuffFood and not ns.AllowBuffFood)
@@ -68,14 +68,18 @@ ns.RegisterMacroType({
 	end,
 	allowBuffFood = true,
 	preferHybrid = true,
-	-- Only the link: every field the ladder compares is filled by the
-	-- scanner's FillRecord, for this category and all the others.
+	--[[
+	    Only the link: every field the ladder compares is filled by the
+	    scanner's FillRecord, for this category and all the others.
+	]]
 	winnerExtras = function(winner, _, hyperlink)
 		winner.link = hyperlink
 	end,
 
-	-- Mage conjure: shared Water/Food resolution (Refreshment Table on
-	-- middle-click) lives in Tools-Mages.lua; called at update time.
+	--[[
+	    Mage conjure: shared Water/Food resolution (Refreshment Table on
+	    middle-click) lives in Tools-Mages.lua; called at update time.
+	]]
 	conjure = function()
 		return ns.ResolveMageWaterOrFoodConjure(ns.ConjureSpells.MageCreateFood, "ncfood")
 	end,
@@ -98,11 +102,11 @@ ns.RegisterMacroType({
 	end,
 
 	--[[
-        Scroll mode. The "SCROLLS:" state-key prefix can never collide with
-        the standard ITEMID-prefixed key, which guarantees a rewrite happens
-        at every transition into and out of scroll mode (target-change,
-        scroll-applied, bag scan removing the last scroll item, etc).
-    ]]
+	    Scroll mode. The "SCROLLS:" state-key prefix can never collide with
+	    the standard ITEMID-prefixed key, which guarantees a rewrite happens
+	    at every transition into and out of scroll mode (target-change,
+	    scroll-applied, bag scan removing the last scroll item, etc).
+	]]
 	buildModeOverride = function(context)
 		local scrollIDs = context.activeScrollIDs
 		if not scrollIDs or #scrollIDs == 0 then
@@ -112,13 +116,13 @@ ns.RegisterMacroType({
 	end,
 
 	--[[
-        Stealth Eating: appends a stealth cast below the food line -- Stealth
-        for Rogues, Shadowmeld for other Night Elves -- so the player stealths
-        while eating. The "SE" flag keeps the append in the state key so
-        toggling the option rewrites the macro. Scroll-only mode bypasses this
-        (mode overrides never reach appendBlock), which is correct: a scroll
-        tap is not a meal.
-    ]]
+	    Stealth Eating: appends a stealth cast below the food line -- Stealth
+	    for Rogues, Shadowmeld for other Night Elves -- so the player stealths
+	    while eating. The "SE" flag keeps the append in the state key so
+	    toggling the option rewrites the macro. Scroll-only mode bypasses this
+	    (mode overrides never reach appendBlock), which is correct: a scroll
+	    tap is not a meal.
+	]]
 	appendBlock = function()
 		local settings = ns.db and ns.db.profile
 		if not settings or not settings.enableStealthEating then

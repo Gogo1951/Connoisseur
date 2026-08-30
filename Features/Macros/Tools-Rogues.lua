@@ -1,5 +1,5 @@
 local _, ns = ...
-local Config = ns.Config
+local Config = ns.MacroConfig
 
 --------------------------------------------------------------------------------
 -- Poisons Macro (Rogue)
@@ -232,10 +232,10 @@ local function UpdatePoisonsMacro(forced)
 	local offID = knows and BestPoisonForHand("off") or nil
 
 	--[[
-        Every input that affects the body: skill knowledge, and the resolved
-        item per hand (which already encodes the group picks and bag
-        contents). Same lossless-key rule as the engine's standard keys.
-    ]]
+	    Every input that affects the body: skill knowledge, and the resolved
+	    item per hand (which already encodes the group picks and bag
+	    contents). Same lossless-key rule as the engine's standard keys.
+	]]
 	local stateID = (knows and "K" or "NK")
 		.. "_"
 		.. (mainID and tostring(mainID) or "none")

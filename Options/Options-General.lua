@@ -21,19 +21,19 @@ local LINK_URL_WIDTH = ns.OPTIONS_ROW_WIDTH - LINK_LABEL_WIDTH
 --[[
     The root page holds add-on-level behavior only -- nothing here changes what
     a macro does. In order: intro, Welcome Message, Mini-map Button, /Commands,
-    Ready Check, Feedback & Support, and version.
+    Feedback & Support, and version.
 
     Everything that shapes a macro lives on the Macros panel
-    (Options-Macros.lua), and Restocker on its own (Options-Restocker.lua),
-    beside Profiles and Diagnostic Tools.
+    (Options-Macros.lua), Restocker on its own (Options-Restocker.lua), and the
+    Readiness Report on its own (Options-Readiness.lua), beside the Ignore
+    List, Profiles and Diagnostic Tools.
 
-    Ready Check stays here rather than moving with the buff sections it reports
-    on: it decides whether Connoisseur speaks up in chat, not what any macro
-    contains. Every toggle on this page is account-wide (ns.db.global) -- see
+    Every toggle on this page is account-wide (ns.db.global) -- see
     Data/Default-Settings.lua for why each one stays there.
 
     Order values are grouped in spaced blocks so sections can be reordered or
-    extended without renumbering their neighbors.
+    extended without renumbering their neighbors. The gap the Ready Check
+    section left at 150-155 is deliberately not reclaimed, for the same reason.
 ]]
 
 function ns.BuildGeneralOptions()
@@ -91,26 +91,6 @@ function ns.BuildGeneralOptions()
 				GetColor("INFO") .. L["RESTOCKER_COMMAND"] .. "|r" .. "  " .. L["RESTOCKER_COMMAND_DESCRIPTION"],
 				25
 			),
-
-			-- Ready Check
-			spaceReady0 = Spacer(150),
-			headerReady = Header(L["OPTIONS_READY_CHECK_HEADER"], 151),
-			spaceReady1 = Spacer(152),
-			descReady = Desc(GetColor("BODY") .. L["OPTIONS_READY_CHECK_DESCRIPTION"] .. "|r", 153),
-			spaceReady2 = Spacer(154),
-			toggleReadyCheck = {
-				type = "toggle",
-				name = L["OPTIONS_READY_CHECK"],
-				desc = L["OPTIONS_READY_CHECK_DESCRIPTION"],
-				order = 155,
-				width = "full",
-				get = function()
-					return ns.db and ns.db.global.readyCheckReport
-				end,
-				set = function(_, value)
-					ns.db.global.readyCheckReport = value
-				end,
-			},
 
 			-- Feedback & Support
 			spaceCommunity0 = Spacer(900),

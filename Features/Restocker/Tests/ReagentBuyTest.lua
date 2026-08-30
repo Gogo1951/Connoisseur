@@ -3,8 +3,8 @@
 -- Run it with:   lua Tests/ReagentBuyTest.lua
 --
 -- It models the SAME two steps the live addon uses:
---   * BuyIngredients.lua CraftingPurchaseOrder -- how many reagents the shortfall needs
---   * Merchant.lua PurchaseMerchantItem       -- how many of those a vendor slot delivers
+--   * Restocker-Crafting-Reagents.lua BuildCraftingPurchaseOrder -- how many reagents the shortfall needs
+--   * Restocker-Merchant.lua PurchaseMerchantItem       -- how many of those a vendor slot delivers
 --
 -- The reported bug lives in the first: 40 Instant Poison VI wanted, 18 sitting in the
 -- BANK, and the order came out at 22 crafts (22 Crystal Vial, 88 Dust of Deterioration)
@@ -17,7 +17,7 @@
 -- a single call, so a poison supplier holding several stacks sold nothing while the addon
 -- reported the order filled.
 
--- Classic Instant Poison VI: 4x Dust of Deterioration + 1x Crystal Vial (BuyIngredients.lua).
+-- Classic Instant Poison VI: 4x Dust of Deterioration + 1x Crystal Vial (Data/Poison-Recipes.lua).
 local RECIPE = { { name = "Dust of Deterioration", count = 4 }, { name = "Crystal Vial", count = 1 } }
 
 local pass = 0
@@ -31,32 +31,32 @@ local pass = 0
 ---@param inBank number Crafted items in the BANK (must not affect the result)
 ---@param reagentsInBags table<string, number>
 local function craftingPurchaseOrder(wanted, inBags, inBank, reagentsInBags)
-  local order = {}
-  local missing = wanted - inBags -- inBank is deliberately unused
-  if missing > 0 then
-    for _, ing in ipairs(RECIPE) do
-      order[ing.name] = (order[ing.name] or 0) + ing.count * missing
-    end
-  end
-  for reagent in pairs(order) do
-    local have = (reagentsInBags or {})[reagent] or 0
-    if have > 0 then
-      local remaining = order[reagent] - have
-      order[reagent] = remaining > 0 and remaining or 0
-    end
-  end
-  return order
+	local order = {}
+	local missing = wanted - inBags -- inBank is deliberately unused
+	if missing > 0 then
+		for _, ing in ipairs(RECIPE) do
+			order[ing.name] = (order[ing.name] or 0) + ing.count * missing
+		end
+	end
+	for reagent in pairs(order) do
+		local have = (reagentsInBags or {})[reagent] or 0
+		if have > 0 then
+			local remaining = order[reagent] - have
+			order[reagent] = remaining > 0 and remaining or 0
+		end
+	end
+	return order
 end
 
 ---@param label string
 local function orderScenario(label, wanted, inBags, inBank, reagentsInBags, wantDust, wantVial)
-  local order = craftingPurchaseOrder(wanted, inBags, inBank, reagentsInBags)
-  local dust = order["Dust of Deterioration"] or 0
-  local vial = order["Crystal Vial"] or 0
-  assert(dust == wantDust, ("%s: dust want %d got %d"):format(label, wantDust, dust))
-  assert(vial == wantVial, ("%s: vial want %d got %d"):format(label, wantVial, vial))
-  print(("  ok  %-46s -> %3d dust, %3d vial"):format(label, dust, vial))
-  pass = pass + 1
+	local order = craftingPurchaseOrder(wanted, inBags, inBank, reagentsInBags)
+	local dust = order["Dust of Deterioration"] or 0
+	local vial = order["Crystal Vial"] or 0
+	assert(dust == wantDust, ("%s: dust want %d got %d"):format(label, wantDust, dust))
+	assert(vial == wantVial, ("%s: vial want %d got %d"):format(label, wantVial, vial))
+	print(("  ok  %-46s -> %3d dust, %3d vial"):format(label, dust, vial))
+	pass = pass + 1
 end
 
 print("CRAFTING PURCHASE ORDER")
@@ -90,41 +90,41 @@ orderScenario("40 wanted, 400 dust held (surplus)", 40, 0, 0, { ["Dust of Deteri
 ---@param merchantAvailable number Vendor stock; -1 is unlimited, 0 is sold out
 ---@param stackCount number Item stack size
 local function purchaseMerchantItem(amount, merchantAvailable, stackCount)
-  local calls = {}
-  local unitsOrdered = 0
-  if stackCount < 1 then
-    stackCount = 1
-  end
+	local calls = {}
+	local unitsOrdered = 0
+	if stackCount < 1 then
+		stackCount = 1
+	end
 
-  local wanted = amount
-  if merchantAvailable > 0 and wanted > merchantAvailable then
-    wanted = merchantAvailable
-  end
+	local wanted = amount
+	if merchantAvailable > 0 and wanted > merchantAvailable then
+		wanted = merchantAvailable
+	end
 
-  for n = wanted, 1, -stackCount do
-    local chunk = (n > stackCount) and stackCount or n
-    calls[#calls + 1] = chunk
-    unitsOrdered = unitsOrdered + chunk
-  end
+	for n = wanted, 1, -stackCount do
+		local chunk = (n > stackCount) and stackCount or n
+		calls[#calls + 1] = chunk
+		unitsOrdered = unitsOrdered + chunk
+	end
 
-  if merchantAvailable == 0 then
-    unitsOrdered = 0
-  end
+	if merchantAvailable == 0 then
+		unitsOrdered = 0
+	end
 
-  return unitsOrdered, unitsOrdered > 0 and unitsOrdered >= amount, calls
+	return unitsOrdered, unitsOrdered > 0 and unitsOrdered >= amount, calls
 end
 
 local function buyScenario(label, amount, avail, stack, wantUnits, wantFilled)
-  local units, filled, calls = purchaseMerchantItem(amount, avail, stack)
-  assert(units == wantUnits, ("%s: units want %d got %d"):format(label, wantUnits, units))
-  assert(filled == wantFilled, ("%s: filled want %s got %s"):format(label, tostring(wantFilled), tostring(filled)))
-  -- The invariant the old limited-stock branch broke: no single call may exceed a stack.
-  for _, chunk in ipairs(calls) do
-    assert(chunk <= stack, ("%s: call of %d exceeds stack %d"):format(label, chunk, stack))
-    assert(chunk > 0, label .. ": non-positive call")
-  end
-  print(("  ok  %-46s -> %3d units in %d calls, filled=%s"):format(label, units, #calls, tostring(filled)))
-  pass = pass + 1
+	local units, filled, calls = purchaseMerchantItem(amount, avail, stack)
+	assert(units == wantUnits, ("%s: units want %d got %d"):format(label, wantUnits, units))
+	assert(filled == wantFilled, ("%s: filled want %s got %s"):format(label, tostring(wantFilled), tostring(filled)))
+	-- The invariant the old limited-stock branch broke: no single call may exceed a stack.
+	for _, chunk in ipairs(calls) do
+		assert(chunk <= stack, ("%s: call of %d exceeds stack %d"):format(label, chunk, stack))
+		assert(chunk > 0, label .. ": non-positive call")
+	end
+	print(("  ok  %-46s -> %3d units in %d calls, filled=%s"):format(label, units, #calls, tostring(filled)))
+	pass = pass + 1
 end
 
 print("\nMERCHANT PURCHASE")

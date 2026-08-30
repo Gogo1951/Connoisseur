@@ -15,16 +15,20 @@ local _, ns = ...
     therefore re-run on every PLAYER_ENTERING_WORLD (see Features/Core.lua) so a
     /reload or relog re-hides the freshly created font strings.
 
-    Only the five default bars carry macro names in Classic; the same list the
-    community fix uses. Nil-guarded so a bar add-on that removes a font string
-    can't error us.
+    The first five prefixes are the bars that carry macro names on the target
+    clients; the three MultiBar6-8 names resolve to nothing there and are
+    forward-prep. Nil-guarded, which absorbs those three as well as a bar add-on
+    that removes a font string.
 ]]
 local ACTION_BAR_PREFIXES = {
 	"ActionButton",
+	"MultiBarLeftButton",
+	"MultiBarRightButton",
 	"MultiBarBottomLeftButton",
 	"MultiBarBottomRightButton",
-	"MultiBarRightButton",
-	"MultiBarLeftButton",
+	"MultiBar6Button",
+	"MultiBar7Button",
+	"MultiBar8Button",
 }
 
 function ns.ApplyMacroNameVisibility()

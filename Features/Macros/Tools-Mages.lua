@@ -33,23 +33,23 @@ function ns.ResolveMageWaterOrFoodConjure(rightList, rightMissKey)
 		info.rightName, info.rightID = ns.GetSmartSpell(rightList)
 	else
 		--[[
-            Mage who can theoretically learn this — print a tip on
-            right-click (and also on left-click when bags are empty).
-        ]]
+		    Mage who can theoretically learn this — print a tip on
+		    right-click (and also on left-click when bags are empty).
+		]]
 		info.rightMiss = rightMissKey
 		info.noItemMiss = rightMissKey
 	end
 
 	--[[
-        Middle-click: Ritual of Refreshment is a level-70 ability (Rank 2
-        at 80 in Wrath). The table serves the whole raid, so ignoreTarget
-        keeps a low-level friendly target from downranking it, and the
-        unpinned /cast always fires the highest rank known. If the mage
-        hasn't learned it yet AND the spell exists on this client, the
-        middle-click prints "you don't know Ritual of Refreshment." On
-        clients where the spell isn't implemented (Era 1.15), the tip
-        resolves to nil at print time and silently does nothing.
-    ]]
+	    Middle-click: Ritual of Refreshment is a level-70 ability (Rank 2
+	    at 80 in Wrath). The table serves the whole raid, so ignoreTarget
+	    keeps a low-level friendly target from downranking it, and the
+	    unpinned /cast always fires the highest rank known. If the mage
+	    hasn't learned it yet AND the spell exists on this client, the
+	    middle-click prints "you don't know Ritual of Refreshment." On
+	    clients where the spell isn't implemented (Era 1.15), the tip
+	    resolves to nil at print time and silently does nothing.
+	]]
 	if ns.KnowsAny(ns.ConjureSpells.MageCreateTable) then
 		info.middleName, info.middleID = ns.GetSmartSpell(ns.ConjureSpells.MageCreateTable, true)
 	else
@@ -75,10 +75,10 @@ function ns.ResolveMageManaGemConjure()
 	else
 		info.rightMiss = "ncgem"
 		--[[
-            Mana Gems are class-exclusive; a mage without the spell almost
-            certainly has no Mana Gem in bags either, so left-click should
-            explain that rather than the generic "no item found" message.
-        ]]
+		    Mana Gems are class-exclusive; a mage without the spell almost
+		    certainly has no Mana Gem in bags either, so left-click should
+		    explain that rather than the generic "no item found" message.
+		]]
 		info.noItemMiss = "ncgem"
 	end
 	return info

@@ -75,28 +75,54 @@ L["CHAT_LOADED"] =
 L["CHAT_OPTIONS_IN_COMBAT"] = "基於安全考量，戰鬥中無法開啟選項介面。"
 
 --------------------------------------------------------------------------------
--- Ready Check
+-- Readiness Report
 --------------------------------------------------------------------------------
 
 --[[
-    The ready-check self-audit, printed as one line: either the missing list or
-    the all-clear, then a segment per tracked buff. Item names come from the
-    LABEL_ keys below, so a consumable is named the same here as it is in
-    MSG_NO_ITEM.
+    Printed when a ready check starts, as a header plus up to three lines. Each
+    line is a set of "Label : a, b, c" clauses joined by ". ", and every part of
+    it is dropped when it has nothing to say -- a clean character prints nothing
+    at all, so there is no all-clear string here and must not be one.
 ]]
 
-L["READY_ALL_CLEAR"] = "準備就緒！"
--- %s is the comma-separated list of what the character is missing.
-L["READY_MISSING"] = "缺少：%s"
+L["READINESS_TITLE"] = "就緒報告"
 
-L["READY_WELL_FED"] = "進食充分"
-L["READY_SCROLLS"] = "卷軸"
-L["READY_PET_FED"] = "寵物已進食"
+-- Clause labels, in the order the lines print them.
+L["READINESS_MISSING_BUFFS"] = "缺少增益："
+L["READINESS_EXPIRING"] = "即將到期："
+L["READINESS_MISSING_ITEMS"] = "缺少物品："
+L["READINESS_DAMAGED_GEAR"] = "受損裝備："
+L["READINESS_CHARACTER"] = "角色："
+L["READINESS_QUESTIONABLE_GEAR"] = "裝備了非戰鬥裝備："
 
--- { buff label, whole minutes left }
-L["READY_TIME_MINUTES"] = "%s %d 分鐘"
--- %s is the buff label; used when under a minute is left.
-L["READY_TIME_EXPIRING"] = "%s 不足 1 分鐘"
+--[[
+    What the report calls each thing. Deliberately its own set rather than the
+    shared LABEL_* keys the macro messages use: those name an item you are being
+    offered ("Health Potion"), these name a gap in your preparation ("Healing
+    Potion"), and the two want to be reworded independently.
+]]
+L["READINESS_FLASK"] = "合劑或 2 種藥劑"
+L["READINESS_WELL_FED"] = "進食充分"
+L["READINESS_PET_WELL_FED"] = "進食充分（寵物）"
+L["READINESS_SCROLLS"] = "卷軸"
+L["READINESS_SOULSTONE"] = "靈魂石未啟用"
+L["READINESS_MAIN_HAND"] = "主手"
+L["READINESS_OFF_HAND"] = "副手"
+L["READINESS_HEALTHSTONE"] = "治療石"
+L["READINESS_MANA_GEM"] = "法力寶石"
+L["READINESS_HEALING_POTION"] = "治療藥水"
+L["READINESS_MANA_POTION"] = "法力藥水"
+L["READINESS_BANDAGES"] = "繃帶"
+L["READINESS_PVP_ON"] = "PvP 已開啟！"
+
+-- { buff name, whole minutes left }
+L["READINESS_TIME_MINUTES"] = "%s %d 分鐘"
+-- %s is the buff name; used when under a minute is left.
+L["READINESS_TIME_EXPIRING"] = "%s 不足 1 分鐘"
+-- { dominant talent tree, slash-joined point spread }
+L["READINESS_SPEC_FORMAT"] = "%s (%s)"
+-- %d is the number of talent points the character has not spent.
+L["READINESS_UNSPENT_TALENTS"] = "%d 點未分配天賦"
 
 --------------------------------------------------------------------------------
 -- ConnTip Messages
@@ -227,7 +253,7 @@ L["TIP_ROGUE_WINDOW"] = "中鍵點擊開啟毒藥製作視窗。"
 
 --[[
     Labels that get plugged into MSG_NO_ITEM ("No suitable %s found...").
-    One per macro type (resolved via ns.Config in ConnNoItem), plus Pet Food.
+    One per macro type (resolved via ns.MacroConfig in ConnNoItem), plus Pet Food.
 ]]
 
 L["LABEL_BANDAGE"] = "繃帶"
@@ -305,10 +331,107 @@ L["REAPPLY_THRESHOLD_ONE"] = "當剩餘不足 1 分鐘時"
 L["REAPPLY_THRESHOLD_N"] = "當剩餘不足 %d 分鐘時"
 
 -- Ready Check
-L["OPTIONS_READY_CHECK_HEADER"] = "準備確認"
-L["OPTIONS_READY_CHECK"] = "在準備確認時回報狀態"
-L["OPTIONS_READY_CHECK_DESCRIPTION"] =
-	"每次開始準備確認時，輸出你缺少什麼以及所追蹤增益的剩餘時間，僅你自己可見。"
+L["OPTIONS_READINESS_HEADER"] = "就緒報告"
+L["OPTIONS_READINESS_ENABLE"] = "在準備確認時啟用就緒報告"
+--[[
+    Says what the report does AND that it stays quiet, because the quiet is the
+    feature: a player who turns this on and sees nothing for three pulls has to
+    know that is the report working rather than the report broken.
+]]
+L["OPTIONS_READINESS_DESCRIPTION"] =
+	"準備確認開始時，輸出一份僅自己可見的清單，列出還需要處理的問題。你已就緒時它什麼也不說。"
+
+--[[
+    The reset button under the master toggle. It needs a control of its own
+    because these settings are account-wide: the stock Reset Profile reaches
+    only the character's own profile, so nothing else on any panel can return
+    them to their defaults.
+
+    The confirm names the one consequence a player would not otherwise predict.
+    Off is what the report ships as, so resetting switches it back off, and a
+    page that emptied itself with no warning would read as a bug.
+]]
+L["OPTIONS_READINESS_RESET"] = "重置就緒報告設定"
+L["OPTIONS_READINESS_RESET_DESCRIPTION"] =
+	"將本頁的所有開關和兩個閾值恢復為全新安裝時的設定。其他頁面不受影響。"
+L["OPTIONS_READINESS_RESET_CONFIRM"] =
+	"將就緒報告的所有設定重置為預設值？這也會重新關閉報告本身。"
+
+--[[
+    The three sections, each a real header over the switches it covers. They name
+    what the line is called in chat, so the panel and the report read as the same
+    feature.
+]]
+L["OPTIONS_READINESS_BUFFS_HEADER"] = "缺少增益"
+L["OPTIONS_READINESS_ITEMS_HEADER"] = "缺少物品"
+L["OPTIONS_READINESS_CHARACTER_HEADER"] = "角色"
+
+-- Missing Buffs
+L["OPTIONS_READINESS_FLASK"] = "合劑或 2 種藥劑"
+L["OPTIONS_READINESS_FLASK_DESCRIPTION"] =
+	"擁有一瓶合劑，或一瓶戰鬥藥劑加一瓶守護藥劑，即視為已備齊。"
+L["OPTIONS_READINESS_WELL_FED"] = "進食充分"
+L["OPTIONS_READINESS_WELL_FED_DESCRIPTION"] = "需要在巨集設定中開啟增益食物。"
+L["OPTIONS_READINESS_PET_WELL_FED"] = "進食充分（寵物）"
+L["OPTIONS_READINESS_PET_WELL_FED_DESCRIPTION"] = "僅限獵人。需要在巨集設定中開啟寵物食物增益。"
+L["OPTIONS_READINESS_SCROLLS"] = "卷軸增益"
+L["OPTIONS_READINESS_SCROLLS_DESCRIPTION"] = "以你在巨集設定中選擇使用的卷軸為準。"
+--[[
+    The one entry that asks about the GROUP rather than the player's own bags,
+    which the helper text has to say outright: a raid carrying seven unused
+    stones is not covered, and one deployed stone covers it.
+]]
+L["OPTIONS_READINESS_SOULSTONE"] = "靈魂石未啟用"
+L["OPTIONS_READINESS_SOULSTONE_DESCRIPTION"] =
+	"檢查是否有靈魂石在某人身上生效，而不是有一顆躺在背包裡。需要隊伍中有術士。"
+L["OPTIONS_READINESS_MAIN_HAND"] = "主手武器增益"
+L["OPTIONS_READINESS_OFF_HAND"] = "副手武器增益"
+L["OPTIONS_READINESS_WEAPON_DESCRIPTION"] =
+	"任何臨時武器附魔都算：磨刀石、油劑、毒藥或薩滿的武器增益。"
+--[[
+    Says the Shaman exemption outright, because a main-hand line that goes quiet
+    the moment a Shaman joins reads as a broken switch otherwise.
+]]
+L["OPTIONS_READINESS_MAIN_HAND_DESCRIPTION"] = "任何臨時武器附魔都算。隊伍中有薩滿時保持沉默。"
+--[[
+    Names the OTHER threshold so the two cannot be mistaken for each other: the
+    Macros panel has one that decides when a macro treats a buff as spent, and
+    this one only decides when the report mentions it.
+]]
+L["OPTIONS_READINESS_EXPIRING"] = "增益到期時間少於"
+L["OPTIONS_READINESS_EXPIRING_DESCRIPTION"] =
+	"列出你身上所有即將消失的增益，而不只是 Connoisseur 施加的。與巨集設定裡的增益補充相互獨立，那邊決定巨集何時提供新的增益。"
+-- %s is a whole or half number of minutes.
+L["OPTIONS_READINESS_EXPIRING_MINUTES"] = "%s 分鐘"
+-- The one-minute entry alone; one plural template cannot render it grammatically.
+L["OPTIONS_READINESS_EXPIRING_MINUTES_ONE"] = "1 分鐘"
+
+-- Missing Items
+L["OPTIONS_READINESS_HEALTHSTONE"] = "治療石"
+L["OPTIONS_READINESS_HEALTHSTONE_DESCRIPTION"] =
+	"僅當隊伍中有可以索取的術士，或你自己就是術士時才顯示。"
+L["OPTIONS_READINESS_MANA_GEM"] = "法力寶石"
+L["OPTIONS_READINESS_MANA_GEM_DESCRIPTION"] = "僅當你使用法師時顯示。"
+L["OPTIONS_READINESS_HEALING_POTION"] = "治療藥水"
+L["OPTIONS_READINESS_HEALING_POTION_DESCRIPTION"] = "最好在開戰前備足。戰鬥中沒人能遞給你藥水。"
+L["OPTIONS_READINESS_MANA_POTION"] = "法力藥水"
+L["OPTIONS_READINESS_MANA_POTION_DESCRIPTION"] = "僅當你使用需要法力的職業時顯示。"
+L["OPTIONS_READINESS_BANDAGES"] = "繃帶"
+L["OPTIONS_READINESS_BANDAGES_DESCRIPTION"] = "在你沒有任何可用繃帶時提醒，急救技能也計算在內。"
+L["OPTIONS_READINESS_DURABILITY"] = "受損裝備低於"
+L["OPTIONS_READINESS_DURABILITY_DESCRIPTION"] =
+	"連結每件耐久度低於該值的已裝備物品。按單件計算，所以一件損壞的武器也會顯示。"
+-- %d is a durability percentage.
+L["OPTIONS_READINESS_DURABILITY_PERCENT"] = "%d%%"
+
+-- Character
+L["OPTIONS_READINESS_SPEC"] = "當前天賦"
+L["OPTIONS_READINESS_SPEC_DESCRIPTION"] = "輸出你的天賦分配，以及尚未使用的點數。"
+L["OPTIONS_READINESS_PVP"] = "PvP 標記開啟"
+L["OPTIONS_READINESS_PVP_DESCRIPTION"] = "當你的 PvP 標記開啟時發出警告。"
+L["OPTIONS_READINESS_QUESTIONABLE_GEAR"] = "裝備了非戰鬥裝備"
+L["OPTIONS_READINESS_QUESTIONABLE_GEAR_DESCRIPTION"] =
+	"連結不該出現在戰鬥中的已裝備物品，比如 PvP 飾品或魚竿。"
 
 --[[
     Three features are suppressed in a PvP Arena, and each says so with the
@@ -432,7 +555,7 @@ L["OPTIONS_RESTOCKER_BANK_REMIND_DESCRIPTION"] =
 	"關閉銀行時回報未完成的補貨訂單。沒有時保持安靜。"
 
 --[[
-    The starter List Builder pop-up. This toggle and the pop-up's own "Don't
+    The Starter List Builder pop-up. This toggle and the pop-up's own "Don't
     show this again" box are the same per-character choice read from opposite
     ends, which is why one ships on and the other off: a settings row reads
     naturally as "enable", a dismissal reads naturally as "stop".
@@ -454,12 +577,8 @@ L["OPTIONS_RESTOCKER_MODE_VERBOSE"] = "詳細"
 L["OPTIONS_RESTOCKER_REMIND_SOUND"] = "播放音效"
 L["OPTIONS_RESTOCKER_REMIND_SOUND_DESCRIPTION"] = "在提醒的同時播放提示音，適合聊天繁忙的時候。"
 L["OPTIONS_RESTOCKER_SOUND_PREVIEW"] = "點擊試聽提示音。"
-L["OPTIONS_RESTOCKER_DEBUG"] = "啟用 Restocker 除錯訊息"
-L["OPTIONS_RESTOCKER_DEBUG_DESCRIPTION"] =
-	"在聊天視窗中逐步輸出 Restocker 的銀行/商人補貨決策。訊息較多；在關閉前會跨登入階段保持開啟。"
 
 L["OPTIONS_RESTOCKER_WINDOW_HEADER"] = "補貨視窗"
-L["OPTIONS_RESTOCKER_ADVANCED_HEADER"] = "進階"
 
 --[[
     Praise for the adopted Restocker code. The three names are proper nouns and
@@ -509,12 +628,12 @@ L["VERSION_LABEL"] = "版本"
 --------------------------------------------------------------------------------
 
 -- Chat messages printed by the Restocker feature (Features/Restocker/).
-L["RESTOCKER_PROFILE_EXISTS"] = '已存在名為"%s"的設定檔。'
+L["RESTOCKER_PROFILE_EXISTS"] = '已存在名為"%s"的清單。'
 L["RESTOCKER_BANK_NOT_OPEN"] = "銀行未開啟。"
 --[[
     %s is the /crs slash command, colored at the call site. Only the bank flow
     prints this, so the Shift hint names the bank; Shift is read as the window
-    opens (eventsModule.OnBankOpen), not stored as a preference.
+    opens (ns.OnRestockerBankOpen), not stored as a preference.
 ]]
 L["RESTOCKER_COMPLETE"] =
 	"補貨完成。開啟銀行時按住 Shift 可跳過補貨。輸入 %s 編輯你的補貨清單。"
@@ -532,7 +651,7 @@ L["RESTOCKER_BAGS_FULL_SKIP_MERCHANT"] = "你的背包已滿。跳過商人補�
     Printed once per vendor visit when the crafting-reagent buyer stands down:
     this merchant stocks some of the reagents the Restock List needs but not
     all of them, and reagents buy all-or-nothing (VendorStocksAllReagents in
-    Features/Restocker/Merchant.lua). Silent at vendors stocking none.
+    Features/Restocker/Restocker-Merchant.lua). Silent at vendors stocking none.
 ]]
 L["RESTOCKER_REAGENTS_SKIPPED"] =
 	"這個商人沒有販售你的毒藥所需的全部材料。跳過購買這些材料。"
@@ -590,7 +709,7 @@ L["RESTOCKER_REMINDER_ITEM"] = "%d/%d %s"
     filled; six of a requested twenty is not one at all, and belongs to the
     partial line below.
 
-    The claim has to be earned, which is why merchantModule:PurchaseMerchantItem
+    The claim has to be earned, which is why the merchant restock's PurchaseMerchantItem
     reports whether it got the full amount instead of the caller inferring it
     from a unit count. What the vendor did not stock is deliberately not
     mentioned here: the mini-map's Restocker Report owns the outstanding state,
@@ -613,15 +732,15 @@ L["RESTOCKER_RESTOCKED_PARTIAL_MANY"] = "有 %d 項補貨訂單僅部分完成�
 
 -- /crs help lines. The command literals stay in code; these are the descriptions.
 L["RESTOCKER_HELP_SHOW"] = "顯示 Restocker 視窗。"
-L["RESTOCKER_HELP_PROFILE_ADD"] = "新增一個以該名稱命名的設定檔。"
-L["RESTOCKER_HELP_PROFILE_DELETE"] = "刪除該名稱的設定檔。"
-L["RESTOCKER_HELP_PROFILE_RENAME"] = "將目前設定檔重新命名為該名稱。"
-L["RESTOCKER_HELP_PROFILE_COPY"] = "將該設定檔複製到目前設定檔。"
-L["RESTOCKER_HELP_PROFILE_USE"] = "切換到該名稱的設定檔。"
+L["RESTOCKER_HELP_PROFILE_ADD"] = "新增一個以該名稱命名的清單。"
+L["RESTOCKER_HELP_PROFILE_DELETE"] = "刪除該名稱的清單。"
+L["RESTOCKER_HELP_PROFILE_RENAME"] = "將當前清單重新命名為該名稱。"
+L["RESTOCKER_HELP_PROFILE_COPY"] = "將該清單複製到當前清單。"
+L["RESTOCKER_HELP_PROFILE_USE"] = "切換到該名稱的清單。"
 
 --[[
     Starter List pop-up: the login window that offers vendor staples when the
-    Restock List is empty (Features/Restocker/StarterList.lua). Its title
+    Restock List is empty (Features/Restocker/Restocker-Starter-List.lua). Its title
     reuses RESTOCKER_WINDOW_TITLE below, and the six food staples reuse the
     DIET_ keys above, so the popup names bread whatever the pet-food tooltips
     call it.
@@ -631,6 +750,9 @@ L["RESTOCKER_HELP_PROFILE_USE"] = "切換到該名稱的設定檔。"
     each reads as its own breath rather than one wall.
 ]]
 L["STARTER_POPUP_INTRO_EMPTY"] = "你的補貨清單是空的，我們來新增一些物品好讓你上手。"
+-- Shown instead when the window is opened over a list that already has items on it.
+L["STARTER_POPUP_INTRO_STOCKED"] =
+	"勾選你想保持補給的基礎物資。已在你補貨清單上的物品會顯示為已勾選。"
 L["STARTER_POPUP_INTRO_HOW"] =
 	"你勾選的一切都會在開啟商人或銀行時自動補足，而常規物資會隨著等級提升自動升級，所以你手上永遠是目前最好的。"
 -- %s is the /crs slash command, colored at the call site.
@@ -646,7 +768,6 @@ L["STARTER_POPUP_AMMO_HEADER"] = "彈藥"
 -- The two ammo staples; the Water label reuses LABEL_WATER above.
 L["STARTER_POPUP_BULLETS"] = "子彈"
 L["STARTER_POPUP_ARROWS"] = "箭矢"
-
 --[[
     The Reagents & Tools section: class tools and spell reagents, at most a
     handful per class. Rogues additionally get a Poisons section of their
@@ -721,34 +842,50 @@ L["STARTER_POPUP_DISMISS_DESCRIPTION"] =
 -- Restocker window UI.
 L["RESTOCKER_WINDOW_TITLE"] = "Connoisseur Restocker"
 L["RESTOCKER_FILTER_PLACEHOLDER"] = "篩選物品..."
+L["RESTOCKER_FILTER_CLEAR_TOOLTIP"] = "清除"
 L["RESTOCKER_ADD_BUTTON"] = "新增"
+L["RESTOCKER_LIST_BUILDER_BUTTON"] = "開啟清單助手"
+L["RESTOCKER_LIST_BUILDER_TOOLTIP"] =
+	"開啟清單助手，內容與新角色收到的基礎物資相同。助手開啟期間此視窗會關閉。"
 L["RESTOCKER_ADD_TOOLTIP_TITLE"] = "新增物品"
 L["RESTOCKER_ADD_TOOLTIP_BODY"] = "從背包拖放一個物品，或輸入數字物品 ID。"
--- In-box placeholder for the add row; the tooltip above carries the detail.
-L["RESTOCKER_ADD_PLACEHOLDER"] = "將物品拖曳至此，或輸入其 ID..."
-L["RESTOCKER_PROFILE_LABEL"] = "設定檔："
-L["RESTOCKER_RENAME_LABEL"] = "重新命名："
-L["RESTOCKER_NEW_PROFILE"] = "新設定檔"
+--[[
+    In-box placeholder for the add row; the tooltip above carries the detail.
+    Kept to a phrase rather than a sentence: it sets the width of both boxes on
+    that row, and the row cannot afford two fields wide enough for a long one.
+]]
+L["RESTOCKER_ADD_PLACEHOLDER"] = "將物品拖曳至此，或輸入其 ID"
+L["RESTOCKER_PROFILE_LABEL"] = "清單"
+L["RESTOCKER_PROFILE_TOOLTIP"] =
+	"此角色正在使用的補貨清單。點擊可切換到其他清單，或新建一個。"
+L["RESTOCKER_RENAME_LABEL"] = "重新命名"
+L["RESTOCKER_NEW_PROFILE"] = "新清單"
 L["RESTOCKER_COPY_PROFILE"] = "複製"
 --[[
     The three single-argument tooltips below (Copy, Delete, and the row's
-    Remove) render in RS.SetupTooltip's TITLE slot, not its body, so they take
+    Remove) render in ns.SetupRestockerTooltip's TITLE slot, not its body, so they take
     no terminal punctuation -- matching every other title in the window. Don't
     "restore" the period they read as wanting.
 ]]
-L["RESTOCKER_COPY_PROFILE_TOOLTIP"] = "將此設定檔複製為一個新設定檔"
--- %s becomes "<profile name> Copy"; numbered if that name is taken.
+L["RESTOCKER_COPY_PROFILE_TOOLTIP"] = "將此清單複製為一個新清單"
+-- %s becomes "<list name> Copy"; numbered if that name is taken.
 L["RESTOCKER_PROFILE_COPY_NAME"] = "%s 副本"
 L["RESTOCKER_DELETE_PROFILE"] = "刪除"
-L["RESTOCKER_DELETE_PROFILE_TOOLTIP"] = "刪除此設定檔"
--- %s is the profile name, colored at the call site. |n are line breaks.
-L["RESTOCKER_DELETE_PROFILE_CONFIRM"] = "確定要刪除此設定檔嗎？|n|n%s|n|n此操作無法復原。"
+L["RESTOCKER_DELETE_PROFILE_TOOLTIP"] = "刪除此清單"
+L["RESTOCKER_RENAME_TOOLTIP"] = "重新命名此清單。所有使用它的角色都會跟隨新名稱。"
+-- %s is the list name, colored at the call site. |n are line breaks.
+L["RESTOCKER_DELETE_PROFILE_CONFIRM"] = "確定要刪除此清單嗎？|n|n%s|n|n此操作無法復原。"
 --[[
-    Row controls in the Restocker window. UPGRADE is disabled on any item that
-    is not on a ladder in Data/Consumable-Upgrade-Paths.lua, which on a real
-    list is most of them.
+    The Upgrade toggle. One string serves both the column heading and every
+    row's checkbox, so it has to read for a single item and for the whole
+    column at once -- which is why it names categories rather than "this item".
+
+    The categories are exactly the ladder kinds in
+    Data/Consumable-Upgrade-Paths.lua: food, water, arrow and bullet, poison,
+    healing and mana potion, and the class reagents. Naming anything else here
+    promises an upgrade that never arrives, since the toggle is disabled on any
+    item that is not on a ladder -- which on a real list is most of them.
 ]]
-L["RESTOCKER_UPGRADE_LABEL"] = "自動升級"
 L["RESTOCKER_UPGRADE_TOOLTIP_TITLE"] = "隨等級升級"
 L["RESTOCKER_UPGRADE_TOOLTIP_BODY"] =
 	"食物、水、彈藥和藥水隨著等級有清晰的升級路線，所以 Connoisseur 會替你把這一項往上調。其餘的則交給你自己慢慢調整。"
@@ -762,12 +899,35 @@ L["RESTOCKER_ROW_BANK"] = "銀行"
 L["RESTOCKER_ROW_MERCHANT"] = "商人"
 L["RESTOCKER_ROW_UPGRADE"] = "升級"
 
+--[[
+    Column headings over the list.
+
+    Keep these SHORT. A heading sets its column's width, and every pixel a
+    heading takes comes out of the item name beside it. Six full-length
+    headings do not fit beside a readable name at the smallest window size.
+
+    "Take" and "Store" are short because they never appear alone: both sit
+    under a "Bank" band, which is what makes them exact. Translate them as a
+    pair with that band in mind, and keep them a single short word each.
+]]
+L["RESTOCKER_COLUMN_ITEM"] = "物品"
+L["RESTOCKER_COLUMN_WITHDRAW"] = "取出"
+L["RESTOCKER_COLUMN_DEPOSIT"] = "存入"
+L["RESTOCKER_COLUMN_REPUTATION"] = "聲望"
+L["RESTOCKER_COLUMN_AMOUNT"] = "數量"
+
 L["RESTOCKER_GROUP_OTHER"] = "其他"
 --[[
     Temporary group holding items added during this viewing of the window. It
     sorts above every real item type and disappears when the window closes.
 ]]
 L["RESTOCKER_GROUP_NEW"] = "新增"
+--[[
+    The category pane's first entry, above the item types. Selected by default,
+    and the only way back to the whole list once a type has been picked, so it
+    has to read as "everything" rather than as another type.
+]]
+L["RESTOCKER_GROUP_ALL"] = "全部物品"
 -- Title slot, like the two profile-button tooltips above: no terminal period.
 L["RESTOCKER_REMOVE_TOOLTIP"] = "將此物品從補貨清單中移除"
 L["RESTOCKER_AMOUNT_TOOLTIP_TITLE"] = "補貨數量"
@@ -775,10 +935,25 @@ L["RESTOCKER_AMOUNT_TOOLTIP_BODY"] = "編輯完成後按 Enter。"
 L["RESTOCKER_BUY_LABEL"] = "購買"
 L["RESTOCKER_BUY_TOOLTIP_TITLE"] = "向商人購買"
 L["RESTOCKER_BUY_TOOLTIP_BODY"] = "商人視窗開啟時購買所需數量。"
-L["RESTOCKER_DEPOSIT_LABEL"] = "存入"
+
+--[[
+    Some vendor slots hold only a few units and trickle back over time, which is
+    how Classic sells its scarce consumables. Extra empties those slots outright
+    rather than buying the shortfall, so the tooltip has to say three things: what
+    it buys, that unlimited stock is never touched, and why anyone would want it.
+]]
+L["RESTOCKER_EXTRA_LABEL"] = "額外"
+L["RESTOCKER_EXTRA_TOOLTIP_TITLE"] = "額外購買"
+L["RESTOCKER_EXTRA_TOOLTIP_STOCK"] = "買光商人此物品的全部存貨，即使超出你的目標數量。"
+L["RESTOCKER_EXTRA_TOOLTIP_LIMITED"] =
+	"僅對限量存貨生效，即商人緩慢補貨的稀缺商品。無限供應的商品不受影響。"
 L["RESTOCKER_DEPOSIT_TOOLTIP_TITLE"] = "存入銀行"
+--[[
+    Names the Amount column, so it is coupled to RESTOCKER_COLUMN_AMOUNT: a locale
+    that renders that heading differently has to say the same word here, or the
+    sentence points at a column the player cannot find.
+]]
 L["RESTOCKER_DEPOSIT_TOOLTIP_BODY"] = "銀行開啟時將多餘物品存入銀行。填 0 表示全部存入。"
-L["RESTOCKER_WITHDRAW_LABEL"] = "取出"
 L["RESTOCKER_WITHDRAW_TOOLTIP_TITLE"] = "從銀行補貨"
 L["RESTOCKER_WITHDRAW_TOOLTIP_BODY"] = "銀行開啟時從銀行取出所需物品。"
 
@@ -803,13 +978,12 @@ L["RESTOCKER_REPUTATION_EXALTED"] = "崇拜"
     "Any" among four verbs. The prefix labels the control, since the window has
     no column headings to do it.
 ]]
-L["RESTOCKER_REPUTATION_BUTTON_FORMAT"] = "聲望：%s"
 
 L["RESTOCKER_REPUTATION_TOOLTIP_TITLE"] = "所需商人聲望"
 --[[
-    Quotes the button's own label. That couples this line to
-    RESTOCKER_REPUTATION_BUTTON_FORMAT and RESTOCKER_REPUTATION_ANY -- a locale
-    that renders the button differently has to say so here too.
+    Quotes the cell's own value, which couples this line to
+    RESTOCKER_REPUTATION_ANY: a locale that renders that standing differently
+    has to say so here too.
 ]]
 L["RESTOCKER_REPUTATION_TOOLTIP_STANDING"] =
 	'選定一個聲望等級後，Connoisseur 會跳過你尚未達到該等級的商人。"聲望：任意"則向任何商人購買。'

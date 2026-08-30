@@ -22,6 +22,9 @@
 ## X-Curse-Project-ID: 1416865
 ## X-Wago-ID: aN0XyQNj
 
+# ConnoisseurRestockerDB is the Restock List's old home, declared only so the
+# upgrade shim can read it back. RETIRE AFTER 2026-09-29 — see
+# Features/Restocker/Restocker-Saved-Migration.lua.
 ## SavedVariables: ConnoisseurDB, ConnoisseurRestockerDB
 
 # Includes
@@ -65,6 +68,10 @@ Data/Pet-Foods.lua
 Data/Poisons.lua
 Data/Explosives.lua
 Data/Consumable-Upgrade-Paths.lua
+Data/Poison-Recipes.lua
+Data/Elixirs.lua
+Data/Questionable-Equipment.lua
+Data/Starter-List-Categories.lua
 
 # Connoisseur
 Features/Core.lua
@@ -90,29 +97,33 @@ Features/Macros/Soulstone.lua
 Features/Macros/Water.lua
 Features/Macros/Integration-Druid-Macro-Helper.lua
 Features/Action-Button-Text.lua
+Features/Readiness-Probes.lua
 Features/Readiness.lua
 Features/Ignore-List.lua
 
 # Restocker
-Features/Restocker/Module.lua
-Features/Restocker/KvEnv.lua
-Features/Restocker/Restocker.lua
-Features/Restocker/RestockerClass.lua
-Features/Restocker/BuyCommand.lua
-Features/Restocker/Recipe.lua
-Features/Restocker/BuyIngredients.lua
-Features/Restocker/Events.lua
-Features/Restocker/MainFrame.lua
-Features/Restocker/ListFrame.lua
-Features/Restocker/Bank.lua
-Features/Restocker/Merchant.lua
-Features/Restocker/Upgrade.lua
-Features/Restocker/Item.lua
-Features/Restocker/Cache.lua
-Features/Restocker/Bag.lua
-Features/Restocker/Inventory.lua
-Features/Restocker/StarterList.lua
+Features/Restocker/Restocker-List.lua
+Features/Restocker/Restocker-Saved-Lists.lua
+Features/Restocker/Restocker-Saved-Format.lua
+# Upgrade shim — RETIRE AFTER 2026-09-29, with the line below it.
+Features/Restocker/Restocker-Saved-Migration.lua
+Features/Restocker/Restocker-Bags.lua
+Features/Restocker/Restocker-Bank.lua
+Features/Restocker/Restocker-Merchant.lua
+Features/Restocker/Restocker-Crafting-Reagents.lua
+Features/Restocker/Restocker-Upgrade.lua
+Features/Restocker/Restocker-Window.lua
+Features/Restocker/Restocker-Window-Columns.lua
+Features/Restocker/Restocker-Window-Filter.lua
+Features/Restocker/Restocker-Window-Rows.lua
+Features/Restocker/Restocker-Window-Categories.lua
+Features/Restocker/Restocker-Window-Footer.lua
+Features/Restocker/Restocker-Starter-List.lua
+Features/Restocker/Restocker-Reminders.lua
+Features/Restocker/Restocker-Events.lua
+Features/Restocker/Restocker-Slash-Command.lua
 
+# Diagnostics & Options
 Features/Diagnostics.lua
 Features/Minimap-Button.lua
 
@@ -122,6 +133,7 @@ Options/Options-Macros.lua
 Options/Options-Restocker.lua
 Options/Options-Starter-List-Popup.lua
 Options/Options-Ignore-List.lua
+Options/Options-Readiness.lua
 Options/Options-Profiles.lua
 Options/Options-Diagnostics.lua
 Options/Options.lua

@@ -91,22 +91,20 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-    Restocker keeps its own account-wide SavedVariable (ConnoisseurRestockerDB),
-    bound to CrsModule.restockerModule.settings at PLAYER_LOGIN -- it is not
-    part of the AceDB database, so these controls read and write through this
-    accessor instead of ns.db.profile. Its scoping is unchanged: the toggles
-    below are account-wide, while each character defaults to its own restock
-    list.
+    The Restocker's settings live on ns.db.global.restocker, bound to
+    ns.restockSettings at PLAYER_LOGIN. They are account-wide rather than
+    per-character, which is why these controls read through this accessor
+    instead of ns.db.profile -- each character still defaults to its own
+    restock list, but the toggles below are one choice for the account.
 ]]
 local function GetRestockerSettings()
-	local restockerModule = CrsModule and CrsModule.restockerModule
-	return restockerModule and restockerModule.settings
+	return ns.restockSettings
 end
 
 -- The sound row only means anything while the in-town reminder itself is on.
 local function RemindHidden()
-	local s = GetRestockerSettings()
-	return not (s and s.restockReminderChat)
+	local settings = GetRestockerSettings()
+	return not (settings and settings.restockReminderChat)
 end
 
 -- Repaint the panel so a toggle's dependent rows appear without a reopen.
@@ -115,8 +113,8 @@ local function Refresh()
 end
 
 local function PlayAlert()
-	if CRS_ADDON and CRS_ADDON.RESTOCK_ALERT_SOUND then
-		PlaySoundFile(CRS_ADDON.RESTOCK_ALERT_SOUND, "Master")
+	if ns.RESTOCK_ALERT_SOUND then
+		PlaySoundFile(ns.RESTOCK_ALERT_SOUND, "Master")
 	end
 end
 
@@ -138,12 +136,12 @@ local REMINDER_MODE_WIDTH = 0.8
 
 local function ReminderModes()
 	return {
-		[CRS_ADDON.REMINDER_SIMPLE] = L["OPTIONS_RESTOCKER_MODE_SIMPLE"],
-		[CRS_ADDON.REMINDER_VERBOSE] = L["OPTIONS_RESTOCKER_MODE_VERBOSE"],
+		[ns.REMINDER_SIMPLE] = L["OPTIONS_RESTOCKER_MODE_SIMPLE"],
+		[ns.REMINDER_VERBOSE] = L["OPTIONS_RESTOCKER_MODE_VERBOSE"],
 	}
 end
 
-local REMINDER_MODE_ORDER = { "simple", "verbose" }
+local REMINDER_MODE_ORDER = { ns.REMINDER_SIMPLE, ns.REMINDER_VERBOSE }
 
 -- A reminder's on/off toggle.
 local function ReminderToggle(labelKey, descKey, settingKey, order, onSet)
@@ -154,13 +152,13 @@ local function ReminderToggle(labelKey, descKey, settingKey, order, onSet)
 		order = order,
 		width = REMINDER_TOGGLE_WIDTH,
 		get = function()
-			local s = GetRestockerSettings()
-			return s and s[settingKey]
+			local settings = GetRestockerSettings()
+			return settings and settings[settingKey]
 		end,
 		set = function(_, value)
-			local s = GetRestockerSettings()
-			if s then
-				s[settingKey] = value
+			local settings = GetRestockerSettings()
+			if settings then
+				settings[settingKey] = value
 			end
 			if onSet then
 				onSet()
@@ -182,17 +180,17 @@ local function ReminderMode(settingKey, enabledKey, order)
 		values = ReminderModes,
 		sorting = REMINDER_MODE_ORDER,
 		hidden = function()
-			local s = GetRestockerSettings()
-			return not (s and s[enabledKey])
+			local settings = GetRestockerSettings()
+			return not (settings and settings[enabledKey])
 		end,
 		get = function()
-			local s = GetRestockerSettings()
-			return (s and s[settingKey]) or CRS_ADDON.REMINDER_VERBOSE
+			local settings = GetRestockerSettings()
+			return (settings and settings[settingKey]) or ns.REMINDER_VERBOSE
 		end,
 		set = function(_, value)
-			local s = GetRestockerSettings()
-			if s then
-				s[settingKey] = value
+			local settings = GetRestockerSettings()
+			if settings then
+				settings[settingKey] = value
 			end
 		end,
 	}
@@ -200,8 +198,8 @@ end
 
 --[[
     Page order: the three reminders (the only things here that speak up on
-    their own, so they lead), then the window's auto-open behavior, then the
-    debug switch under Advanced where it will not be tripped over, then Praise.
+    their own, so they lead), then the List Builder toggle, then the window's
+    auto-open behavior, then Praise.
 
     Only the sound is a genuine sub-option, so only it uses SubRow.
     The three reminders are peers at the top level, each a toggle paired with
@@ -224,13 +222,12 @@ function ns.BuildRestockerOptions()
 			spaceRemind0 = Spacer(2),
 
 			--[[
-                In-Town Reminders. Both the chat line and the sound fire on the
-                same signal -- the game's resting status, which turns on in inns
-                and cities -- and only when the Restock List is actually short
-                of something. All three reminders ship on; this one defaults to
-                Verbose and the other two to Simple (Restocker.lua
-                loadSettings).
-            ]]
+			    In-Town Reminders. Both the chat line and the sound fire on the
+			    same signal -- the game's resting status, which turns on in inns
+			    and cities -- and only when the Restock List is actually short
+			    of something. All three reminders ship on; this one defaults to
+			    Verbose and the other two to Simple (Data/Default-Settings.lua).
+			]]
 			toggleRestockerRemind = ReminderToggle(
 				"OPTIONS_RESTOCKER_REMIND",
 				"OPTIONS_RESTOCKER_REMIND_DESCRIPTION",
@@ -242,28 +239,28 @@ function ns.BuildRestockerOptions()
 			modeRestockerRemind = ReminderMode("restockReminderMode", "restockReminderChat", 4),
 
 			--[[
-                The speaker shares this row, so the toggle takes a plain unit
-                width -- full-width would push the speaker onto a line of its
-                own (the same thing TFTB's DefineSoundToggle warns about).
+			    The speaker shares this row, so the toggle takes a plain unit
+			    width -- full-width would push the speaker onto a line of its
+			    own (the same thing TFTB's DefineSoundToggle warns about).
 
-                Only the in-town reminder gets a sound: it arrives while you are
-                running around, where a chat line is easy to miss. The merchant
-                and bank reminders fire on a window you just closed, so you are
-                already looking at the screen.
-            ]]
+			    Only the in-town reminder gets a sound: it arrives while you are
+			    running around, where a chat line is easy to miss. The merchant
+			    and bank reminders fire on a window you just closed, so you are
+			    already looking at the screen.
+			]]
 			soundRow = SubRow(5, RemindHidden, {
 				{
 					type = "toggle",
 					name = SubLabel(L["OPTIONS_RESTOCKER_REMIND_SOUND"]),
 					desc = L["OPTIONS_RESTOCKER_REMIND_SOUND_DESCRIPTION"],
 					get = function()
-						local s = GetRestockerSettings()
-						return s and s.restockReminderSound
+						local settings = GetRestockerSettings()
+						return settings and settings.restockReminderSound
 					end,
 					set = function(_, value)
-						local s = GetRestockerSettings()
-						if s then
-							s.restockReminderSound = value
+						local settings = GetRestockerSettings()
+						if settings then
+							settings.restockReminderSound = value
 						end
 					end,
 				},
@@ -280,12 +277,12 @@ function ns.BuildRestockerOptions()
 			}),
 
 			--[[
-                Closing-window reminders. Peers of the in-town one, not children
-                of it -- each answers a different moment, and turning off the
-                nudge you get walking into town should not silence the report
-                you get walking away from a vendor. Both stay quiet unless
-                something is actually short.
-            ]]
+			    Closing-window reminders. Peers of the in-town one, not children
+			    of it -- each answers a different moment, and turning off the
+			    nudge you get walking into town should not silence the report
+			    you get walking away from a vendor. Both stay quiet unless
+			    something is actually short.
+			]]
 			spaceMerchant0 = Spacer(8),
 			toggleRestockerMerchantRemind = ReminderToggle(
 				"OPTIONS_RESTOCKER_MERCHANT_REMIND",
@@ -307,16 +304,16 @@ function ns.BuildRestockerOptions()
 			modeRestockerBankRemind = ReminderMode("bankReminderMode", "bankReminder", 13),
 
 			--[[
-                The starter List Builder. Reads the same per-character flag the
-                pop-up's own dismiss box writes, inverted: this row says
-                "enable", that box says "don't show again", and one shipping on
-                against one shipping off is what makes each read naturally where
-                it sits.
+			    The starter List Builder. Reads the same per-character flag the
+			    pop-up's own dismiss box writes, inverted: this row says
+			    "enable", that box says "don't show again", and one shipping on
+			    against one shipping off is what makes each read naturally where
+			    it sits.
 
-                Not a Restocker settings key like its neighbours -- the flag is
-                keyed per character inside the Restocker DB, so it goes through
-                RS rather than the shared settings accessor.
-            ]]
+			    Not a Restocker settings key like its neighbours -- the flag is
+			    keyed per character under ns.db.global.restocker, so it goes
+			    through its own accessors rather than the shared settings one.
+			]]
 			spaceStarter0 = Spacer(14),
 			toggleStarterList = {
 				type = "toggle",
@@ -325,11 +322,11 @@ function ns.BuildRestockerOptions()
 				order = 15,
 				width = "full",
 				get = function()
-					return not (CRS_ADDON and CRS_ADDON.IsStarterPopupDismissed and CRS_ADDON.IsStarterPopupDismissed())
+					return not (ns.IsStarterPopupDismissed and ns.IsStarterPopupDismissed())
 				end,
 				set = function(_, value)
-					if CRS_ADDON and CRS_ADDON.SetStarterPopupDismissed then
-						CRS_ADDON.SetStarterPopupDismissed(not value)
+					if ns.SetStarterPopupDismissed then
+						ns.SetStarterPopupDismissed(not value)
 					end
 				end,
 			},
@@ -345,13 +342,13 @@ function ns.BuildRestockerOptions()
 				order = 23,
 				width = "full",
 				get = function()
-					local s = GetRestockerSettings()
-					return s and s.autoOpenAtBank
+					local settings = GetRestockerSettings()
+					return settings and settings.autoOpenAtBank
 				end,
 				set = function(_, value)
-					local s = GetRestockerSettings()
-					if s then
-						s.autoOpenAtBank = value
+					local settings = GetRestockerSettings()
+					if settings then
+						settings.autoOpenAtBank = value
 					end
 				end,
 			},
@@ -362,49 +359,30 @@ function ns.BuildRestockerOptions()
 				order = 24,
 				width = "full",
 				get = function()
-					local s = GetRestockerSettings()
-					return s and s.autoOpenAtMerchant
+					local settings = GetRestockerSettings()
+					return settings and settings.autoOpenAtMerchant
 				end,
 				set = function(_, value)
-					local s = GetRestockerSettings()
-					if s then
-						s.autoOpenAtMerchant = value
-					end
-				end,
-			},
-
-			-- Advanced
-			spaceAdvanced0 = Spacer(30),
-			headerAdvanced = Header(L["OPTIONS_RESTOCKER_ADVANCED_HEADER"], 31),
-			spaceAdvanced1 = Spacer(32),
-			toggleRestockerDebug = {
-				type = "toggle",
-				name = L["OPTIONS_RESTOCKER_DEBUG"],
-				desc = L["OPTIONS_RESTOCKER_DEBUG_DESCRIPTION"],
-				order = 33,
-				width = "full",
-				get = function()
-					local s = GetRestockerSettings()
-					return s and s.debugMessages == true
-				end,
-				set = function(_, value)
-					local s = GetRestockerSettings()
-					if s then
-						s.debugMessages = value
+					local settings = GetRestockerSettings()
+					if settings then
+						settings.autoOpenAtMerchant = value
 					end
 				end,
 			},
 
 			--[[
-                Praise. Restocker is not original work -- the feature is adopted
-                code, and the people who wrote it and kept it alive are named
-                here rather than only in the README, because the players using
-                it are the ones who should see it. The three names match
-                README.md's History section; keep the two in step.
+			    Praise. Restocker is not original work -- the feature is adopted
+			    code, and the people who wrote it and kept it alive are named
+			    here rather than only in the README, because the players using
+			    it are the ones who should see it. This credit names all
+			    three authors; README.md's History section lists only the two
+			    whose projects are still reachable, since ChiliFajita's Auto
+			    Restocker is gone from both CurseForge and GitHub. The two lists
+			    are deliberately different and must not be synchronised.
 
-                Names are proper nouns and stay as written in every locale
-                (localization allowlist), like the service names on General.
-            ]]
+			    Names are proper nouns and stay as written in every locale
+			    (localization allowlist), like the service names on General.
+			]]
 			spacePraise0 = Spacer(900),
 			headerPraise = Header(L["OPTIONS_RESTOCKER_PRAISE_HEADER"], 901),
 			spacePraise1 = Spacer(902),

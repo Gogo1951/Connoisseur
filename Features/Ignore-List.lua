@@ -18,7 +18,7 @@ local AceConfigRegistry = LibStub("AceConfigRegistry-3.0")
     Both are created on first use, so a brand-new character simply starts empty,
     and both return nil only before the database exists.
 ]]
-function ns:GetIgnoreList()
+function ns.GetIgnoreList()
 	if not ns.db then
 		return nil
 	end
@@ -30,7 +30,7 @@ function ns:GetIgnoreList()
 	return ignoreList
 end
 
-function ns:GetGlobalIgnoreList()
+function ns.GetGlobalIgnoreList()
 	if not ns.db then
 		return nil
 	end
@@ -47,13 +47,13 @@ end
     adding an item anywhere hides it, and it stays hidden until it is off both
     lists.
 ]]
-function ns:IsIgnored(itemId)
-	local ignoreList = ns:GetIgnoreList()
-	if ignoreList and ignoreList[itemId] then
+function ns.IsIgnored(itemID)
+	local ignoreList = ns.GetIgnoreList()
+	if ignoreList and ignoreList[itemID] then
 		return true
 	end
-	local globalIgnoreList = ns:GetGlobalIgnoreList()
-	return (globalIgnoreList and globalIgnoreList[itemId]) and true or false
+	local globalIgnoreList = ns.GetGlobalIgnoreList()
+	return (globalIgnoreList and globalIgnoreList[itemID]) and true or false
 end
 
 --[[
@@ -77,7 +77,7 @@ end
     and Middle-Click (clear) act on the current character's list only, which is
     exactly what the mini-map tooltip's Ignore List section shows -- so both
     keep meaning what the player just read. The account-wide list is edited from
-    the Ignore List panel instead, through ns:SetIgnoredInScope below.
+    the Ignore List panel instead, through ns.SetIgnoredInScope below.
 
     Both repaint that panel as well. It is registered as a builder function, so
     a repaint rebuilds its rows straight off the live lists -- but something has
@@ -85,25 +85,25 @@ end
     the one edit path with nothing that does. NotifyChange costs nothing while
     nothing is displaying the table.
 ]]
-function ns:ToggleIgnore(itemId)
-	if not itemId then
+function ns.ToggleIgnore(itemID)
+	if not itemID then
 		return
 	end
-	local ignoreList = ns:GetIgnoreList()
+	local ignoreList = ns.GetIgnoreList()
 	if not ignoreList then
 		return
 	end
-	if ignoreList[itemId] then
-		ignoreList[itemId] = nil
+	if ignoreList[itemID] then
+		ignoreList[itemID] = nil
 	else
-		ignoreList[itemId] = true
+		ignoreList[itemID] = true
 	end
 	RefreshMacros()
 	AceConfigRegistry:NotifyChange(ns.OPTIONS_REGISTRY.IgnoreList)
 end
 
-function ns:ClearIgnoreList()
-	local ignoreList = ns:GetIgnoreList()
+function ns.ClearIgnoreList()
+	local ignoreList = ns.GetIgnoreList()
 	if ignoreList then
 		wipe(ignoreList)
 	end
@@ -129,17 +129,17 @@ end
     all. A read returns nil in those cases; a write passes createIfMissing and
     builds what it needs on the spot.
 ]]
-function ns:GetIgnoreListForScope(scopeKey, createIfMissing)
+function ns.GetIgnoreListForScope(scopeKey, createIfMissing)
 	if not (ns.db and scopeKey) then
 		return nil
 	end
 
 	if scopeKey == ns.IGNORE_SCOPE_GLOBAL then
-		return ns:GetGlobalIgnoreList()
+		return ns.GetGlobalIgnoreList()
 	end
 
 	if scopeKey == ns.db:GetCurrentProfile() then
-		return ns:GetIgnoreList()
+		return ns.GetIgnoreList()
 	end
 
 	local profiles = ns.db.sv and ns.db.sv.profiles
@@ -180,19 +180,19 @@ end
     entry, so the loop covers the current character too -- but only once AceDB
     has materialized that profile, hence the direct pass afterwards.
 ]]
-local function ClearFromAllProfiles(itemId)
+local function ClearFromAllProfiles(itemID)
 	local profiles = ns.db.sv and ns.db.sv.profiles
 	if profiles then
 		for _, profile in pairs(profiles) do
 			if type(profile) == "table" and type(profile.ignoreList) == "table" then
-				profile.ignoreList[itemId] = nil
+				profile.ignoreList[itemID] = nil
 			end
 		end
 	end
 
-	local ignoreList = ns:GetIgnoreList()
+	local ignoreList = ns.GetIgnoreList()
 	if ignoreList then
-		ignoreList[itemId] = nil
+		ignoreList[itemID] = nil
 	end
 end
 
@@ -207,20 +207,20 @@ end
     on anyone: there is no record of who held it, and re-adding to a list the
     player did not ask for would be a surprise.
 ]]
-function ns:SetIgnoredInScope(scopeKey, itemId, isIgnored)
-	if not itemId then
+function ns.SetIgnoredInScope(scopeKey, itemID, isIgnored)
+	if not itemID then
 		return
 	end
 
-	local ignoreList = ns:GetIgnoreListForScope(scopeKey, isIgnored and true or false)
+	local ignoreList = ns.GetIgnoreListForScope(scopeKey, isIgnored and true or false)
 	if not ignoreList then
 		return
 	end
 
-	ignoreList[itemId] = isIgnored and true or nil
+	ignoreList[itemID] = isIgnored and true or nil
 
 	if isIgnored and scopeKey == ns.IGNORE_SCOPE_GLOBAL then
-		ClearFromAllProfiles(itemId)
+		ClearFromAllProfiles(itemID)
 	end
 
 	RefreshMacros()
@@ -249,6 +249,6 @@ local function PruneOneList(ignoreList)
 end
 
 function ns.PruneIgnoreList()
-	PruneOneList(ns:GetIgnoreList())
-	PruneOneList(ns:GetGlobalIgnoreList())
+	PruneOneList(ns.GetIgnoreList())
+	PruneOneList(ns.GetGlobalIgnoreList())
 end

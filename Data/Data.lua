@@ -78,13 +78,15 @@ ns.WAGO_URL = "https://addons.wago.io/addons/connoisseur"
     Options/*.lua for RegisterOptionsTable / AddToBlizOptions. Never localized,
     never built inline.
 ]]
+-- Listed in the order the panels appear in Blizzard's tree (see ns.InitializeOptions).
 ns.OPTIONS_REGISTRY = {
 	General = ADDON_NAME .. "_General",
 	Macros = ADDON_NAME .. "_Macros",
+	IgnoreList = ADDON_NAME .. "_IgnoreList",
 	Restocker = ADDON_NAME .. "_Restocker",
 	-- Registered but never added to the Blizzard tree: it opens as its own window.
 	StarterListPopup = ADDON_NAME .. "_StarterListPopup",
-	IgnoreList = ADDON_NAME .. "_IgnoreList",
+	Readiness = ADDON_NAME .. "_Readiness",
 	Profiles = ADDON_NAME .. "_Profiles",
 	Diagnostics = ADDON_NAME .. "_Diagnostics",
 }
@@ -151,7 +153,7 @@ ns.ITEM_LINK_WIDGET_TYPE = ADDON_NAME .. "_ItemLink"
     but one is an AceDB profile name ("Name - Realm", never localized), so the
     account-wide list needs a key that no profile can collide with -- hence the
     asterisks, which the profile picker's name box would never produce. Read by
-    ns:GetIgnoreListForScope in Features/Ignore-List.lua.
+    ns.GetIgnoreListForScope in Features/Ignore-List.lua.
 ]]
 ns.IGNORE_SCOPE_GLOBAL = "**global**"
 
@@ -160,7 +162,7 @@ ns.IGNORE_SCOPE_GLOBAL = "**global**"
 --------------------------------------------------------------------------------
 
 -- label: localized display name plugged into MSG_NO_ITEM by ConnNoItem.
-ns.Config = {
+ns.MacroConfig = {
 	["Bandage"] = { macro = ns.L["MACRO_BANDAGE"], defaultID = 1251, label = ns.L["LABEL_BANDAGE"] },
 	["Explosive"] = { macro = ns.L["MACRO_EXPLOSIVES"], defaultID = 4358, label = ns.L["LABEL_EXPLOSIVE"] },
 	["Food"] = { macro = ns.L["MACRO_FOOD"], defaultID = 5349, label = ns.L["LABEL_FOOD"] },
@@ -198,6 +200,17 @@ ns.MultiUseMacroTypes = {
 ]]
 ns.MACRO_SLOT_CUSHION = 0
 
+--[[
+    The ceiling every macro body is trimmed against. The unit is unconfirmed:
+    Blizzard's macro edit box caps with letters="255" while the chat box uses
+    SetMaxBytes, so the two may not agree. Every guard therefore measures #body
+    in BYTES, which is never smaller than a character count and so holds under
+    either reading -- never convert one to a character count. The three trims
+    that read this are in Macros/Engine.lua, Macros/Tools-Hunters.lua and
+    Macros/Integration-Druid-Macro-Helper.lua; ruRU is the overflow canary.
+]]
+ns.MACRO_BODY_MAX_LENGTH = 255
+
 --------------------------------------------------------------------------------
 -- Stealth Abilities
 --------------------------------------------------------------------------------
@@ -219,7 +232,7 @@ ns.DRUID_BEAR_FORM_SPELL_ID = 5487
 ns.DRUID_CAT_FORM_SPELL_ID = 768
 
 -- Which macro types are eligible for DMH wrapping when the druid toggle is on.
-ns.DMHMacroTypes = {
+ns.DruidMacroHelperTypes = {
 	["Health Potion"] = true,
 	["Mana Potion"] = true,
 	["Healthstone"] = true,
@@ -232,7 +245,7 @@ ns.DMHMacroTypes = {
       MP       → "/dmh stun gcd cd pot" (skips the mana check, since the
                  whole point of a mana pot is that the druid is OOM)
 ]]
-ns.DMHGuards = {
+ns.DruidMacroHelperGuards = {
 	["Health Potion"] = { "/dmh start", "/dmh cd pot" },
 	["Healthstone"] = { "/dmh start", "/dmh cd hs" },
 	["Mana Potion"] = { "/dmh stun gcd cd pot" },
@@ -378,10 +391,10 @@ ns.ConjureSpells = {
 	MageCreateWater = {
 		-- {Spell ID, Conjured Item Usage Level, Spell Rank}, -- Conjured Item
 		--[[
-            Conjure Refreshment (Wrath) makes items that are food AND water,
-            so its two ranks lead both lists. The rank column is the spell's
-            own rank, not its position here.
-        ]]
+		    Conjure Refreshment (Wrath) makes items that are food AND water,
+		    so its two ranks lead both lists. The rank column is the spell's
+		    own rank, not its position here.
+		]]
 		{ 42956, 80, 2 }, -- Conjured Mana Strudel (Conjure Refreshment, Rank 2)
 		{ 42955, 74, 1 }, -- Conjured Mana Pie (Conjure Refreshment, Rank 1)
 		{ 27090, 65, 9 }, -- Conjured Glacier Water
@@ -397,10 +410,10 @@ ns.ConjureSpells = {
 	MageCreateFood = {
 		-- {Spell ID, Conjured Item Usage Level, Spell Rank}, -- Conjured Item
 		--[[
-            Conjure Refreshment (Wrath) makes items that are food AND water,
-            so its two ranks lead both lists. The rank column is the spell's
-            own rank, not its position here.
-        ]]
+		    Conjure Refreshment (Wrath) makes items that are food AND water,
+		    so its two ranks lead both lists. The rank column is the spell's
+		    own rank, not its position here.
+		]]
 		{ 42956, 80, 2 }, -- Conjured Mana Strudel (Conjure Refreshment, Rank 2)
 		{ 42955, 74, 1 }, -- Conjured Mana Pie (Conjure Refreshment, Rank 1)
 		{ 33717, 65, 8 }, -- Conjured Croissant
@@ -428,22 +441,22 @@ ns.ConjureSpells = {
 	},
 	WarlockCreateHealthstone = {
 		--[[
-            RECURRING BUG — this has broken Era three times; read before
-            touching this table, WarlockCreateSoulstone, or GetSmartSpell.
-            The warlock stones are represented DIFFERENTLY per flavor:
-              • Era:  each tier is its own distinctly-named spell, so
-                      GetSpellInfo already returns the fully-qualified name
-                      ("Create Healthstone (Minor)"). It must be cast bare —
-                      appending "(Rank N)" yields "Create Healthstone
-                      (Minor)(Rank 1)", a spell that does not exist, and the
-                      /cast silently no-ops.
-              • TBC:  one spell with numeric ranks, cast as
-                      "Create Healthstone(Rank N)".
-            rankIsTBCOnly makes GetSmartSpell pin the rank on TBC only. Mage
-            Conjure Water/Food ARE numeric-rank on BOTH flavors, so their
-            rank suffix is correct everywhere — do not "simplify" the two
-            spell families together.
-        ]]
+		    RECURRING BUG — this has broken Era three times; read before
+		    touching this table, WarlockCreateSoulstone, or GetSmartSpell.
+		    The warlock stones are represented DIFFERENTLY per flavor:
+		      • Era:  each tier is its own distinctly-named spell, so
+		              GetSpellInfo already returns the fully-qualified name
+		              ("Create Healthstone (Minor)"). It must be cast bare —
+		              appending "(Rank N)" yields "Create Healthstone
+		              (Minor)(Rank 1)", a spell that does not exist, and the
+		              /cast silently no-ops.
+		      • TBC:  one spell with numeric ranks, cast as
+		              "Create Healthstone(Rank N)".
+		    rankIsTBCOnly makes GetSmartSpell pin the rank on TBC only. Mage
+		    Conjure Water/Food ARE numeric-rank on BOTH flavors, so their
+		    rank suffix is correct everywhere — do not "simplify" the two
+		    spell families together.
+		]]
 		rankIsTBCOnly = true,
 		-- {Spell ID, Conjured Item Usage Level, Spell Rank}, -- Conjured Item
 		{ 47878, 69, 8 }, -- Fel Healthstone
@@ -457,16 +470,16 @@ ns.ConjureSpells = {
 	},
 	WarlockCreateSoulstone = {
 		--[[
-            Max Target Level: a soulstone cannot be used on players ABOVE
-            that level. It needs no selection logic — the caps rise with
-            rank, so casting the best known rank always satisfies the cap.
-            The resolver passes ignoreTarget=true, which is why the second
-            column is the learn level rather than an item usage level.
+		    Max Target Level: a soulstone cannot be used on players ABOVE
+		    that level. It needs no selection logic — the caps rise with
+		    rank, so casting the best known rank always satisfies the cap.
+		    The resolver passes ignoreTarget=true, which is why the second
+		    column is the learn level rather than an item usage level.
 
-            rankIsTBCOnly: same Era-vs-TBC representation split as
-            Healthstones — see the RECURRING BUG note on
-            WarlockCreateHealthstone above.
-        ]]
+		    rankIsTBCOnly: same Era-vs-TBC representation split as
+		    Healthstones — see the RECURRING BUG note on
+		    WarlockCreateHealthstone above.
+		]]
 		rankIsTBCOnly = true,
 		-- {Spell ID, Spell Learn Level, Spell Rank, Max Target Level}, -- Conjured Item
 		{ 47884, 76, 7, 80 }, -- Demonic Soulstone (Wrath)
@@ -477,4 +490,24 @@ ns.ConjureSpells = {
 		{ 20752, 30, 2, 40 }, -- Lesser Soulstone
 		{ 693, 18, 1, 30 }, -- Minor Soulstone
 	},
+}
+
+--------------------------------------------------------------------------------
+-- Reputation Standings
+--------------------------------------------------------------------------------
+
+--[[
+    Required-reputation choices for the per-row dropdown. `value` is the item.reaction
+    code the merchant logic compares against UnitReaction(vendor) -- 0 means "no
+    requirement". `discount` is the standard Classic faction-vendor price saving for
+    that standing, shown for reference (it is informational, not enforced here).
+    "Neutral" is omitted: requiring Neutral is the same as no requirement ("Any"), since
+    you can already buy from any vendor you're at least Neutral with.
+]]
+ns.REPUTATION_STANDINGS = {
+	{ value = 0, label = ns.L["RESTOCKER_REPUTATION_ANY"], discount = 0 },
+	{ value = 5, label = ns.L["RESTOCKER_REPUTATION_FRIENDLY"], discount = 5 },
+	{ value = 6, label = ns.L["RESTOCKER_REPUTATION_HONORED"], discount = 10 },
+	{ value = 7, label = ns.L["RESTOCKER_REPUTATION_REVERED"], discount = 15 },
+	{ value = 8, label = ns.L["RESTOCKER_REPUTATION_EXALTED"], discount = 20 },
 }

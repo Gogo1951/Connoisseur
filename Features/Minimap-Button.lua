@@ -15,7 +15,7 @@ local LDBIcon = LibStub("LibDBIcon-1.0")
     palette, falls back to Blizzard's RAID_CLASS_COLORS (whose colorStr is an
     8-char "ffRRGGBB" string), then to white if neither is available.
 ]]
-local function GetClassColorStr(classToken)
+local function GetClassColorEscape(classToken)
 	local localHex = ns.CLASS_COLORS and ns.CLASS_COLORS[classToken]
 	if localHex then
 		return "|cff" .. localHex
@@ -34,13 +34,13 @@ end
 local UpdateTooltip
 
 function ns.UpdateLDB()
-	if not ns.LDBObj then
+	if not ns.LDBObject then
 		return
 	end
 
-	local iconID = ns.BestFoodID or ns.Config["Food"].defaultID
+	local iconID = ns.BestFoodID or ns.MacroConfig["Food"].defaultID
 	local newIcon = ns.GetItemIcon(iconID) or "Interface\\Icons\\INV_Misc_Food_02"
-	ns.LDBObj.icon = newIcon
+	ns.LDBObject.icon = newIcon
 
 	if LDBIcon then
 		local button = LDBIcon:GetMinimapButton(ns.LOCALE_NAME)
@@ -167,8 +167,10 @@ UpdateTooltip = function(anchor)
 	tooltip:AddLine(GetColor("BODY") .. L["MENU_SCROLL_BUFFS_DESCRIPTION"] .. "|r", 1, 1, 1, true)
 	tooltip:AddDoubleLine(GetColor("INFO") .. L["UI_SHIFT_LEFT"] .. "|r", GetColor("INFO") .. L["UI_TOGGLE"] .. "|r")
 
-	-- Current Best Food. Shares AddItemSection's row shape, but keeps its own
-	-- block: the Ignore hint only belongs here when there is an item to ignore.
+	--[[
+	    Current Best Food. Shares AddItemSection's row shape, but keeps its own
+	    block: the Ignore hint only belongs here when there is an item to ignore.
+	]]
 	tooltip:AddLine(" ")
 	tooltip:AddDoubleLine(GetColor("TITLE") .. L["UI_BEST_FOOD"] .. "|r", ItemValue(ns.BestFoodID, ns.BestFoodLink))
 	if ns.BestFoodID and ns.BestFoodLink then
@@ -180,10 +182,12 @@ UpdateTooltip = function(anchor)
 		tooltip:AddLine(GetColor("BODY") .. format(L["MSG_NO_ITEM"], L["LABEL_FOOD"]) .. "|r", 1, 1, 1, true)
 	end
 
-	-- Ignore List (the tooltip shows the character's own list, the one the
-	-- Right-Click and Middle-Click below act on; the Global list lives in the
-	-- Ignore List panel).
-	local ignoreList = ns:GetIgnoreList() or {}
+	--[[
+	    Ignore List (the tooltip shows the character's own list, the one the
+	    Right-Click and Middle-Click below act on; the Global list lives in the
+	    Ignore List panel).
+	]]
+	local ignoreList = ns.GetIgnoreList() or {}
 	local hasIgnoredItems = next(ignoreList) ~= nil
 	if hasIgnoredItems then
 		tooltip:AddLine(" ")
@@ -223,7 +227,7 @@ UpdateTooltip = function(anchor)
 	local descriptionColor = GetColor("BODY")
 
 	if playerClass == "MAGE" and ns.ConjureSpells then
-		local classColor = GetClassColorStr("MAGE")
+		local classColor = GetClassColorEscape("MAGE")
 		local knowsTable = KnowsAny(ns.ConjureSpells.MageCreateTable)
 		local knowsFood = KnowsAny(ns.ConjureSpells.MageCreateFood)
 		local knowsWater = KnowsAny(ns.ConjureSpells.MageCreateWater)
@@ -248,7 +252,7 @@ UpdateTooltip = function(anchor)
 			AddSpacedLines(tooltip, descriptionColor, tips)
 		end
 	elseif playerClass == "WARLOCK" and ns.ConjureSpells then
-		local classColor = GetClassColorStr("WARLOCK")
+		local classColor = GetClassColorEscape("WARLOCK")
 		local knowsSoulwell = KnowsAny(ns.ConjureSpells.WarlockCreateSoulwell)
 		local knowsHealthstone = KnowsAny(ns.ConjureSpells.WarlockCreateHealthstone)
 		local knowsSoulstone = KnowsAny(ns.ConjureSpells.WarlockCreateSoulstone)
@@ -277,7 +281,7 @@ UpdateTooltip = function(anchor)
 			knowsPoisons = IsPlayerSpell(ns.POISONS_SPELL_ID)
 		end
 		if knowsPoisons then
-			local classColor = GetClassColorStr("ROGUE")
+			local classColor = GetClassColorEscape("ROGUE")
 			tooltip:AddLine(" ")
 			tooltip:AddLine(classColor .. L["PREFIX_ROGUE"] .. "|r")
 			tooltip:AddLine(" ")
@@ -295,7 +299,7 @@ UpdateTooltip = function(anchor)
 			AddItemSection(tooltip, L["UI_OFF_HAND"], offID, offLink, L["LABEL_POISONS"])
 		end
 	elseif playerClass == "HUNTER" and ns.FeedPetSpellName then
-		local classColor = GetClassColorStr("HUNTER")
+		local classColor = GetClassColorEscape("HUNTER")
 
 		tooltip:AddLine(" ")
 		tooltip:AddLine(classColor .. L["PREFIX_HUNTER"] .. "|r")
@@ -312,18 +316,17 @@ UpdateTooltip = function(anchor)
 	end
 
 	--[[
-        Restocker Report -- a count, not a list. Spelling out every shortfall
-        made the tooltip taller than the screen on a real restock list, and the
-        only question this section answers is "do I need to shop?". The
-        Restocker window itself (/crs) is where the items live.
+	    Restocker Report -- a count, not a list. Spelling out every shortfall
+	    made the tooltip taller than the screen on a real restock list, and the
+	    only question this section answers is "do I need to shop?". The
+	    Restocker window itself (/crs) is where the items live.
 
-        Read straight off RS.BuildGroceryList so the tooltip and the
-        entering-town reminder can never disagree, and rendered even when
-        empty: "fully stocked" is an answer, a missing section is not.
-    ]]
-	local restocker = CRS_ADDON
-	if restocker and restocker.BuildGroceryList then
-		local shortCount = #restocker.BuildGroceryList()
+	    Read straight off ns.BuildGroceryList so the tooltip and the
+	    entering-town reminder can never disagree, and rendered even when
+	    empty: "fully stocked" is an answer, a missing section is not.
+	]]
+	if ns.BuildGroceryList then
+		local shortCount = #ns.BuildGroceryList()
 		tooltip:AddLine(" ")
 		if shortCount == 0 then
 			tooltip:AddDoubleLine(
@@ -354,7 +357,7 @@ end
 --------------------------------------------------------------------------------
 
 if LDB then
-	ns.LDBObj = LDB:NewDataObject(ns.LOCALE_NAME, {
+	ns.LDBObject = LDB:NewDataObject(ns.LOCALE_NAME, {
 		type = "data source",
 		text = L["ADDON_TITLE"],
 		icon = "Interface\\Icons\\INV_Misc_Food_02",
@@ -362,15 +365,17 @@ if LDB then
 			-- Shift + Middle-Click always opens the options panel; checked first (matches every Gogo1951 add-on).
 			if button == "MiddleButton" and IsShiftKeyDown() then
 				if ns.OpenOptionsPanel then
-					ns:OpenOptionsPanel()
+					ns.OpenOptionsPanel()
 				end
 				return
 			end
 			if button == "RightButton" and ns.BestFoodID then
-				-- BestFoodID is never already ignored (the scanner filters both
-				-- lists), so the toggle only ever adds here.
+				--[[
+				    BestFoodID is never already ignored (the scanner filters both
+				    lists), so the toggle only ever adds here.
+				]]
 				if ns.ToggleIgnore then
-					ns:ToggleIgnore(ns.BestFoodID)
+					ns.ToggleIgnore(ns.BestFoodID)
 				end
 			elseif button == "LeftButton" and IsShiftKeyDown() then
 				if ns.ToggleScrollBuffs then
@@ -382,7 +387,7 @@ if LDB then
 				end
 			elseif button == "MiddleButton" then
 				if ns.ClearIgnoreList then
-					ns:ClearIgnoreList()
+					ns.ClearIgnoreList()
 				end
 			end
 
