@@ -55,6 +55,7 @@ ns.RawData.Bandage = {
 	[20066] = { 2000, 225, 100, { 1461 } }, -- Arathi Basin Runecloth Bandage
 	[19307] = { 2000, 225, 100, { 1459 } }, -- Alterac Heavy Runecloth Bandage
 	[19066] = { 2000, 225, 100, { 1460 } }, -- Warsong Gulch Runecloth Bandage
+	[232433] = { 3400, 300, 2000 }, -- Dense Runecloth Bandage
 	[14530] = { 2000, 225, 1000 }, -- Heavy Runecloth Bandage
 	[14529] = { 1360, 200, 425 }, -- Runecloth Bandage
 	[20237] = { 1104, 175, 75, { 1461 } }, -- Highlander's Mageweave Bandage
