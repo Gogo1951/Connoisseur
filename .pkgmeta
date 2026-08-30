@@ -32,6 +32,6 @@ ignore:
   - .pkgmeta
   - .vscode
   - LICENSE
-  - Features/Restocker/Specs
   - Features/Restocker/Tests
+  - Features/Tests
   - To Do.md
