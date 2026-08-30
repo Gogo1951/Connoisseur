@@ -18,7 +18,7 @@ local _, ns = ...
                  whole point of a mana pot is that the druid is OOM)
 
     Eligible macro types and guard prefixes both live in Data.lua
-    (ns.DMHMacroTypes, ns.DMHGuards) so the data is shared and not buried
+    (ns.DruidMacroHelperTypes, ns.DruidMacroHelperGuards) so the data is shared and not buried
     here.
 ]]
 
@@ -26,7 +26,7 @@ local function ShouldUseDMHMacro(typeName)
 	if not ns.IsDruid then
 		return false
 	end
-	if not (ns.DMHMacroTypes and ns.DMHMacroTypes[typeName]) then
+	if not (ns.DruidMacroHelperTypes and ns.DruidMacroHelperTypes[typeName]) then
 		return false
 	end
 	local settings = ns.db and ns.db.profile
@@ -48,25 +48,25 @@ local function BuildDMHBody(typeName, useIDs, stackIDs, formName)
 		"#showtooltip item:" .. useIDs[1],
 		"/run ConnFire(" .. useIDs[1] .. ")",
 	}
-	for _, guard in ipairs(ns.DMHGuards[typeName]) do
+	for _, guard in ipairs(ns.DruidMacroHelperGuards[typeName]) do
 		lines[#lines + 1] = guard
 	end
 	--[[
-        Stacked ranked /use lines, best item first — combat fallback when
-        the best item is depleted. See BuildUseBlock in
-        Engine.lua for the shared-cooldown reasoning.
-    ]]
+	    Stacked ranked /use lines, best item first — combat fallback when
+	    the best item is depleted. See BuildUseBlock in
+	    Engine.lua for the shared-cooldown reasoning.
+	]]
 	local firstUse = #lines + 1
 	for _, id in ipairs(useIDs) do
 		lines[#lines + 1] = "/use item:" .. id
 	end
 	--[[
-        Healthstone stacking (Health Potion only): the best Healthstone's
-        ranked /use lines go below the potion lines but still inside the
-        powershift, before the return /cast — separate cooldown category, so
-        the press fires a potion and a stone in one shift. nil for every
-        other type.
-    ]]
+	    Healthstone stacking (Health Potion only): the best Healthstone's
+	    ranked /use lines go below the potion lines but still inside the
+	    powershift, before the return /cast — separate cooldown category, so
+	    the press fires a potion and a stone in one shift. nil for every
+	    other type.
+	]]
 	if stackIDs then
 		for _, id in ipairs(stackIDs) do
 			lines[#lines + 1] = "/use item:" .. id
@@ -77,16 +77,15 @@ local function BuildDMHBody(typeName, useIDs, stackIDs, formName)
 	local body = table.concat(lines, "\n") .. "\n"
 
 	--[[
-        The client caps macro bodies at 255, unit unconfirmed, so the guard
-        measures #body in bytes — safe under either reading (see
-        README-Technical). Overflow here would chop the trailing /dmh end
-        line and leave DMH guards dangling.
-        Drop /use lines from the bottom until the body fits — stacked
-        Healthstone lines go first since they sit lowest, then potion
-        fallbacks; the rank-1 potion line is never dropped. Mirrors the
-        trim in Engine.lua.
-    ]]
-	while #body > 255 and #lines > firstUse + 2 do
+	    Measured in bytes against ns.MACRO_BODY_MAX_LENGTH (Data/Data.lua),
+	    which carries the reason the unit is bytes. Overflow here would chop
+	    the trailing /dmh end line and leave DMH guards dangling.
+	    Drop /use lines from the bottom until the body fits — stacked
+	    Healthstone lines go first since they sit lowest, then potion
+	    fallbacks; the rank-1 potion line is never dropped. Mirrors the
+	    trim in Engine.lua.
+	]]
+	while #body > ns.MACRO_BODY_MAX_LENGTH and #lines > firstUse + 2 do
 		table.remove(lines, #lines - 2)
 		body = table.concat(lines, "\n") .. "\n"
 	end

@@ -1,6 +1,6 @@
 local _, ns = ...
 local L = ns.L
-local Config = ns.Config
+local Config = ns.MacroConfig
 
 --[[
     Engine -- the shared macro-writing machinery. Owns the definition
@@ -12,7 +12,7 @@ local Config = ns.Config
     Per-macro behavior lives in Features/Macros/<Name>.lua files, each of
     which calls ns.RegisterMacroType with a definition table:
 
-      typeName          -- key into ns.Config (required)
+      typeName          -- key into ns.MacroConfig (required)
 
     Selection fields — how the scanner picks this category's item. A
     definition with an itemTypes set participates in ScanBags: every usable
@@ -88,15 +88,15 @@ local currentMacroState = {}
 -- Definition Registry
 --------------------------------------------------------------------------------
 
-local macroDefs = {}
-local customDefs = {}
+local macroDefinitions = {}
+local customDefinitions = {}
 
 --[[
     The scanner reads the standard definitions' selection fields at scan
     time (Scanner-Inventory loads before this file, so it cannot see the
     local directly; every scan happens long after all registrations).
 ]]
-ns.RegisteredMacroDefs = macroDefs
+ns.RegisteredMacroDefinitions = macroDefinitions
 
 --[[
     The custom definitions, exposed on the same terms for diagnostics only.
@@ -104,13 +104,13 @@ ns.RegisteredMacroDefs = macroDefs
     so the Selection Report names them as resolved elsewhere rather than
     leaving the reader to wonder why Feed Pet and Poisons are missing from it.
 ]]
-ns.RegisteredCustomMacroDefs = customDefs
+ns.RegisteredCustomMacroDefinitions = customDefinitions
 
-function ns.RegisterMacroType(def)
-	if def.customUpdate then
-		customDefs[#customDefs + 1] = def
+function ns.RegisterMacroType(definition)
+	if definition.customUpdate then
+		customDefinitions[#customDefinitions + 1] = definition
 	else
-		macroDefs[#macroDefs + 1] = def
+		macroDefinitions[#macroDefinitions + 1] = definition
 	end
 end
 
@@ -169,13 +169,13 @@ function ns.GetSmartSpell(spellList, ignoreTarget, checkUnique)
 	end
 
 	--[[
-        RECURRING BUG guard — on Era the warlock stone tiers are
-        distinctly-named spells and must be cast bare; appending "(Rank N)"
-        builds a spell name that does not exist and the /cast silently
-        no-ops. Those lists are flagged rankIsTBCOnly in ns.ConjureSpells —
-        see the note on WarlockCreateHealthstone in Data/Data.lua. Unflagged
-        lists (Mage Conjure Water/Food) pin ranks on both flavors.
-    ]]
+	    RECURRING BUG guard — on Era the warlock stone tiers are
+	    distinctly-named spells and must be cast bare; appending "(Rank N)"
+	    builds a spell name that does not exist and the /cast silently
+	    no-ops. Those lists are flagged rankIsTBCOnly in ns.ConjureSpells —
+	    see the note on WarlockCreateHealthstone in Data/Data.lua. Unflagged
+	    lists (Mage Conjure Water/Food) pin ranks on both flavors.
+	]]
 	local pinRank = not (ns.IsEra and spellList.rankIsTBCOnly)
 
 	local levelCap = UnitLevel("player")
@@ -221,13 +221,13 @@ function ns.GetSmartSpell(spellList, ignoreTarget, checkUnique)
 	end
 
 	--[[
-        Fallback when no rank matched the level cap (targeting a low-level
-        friend): walk the list bottom-up and use the lowest rank the player
-        actually KNOWS. Players can skip training low ranks, so the list's
-        last entry may be untrained — and /cast of an untrained spell is a
-        silent no-op that would make the conjure click look broken. Knows
-        nothing at all → nil, 0, same as an empty list.
-    ]]
+	    Fallback when no rank matched the level cap (targeting a low-level
+	    friend): walk the list bottom-up and use the lowest rank the player
+	    actually KNOWS. Players can skip training low ranks, so the list's
+	    last entry may be untrained — and /cast of an untrained spell is a
+	    silent no-op that would make the conjure click look broken. Knows
+	    nothing at all → nil, 0, same as an empty list.
+	]]
 	for i = #spellList, 1, -1 do
 		local spellID, rankNumber = spellList[i][1], spellList[i][3]
 
@@ -334,10 +334,10 @@ local function WriteMacro(macroName, icon, body, stateKey, typeName)
 	local index = GetMacroIndexByName(macroName)
 	if index == 0 then
 		--[[
-            On a failed create, leave the state key unset so the next
-            update cycle retries — the macro then appears automatically
-            once the player frees a slot, no /reload needed.
-        ]]
+		    On a failed create, leave the state key unset so the next
+		    update cycle retries — the macro then appears automatically
+		    once the player frees a slot, no /reload needed.
+		]]
 		if not ns.TryCreateMacro(macroName, icon, body) then
 			currentMacroState[typeName] = nil
 			return
@@ -415,10 +415,10 @@ local function BuildConjureBlock(info)
 	local lines = {}
 
 	--[[
-        Miss prints come first so an early /stopmacro can halt before the
-        /cast line, avoiding a wasted cast attempt on a button the user
-        expected to do something else.
-    ]]
+	    Miss prints come first so an early /stopmacro can halt before the
+	    /cast line, avoiding a wasted cast attempt on a button the user
+	    expected to do something else.
+	]]
 	if rightMiss then
 		lines[#lines + 1] = '/run ConnIf("[btn:2]","' .. rightMiss .. '")'
 	end
@@ -470,31 +470,31 @@ end
     Every other line is contributed by a definition hook:
 
       #showtooltip item:<id>  -- always first; config.defaultID when no item
-      <conjure block>         -- def.conjure, via BuildConjureBlock: /run ConnIf
+      <conjure block>         -- definition.conjure, via BuildConjureBlock: /run ConnIf
                                  miss tips with their /stopmacro guard, then the
                                  /cast [btn:3]/[btn:2] line and its /stopmacro
       /run ConnFire(<id>)     -- StateWriteLine (macro-fire context for the
                                  zone-error handler); only when an item exists
-      /use item:<id>          -- the action: def.buildUseLine's custom line(s)
+      /use item:<id>          -- the action: definition.buildUseLine's custom line(s)
                                  (Explosive's click layout, Food's [@pet] line),
                                  else one line per ranked id for multi-use
                                  types, else this plain single /use
-      /use item:<stackID>     -- def.getStackIDs ids appended below the main
+      /use item:<stackID>     -- definition.getStackIDs ids appended below the main
                                  block (Health Potion's healthstone stacking)
-      <appended block>        -- def.appendBlock text (Water's Shadowmeld line)
+      <appended block>        -- definition.appendBlock text (Water's Shadowmeld line)
 
     With no item in bags the action line becomes /run ConnTip("<noItemMiss>")
     when the class can learn the conjure, else /run ConnNoItem("<typeName>").
     Ends with the macro-length trim, which sheds stacked healthstone lines and
     then ranked fallback /use lines from the bottom up.
 ]]
-local function BuildStandardBody(def, config, itemID, useIDs, stackIDs, conjureInfo, appendText)
+local function BuildStandardBody(definition, config, itemID, useIDs, stackIDs, conjureInfo, appendText)
 	local tooltipLine, actionBlock
 
 	if itemID then
 		tooltipLine = "#showtooltip item:" .. itemID .. "\n"
 
-		local customLine = def.buildUseLine and def.buildUseLine(itemID) or nil
+		local customLine = definition.buildUseLine and definition.buildUseLine(itemID) or nil
 		if customLine then
 			actionBlock = StateWriteLine(itemID) .. customLine
 		elseif useIDs then
@@ -509,17 +509,17 @@ local function BuildStandardBody(def, config, itemID, useIDs, stackIDs, conjureI
 		end
 	elseif conjureInfo and conjureInfo.noItemMiss then
 		--[[
-            The player's class can conjure this category but hasn't learned
-            the spell yet. Replace the generic "no item in bags" message
-            with the more useful "you don't know X" message so the player
-            understands the macro will gain functionality at the right
-            level.
-        ]]
+		    The player's class can conjure this category but hasn't learned
+		    the spell yet. Replace the generic "no item in bags" message
+		    with the more useful "you don't know X" message so the player
+		    understands the macro will gain functionality at the right
+		    level.
+		]]
 		tooltipLine = "#showtooltip item:" .. config.defaultID .. "\n"
 		actionBlock = '/run ConnTip("' .. conjureInfo.noItemMiss .. '")'
 	else
 		tooltipLine = "#showtooltip item:" .. config.defaultID .. "\n"
-		actionBlock = '/run ConnNoItem("' .. def.typeName .. '")'
+		actionBlock = '/run ConnNoItem("' .. definition.typeName .. '")'
 	end
 
 	local conjureBlock = ""
@@ -532,22 +532,20 @@ local function BuildStandardBody(def, config, itemID, useIDs, stackIDs, conjureI
 	local body = tooltipLine .. conjureBlock .. actionBlock .. appendedBlock
 
 	--[[
-        The client caps macro bodies at 255 and the unit of that cap is
-        unconfirmed, so the guard measures #body (bytes) — never smaller than
-        a character count, so it holds under either reading. See
-        README-Technical; never convert this to a character count.
+	    Measured in bytes against ns.MACRO_BODY_MAX_LENGTH (Data/Data.lua),
+	    which carries the reason the unit is bytes.
 
-        Overflow corrupts the last /use line: the warlock Healthstone conjure
-        block plus three /use lines can overflow in multibyte locales (e.g.
-        ruRU spell names), and Health Potion stacking adds the Healthstone
-        lines on top. Shed the stacked Healthstone lines from the bottom
-        first, then potion fallback lines; the rank-1 potion line is never
-        dropped.
-    ]]
+	    Overflow corrupts the last /use line: the warlock Healthstone conjure
+	    block plus three /use lines can overflow in multibyte locales (e.g.
+	    ruRU spell names), and Health Potion stacking adds the Healthstone
+	    lines on top. Shed the stacked Healthstone lines from the bottom
+	    first, then potion fallback lines; the rank-1 potion line is never
+	    dropped.
+	]]
 	if useIDs then
 		local keepUse = #useIDs
 		local keepStack = stackIDs and #stackIDs or 0
-		while #body > 255 and (keepStack > 0 or keepUse > 1) do
+		while #body > ns.MACRO_BODY_MAX_LENGTH and (keepStack > 0 or keepUse > 1) do
 			if keepStack > 0 then
 				keepStack = keepStack - 1
 			else
@@ -592,7 +590,7 @@ end
     affects the body MUST appear in the key — a lossy key causes stale
     macros.
 ]]
-local function BuildStateKey(def, itemID, useIDs, stackIDs, conjureInfo, appendFlag)
+local function BuildStateKey(definition, itemID, useIDs, stackIDs, conjureInfo, appendFlag)
 	local itemKey = itemID and tostring(itemID) or "none"
 	if useIDs then
 		itemKey = table.concat(useIDs, ",")
@@ -628,8 +626,8 @@ local function BuildStateKey(def, itemID, useIDs, stackIDs, conjureInfo, appendF
 			stateParts[#stateParts + 1] = "NI:" .. conjureInfo.noItemMiss
 		end
 	end
-	if def.stateExtras then
-		def.stateExtras(stateParts, itemID)
+	if definition.stateExtras then
+		definition.stateExtras(stateParts, itemID)
 	end
 	if appendFlag then
 		stateParts[#stateParts + 1] = appendFlag
@@ -675,18 +673,18 @@ end
 
 function ns.UpdateMacros(forced)
 	--[[
-        Arm the Macro UI hook as early as possible. It self-guards on both
-        "already hooked" and "frame does not exist yet", so this costs one
-        boolean test per update.
-    ]]
+	    Arm the Macro UI hook as early as possible. It self-guards on both
+	    "already hooked" and "frame does not exist yet", so this costs one
+	    boolean test per update.
+	]]
 	EnsureMacroUIHook()
 
 	--[[
-        The wipe runs ahead of the deferral guards so a forced rebuild that
-        arrives in combat or with the Macro UI open keeps its force: the
-        deferred pass runs unforced, and only the wiped state guarantees it
-        rewrites bodies whose state key did not change.
-    ]]
+	    The wipe runs ahead of the deferral guards so a forced rebuild that
+	    arrives in combat or with the Macro UI open keeps its force: the
+	    deferred pass runs unforced, and only the wiped state guarantees it
+	    rewrites bodies whose state key did not change.
+	]]
 	if forced then
 		wipe(currentMacroState)
 	end
@@ -697,15 +695,15 @@ function ns.UpdateMacros(forced)
 	end
 
 	--[[
-        Writing while the Blizzard Macro UI is open is worse than useless: the
-        open frame never refreshes (the user stares at the old body and
-        concludes the rebuild is broken), and its save-back then reverts the
-        write -- leaving currentMacroState recording a body the macro no longer
-        has, which blocks every later rewrite whose state key matches (the
-        "stale macros until something else changes" failure). Defer exactly
-        like combat: leave the work pending and let the throttle retry; the
-        OnHide hook above forces the full rebuild the moment the frame closes.
-    ]]
+	    Writing while the Blizzard Macro UI is open is worse than useless: the
+	    open frame never refreshes (the user stares at the old body and
+	    concludes the rebuild is broken), and its save-back then reverts the
+	    write -- leaving currentMacroState recording a body the macro no longer
+	    has, which blocks every later rewrite whose state key matches (the
+	    "stale macros until something else changes" failure). Defer exactly
+	    like combat: leave the work pending and let the throttle retry; the
+	    OnHide hook above forces the full rebuild the moment the frame closes.
+	]]
 	if MacroFrame and MacroFrame:IsShown() then
 		ns.RequestUpdate()
 		return
@@ -724,19 +722,19 @@ function ns.UpdateMacros(forced)
 	end
 
 	--[[
-        Scrolls are dropped from the macro when targeting a friendly player so
-        the macro reads cleanly as a conjure-for-friend action (Mage food).
-        Computed once per update and handed to buildModeOverride hooks via the
-        shared context (only Food consumes it today).
-    ]]
+	    Scrolls are dropped from the macro when targeting a friendly player so
+	    the macro reads cleanly as a conjure-for-friend action (Mage food).
+	    Computed once per update and handed to buildModeOverride hooks via the
+	    shared context (only Food consumes it today).
+	]]
 	local friendlyPlayerTarget = HasFriendlyPlayerTarget()
 	local context = {
 		best = best,
 		activeScrollIDs = (not friendlyPlayerTarget) and ns.ScrollOverrideIDs or nil,
 	}
 
-	for _, def in ipairs(macroDefs) do
-		local typeName = def.typeName
+	for _, definition in ipairs(macroDefinitions) do
+		local typeName = definition.typeName
 		local config = Config[typeName]
 
 		if not ns.IsMacroEnabled(typeName) then
@@ -746,105 +744,106 @@ function ns.UpdateMacros(forced)
 			local itemID = bestEntry and bestEntry.id
 
 			-- Definition hook: swap the scanned item (Food's pet-buff override).
-			if def.modifyItem then
-				itemID = def.modifyItem(itemID)
+			if definition.modifyItem then
+				itemID = definition.modifyItem(itemID)
 			end
 
 			--[[
-                Ranked /use list for multi-use types; topIDs[1] is itemID
-                itself, so the list only adds fallback lines below it.
-            ]]
+			    Ranked /use list for multi-use types; topIDs[1] is itemID
+			    itself, so the list only adds fallback lines below it.
+			]]
 			local useIDs
 			if itemID and ns.MultiUseMacroTypes[typeName] and bestEntry.topIDs and #bestEntry.topIDs > 0 then
 				useIDs = bestEntry.topIDs
 			end
 
 			--[[
-                Definition hook: ranked ids appended below the main block
-                (Health Potion's healthstone stacking). Gated on itemID so we
-                only stack when there is actually a main item to stack onto —
-                no item means the macro stays its plain "no item" form.
-            ]]
+			    Definition hook: ranked ids appended below the main block
+			    (Health Potion's healthstone stacking). Gated on itemID so we
+			    only stack when there is actually a main item to stack onto —
+			    no item means the macro stays its plain "no item" form.
+			]]
 			local stackIDs
-			if itemID and def.getStackIDs then
-				stackIDs = def.getStackIDs(best)
+			if itemID and definition.getStackIDs then
+				stackIDs = definition.getStackIDs(best)
 			end
 
 			--[[
-                Class-specific macro overrides. The Druid builder owns the
-                DMH-wrap path (HP/MP/HS). Returns nil here means "no override
-                for this type/item" — fall through to the standard body.
-            ]]
+			    Class-specific macro overrides. The Druid builder owns the
+			    DMH-wrap path (HP/MP/HS). Returns nil here means "no override
+			    for this type/item" — fall through to the standard body.
+			]]
 			local classBody, classStateID
 			if itemID and ns.BuildDruidMacroOverride then
 				classBody, classStateID = ns.BuildDruidMacroOverride(typeName, itemID, useIDs, stackIDs)
 			end
 
 			--[[
-                Definition hook: full-body mode override (Food's scroll-only
-                mode). Checked before the class override, matching the old
-                scroll-mode precedence.
-            ]]
+			    Definition hook: full-body mode override (Food's scroll-only
+			    mode). Checked before the class override, matching the old
+			    scroll-mode precedence.
+			]]
 			local modeBody, modeStateID
-			if def.buildModeOverride then
-				modeBody, modeStateID = def.buildModeOverride(context)
+			if definition.buildModeOverride then
+				modeBody, modeStateID = definition.buildModeOverride(context)
 			end
 
 			if modeBody then
 				--[[
-                    Mode override: the definition produced a fully formed body
-                    and a state key it owns. Mode state keys use their own
-                    prefix ("SCROLLS:") so they can never collide with the
-                    standard ITEMID-prefixed key, which guarantees a rewrite
-                    happens at every transition into and out of the mode
-                    (target-change, scroll-applied, bag scan removing the last
-                    scroll item, etc).
-                ]]
+				    Mode override: the definition produced a fully formed body
+				    and a state key it owns. Mode state keys use their own
+				    prefix ("SCROLLS:") so they can never collide with the
+				    standard ITEMID-prefixed key, which guarantees a rewrite
+				    happens at every transition into and out of the mode
+				    (target-change, scroll-applied, bag scan removing the last
+				    scroll item, etc).
+				]]
 				if currentMacroState[typeName] ~= modeStateID or forced then
 					WriteMacro(config.macro, ns.QUESTION_MARK_ICON, modeBody, modeStateID, typeName)
 				end
 			elseif classBody then
 				--[[
-                    Class-override mode. The class builder produced a fully
-                    formed macro body and a state key it owns; we just write
-                    it. State keys from class builders MUST be prefixed
-                    distinctly (e.g. "DMH:") so they cannot collide with the
-                    standard or mode-override keys — a transition into or out
-                    of override mode always triggers a rewrite.
-                ]]
+				    Class-override mode. The class builder produced a fully
+				    formed macro body and a state key it owns; we just write
+				    it. State keys from class builders MUST be prefixed
+				    distinctly (e.g. "DMH:") so they cannot collide with the
+				    standard or mode-override keys — a transition into or out
+				    of override mode always triggers a rewrite.
+				]]
 				if currentMacroState[typeName] ~= classStateID or forced then
 					WriteMacro(config.macro, ns.QUESTION_MARK_ICON, classBody, classStateID, typeName)
 				end
 			else
 				--[[
-                    Class-specific conjure spells (or "spell not yet learned"
-                    print tips). The definition's resolver may return nil for
-                    macro types this player's class doesn't engage with.
-                ]]
-				local conjureInfo = def.conjure and def.conjure() or nil
+				    Class-specific conjure spells (or "spell not yet learned"
+				    print tips). The definition's resolver may return nil for
+				    macro types this player's class doesn't engage with.
+				]]
+				local conjureInfo = definition.conjure and definition.conjure() or nil
 
 				-- Definition hook: appended block + its state flag (Shadowmeld).
 				local appendText, appendFlag
-				if def.appendBlock then
-					appendText, appendFlag = def.appendBlock()
+				if definition.appendBlock then
+					appendText, appendFlag = definition.appendBlock()
 				end
 
-				local stateID = BuildStateKey(def, itemID, useIDs, stackIDs, conjureInfo, appendFlag)
+				local stateID = BuildStateKey(definition, itemID, useIDs, stackIDs, conjureInfo, appendFlag)
 
 				if currentMacroState[typeName] ~= stateID or forced then
-					local body = BuildStandardBody(def, config, itemID, useIDs, stackIDs, conjureInfo, appendText)
+					local body =
+						BuildStandardBody(definition, config, itemID, useIDs, stackIDs, conjureInfo, appendText)
 					WriteMacro(config.macro, ns.QUESTION_MARK_ICON, body, stateID, typeName)
 				end
-			end -- if mode override / class override / standard
+			end
 		end
 	end
 
 	--[[
-        Definitions that own their whole update cycle (Feed Pet, which routes
-        to the Hunter builder and gates on ns.IsHunter internally).
-    ]]
-	for _, def in ipairs(customDefs) do
-		def.customUpdate(forced)
+	    Definitions that own their whole update cycle (Feed Pet, which routes
+	    to the Hunter builder and gates on ns.IsHunter internally).
+	]]
+	for _, definition in ipairs(customDefinitions) do
+		definition.customUpdate(forced)
 	end
 
 	if ns.UpdateLDB then
@@ -862,5 +861,8 @@ function ns.ResetMacroState()
 	end
 	if ns.ResetScrollBuffTracking then
 		ns.ResetScrollBuffTracking()
+	end
+	if ns.ResetTargetTracking then
+		ns.ResetTargetTracking()
 	end
 end

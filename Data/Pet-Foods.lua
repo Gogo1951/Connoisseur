@@ -47,8 +47,10 @@ ns.PetDietMap[L["DIET_FUNGUS"]] = 6
     or nil when the item is not a quest objective.
 ]]
 ns.PetFoodData = {
-	-- 8950, Homemade Cherry Pie... this is often incorrectly categorized as Fruit and has to be manually adjusted
-	-- Meat
+	--[[
+	    8950, Homemade Cherry Pie... this is often incorrectly categorized as Fruit and has to be manually adjusted
+	    Meat
+	]]
 	[4739] = { 1, 1, 0, { 747 } }, -- Plainstrider Meat
 	[5051] = { 1, 1, 1, { 862 } }, -- Dig Rat
 	[23676] = { 1, 1, 5, { 9454 } }, -- Moongraze Stag Tenderloin

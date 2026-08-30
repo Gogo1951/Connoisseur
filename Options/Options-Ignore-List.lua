@@ -18,7 +18,7 @@ local L = ns.L
     AceConfig re-invokes this on every open and every NotifyChange and the panel
     is always current.
 
-    The rows come from ns:BuildItemListOptions, the shared builder every
+    The rows come from ns.BuildItemListOptions, the shared builder every
     player-managed item list renders through, so a list adds and removes the
     same way here as in any other panel. A pane spends
     ns.OPTIONS_TREE_ROW_WIDTH rather than the full row width, because the tree
@@ -32,7 +32,7 @@ local L = ns.L
 
 --[[
     Promote, not copy. Only the account-wide add is issued here:
-    ns:SetIgnoredInScope clears a newly globalized item off every character's
+    ns.SetIgnoredInScope clears a newly globalized item off every character's
     list itself, so the row leaves this pane, leaves any other character who
     happened to hold the same item, and turns up under Global instead. An item
     only ever ends up more ignored doing it this way, because the global list
@@ -44,8 +44,8 @@ local function PromoteColumn()
 		name = L["OPTIONS_IGNORE_GLOBAL"],
 		desc = L["OPTIONS_IGNORE_PROMOTE_DESCRIPTION"],
 		width = ns.OPTIONS_PROMOTE_WIDTH,
-		func = function(itemId)
-			ns:SetIgnoredInScope(ns.IGNORE_SCOPE_GLOBAL, itemId, true)
+		func = function(itemID)
+			ns.SetIgnoredInScope(ns.IGNORE_SCOPE_GLOBAL, itemID, true)
 		end,
 	}
 end
@@ -53,18 +53,18 @@ end
 local function BuildScopeArgs(scopeKey)
 	local isGlobalScope = scopeKey == ns.IGNORE_SCOPE_GLOBAL
 
-	local args = ns:BuildItemListOptions({
+	local args = ns.BuildItemListOptions({
 		rowWidth = ns.OPTIONS_TREE_ROW_WIDTH,
 		startOrder = 3,
 		notifyKey = ns.OPTIONS_REGISTRY.IgnoreList,
 		getSourceTable = function()
-			return ns:GetIgnoreListForScope(scopeKey)
+			return ns.GetIgnoreListForScope(scopeKey)
 		end,
-		onAdd = function(itemId)
-			ns:SetIgnoredInScope(scopeKey, itemId, true)
+		onAdd = function(itemID)
+			ns.SetIgnoredInScope(scopeKey, itemID, true)
 		end,
-		onRemove = function(itemId)
-			ns:SetIgnoredInScope(scopeKey, itemId, false)
+		onRemove = function(itemID)
+			ns.SetIgnoredInScope(scopeKey, itemID, false)
 		end,
 		labels = {
 			addName = L["OPTIONS_IGNORE_ADD_ID"],
@@ -73,8 +73,10 @@ local function BuildScopeArgs(scopeKey)
 			removeDesc = L["OPTIONS_IGNORE_REMOVE"],
 			empty = L["OPTIONS_IGNORE_EMPTY"],
 		},
-		-- The Global pane has nowhere to promote to, so its item cell absorbs
-		-- that column and the remove icon stays put as scopes are picked.
+		--[[
+		    The Global pane has nowhere to promote to, so its item cell absorbs
+		    that column and the remove icon stays put as scopes are picked.
+		]]
 		actionColumn = (not isGlobalScope) and PromoteColumn() or nil,
 	})
 
@@ -104,9 +106,11 @@ function ns.BuildIgnoreListOptions()
 		spacerIntro = ns.OptionsSpacer(2),
 	}
 
-	-- Keyed by scope, not by position: the tree remembers the selected node by
-	-- its arg key, so a key that moved when a profile appeared or dropped out of
-	-- the list would silently reselect a different character.
+	--[[
+	    Keyed by scope, not by position: the tree remembers the selected node by
+	    its arg key, so a key that moved when a profile appeared or dropped out of
+	    the list would silently reselect a different character.
+	]]
 	args[ns.IGNORE_SCOPE_GLOBAL] = ScopeGroup(L["OPTIONS_IGNORE_GLOBAL"], 3, ns.IGNORE_SCOPE_GLOBAL)
 
 	if ns.db then
@@ -124,7 +128,7 @@ function ns.BuildIgnoreListOptions()
 			    are character keys ("Name - Realm") and are never localized, so
 			    they are shown as-is and sorted as plain strings.
 			]]
-			local ignoreList = ns:GetIgnoreListForScope(profileName)
+			local ignoreList = ns.GetIgnoreListForScope(profileName)
 			if profileName == currentProfile or (ignoreList and next(ignoreList) ~= nil) then
 				args[profileName] = ScopeGroup(profileName, order, profileName)
 				order = order + 1

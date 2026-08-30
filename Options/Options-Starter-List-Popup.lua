@@ -7,7 +7,7 @@
     their Restock List, offering the staples -- foods, water, class reagents,
     ammo -- as one-tick suggestions, a few of them pre-ticked for the class.
     The trigger, the categories, the defaults, and what every tick does live
-    in Features/Restocker/StarterList.lua; this file only draws them.
+    in Features/Restocker/Restocker-Starter-List.lua; this file only draws them.
 
     This is an AceConfigDialog standalone window rather than a hand-built
     frame, the same arrangement as GogoLoot's master-looter pop-up: registered
@@ -75,7 +75,7 @@ local COLUMN_GUTTER_WIDTH = 0.2
 -- Options Table Builder
 --------------------------------------------------------------------------------
 
--- Every category argument below is one entry from CRS_ADDON.GetStarterCategories().
+-- Every category argument below is one entry from ns.GetStarterCategories().
 
 --[[
     "1 Stack" .. "N Stacks" choice lists, one per distinct cap -- the food
@@ -89,7 +89,7 @@ local COLUMN_GUTTER_WIDTH = 0.2
     bug, and the row's own label already says what is being counted.
 
     A category carrying a choices list offers exactly those counts rather than
-    every number to a cap -- StarterList.lua owns which, and why. Same
+    every number to a cap -- Restocker-Starter-List.lua owns which, and why. Same
     machinery either way, so the cache keys on the style and on the run of
     counts, and two categories offering the same run share one list.
 ]]
@@ -133,7 +133,7 @@ local function StackOptions(category)
 end
 
 --[[
-    One staple checkbox. Ticking adds the item -- StarterList.lua picks the
+    One staple checkbox. Ticking adds the item -- Restocker-Starter-List.lua picks the
     tier for the character's level -- and unticking removes it, whichever tier
     the list is holding by then. The tooltip names the exact item and count a
     tick adds right now.
@@ -143,15 +143,15 @@ local function StapleToggle(category, order, width)
 		type = "toggle",
 		name = category.label,
 		desc = function()
-			return CRS_ADDON.DescribeStarterCategory(category)
+			return ns.DescribeStarterCategory(category)
 		end,
 		order = order,
 		width = width,
 		get = function()
-			return CRS_ADDON.IsStarterCategoryChecked(category)
+			return ns.IsStarterCategoryChecked(category)
 		end,
 		set = function(_, value)
-			CRS_ADDON.SetStarterCategory(category, value)
+			ns.SetStarterCategory(category, value)
 		end,
 	}
 end
@@ -178,10 +178,10 @@ local function StapleStacks(category, order, width)
 		values = values,
 		sorting = sorting,
 		get = function()
-			return CRS_ADDON.GetStarterCategoryStacks(category)
+			return ns.GetStarterCategoryStacks(category)
 		end,
 		set = function(_, value)
-			CRS_ADDON.SetStarterCategoryStacks(category, value)
+			ns.SetStarterCategoryStacks(category, value)
 		end,
 	}
 end
@@ -205,7 +205,7 @@ end
 --[[
     Lays a section's staples out two pairs to a row -- each row WRAPPED IN AN
     INLINE GROUP of its own. The wrapper is load-bearing, exactly as
-    ns.OptionsSubRow documents: laid out flat, a row holds together only
+    the sub-option rows document: laid out flat, a row holds together only
     because its widths happen to fill the line, and any skin that changes
     the arithmetic -- ElvUI's Ace3 skin did -- lets the next checkbox float
     up into the leftover slack and shear every column after it. A fill-width
@@ -253,17 +253,17 @@ end
 
 --[[
     One section's categories in display order, holding only the ones this
-    class is offered right now -- StarterList.lua's class and availability
+    class is offered right now -- Restocker-Starter-List.lua's class and availability
     rules keep another class's reagents, a not-yet-trained spell's reagent,
     and another expansion's items out of the window.
 ]]
 local function SectionCategories(section)
 	local categories = {}
-	for _, category in ipairs(CRS_ADDON.GetStarterCategories()) do
+	for _, category in ipairs(ns.GetStarterCategories()) do
 		if
 			category.section == section
-			and CRS_ADDON.IsStarterCategoryForClass(category)
-			and CRS_ADDON.IsStarterCategoryAvailable(category)
+			and ns.IsStarterCategoryForClass(category)
+			and ns.IsStarterCategoryAvailable(category)
 		then
 			categories[#categories + 1] = category
 		end
@@ -326,10 +326,17 @@ function ns.BuildStarterListPopupOptions()
 	    does, the way back in -- separated by blank lines, one widget. The
 	    /crs literal is colored as an interaction, the same way the Restocker
 	    panel's own description colors it.
+
+	    The opening line answers to how the window was reached, because both
+	    routes are real: the login trigger only fires over an empty list, while
+	    the Restocker's List Builder button opens it over whatever the player
+	    already has. Resolved per build rather than once, since AceConfig
+	    re-invokes this builder on every open.
 	]]
+	local introKey = ns.IsRestockListEmpty() and "STARTER_POPUP_INTRO_EMPTY" or "STARTER_POPUP_INTRO_STOCKED"
 	args.descIntro = Desc(
 		GetColor("BODY")
-			.. L["STARTER_POPUP_INTRO_EMPTY"]
+			.. L[introKey]
 			.. "\n\n"
 			.. L["STARTER_POPUP_INTRO_HOW"]
 			.. "\n\n"
@@ -385,7 +392,7 @@ function ns.BuildStarterListPopupOptions()
 
 	--[[
 	    Poisons, the rogue's own section, led by a note that the ingredients
-	    take care of themselves -- the BuyIngredients half of the Restocker
+	    take care of themselves -- the crafting-reagent half of the Restocker
 	    already shops for a listed poison's makings, and a fresh rogue has no
 	    way to know that. The note follows the canonical section rhythm
 	    (header, line break, description, line break, controls), opening with
@@ -473,9 +480,11 @@ local DISMISS_LABEL_GAP = 2
 
 local dismissCheckbox
 
--- True from Open until the host frame's next OnHide -- which is how the
--- hook below tells THIS window's close apart from a later hide of the same
--- pooled frame serving some other AceGUI window.
+--[[
+    True from Open until the host frame's next OnHide -- which is how the
+    hook below tells THIS window's close apart from a later hide of the same
+    pooled frame serving some other AceGUI window.
+]]
 local starterPopupOpen = false
 
 --[[
@@ -499,11 +508,11 @@ local function AttachDismissCheckbox(host)
 		dismissCheckbox:SetScript("OnClick", function(self)
 			local checked = self:GetChecked() and true or false
 			PlaySound(checked and SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON or SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_OFF)
-			CRS_ADDON.SetStarterPopupDismissed(checked)
+			ns.SetStarterPopupDismissed(checked)
 		end)
 
 		-- The same tooltip helper every Restocker-window control routes through.
-		CRS_ADDON.SetupTooltip(dismissCheckbox, L["STARTER_POPUP_DISMISS"], L["STARTER_POPUP_DISMISS_DESCRIPTION"])
+		ns.SetupRestockerTooltip(dismissCheckbox, L["STARTER_POPUP_DISMISS"], L["STARTER_POPUP_DISMISS_DESCRIPTION"])
 	end
 
 	dismissCheckbox:SetParent(host)
@@ -511,7 +520,7 @@ local function AttachDismissCheckbox(host)
 	dismissCheckbox:SetPoint("BOTTOMLEFT", host, "BOTTOMLEFT", DISMISS_CHECKBOX_X, DISMISS_CHECKBOX_Y)
 	-- Above the status bar it overlays, which is itself a Button.
 	dismissCheckbox:SetFrameLevel(host:GetFrameLevel() + 10)
-	dismissCheckbox:SetChecked(CRS_ADDON.IsStarterPopupDismissed())
+	dismissCheckbox:SetChecked(ns.IsStarterPopupDismissed())
 	dismissCheckbox:Show()
 
 	if not host.crsStarterDismissHooked then
@@ -531,14 +540,14 @@ local function AttachDismissCheckbox(host)
 			]]
 			if starterPopupOpen then
 				starterPopupOpen = false
-				CRS_ADDON.ClearNewItems()
-				CRS_ADDON:Update()
+				ns.ClearRestockNewItems()
+				ns.UpdateRestockList()
 			end
 		end)
 	end
 end
 
-function ns:ShowStarterListPopup()
+function ns.ShowStarterListPopup()
 	AceConfigDialog:SetDefaultSize(ns.OPTIONS_REGISTRY.StarterListPopup, POPUP_WIDTH, PopupHeight())
 	AceConfigDialog:Open(ns.OPTIONS_REGISTRY.StarterListPopup)
 	starterPopupOpen = true

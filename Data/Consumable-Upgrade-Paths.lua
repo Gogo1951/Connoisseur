@@ -142,12 +142,12 @@ ns.FoodUpgradeChains = {
 	},
 	{
 		--[[
-            Homemade Cherry Pie is BREAD, not fruit. item_template files it
-            under FoodType 6 and the database is simply wrong -- Pet-Foods.lua
-            already carries the same correction (diet 3) and says so. Taking
-            the SQL at its word would have left bread with no tier at 45 and
-            given fruit two.
-        ]]
+		    Homemade Cherry Pie is BREAD, not fruit. item_template files it
+		    under FoodType 6 and the database is simply wrong -- Pet-Foods.lua
+		    already carries the same correction (diet 3) and says so. Taking
+		    the SQL at its word would have left bread with no tier at 45 and
+		    given fruit two.
+		]]
 		kind = "food",
 		diet = BREAD,
 		tiers = {
@@ -180,8 +180,10 @@ ns.FoodUpgradeChains = {
 		},
 	},
 	{
-		-- Deep Fried Plantains takes 45, not Homemade Cherry Pie: see the bread
-		-- chain above for why the database's fruit label on the pie is wrong.
+		--[[
+		    Deep Fried Plantains takes 45, not Homemade Cherry Pie: see the bread
+		    chain above for why the database's fruit label on the pie is wrong.
+		]]
 		kind = "food",
 		diet = FRUIT,
 		tiers = {
@@ -215,26 +217,26 @@ ns.FoodUpgradeChains = {
 	},
 
 	--[[
-        AMMO
+	    AMMO
 
-        Rep ammo is excluded, and the intended filter did not work:
-        npc_vendor's condition_id is empty in the source database, so the Halaa
-        token ammo and the Sha'tari / Ogri'la / Shattered Sun rep ammo all came
-        back looking unconditional. Vendor count separates them instead, and
-        cleanly -- the staples sit on 54 to 120 vendors and every rep, token or
-        quartermaster line on 1 to 4, with nothing in between. Excluded on that
-        basis: Scout's Arrow, Halaani Razorshaft, Halaani Grimshot, Warden's
-        Arrow, Hellfire Shot, Felbane Slugs, Mysterious Arrow, Mysterious
-        Shell, Timeless Arrow, Timeless Shell.
+	    Rep ammo is excluded, and the intended filter did not work:
+	    npc_vendor's condition_id is empty in the source database, so the Halaa
+	    token ammo and the Sha'tari / Ogri'la / Shattered Sun rep ammo all came
+	    back looking unconditional. Vendor count separates them instead, and
+	    cleanly -- the staples sit on 54 to 120 vendors and every rep, token or
+	    quartermaster line on 1 to 4, with nothing in between. Excluded on that
+	    basis: Scout's Arrow, Halaani Razorshaft, Halaani Grimshot, Warden's
+	    Arrow, Hellfire Shot, Felbane Slugs, Mysterious Arrow, Mysterious
+	    Shell, Timeless Arrow, Timeless Shell.
 
-        That an item leaves the ladder is the whole behaviour the exclusion
-        buys: a player who switches to rep ammo holds something with no chain
-        entry, so its Upgrade button greys out and Connoisseur leaves it alone.
+	    That an item leaves the ladder is the whole behaviour the exclusion
+	    buys: a player who switches to rep ammo holds something with no chain
+	    entry, so its Upgrade button greys out and Connoisseur leaves it alone.
 
-        The two ladders mirror each other exactly, tier for tier and damage for
-        damage. Engineering ammo (Thorium Headed Arrow, Mithril Gyro-Shot) beats
-        both and appears in neither, because none of it is sold by a vendor.
-    ]]
+	    The two ladders mirror each other exactly, tier for tier and damage for
+	    damage. Engineering ammo (Thorium Headed Arrow, Mithril Gyro-Shot) beats
+	    both and appears in neither, because none of it is sold by a vendor.
+	]]
 	{
 		kind = "arrow",
 		tiers = {
@@ -261,38 +263,38 @@ ns.FoodUpgradeChains = {
 	},
 
 	--[[
-        ROGUE POISONS
+	    ROGUE POISONS
 
-        The tier rows mirror ns.PoisonData (Data/Poisons.lua), which the
-        Poisons macro already ships -- keep the two in step. group is
-        ns.PoisonGroupBaseItems' numbering from the same file, which is how
-        the Starter List popup finds each ladder.
+	    The tier rows mirror ns.PoisonData (Data/Poisons.lua), which the
+	    Poisons macro already ships -- keep the two in step. group is
+	    ns.PoisonGroupBaseItems' numbering from the same file, which is how
+	    the Starter List popup finds each ladder.
 
-        Poisons are vendor staples like the ammo above -- every rank is
-        gold-buyable in unlimited stock from poison vendors -- so the ladder
-        rule applies as written. Confirm against the database with the food
-        query up top, filtered by name instead of class/subclass (the poison
-        subclass moved between client generations):
+	    Poisons are vendor staples like the ammo above -- every rank is
+	    gold-buyable in unlimited stock from poison vendors -- so the ladder
+	    rule applies as written. Confirm against the database with the food
+	    query up top, filtered by name instead of class/subclass (the poison
+	    subclass moved between client generations):
 
-            SELECT it.entry, it.name, it.ItemLevel, it.RequiredLevel, it.BuyPrice,
-                   COUNT(DISTINCT nv.entry) AS vendors, MIN(nv.maxcount) AS minStock,
-                   MAX(nv.ExtendedCost) AS extCost
-            FROM item_template it
-            LEFT JOIN npc_vendor nv ON nv.item = it.entry
-            WHERE it.name REGEXP '^(Anesthetic|Crippling|Deadly|Instant|Mind-numbing|Wound) Poison'
-            GROUP BY it.entry
-            ORDER BY it.name, it.RequiredLevel;
+	        SELECT it.entry, it.name, it.ItemLevel, it.RequiredLevel, it.BuyPrice,
+	               COUNT(DISTINCT nv.entry) AS vendors, MIN(nv.maxcount) AS minStock,
+	               MAX(nv.ExtendedCost) AS extCost
+	        FROM item_template it
+	        LEFT JOIN npc_vendor nv ON nv.item = it.entry
+	        WHERE it.name REGEXP '^(Anesthetic|Crippling|Deadly|Instant|Mind-numbing|Wound) Poison'
+	        GROUP BY it.entry
+	        ORDER BY it.name, it.RequiredLevel;
 
-        LEFT JOIN rather than the header query's inner join, so a rank with
-        no vendor row still shows up and an exclusion is a decision instead
-        of an accident.
+	    LEFT JOIN rather than the header query's inner join, so a rank with
+	    no vendor row still shows up and an exclusion is a decision instead
+	    of an accident.
 
-        THE EXPANSION FLAG IS HAND-SET here too, from release history:
-        Anesthetic is TBC's new poison, so its whole chain waits for a TBC
-        client; the 22xxx ranks are TBC vendor goods and the 43xxx ranks are
-        Wrath's -- inert on both shipping clients, here for the day that
-        changes, like the Runic potions below.
-    ]]
+	    THE EXPANSION FLAG IS HAND-SET here too, from release history:
+	    Anesthetic is TBC's new poison, so its whole chain waits for a TBC
+	    client; the 22xxx ranks are TBC vendor goods and the 43xxx ranks are
+	    Wrath's -- inert on both shipping clients, here for the day that
+	    changes, like the Runic potions below.
+	]]
 	{
 		kind = "poison",
 		group = 1,
@@ -363,32 +365,32 @@ ns.FoodUpgradeChains = {
 	},
 
 	--[[
-        CLASS REAGENTS
+	    CLASS REAGENTS
 
-        One chain per Starter List reagent checkbox, keyed by the reagent
-        string; single-tier chains are deliberate -- a one-rung ladder gives
-        a reagent the same level gate and expansion gate every real ladder
-        gets, for free. (Their Upgrade toggle in the Restocker window is
-        active but inert: there is never a later tier to move to.) The
-        multi-tier groups here -- Seeds, Wilds, Candles -- upgrade exactly
-        like the food ladders above.
+	    One chain per Starter List reagent checkbox, keyed by the reagent
+	    string; single-tier chains are deliberate -- a one-rung ladder gives
+	    a reagent the same level gate and expansion gate every real ladder
+	    gets, for free. (Their Upgrade toggle in the Restocker window is
+	    active but inert: there is never a later tier to move to.) The
+	    multi-tier groups here -- Seeds, Wilds, Candles -- upgrade exactly
+	    like the food ladders above.
 
-        EVERY minLevel BELOW IS AN ESTIMATE of the level the reagent's spell
-        is first trainable, awaiting hand-adjustment -- unlike the rest of
-        this file these are NOT item_template.RequiredLevel, because reagents
-        carry no required level of their own; the spell is the gate.
+	    EVERY minLevel BELOW IS AN ESTIMATE of the level the reagent's spell
+	    is first trainable, awaiting hand-adjustment -- unlike the rest of
+	    this file these are NOT item_template.RequiredLevel, because reagents
+	    carry no required level of their own; the spell is the gate.
 
-        A tier's optional FOURTH field is the last expansion the item exists
-        in: Blinding Powder left the game after Classic, so its row is
-        CLASSIC-to-CLASSIC and a TBC client never offers it (see BestTier in
-        Features/Restocker/Upgrade.lua).
+	    A tier's optional FOURTH field is the last expansion the item exists
+	    in: Blinding Powder left the game after Classic, so its row is
+	    CLASSIC-to-CLASSIC and a TBC client never offers it (see BestTier in
+	    Features/Restocker/Restocker-Upgrade.lua).
 
-        Soul Shards are the potions of this block: no vendor sells them, so
-        their Buy toggle has nothing to buy from, while the bank half of the
-        Restocker still moves them. Corpse Dust is Wrath vendor stock, which
-        never matters on the shipping clients -- no Death Knight exists to
-        see it, so the class gate does the work the expansion flag would.
-    ]]
+	    Soul Shards are the potions of this block: no vendor sells them, so
+	    their Buy toggle has nothing to buy from, while the bank half of the
+	    Restocker still moves them. Corpse Dust is Wrath vendor stock, which
+	    never matters on the shipping clients -- no Death Knight exists to
+	    see it, so the class gate does the work the expansion flag would.
+	]]
 	{
 		--[[
 		    The worked example, offered to every class: nothing sells it and
@@ -443,8 +445,10 @@ ns.FoodUpgradeChains = {
 		},
 	},
 	{
-		-- Slow Fall at 12; the priest's Levitate trains at 34. One chain
-		-- serves both classes, so the earlier level opens it.
+		--[[
+		    Slow Fall at 12; the priest's Levitate trains at 34. One chain
+		    serves both classes, so the earlier level opens it.
+		]]
 		kind = "reagent",
 		reagent = "light-feather",
 		tiers = {
@@ -480,8 +484,10 @@ ns.FoodUpgradeChains = {
 		},
 	},
 	{
-		-- Prayer of Fortitude by rank; TBC's prayers reuse the Sacred Candle,
-		-- so no TBC tier exists.
+		--[[
+		    Prayer of Fortitude by rank; TBC's prayers reuse the Sacred Candle,
+		    so no TBC tier exists.
+		]]
 		kind = "reagent",
 		reagent = "candles",
 		tiers = {
@@ -584,36 +590,36 @@ ns.FoodUpgradeChains = {
 	},
 
 	--[[
-        POTIONS -- HAND-CURATED
+	    POTIONS -- HAND-CURATED
 
-        The standard Alchemy ladders, taken from ns.RawData.Potions (the
-        restore amounts there confirm the ordering: 70/140/280/455/700/1050/
-        1500 healing, 140/280/455/700/900/1350/1800 mana). Every non-standard
-        potion in that table is deliberately absent -- the Combat, Auchenai,
-        Crystal, Ogre Brew, Nethergon, Salve, Draught and Injector variants are
-        zone-locked, quest-locked or reward items, and none belongs on a
-        ladder a shopping list follows automatically.
+	    The standard Alchemy ladders, taken from ns.RawData.Potions (the
+	    restore amounts there confirm the ordering: 70/140/280/455/700/1050/
+	    1500 healing, 140/280/455/700/900/1350/1800 mana). Every non-standard
+	    potion in that table is deliberately absent -- the Combat, Auchenai,
+	    Crystal, Ogre Brew, Nethergon, Salve, Draught and Injector variants are
+	    zone-locked, quest-locked or reward items, and none belongs on a
+	    ladder a shopping list follows automatically.
 
-        minLevel is item_template.RequiredLevel like every other ladder here,
-        but it had to be asked for directly -- potions never appear in an
-        npc_vendor query, so the source query above does not reach them:
+	    minLevel is item_template.RequiredLevel like every other ladder here,
+	    but it had to be asked for directly -- potions never appear in an
+	    npc_vendor query, so the source query above does not reach them:
 
-            SELECT entry, name, ItemLevel, RequiredLevel
-            FROM item_template
-            WHERE entry IN (118,858,929,1710,3928,13446,22829,33447,
-                            2455,3385,3827,6149,13443,13444,22832,33448)
-            ORDER BY entry;
+	        SELECT entry, name, ItemLevel, RequiredLevel
+	        FROM item_template
+	        WHERE entry IN (118,858,929,1710,3928,13446,22829,33447,
+	                        2455,3385,3827,6149,13443,13444,22832,33448)
+	        ORDER BY entry;
 
-        Note the two ladders do NOT step together -- healing goes
-        1/3/12/21/35/45/55/70 and mana 5/14/22/31/41/49/55/70 -- so a character
-        carrying both will often upgrade one and not the other on the same
-        level. That is correct, not a rounding error in this table.
+	    Note the two ladders do NOT step together -- healing goes
+	    1/3/12/21/35/45/55/70 and mana 5/14/22/31/41/49/55/70 -- so a character
+	    carrying both will often upgrade one and not the other on the same
+	    level. That is correct, not a rounding error in this table.
 
-        Runic Healing and Runic Mana are Wrath items and are NOT in
-        ns.RawData.Potions, which stops at TBC like the rest of the add-on.
-        They are inert on both shipping clients and are here for the day that
-        changes.
-    ]]
+	    Runic Healing and Runic Mana are Wrath items and are NOT in
+	    ns.RawData.Potions, which stops at TBC like the rest of the add-on.
+	    They are inert on both shipping clients and are here for the day that
+	    changes.
+	]]
 	{
 		kind = "healing-potion",
 		tiers = {

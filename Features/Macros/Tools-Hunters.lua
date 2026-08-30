@@ -1,5 +1,5 @@
 local _, ns = ...
-local Config = ns.Config
+local Config = ns.MacroConfig
 
 --------------------------------------------------------------------------------
 -- Hunter Tools
@@ -13,9 +13,11 @@ local Config = ns.Config
     Feed Pet is Hunter-only and owns its whole update cycle: knowledge tiers
     (print-only stub for pre-10 hunters, Mend-less cascade at 10-11, full
     cascade at 12+), pet-spell resolution, dead-pet detection, and its own
-    macro state, all in this file. The definition at the bottom routes the
-    engine's update to UpdateFeedPetMacro or removes the macro when disabled;
-    for non-Hunters it does nothing at all.
+    macro state, all in this file. The definition at the bottom scans pet food
+    for every Hunter, then routes the engine's update to UpdateFeedPetMacro or
+    removes the macro when disabled; for non-Hunters it does nothing at all.
+    The scan sits outside that branch because ns.BestPetFoodID is read by the
+    mini-map tooltip and by Diagnostics whether or not the macro exists.
 ]]
 
 --------------------------------------------------------------------------------
@@ -99,8 +101,12 @@ end
     happily eat level-70 meat. The fallback ranks by lowest food level first,
     so the *least* wasteful option still wins when multiple are available.
 
-    All data (itemLevel, dietID, sellPrice, questIDs) comes from the stored
-    ns.PetFoodData table. No server queries are needed during scanning.
+    Every food's own facts (itemLevel, dietID, sellPrice, questIDs) come from
+    the stored ns.PetFoodData table, and what is in the bags comes from
+    ns.ScannedItemCounts / ns.ScannedItemLinks -- the walk ns.ScanBags just
+    finished in this same update pass. Walking the containers again here cost a
+    second full pass per rebuild on every Hunter with a pet out. No server
+    queries are needed either way.
 
     Quest objective foods are skipped whenever the player has that quest in
     their log (including completed-but-not-turned-in), since turn-in consumes
@@ -139,12 +145,22 @@ function ns.ScanPetFood()
 		end
 	end
 
+	--[[
+	    Nothing scanned yet (the first pass of a login can land before ScanBags
+	    has filled anything), so there is nothing to pick from. Leave both
+	    published fields nil, exactly as the no-pet path above does, and skip the
+	    quest-log walk with them.
+	]]
+	if next(ns.ScannedItemCounts) == nil then
+		return
+	end
+
 	-- Snapshot the player's active quests once per scan
 	BuildActiveQuestSet()
 
 	-- Both halves of the Ignore List hide an item from every macro's selection.
-	local charIgnoreList = ns:GetIgnoreList() or {}
-	local globalIgnoreList = ns:GetGlobalIgnoreList() or {}
+	local charIgnoreList = ns.GetIgnoreList() or {}
+	local globalIgnoreList = ns.GetGlobalIgnoreList() or {}
 
 	local bestID, bestLink
 	local bestLevel = 999
@@ -152,89 +168,95 @@ function ns.ScanPetFood()
 	local bestCount = 999999
 
 	--[[
-        Wasteful fallback: pets will eat food above their level when no in-bracket
-        option is available. Prefer the food closest to pet level (lowest waste).
-    ]]
+	    Wasteful fallback: pets will eat food above their level when no in-bracket
+	    option is available. Prefer the food closest to pet level (lowest waste).
+	]]
 	local fallbackID, fallbackLink
 	local fallbackLevel = 999
 	local fallbackPrice = 999999
 	local fallbackCount = 999999
 
-	for bag = 0, NUM_BAG_SLOTS do
-		for slot = 1, ns.GetContainerNumSlots(bag) do
-			local info = ns.GetContainerItemInfo(bag, slot)
-			if info and info.itemID then
-				local id = info.itemID
-				local foodData = ns.PetFoodData[id]
+	for id, totalCount in pairs(ns.ScannedItemCounts) do
+		local foodData = ns.PetFoodData[id]
 
-				if foodData and not (charIgnoreList[id] or globalIgnoreList[id]) then
-					local foodLevel = foodData[1]
-					local foodDiet = foodData[2]
-					local sellPrice = foodData[3]
-					local questIDs = foodData[4]
+		if foodData and not (charIgnoreList[id] or globalIgnoreList[id]) then
+			local foodLevel = foodData[1]
+			local foodDiet = foodData[2]
+			local sellPrice = foodData[3]
+			local questIDs = foodData[4]
 
-					if dietSet[foodDiet] then
-						local levelDelta = petLevel - foodLevel
-						local inHappyBracket = (levelDelta >= 0 and levelDelta <= 10)
-						local isAbovePet = (levelDelta < 0)
+			if dietSet[foodDiet] then
+				local levelDelta = petLevel - foodLevel
+				local inHappyBracket = (levelDelta >= 0 and levelDelta <= 10)
+				local isAbovePet = (levelDelta < 0)
 
-						if inHappyBracket or isAbovePet then
-							-- Skip foods needed for active quests
-							local skipQuest = false
-							if questIDs then
-								skipQuest = IsNeededForQuest(questIDs)
+				if inHappyBracket or isAbovePet then
+					-- Skip foods needed for active quests
+					local skipQuest = false
+					if questIDs then
+						skipQuest = IsNeededForQuest(questIDs)
+					end
+
+					if not skipQuest then
+						if inHappyBracket then
+							-- Prefer: lowest itemLevel, then lowest sell price, then fewest in bags
+							local isBetter
+							if not bestID then
+								isBetter = true
+							elseif foodLevel ~= bestLevel then
+								isBetter = foodLevel < bestLevel
+							elseif sellPrice ~= bestPrice then
+								isBetter = sellPrice < bestPrice
+							elseif totalCount ~= bestCount then
+								isBetter = totalCount < bestCount
+							else
+								--[[
+								    Never-equal last resort. The scan snapshot is
+								    walked with pairs(), whose order is not stable
+								    between passes, so two foods matching on every
+								    field above would otherwise swap the pick from
+								    one rebuild to the next and churn a macro
+								    rewrite. Same reason RANKING_PRIORITY in
+								    Scanner-Inventory.lua ends on itemID.
+								]]
+								isBetter = id < bestID
 							end
 
-							if not skipQuest then
-								local totalCount = ns.GetItemCount(id)
+							if isBetter then
+								bestID = id
+								bestLink = ns.ScannedItemLinks[id]
+								bestLevel = foodLevel
+								bestPrice = sellPrice
+								bestCount = totalCount
+							end
+						else
+							--[[
+							    Fallback (food above pet level). No upper cap:
+							    pets will eat food at any level higher than their
+							    own (confirmed: lvl-8 cat eats lvl-70 meat). Prefer
+							    closest to pet level (lowest), then cheapest, then
+							    fewest in bags.
+							]]
+							local isBetter
+							if not fallbackID then
+								isBetter = true
+							elseif foodLevel ~= fallbackLevel then
+								isBetter = foodLevel < fallbackLevel
+							elseif sellPrice ~= fallbackPrice then
+								isBetter = sellPrice < fallbackPrice
+							elseif totalCount ~= fallbackCount then
+								isBetter = totalCount < fallbackCount
+							else
+								-- Deterministic last resort; see the note on the bracket chain above.
+								isBetter = id < fallbackID
+							end
 
-								if inHappyBracket then
-									-- Prefer: lowest itemLevel, then lowest sell price, then fewest in bags
-									local isBetter
-									if not bestID then
-										isBetter = true
-									elseif foodLevel ~= bestLevel then
-										isBetter = foodLevel < bestLevel
-									elseif sellPrice ~= bestPrice then
-										isBetter = sellPrice < bestPrice
-									else
-										isBetter = totalCount < bestCount
-									end
-
-									if isBetter then
-										bestID = id
-										bestLink = info.hyperlink
-										bestLevel = foodLevel
-										bestPrice = sellPrice
-										bestCount = totalCount
-									end
-								else
-									--[[
-                                        Fallback (food above pet level). No upper cap:
-                                        pets will eat food at any level higher than their
-                                        own (confirmed: lvl-8 cat eats lvl-70 meat). Prefer
-                                        closest to pet level (lowest), then cheapest, then
-                                        fewest in bags.
-                                    ]]
-									local isBetter
-									if not fallbackID then
-										isBetter = true
-									elseif foodLevel ~= fallbackLevel then
-										isBetter = foodLevel < fallbackLevel
-									elseif sellPrice ~= fallbackPrice then
-										isBetter = sellPrice < fallbackPrice
-									else
-										isBetter = totalCount < fallbackCount
-									end
-
-									if isBetter then
-										fallbackID = id
-										fallbackLink = info.hyperlink
-										fallbackLevel = foodLevel
-										fallbackPrice = sellPrice
-										fallbackCount = totalCount
-									end
-								end
+							if isBetter then
+								fallbackID = id
+								fallbackLink = ns.ScannedItemLinks[id]
+								fallbackLevel = foodLevel
+								fallbackPrice = sellPrice
+								fallbackCount = totalCount
 							end
 						end
 					end
@@ -256,8 +278,10 @@ end
 -- Pet Buff Override
 --------------------------------------------------------------------------------
 
--- Written by ScanBags on every rescan (forced nil in a PvP Arena); Food.lua's
--- macro hooks read it to splice the pet-buff-food line into the Food macro.
+--[[
+    Written by ScanBags on every rescan (forced nil in a PvP Arena); Food.lua's
+    macro hooks read it to splice the pet-buff-food line into the Food macro.
+]]
 ns.PetBuffOverrideID = nil
 
 --[[
@@ -269,10 +293,10 @@ ns.PetBuffOverrideID = nil
 ]]
 function ns.FindPetBuffOverride(bagItemCounts)
 	--[[
-        Feature toggle, group restriction, level, and a live pet all live in
-        ns.ShouldTrackPetFood (Scanner-Character.lua) so the readiness report
-        applies exactly the same gate.
-    ]]
+	    Feature toggle, group restriction, level, and a live pet all live in
+	    ns.ShouldTrackPetFood (Scanner-Character.lua) so the readiness report
+	    applies exactly the same gate.
+	]]
 	if not ns.ShouldTrackPetFood() then
 		return nil
 	end
@@ -283,13 +307,15 @@ function ns.FindPetBuffOverride(bagItemCounts)
 
 	local petTypes = ns.db.profile.petBuffTypes
 
-	-- The pet-buff override path never passes the scanner's ignore filter
-	-- (it reads the raw bag counts), so it honors the Ignore List itself.
+	--[[
+	    The pet-buff override path never passes the scanner's ignore filter
+	    (it reads the raw bag counts), so it honors the Ignore List itself.
+	]]
 	if
 		petTypes.KiblersBits
 		and bagItemCounts[ns.KIBLERS_BITS_ITEM_ID]
 		and bagItemCounts[ns.KIBLERS_BITS_ITEM_ID] > 0
-		and not ns:IsIgnored(ns.KIBLERS_BITS_ITEM_ID)
+		and not ns.IsIgnored(ns.KIBLERS_BITS_ITEM_ID)
 	then
 		return ns.KIBLERS_BITS_ITEM_ID
 	end
@@ -298,7 +324,7 @@ function ns.FindPetBuffOverride(bagItemCounts)
 		petTypes.SporelingSnacks
 		and bagItemCounts[ns.SPORELING_SNACKS_ITEM_ID]
 		and bagItemCounts[ns.SPORELING_SNACKS_ITEM_ID] > 0
-		and not ns:IsIgnored(ns.SPORELING_SNACKS_ITEM_ID)
+		and not ns.IsIgnored(ns.SPORELING_SNACKS_ITEM_ID)
 	then
 		return ns.SPORELING_SNACKS_ITEM_ID
 	end
@@ -318,15 +344,15 @@ end
     UI_ERROR_MESSAGE here ahead of its combat-lockdown guard, so this still
     fires mid-fight.
 ]]
-function ns.HandleHunterPetError(msg)
+function ns.HandleHunterPetError(message)
 	if not ns.IsHunter then
 		return
 	end
-	if UnitExists("pet") or not msg then
+	if UnitExists("pet") or not message then
 		return
 	end
 	local deadMsg = SPELL_FAILED_TARGETS_DEAD
-	if deadMsg and msg == deadMsg then
+	if deadMsg and message == deadMsg then
 		ns.PetDeadDismissed = true
 		ns.RequestUpdate()
 	end
@@ -389,15 +415,15 @@ end
 ]]
 
 --[[
-    Trap: the client caps a macro body at 255 — unit unconfirmed, so the guard
-    measures #body in bytes (see README-Technical) — and the trailing
-    "/use item:" food line is the casualty, so a truncated body silently drops
-    the feed. The Tier B/C cast cascade names up to five pet spells, and
+    Trap: the trailing "/use item:" food line is the casualty of an overflow, so
+    a truncated body silently drops the feed. The ceiling is
+    ns.MACRO_BODY_MAX_LENGTH (Data/Data.lua), measured in bytes for the reason
+    kept there. The Tier B/C cast cascade names up to five pet spells, and
     GetSpellInfo returns CLIENT-localized names, so a body that fits in enUS
     (Tier C is ~196 bytes) overflows in multibyte locales: ruRU pet-spell names
     run roughly double the byte cost and push Tier B/C past 300 bytes.
 
-    Rule: assemble the full body, then while #body exceeds 255 shed the
+    Rule: assemble the full body, then while it exceeds the ceiling shed the
     optional modifier conveniences in priority order, the [mod:ctrl] Dismiss
     shortcut first and then the [mod:shift]/[@pet,dead] Revive shortcut,
     rebuilding the matching /stopmacro set each time so it stays consistent with
@@ -413,19 +439,19 @@ local function ComposeFeedPetBody(tier, itemID, includeDismiss, includeRevive)
 	local mendName = ns.MendPetSpellName -- nil in Tier B
 
 	--[[
-        When we know the pet is dead but dismissed, [nopet] uses Revive Pet
-        instead of Call Pet so a single click revives without the user
-        needing to remember the dead state.
-    ]]
+	    When we know the pet is dead but dismissed, [nopet] uses Revive Pet
+	    instead of Call Pet so a single click revives without the user
+	    needing to remember the dead state.
+	]]
 	local nopetSpell = (ns.PetDeadDismissed and reviveName) or callName
 
 	--[[
-        Modifier cascade. Tier C includes the Mend Pet branch on
-        [btn:2][combat]; Tier B omits it (and we print a tip earlier in the
-        macro to explain why right-click/combat does nothing useful). The
-        Dismiss and Revive shortcuts are optional and are the first to be
-        dropped when the body must shrink to fit the 255 ceiling.
-    ]]
+	    Modifier cascade. Tier C includes the Mend Pet branch on
+	    [btn:2][combat]; Tier B omits it (and we print a tip earlier in the
+	    macro to explain why right-click/combat does nothing useful). The
+	    Dismiss and Revive shortcuts are optional and are the first to be
+	    dropped when the body must shrink to fit the 255 ceiling.
+	]]
 	local castClauses = {}
 	if includeDismiss then
 		castClauses[#castClauses + 1] = "[mod:ctrl] " .. dismissName
@@ -443,11 +469,11 @@ local function ComposeFeedPetBody(tier, itemID, includeDismiss, includeRevive)
 
 	if tier == "B" then
 		--[[
-            Tier B: explain the missing Mend Pet on the inputs that would
-            have used it, then halt before the Feed Pet cascade so we don't
-            try to /cast Feed Pet in combat (it would fail) or on a
-            right-click the user expected to mean Mend.
-        ]]
+		    Tier B: explain the missing Mend Pet on the inputs that would
+		    have used it, then halt before the Feed Pet cascade so we don't
+		    try to /cast Feed Pet in combat (it would fail) or on a
+		    right-click the user expected to mean Mend.
+		]]
 		lines[#lines + 1] = '/run ConnIf("[btn:2][combat]","nomend")'
 		lines[#lines + 1] = "/stopmacro [btn:2][combat]"
 	end
@@ -455,12 +481,12 @@ local function ComposeFeedPetBody(tier, itemID, includeDismiss, includeRevive)
 	lines[#lines + 1] = "/cast " .. table.concat(castClauses, "; ")
 
 	--[[
-        Halt before /use when /cast dispatched to a non-Feed-Pet branch. Each
-        guard token is present only while its branch is: [mod] covers the
-        ctrl/shift shortcuts, [@pet,dead] the dead-pet auto-revive, and
-        [btn:2]/[combat] the Mend branch (Tier C). Token order mirrors the
-        original full-body set so an untrimmed body is byte-for-byte unchanged.
-    ]]
+	    Halt before /use when /cast dispatched to a non-Feed-Pet branch. Each
+	    guard token is present only while its branch is: [mod] covers the
+	    ctrl/shift shortcuts, [@pet,dead] the dead-pet auto-revive, and
+	    [btn:2]/[combat] the Mend branch (Tier C). Token order mirrors the
+	    original full-body set so an untrimmed body is byte-for-byte unchanged.
+	]]
 	local stopTokens = {}
 	if includeDismiss or includeRevive then
 		stopTokens[#stopTokens + 1] = "[mod]"
@@ -481,9 +507,9 @@ local function ComposeFeedPetBody(tier, itemID, includeDismiss, includeRevive)
 		lines[#lines + 1] = "/use item:" .. itemID
 	else
 		--[[
-            No useful food in bags: clicking Feed Pet should explain that
-            rather than silently doing nothing on the food line.
-        ]]
+		    No useful food in bags: clicking Feed Pet should explain that
+		    rather than silently doing nothing on the food line.
+		]]
 		lines[#lines + 1] = '/run ConnTip("nofood")'
 	end
 
@@ -499,16 +525,16 @@ local function BuildFeedPetBody(tier, itemID)
 	end
 
 	--[[
-        Full body first, then drop the Dismiss shortcut, then the Revive
-        shortcut, stopping as soon as the body fits the 255 ceiling (see the
-        note above ComposeFeedPetBody). #body is the byte length, matching the
-        macro-length trims in Engine.lua and Integration-Druid-Macro-Helper.lua.
-    ]]
+	    Full body first, then drop the Dismiss shortcut, then the Revive
+	    shortcut, stopping as soon as the body fits (see the note above
+	    ComposeFeedPetBody). #body is the byte length, matching the
+	    macro-length trims in Engine.lua and Integration-Druid-Macro-Helper.lua.
+	]]
 	local body = ComposeFeedPetBody(tier, itemID, true, true)
-	if #body > 255 then
+	if #body > ns.MACRO_BODY_MAX_LENGTH then
 		body = ComposeFeedPetBody(tier, itemID, false, true)
 	end
-	if #body > 255 then
+	if #body > ns.MACRO_BODY_MAX_LENGTH then
 		body = ComposeFeedPetBody(tier, itemID, false, false)
 	end
 	return body
@@ -528,8 +554,6 @@ local function UpdateFeedPetMacro(forced)
 		currentPetFoodState = nil
 	end
 
-	ns.ScanPetFood()
-
 	local config = Config["Feed Pet"]
 	if not config then
 		return
@@ -538,16 +562,16 @@ local function UpdateFeedPetMacro(forced)
 	local icon = ns.QUESTION_MARK_ICON
 
 	--[[
-        Knowledge tier drives the macro shape. The Tier B/C cast line
-        concatenates Feed, Revive, Call, AND Dismiss Pet, so a missing name
-        for any of them — not just Feed Pet — collapses to the print-only
-        stub (Tier A). The four spells normally arrive together with the
-        level-10 pet quests, but this also covers a hunter mid-quest-chain
-        and any transient SPELLS_CHANGED timing where IsSpellKnown hasn't
-        caught up; the next SPELLS_CHANGED rebuild promotes the tier. Mend
-        Pet absence is the common transient state for a level-10/11 hunter
-        who hasn't trained the level-12 spell yet.
-    ]]
+	    Knowledge tier drives the macro shape. The Tier B/C cast line
+	    concatenates Feed, Revive, Call, AND Dismiss Pet, so a missing name
+	    for any of them — not just Feed Pet — collapses to the print-only
+	    stub (Tier A). The four spells normally arrive together with the
+	    level-10 pet quests, but this also covers a hunter mid-quest-chain
+	    and any transient SPELLS_CHANGED timing where IsSpellKnown hasn't
+	    caught up; the next SPELLS_CHANGED rebuild promotes the tier. Mend
+	    Pet absence is the common transient state for a level-10/11 hunter
+	    who hasn't trained the level-12 spell yet.
+	]]
 	local tier
 	if not (ns.FeedPetSpellName and ns.RevivePetSpellName and ns.CallPetSpellName and ns.DismissPetSpellName) then
 		tier = "A"
@@ -558,10 +582,10 @@ local function UpdateFeedPetMacro(forced)
 	end
 
 	--[[
-        Tier A bypasses food entirely — the macro can't act on it without
-        Feed Pet — so we don't encode itemID into the state. Tiers B and C
-        both rely on the food line, so we include it.
-    ]]
+	    Tier A bypasses food entirely — the macro can't act on it without
+	    Feed Pet — so we don't encode itemID into the state. Tiers B and C
+	    both rely on the food line, so we include it.
+	]]
 	local itemID = (tier ~= "A") and ns.BestPetFoodID or nil
 
 	local stateID = tier
@@ -604,6 +628,18 @@ ns.RegisterMacroType({
 		if not ns.IsHunter then
 			return
 		end
+
+		--[[
+		    Ahead of the enabled check, because ns.BestPetFoodID and
+		    ns.BestPetFoodLink are published state with readers that stay live
+		    whether or not the macro is built -- the mini-map tooltip's pet-food
+		    row and two Diagnostics reports. Scanning only when the macro is on
+		    froze all three at whatever the last enabled pass left behind. It
+		    costs nothing extra: the scan reads ns.ScannedItemCounts, which
+		    ns.ScanBags refilled earlier in this same update pass.
+		]]
+		ns.ScanPetFood()
+
 		if ns.IsMacroEnabled("Feed Pet") then
 			UpdateFeedPetMacro(forced)
 		else

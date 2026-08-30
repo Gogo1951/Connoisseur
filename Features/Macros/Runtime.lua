@@ -18,7 +18,7 @@ local L = ns.L
     `/run ConnFire / ConnTip / ConnIf / ConnNoItem` lines, and these functions
     run when the player presses the macro. This file loads after Announcements
     (ConnTip / ConnNoItem call ns.PrintMessage) and after Data (reads
-    ns.MessageStrings, ns.MissingSpellMessageIDs, ns.Config), and before the
+    ns.MessageStrings, ns.MissingSpellMessageIDs, ns.MacroConfig), and before the
     macro builders that emit lines referencing these globals.
 ]]
 --[[
@@ -46,11 +46,11 @@ end
     its combat-lockdown guard, since a zone-locked potion is usually pressed
     mid-fight.
 ]]
-function ns.ReportZoneRestriction(msg)
+function ns.ReportZoneRestriction(message)
 	if not (ConnoisseurState.lastTime and (GetTime() - ConnoisseurState.lastTime) < 1.0) then
 		return
 	end
-	if msg ~= ERR_ITEM_WRONG_ZONE then
+	if message ~= ERR_ITEM_WRONG_ZONE then
 		return
 	end
 
@@ -123,11 +123,11 @@ end
     call this with the internal type key (`/run ConnNoItem("Food")`). The key
     stays English inside the macro body (keeps bodies and state keys
     locale-independent) and resolves to the localized LABEL_* string via
-    ns.Config at print time. Unknown keys fall back to the raw key so a stale
+    ns.MacroConfig at print time. Unknown keys fall back to the raw key so a stale
     macro body from an older version still prints something sensible.
 ]]
 function ConnNoItem(typeName)
-	local config = ns.Config and ns.Config[typeName]
+	local config = ns.MacroConfig and ns.MacroConfig[typeName]
 	local label = config and config.label or typeName
 	ns.PrintMessage(string.format(L["MSG_NO_ITEM"], label))
 end

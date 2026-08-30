@@ -8,8 +8,10 @@ local _, ns = ...
 ns.RegisterMacroType({
 	typeName = "Bandage",
 
-	-- Selection: best bandage by raw heal; the BG-only bandages win ties
-	-- through the ladder's hasZones step.
+	--[[
+	    Selection: best bandage by raw heal; the BG-only bandages win ties
+	    through the ladder's hasZones step.
+	]]
 	itemTypes = { bandage = true },
 	score = function(data)
 		return data.healthValue

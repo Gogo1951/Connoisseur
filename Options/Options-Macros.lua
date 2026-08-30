@@ -5,6 +5,7 @@ local GetColor = ns.GetColor
 local Header = ns.OptionsHeader
 local Desc = ns.OptionsDesc
 local Spacer = ns.OptionsSpacer
+local RowLabel = ns.OptionsRowLabel
 
 --------------------------------------------------------------------------------
 -- Active-State Predicates
@@ -26,18 +27,18 @@ local function GetSettings()
 end
 
 local function BuffFoodActive()
-	local s = GetSettings()
-	return s and s.useBuffFood
+	local settings = GetSettings()
+	return settings and settings.useBuffFood
 end
 
 local function ScrollsActive()
-	local s = GetSettings()
-	return s and s.useScrolls
+	local settings = GetSettings()
+	return settings and settings.useScrolls
 end
 
 local function PetBuffActive()
-	local s = GetSettings()
-	return s and s.usePetBuffFood
+	local settings = GetSettings()
+	return settings and settings.usePetBuffFood
 end
 
 --[[
@@ -45,16 +46,16 @@ end
     until its toggle is on, matching the mode dropdowns above.
 ]]
 local function ReapplyThresholdHidden()
-	local s = GetSettings()
-	return not (s and s.earlyReapply)
+	local settings = GetSettings()
+	return not (settings and settings.earlyReapply)
 end
 
 local function DruidReturnFormHidden()
 	if not ns.IsDruid then
 		return true
 	end
-	local s = GetSettings()
-	return not (s and s.enableDruidMacroHelper)
+	local settings = GetSettings()
+	return not (settings and settings.enableDruidMacroHelper)
 end
 
 local function NotDruid()
@@ -202,26 +203,6 @@ local function WithArenaNote(descriptionKey)
 	return L[descriptionKey] .. " " .. L["OPTIONS_DISABLED_IN_ARENAS"]
 end
 
--- ns.OptionsSpacer takes no `hidden`, so a class-gated spacer is inlined.
-local function GatedSpacer(order, hiddenFn)
-	return {
-		type = "description",
-		name = " ",
-		order = order,
-		hidden = hiddenFn,
-	}
-end
-
-local function GatedDesc(text, order, hiddenFn)
-	return {
-		type = "description",
-		name = text,
-		fontSize = "medium",
-		order = order,
-		hidden = hiddenFn,
-	}
-end
-
 --------------------------------------------------------------------------------
 -- Macros Panel
 --------------------------------------------------------------------------------
@@ -238,8 +219,7 @@ end
     Order values keep the spaced blocks these sections used on the General page
     so a section can be reordered or extended without renumbering its
     neighbors. What stayed behind on General is add-on-level behavior that does
-    not touch a macro: the welcome message, the mini-map button, /Commands, and
-    Ready Check.
+    not touch a macro: the welcome message, the mini-map button, and /Commands.
 
     Registered as this builder function rather than a built table (see
     Options/Options.lua), so AceConfig re-invokes it on every open and every
@@ -301,8 +281,8 @@ function ns.BuildMacrosOptions()
 			order = 35,
 			width = "full",
 			get = function()
-				local s = GetSettings()
-				return s and s.combineHealthstones
+				local settings = GetSettings()
+				return settings and settings.combineHealthstones
 			end,
 			set = function(_, value)
 				ns.db.profile.combineHealthstones = value
@@ -314,11 +294,11 @@ function ns.BuildMacrosOptions()
 		},
 
 		--[[
-                Buff Re-Application -- one global threshold governing Buff
-                Food, Scroll Buffs, and Pet Food Buffs, so it sits above them.
-                Dropdown keys are the threshold in seconds, stored directly in
-                earlyReapplyThreshold.
-            ]]
+		    Buff Re-Application -- one global threshold governing Buff
+		    Food, Scroll Buffs, and Pet Food Buffs, so it sits above them.
+		    Dropdown keys are the threshold in seconds, stored directly in
+		    earlyReapplyThreshold.
+		]]
 		spaceReapply0 = Spacer(90),
 		headerReapply = Header(L["OPTIONS_REAPPLY_HEADER"], 91),
 		spaceReapply1 = Spacer(92),
@@ -330,16 +310,16 @@ function ns.BuildMacrosOptions()
 			desc = L["OPTIONS_REAPPLY_DESCRIPTION"],
 			order = 95,
 			--[[
-                    Not the usual toggle "double" + select "normal" split: this
-                    dropdown's values are whole phrases ("When < 2 Minutes...")
-                    rather than the one-word modes the other rows show, and at a
-                    third of the row they crowded the arrow. An even half-and-half
-                    split gives the copy room without wrapping the label.
-                ]]
+			    Not the usual toggle "double" + select "normal" split: this
+			    dropdown's values are whole phrases ("When < 2 Minutes...")
+			    rather than the one-word modes the other rows show, and at a
+			    third of the row they crowded the arrow. An even half-and-half
+			    split gives the copy room without wrapping the label.
+			]]
 			width = 1.5,
 			get = function()
-				local s = GetSettings()
-				return s and s.earlyReapply
+				local settings = GetSettings()
+				return settings and settings.earlyReapply
 			end,
 			set = function(_, value)
 				ns.db.profile.earlyReapply = value
@@ -422,7 +402,7 @@ function ns.BuildMacrosOptions()
 			end,
 		},
 		scrollsMode = FeatureMode("scrollsMode", ScrollsActive, 206),
-		spaceScrollTypes0 = GatedSpacer(207, function()
+		spaceScrollTypes0 = Spacer(207, function()
 			return not ScrollsActive()
 		end),
 		scrollTypesGroup = {
@@ -470,7 +450,7 @@ function ns.BuildMacrosOptions()
 			end,
 		},
 		petBuffFoodMode = FeatureMode("petBuffFoodMode", PetBuffActive, 306),
-		spacePetTypes0 = GatedSpacer(307, function()
+		spacePetTypes0 = Spacer(307, function()
 			return not PetBuffActive()
 		end),
 		petTypesGroup = {
@@ -516,9 +496,9 @@ function ns.BuildMacrosOptions()
 		},
 
 		-- Druids
-		spaceDruid0 = GatedSpacer(500, NotDruid),
+		spaceDruid0 = Spacer(500, NotDruid),
 		headerDruid = Header(L["OPTIONS_DRUIDS_HEADER"], 501, NotDruid),
-		spaceDruid1 = GatedSpacer(502, NotDruid),
+		spaceDruid1 = Spacer(502, NotDruid),
 		toggleDruidMacroHelper = {
 			type = "toggle",
 			name = L["OPTIONS_DRUID_MACRO_HELPER"],
@@ -559,42 +539,38 @@ function ns.BuildMacrosOptions()
 		},
 
 		--[[
-                Rogues -- poison group per weapon slot plus Stealth Eating.
-                Group names come from the client's own item names
-                (ns.GetPoisonGroupName), so the dropdown labels localize for
-                free. Hidden for other classes; Night Elf Rogues see THIS
-                section (the Night Elves one hides itself for Rogues).
-            ]]
-		spaceRogue0 = GatedSpacer(520, NotRogue),
+		    Rogues -- poison group per weapon slot plus Stealth Eating.
+		    Group names come from the client's own item names
+		    (ns.GetPoisonGroupName), so the dropdown labels localize for
+		    free. Hidden for other classes; Night Elf Rogues see THIS
+		    section (the Night Elves one hides itself for Rogues).
+		]]
+		spaceRogue0 = Spacer(520, NotRogue),
 		headerRogue = Header(L["OPTIONS_ROGUES_HEADER"], 521, NotRogue),
-		spaceRogue1 = GatedSpacer(522, NotRogue),
-		descPoisons = GatedDesc(GetColor("BODY") .. L["OPTIONS_POISONS_DESCRIPTION"] .. "|r", 523, NotRogue),
-		spaceRogue2 = GatedSpacer(524, NotRogue),
+		spaceRogue1 = Spacer(522, NotRogue),
+		descPoisons = Desc(GetColor("BODY") .. L["OPTIONS_POISONS_DESCRIPTION"] .. "|r", 523, NotRogue),
+		spaceRogue2 = Spacer(524, NotRogue),
 		--[[
-                Mixed rows, matching the Buff Food section: a double-width
-                inline label on the left, the unlabeled dropdown right-aligned
-                on the same row (same recipe as the toggle + FeatureMode pair).
-            ]]
-		labelMainHandPoison = {
-			type = "description",
-			name = GetColor("TITLE") .. L["OPTIONS_POISON_MAIN_HAND"] .. "|r",
-			fontSize = "medium",
-			width = "double",
-			order = 525,
-			hidden = NotRogue,
-		},
+		    Mixed rows, matching the Buff Food section: a double-width
+		    inline label on the left, the unlabeled dropdown right-aligned
+		    on the same row (same recipe as the toggle + FeatureMode pair).
+		]]
+		labelMainHandPoison = RowLabel(
+			GetColor("TITLE") .. L["OPTIONS_POISON_MAIN_HAND"] .. "|r",
+			525,
+			"double",
+			NotRogue
+		),
 		mainHandPoison = PoisonHandDropdown("", "mainHandPoisonGroup", 526),
-		spaceRogue3 = GatedSpacer(527, NotRogue),
-		labelOffHandPoison = {
-			type = "description",
-			name = GetColor("TITLE") .. L["OPTIONS_POISON_OFF_HAND"] .. "|r",
-			fontSize = "medium",
-			width = "double",
-			order = 528,
-			hidden = NotRogue,
-		},
+		spaceRogue3 = Spacer(527, NotRogue),
+		labelOffHandPoison = RowLabel(
+			GetColor("TITLE") .. L["OPTIONS_POISON_OFF_HAND"] .. "|r",
+			528,
+			"double",
+			NotRogue
+		),
 		offHandPoison = PoisonHandDropdown("", "offHandPoisonGroup", 529),
-		spaceRogue4 = GatedSpacer(530, NotRogue),
+		spaceRogue4 = Spacer(530, NotRogue),
 		toggleStealthEatingRogue = {
 			type = "toggle",
 			name = L["OPTIONS_STEALTH_EATING"],
@@ -613,9 +589,9 @@ function ns.BuildMacrosOptions()
 		},
 
 		-- Night Elves
-		spaceNightElf0 = GatedSpacer(600, NotNightElf),
+		spaceNightElf0 = Spacer(600, NotNightElf),
 		headerNightElf = Header(L["OPTIONS_NIGHTELF_HEADER"], 601, NotNightElf),
-		spaceNightElf1 = GatedSpacer(602, NotNightElf),
+		spaceNightElf1 = Spacer(602, NotNightElf),
 		toggleShadowmeldDrinking = {
 			type = "toggle",
 			name = L["OPTIONS_STEALTH_DRINKING"],
@@ -648,8 +624,8 @@ function ns.BuildMacrosOptions()
 				end
 			end,
 		},
-		spaceNightElf2 = GatedSpacer(605, NotNightElf),
-		descStealthPickOne = GatedDesc(GetColor("HELP") .. L["OPTIONS_STEALTH_PICK_ONE"] .. "|r", 606, NotNightElf),
+		spaceNightElf2 = Spacer(605, NotNightElf),
+		descStealthPickOne = Desc(GetColor("HELP") .. L["OPTIONS_STEALTH_PICK_ONE"] .. "|r", 606, NotNightElf),
 	}
 
 	return {

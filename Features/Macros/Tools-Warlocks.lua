@@ -41,10 +41,10 @@ function ns.ResolveWarlockHealthstoneConjure()
 	end
 
 	--[[
-        The Soulwell serves the whole raid, so ignoreTarget keeps a
-        low-level friendly target from downranking it; the unpinned
-        /cast always fires the highest rank known.
-    ]]
+	    The Soulwell serves the whole raid, so ignoreTarget keeps a
+	    low-level friendly target from downranking it; the unpinned
+	    /cast always fires the highest rank known.
+	]]
 	if ns.KnowsAny(ns.ConjureSpells.WarlockCreateSoulwell) then
 		info.middleName, info.middleID = ns.GetSmartSpell(ns.ConjureSpells.WarlockCreateSoulwell, true)
 	else

@@ -4,14 +4,6 @@ local _, ns = ...
     Scanner-Character -- reads live player/pet state and decides which buffs the
     character still needs: profession skills, aura probes (Well Fed, scroll, and
     pet-food buffs), and the scroll override resolver.
-
-    Exposes: ns.UpdateFirstAidSkill, ns.UpdateAlchemySkill,
-    ns.UpdateEngineeringSkill, ns.CurrentFirstAidSkill,
-    ns.CurrentAlchemySkill, ns.CurrentEngineeringSkill,
-    ns.GetPlayerBuffSnapshot, ns.HasWellFedBuff, ns.HasScrollBuff,
-    ns.ShouldTrackPetFood, ns.GetPetFoodBuffExpiration, ns.HasPetFoodBuff,
-    ns.FindScrollOverrides, ns.HandleUnitAura, ns.ResetScrollBuffTracking,
-    ns.ScrollItemLookup, ns.ScrollOverrideIDs.
 ]]
 
 --------------------------------------------------------------------------------
@@ -235,11 +227,12 @@ function ns.GetPlayerBuffSnapshot()
 	end
 
 	for i = 1, 40 do
-		local name, icon, _, _, _, expirationTime, _, _, _, spellID = UnitAura("player", i, "HELPFUL")
-		if not name then
+		local aura = C_UnitAuras.GetBuffDataByIndex("player", i, "HELPFUL")
+		if not aura then
 			break
 		end
-		expirationTime = expirationTime or 0
+		local icon, spellID = aura.icon, aura.spellId
+		local expirationTime = aura.expirationTime or 0
 
 		if
 			icon == WELL_FED_ICON_ID
@@ -321,12 +314,12 @@ function ns.HasScrollBuff(scrollType, scrollAmount, callerSnapshot)
 	end
 
 	--[[
-        Check conflict spells — only block the scroll if the class buff
-        provides at least as much stat as our best scroll would. Exempt
-        from the early re-application threshold: a still-active stronger
-        class buff cannot be overwritten, so treating it as expired would
-        build a scroll line that errors on use.
-    ]]
+	    Check conflict spells — only block the scroll if the class buff
+	    provides at least as much stat as our best scroll would. Exempt
+	    from the early re-application threshold: a still-active stronger
+	    class buff cannot be overwritten, so treating it as expired would
+	    build a scroll line that errors on use.
+	]]
 	return entry.conflictAmount ~= nil and entry.conflictAmount >= (scrollAmount or 0)
 end
 
@@ -343,9 +336,11 @@ local function FindBestScroll(scrollType, bagItemCounts)
 	local playerLevel = ns.CachedPlayerLevel or 1
 	local items = ns.ScrollData[scrollType].items
 	for _, entry in ipairs(items) do
-		-- The scroll override path never passes the scanner's ignore filter
-		-- (it reads the raw bag counts), so it honors the Ignore List itself.
-		if entry[3] <= playerLevel and not ns:IsIgnored(entry[1]) then
+		--[[
+		    The scroll override path never passes the scanner's ignore filter
+		    (it reads the raw bag counts), so it honors the Ignore List itself.
+		]]
+		if entry[3] <= playerLevel and not ns.IsIgnored(entry[1]) then
 			if bagItemCounts[entry[1]] and bagItemCounts[entry[1]] > 0 then
 				return entry[1], entry[4]
 			end
@@ -377,10 +372,10 @@ function ns.FindScrollOverrides(bagItemCounts)
 	local results
 
 	--[[
-        One aura walk for the whole set. Letting each ns.HasScrollBuff call take
-        its own snapshot re-read the player's 40 aura slots once per enabled
-        scroll type, on a path that re-runs with every bag scan.
-    ]]
+	    One aura walk for the whole set. Letting each ns.HasScrollBuff call take
+	    its own snapshot re-read the player's 40 aura slots once per enabled
+	    scroll type, on a path that re-runs with every bag scan.
+	]]
 	local currentSnapshot = ns.GetPlayerBuffSnapshot()
 
 	for _, scrollType in ipairs(ns.SCROLL_CHECK_ORDER) do
@@ -445,12 +440,12 @@ function ns.GetPetFoodBuffExpiration()
 	end
 	local best
 	for i = 1, 40 do
-		local name, _, _, _, _, expirationTime, _, _, _, spellID = UnitAura("pet", i, "HELPFUL")
-		if not name then
+		local aura = C_UnitAuras.GetBuffDataByIndex("pet", i, "HELPFUL")
+		if not aura then
 			break
 		end
-		if spellID == ns.KIBLERS_BUFF_ID or spellID == ns.SPORELING_BUFF_ID then
-			expirationTime = expirationTime or 0
+		if aura.spellId == ns.KIBLERS_BUFF_ID or aura.spellId == ns.SPORELING_BUFF_ID then
+			local expirationTime = aura.expirationTime or 0
 			if IsLongerExpiration(expirationTime, best) then
 				best = expirationTime
 			end
@@ -527,13 +522,13 @@ end
 function ns.HandleUnitAura(unit)
 	local needsUpdate = false
 	--[[
-        What made this firing worth acting on. UNIT_AURA is a firehose, so the
-        diagnostics capture tap can only count it -- it runs before this handler
-        and cannot yet know. This is the end that does know, so the signal
-        firings are logged from here (see ns:LogEventNow in
-        Features/Diagnostics.lua), which keeps the event log from disagreeing
-        with what the add-on actually reacted to.
-    ]]
+	    What made this firing worth acting on. UNIT_AURA is a firehose, so the
+	    diagnostics capture tap can only count it -- it runs before this handler
+	    and cannot yet know. This is the end that does know, so the signal
+	    firings are logged from here (see ns.LogEventNow in
+	    Features/Diagnostics.lua), which keeps the event log from disagreeing
+	    with what the add-on actually reacted to.
+	]]
 	local reason
 
 	if unit == "player" then
@@ -562,7 +557,7 @@ function ns.HandleUnitAura(unit)
 
 	if needsUpdate then
 		if ns.LogEventNow then
-			ns:LogEventNow("UNIT_AURA", unit, reason)
+			ns.LogEventNow("UNIT_AURA", unit, reason)
 		end
 		ns.RequestUpdate()
 	end

@@ -13,9 +13,11 @@ ns.RegisterMacroType({
 		return data.healthValue
 	end,
 
-	-- Warlock conjure resolution (right-click only, no checkUnique because
-	-- soulstones share a 30-minute cooldown) lives in Tools-Warlocks.lua;
-	-- called at update time.
+	--[[
+	    Warlock conjure resolution (right-click only, no checkUnique because
+	    soulstones share a 30-minute cooldown) lives in Tools-Warlocks.lua;
+	    called at update time.
+	]]
 	conjure = function()
 		return ns.ResolveWarlockSoulstoneConjure()
 	end,

@@ -15,6 +15,9 @@ local _, ns = ...
     Data/ tables.
 ]]
 
+-- The canonical group numbering, keyed off by every table below and by the Starter List.
+ns.POISON_GROUPS = { ANESTHETIC = 1, CRIPPLING = 2, DEADLY = 3, INSTANT = 4, MIND_NUMBING = 5, WOUND = 6 }
+
 -- [groupID] = base item of the series (the group's runtime display name)
 ns.PoisonGroupBaseItems = {
 	[1] = 21835, -- Anesthetic Poison

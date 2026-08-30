@@ -38,8 +38,10 @@ ns.RegisterMacroType({
 
 	buildUseLine = BuildExplosiveUseLine,
 
-	-- The click layout shapes the body, so it must live in the state key:
-	-- flipping the dropdown rewrites the macro.
+	--[[
+	    The click layout shapes the body, so it must live in the state key:
+	    flipping the dropdown rewrites the macro.
+	]]
 	stateExtras = function(parts, itemID)
 		if itemID then
 			parts[#parts + 1] = "EX:" .. GetExplosiveClickMode()

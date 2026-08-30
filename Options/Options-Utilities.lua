@@ -24,20 +24,30 @@ function ns.OptionsHeader(text, order, hidden)
 	}
 end
 
-function ns.OptionsDesc(text, order)
+--[[
+    `hidden` is optional on all four builders here, and takes the same predicate
+    AceConfig does. It is on every one of them rather than just the header
+    because a section hides as a unit: gating the header while its blurb and the
+    blank line under it stay put leaves a stray gap where the section used to
+    be, and a class-gated row whose label stayed behind would leave its caption
+    stranded beside nothing.
+]]
+function ns.OptionsDesc(text, order, hidden)
 	return {
 		type = "description",
 		name = text,
 		fontSize = "medium",
 		order = order,
+		hidden = hidden,
 	}
 end
 
-function ns.OptionsSpacer(order)
+function ns.OptionsSpacer(order, hidden)
 	return {
 		type = "description",
 		name = " ",
 		order = order,
+		hidden = hidden,
 	}
 end
 
@@ -46,13 +56,14 @@ end
     with name = "" ordered immediately after it. A caption left on the control
     would put the label back above the widget and break the row.
 ]]
-function ns.OptionsRowLabel(text, order, width)
+function ns.OptionsRowLabel(text, order, width, hidden)
 	return {
 		type = "description",
 		name = text,
 		fontSize = "medium",
 		width = width or ns.OPTIONS_LABEL_WIDTH,
 		order = order,
+		hidden = hidden,
 	}
 end
 
@@ -91,14 +102,14 @@ local WARM_MAX_ATTEMPTS = 10
 
 local warmingPending = {}
 
-function ns.WarmItemCache(itemIds, registryName)
-	if not (itemIds and itemIds[1] and registryName) then
+function ns.WarmItemCache(itemIDs, registryName)
+	if not (itemIDs and itemIDs[1] and registryName) then
 		return
 	end
 
-	for _, itemId in ipairs(itemIds) do
+	for _, itemID in ipairs(itemIDs) do
 		if C_Item and C_Item.RequestLoadItemDataByID then
-			C_Item.RequestLoadItemDataByID(itemId)
+			C_Item.RequestLoadItemDataByID(itemID)
 		end
 	end
 
@@ -107,15 +118,15 @@ function ns.WarmItemCache(itemIds, registryName)
 	end
 	warmingPending[registryName] = true
 
-	local coldCount = #itemIds
+	local coldCount = #itemIDs
 	local attempts = 0
 
 	local function Poll()
 		attempts = attempts + 1
 
 		local stillCold = 0
-		for _, itemId in ipairs(itemIds) do
-			if not GetItemInfo(itemId) then
+		for _, itemID in ipairs(itemIDs) do
+			if not GetItemInfo(itemID) then
 				stillCold = stillCold + 1
 			end
 		end
@@ -145,14 +156,14 @@ end
     edit box. Anything else is rejected, so a stray word never becomes a row that
     renders as an unresolvable id forever.
 ]]
-function ns:ParseItemInput(rawInput)
+function ns.ParseItemInput(rawInput)
 	if type(rawInput) ~= "string" then
 		return nil
 	end
 
-	local itemId = tonumber(rawInput:match("item:(%d+)") or rawInput:match("^%s*(%d+)%s*$"))
-	if itemId and itemId > 0 then
-		return itemId
+	local itemID = tonumber(rawInput:match("item:(%d+)") or rawInput:match("^%s*(%d+)%s*$"))
+	if itemID and itemID > 0 then
+		return itemID
 	end
 	return nil
 end
@@ -169,7 +180,7 @@ end
     which makes the comparator a total order -- without it two identically named
     items compare equal and their rows reshuffle on every repaint.
 ]]
-function ns:SortItemIdentifiersByName(identifiers)
+function ns.SortItemIdentifiersByName(identifiers)
 	table.sort(identifiers, function(a, b)
 		local nameA = GetItemInfo(a) or ""
 		local nameB = GetItemInfo(b) or ""
@@ -196,8 +207,8 @@ end
     answered for yet shows as loading text instead -- ns.WarmItemCache repaints
     the panel as the data lands.
 ]]
-function ns:GetItemDisplayName(itemId)
-	local _, itemLink, _, _, _, _, _, _, _, icon = GetItemInfo(itemId)
+function ns.GetItemDisplayName(itemID)
+	local _, itemLink, _, _, _, _, _, _, _, icon = GetItemInfo(itemID)
 
 	if itemLink and icon then
 		return format("|T%s:16|t %s", icon, itemLink)
@@ -205,7 +216,7 @@ function ns:GetItemDisplayName(itemId)
 		return itemLink
 	end
 
-	return GetColor("MUTED") .. format(L["LOADING_ITEM"], itemId) .. "|r"
+	return GetColor("MUTED") .. format(L["LOADING_ITEM"], itemID) .. "|r"
 end
 
 --------------------------------------------------------------------------------
@@ -217,9 +228,9 @@ end
     the same way in every panel. The caller supplies the labels, the source
     table, and the callbacks; this owns the shape. Spec:
 
-      getSourceTable: function returning the table of itemId keys to list
-      onAdd: function(itemId) adding an item to that source
-      onRemove: function(itemId) removing one
+      getSourceTable: function returning the table of itemID keys to list
+      onAdd: function(itemID) adding an item to that source
+      onRemove: function(itemID) removing one
       notifyKey: AceConfigRegistry name to NotifyChange on every mutation
       labels: { addName, addHelp, addInvalid, removeDesc, empty }
       rowWidth: optional total row budget, default ns.OPTIONS_ROW_WIDTH
@@ -242,7 +253,7 @@ end
 local REMOVE_ICON = "Interface/Buttons/UI-GroupLoot-Pass-Up"
 local REMOVE_ICON_SIZE = 16
 
-function ns:BuildItemListOptions(spec)
+function ns.BuildItemListOptions(spec)
 	local labels = spec.labels
 	local rowWidth = spec.rowWidth or ns.OPTIONS_ROW_WIDTH
 	local args = {}
@@ -263,17 +274,17 @@ function ns:BuildItemListOptions(spec)
 		width = ns.OPTIONS_CONTROL_WIDTH,
 		order = order,
 		validate = function(_, value)
-			return ns:ParseItemInput(value) and true or labels.addInvalid
+			return ns.ParseItemInput(value) and true or labels.addInvalid
 		end,
 		get = function()
 			return ""
 		end,
 		set = function(_, value)
-			local itemId = ns:ParseItemInput(value)
-			if not itemId then
+			local itemID = ns.ParseItemInput(value)
+			if not itemID then
 				return
 			end
-			spec.onAdd(itemId)
+			spec.onAdd(itemID)
 			AceConfigRegistry:NotifyChange(spec.notifyKey)
 		end,
 	}
@@ -283,8 +294,8 @@ function ns:BuildItemListOptions(spec)
 	order = order + 1
 
 	local identifiers = {}
-	for itemId in pairs(spec.getSourceTable() or {}) do
-		identifiers[#identifiers + 1] = itemId
+	for itemID in pairs(spec.getSourceTable() or {}) do
+		identifiers[#identifiers + 1] = itemID
 	end
 
 	if #identifiers == 0 then
@@ -292,7 +303,7 @@ function ns:BuildItemListOptions(spec)
 		return args
 	end
 
-	ns:SortItemIdentifiersByName(identifiers)
+	ns.SortItemIdentifiersByName(identifiers)
 
 	local actionColumn = spec.actionColumn
 	local itemWidth = rowWidth - ns.OPTIONS_REMOVE_ICON_WIDTH
@@ -302,11 +313,11 @@ function ns:BuildItemListOptions(spec)
 
 	local coldItemIds = {}
 
-	for _, itemId in ipairs(identifiers) do
-		local capturedId = itemId
+	for _, itemID in ipairs(identifiers) do
+		local capturedID = itemID
 
-		if not GetItemInfo(capturedId) then
-			coldItemIds[#coldItemIds + 1] = capturedId
+		if not GetItemInfo(capturedID) then
+			coldItemIds[#coldItemIds + 1] = capturedID
 		end
 
 		--[[
@@ -326,7 +337,7 @@ function ns:BuildItemListOptions(spec)
 				width = itemWidth,
 				order = 1,
 				get = function()
-					return tostring(capturedId)
+					return tostring(capturedID)
 				end,
 				set = function() end,
 			},
@@ -341,7 +352,7 @@ function ns:BuildItemListOptions(spec)
 					width = actionColumn.width,
 					order = 2,
 					func = function()
-						actionColumn.func(capturedId)
+						actionColumn.func(capturedID)
 						AceConfigRegistry:NotifyChange(spec.notifyKey)
 					end,
 				}
@@ -355,10 +366,10 @@ function ns:BuildItemListOptions(spec)
 					width = actionColumn.width,
 					order = 2,
 					get = function()
-						return actionColumn.get(capturedId)
+						return actionColumn.get(capturedID)
 					end,
 					set = function(_, value)
-						actionColumn.set(capturedId, value)
+						actionColumn.set(capturedID, value)
 					end,
 				}
 			end
@@ -375,12 +386,12 @@ function ns:BuildItemListOptions(spec)
 			width = ns.OPTIONS_REMOVE_ICON_WIDTH,
 			order = 3,
 			func = function()
-				spec.onRemove(capturedId)
+				spec.onRemove(capturedID)
 				AceConfigRegistry:NotifyChange(spec.notifyKey)
 			end,
 		}
 
-		args["item_" .. tostring(capturedId)] = {
+		args["item_" .. tostring(capturedID)] = {
 			type = "group",
 			name = "",
 			inline = true,
@@ -405,13 +416,13 @@ end
     description as a plain Label, which has no mouse scripts at all and so never
     fires an OnEnter; this is that same widget with mouse handling, so the row
     can carry a real GameTooltip. The option's get returns the item id as a
-    string and SetText resolves it through ns:GetItemDisplayName.
+    string and SetText resolves it through ns.GetItemDisplayName.
 ]]
 local ITEM_LINK_WIDGET_VERSION = 1
 
 local function OnItemLinkEnter(frame)
 	local widget = frame.obj
-	if not widget.itemId then
+	if not widget.itemID then
 		return
 	end
 	--[[
@@ -420,7 +431,7 @@ local function OnItemLinkEnter(frame)
 	    the very data the row is waiting for.
 	]]
 	GameTooltip:SetOwner(frame, "ANCHOR_RIGHT")
-	GameTooltip:SetHyperlink("item:" .. widget.itemId)
+	GameTooltip:SetHyperlink("item:" .. widget.itemID)
 	GameTooltip:Show()
 end
 
@@ -431,26 +442,26 @@ end
 local itemLinkMethods = {}
 
 function itemLinkMethods:OnAcquire()
-	self.itemId = nil
+	self.itemID = nil
 	self:SetHeight(20)
 end
 
 function itemLinkMethods:OnRelease()
-	self.itemId = nil
+	self.itemID = nil
 end
 
 function itemLinkMethods:SetText(text)
-	local itemId = tonumber(text)
-	if itemId then
-		self.itemId = itemId
-		self.label:SetText(ns:GetItemDisplayName(itemId))
+	local itemID = tonumber(text)
+	if itemID then
+		self.itemID = itemID
+		self.label:SetText(ns.GetItemDisplayName(itemID))
 	else
 		self.label:SetText(text or "")
 	end
 end
 
 function itemLinkMethods:GetText()
-	return self.itemId and tostring(self.itemId) or ""
+	return self.itemID and tostring(self.itemID) or ""
 end
 
 -- AceConfigDialog drives every input control through these; a row is read-only.

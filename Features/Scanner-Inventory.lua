@@ -9,9 +9,6 @@ local _, ns = ...
     shared machinery: the usability gates, the RANKING_PRIORITY tiebreak
     ladder, and the scan loop that dispatches each bag item to every matching
     definition.
-
-    Exposes: ns.ScanBags, ns.BestSelection, ns.BestFoodID, ns.BestFoodLink,
-    ns.AllowBuffFood, ns.DiagnosticCandidates.
 ]]
 
 --------------------------------------------------------------------------------
@@ -27,7 +24,7 @@ ns.BestFoodLink = nil
 
 --[[
     Per-category winner records and ranked-candidate lists, built from the
-    definition registry (ns.RegisteredMacroDefs) instead of hardcoded here:
+    definition registry (ns.RegisteredMacroDefinitions) instead of hardcoded here:
     every registered definition with an itemTypes set gets a winner record,
     and ranked definitions also get a topIDs list plus a candidate
     collector. Definitions register from Features/Macros/*.lua, which load
@@ -72,15 +69,15 @@ local function BuildSelectionTables()
 		return
 	end
 	selectionTablesBuilt = true
-	for _, def in ipairs(ns.RegisteredMacroDefs) do
-		if def.itemTypes then
+	for _, definition in ipairs(ns.RegisteredMacroDefinitions) do
+		if definition.itemTypes then
 			local entry = {}
-			if def.ranked then
+			if definition.ranked then
 				entry.topIDs = {}
-				rankedCandidates[def.typeName] = {}
+				rankedCandidates[definition.typeName] = {}
 			end
 			ResetBest(entry)
-			best[def.typeName] = entry
+			best[definition.typeName] = entry
 		end
 	end
 end
@@ -118,93 +115,99 @@ local RANKING_PRIORITY = {
 	-- Percent-based restores beat flat values.
 	{ field = "isPercent", kind = "bool" },
 
-	-- Higher restore/damage, raw from the item data. No bonuses are folded
-	-- in, so this compares exactly what the item restores.
+	--[[
+	    Higher restore/damage, raw from the item data. No bonuses are folded
+	    in, so this compares exactly what the item restores.
+	]]
 	{ field = "value", kind = "higher" },
 
 	--[[
-        THE BURN-FIRST LADDER. Three tiebreaks among items that restore the
-        SAME amount, ordered by SHELF LIFE -- spend the copy that will be
-        worth the least to you soonest:
+	    THE BURN-FIRST LADDER. Three tiebreaks among items that restore the
+	    SAME amount, ordered by SHELF LIFE -- spend the copy that will be
+	    worth the least to you soonest:
 
-          isConjured  -- gone at logout, so its shelf life is this session
-                         and nothing else on the list expires on a timer.
-                         Free to replace, too, so spending it costs nothing.
-          hasZones    -- survives logout, but is dead weight the moment you
-                         leave the zone. Spend it while it still does
-                         something.
-          isSoulbound -- keeps its value indefinitely, but only for THIS
-                         character: it cannot be mailed to an alt, traded,
-                         or sold.
+	      isConjured  -- gone at logout, so its shelf life is this session
+	                     and nothing else on the list expires on a timer.
+	                     Free to replace, too, so spending it costs nothing.
+	      hasZones    -- survives logout, but is dead weight the moment you
+	                     leave the zone. Spend it while it still does
+	                     something.
+	      isSoulbound -- keeps its value indefinitely, but only for THIS
+	                     character: it cannot be mailed to an alt, traded,
+	                     or sold.
 
-        Then price, then isHighStack -- both below, with their own notes. They
-        rank lower because neither is about shelf life: an item that vendors
-        for nothing has simply already lost its gold value, and stack size is
-        pure bag economy.
+	    Then price, then isHighStack -- both below, with their own notes. They
+	    rank lower because neither is about shelf life: an item that vendors
+	    for nothing has simply already lost its gold value, and stack size is
+	    pure bag economy.
 
-        This ORDER is the whole specification. Moving a line changes the
-        preference; nothing else needs to change with it.
+	    This ORDER is the whole specification. Moving a line changes the
+	    preference; nothing else needs to change with it.
 
-        They sit BELOW value deliberately. Promote any of them above it and a
-        zone-locked Superior Mana Draught (560) beats a Super Mana Potion
-        (1800) in a battleground -- "worthless elsewhere" is a reason to spend
-        a tie, never a reason to drink the weaker potion.
+	    They sit BELOW value deliberately. Promote any of them above it and a
+	    zone-locked Superior Mana Draught (560) beats a Super Mana Potion
+	    (1800) in a battleground -- "worthless elsewhere" is a reason to spend
+	    a tie, never a reason to drink the weaker potion.
 
-        The three above plus isHighStack replace four numeric bonuses that
-        used to be added into value (+2 zone, +2 soulbound, +1 stack). Ladder
-        steps are strictly safer:
-        a bonus could outweigh a genuine restore difference of 1 or 2, and two
-        equal bonuses cancelled each other instead of ranking.
+	    The three above plus isHighStack replace four numeric bonuses that
+	    used to be added into value (+2 zone, +2 soulbound, +1 stack). Ladder
+	    steps are strictly safer:
+	    a bonus could outweigh a genuine restore difference of 1 or 2, and two
+	    equal bonuses cancelled each other instead of ranking.
 
-        Uniform inside a category is a no-op, which covers most of them:
-        zones and binding only really vary across the potion and bandage
-        families. Note isConjured is set from the food/water data alone, so
-        healthstones, soulstones and mana gems do not carry it even though
-        the game does conjure them -- harmless, because every candidate in
-        those categories is conjured, so the step would never separate two
-        of them anyway.
-    ]]
+	    Uniform inside a category is a no-op, which covers most of them:
+	    zones and binding only really vary across the potion and bandage
+	    families. Note isConjured is set from the food/water data alone, so
+	    healthstones, soulstones and mana gems do not carry it even though
+	    the game does conjure them -- harmless, because every candidate in
+	    those categories is conjured, so the step would never separate two
+	    of them anyway.
+	]]
 	{ field = "isConjured", kind = "bool" },
 	{ field = "hasZones", kind = "bool" },
 	{ field = "isSoulbound", kind = "bool" },
 
 	--[[
-        Cheaper wins, and it sits ABOVE isHighStack because a 0 here does not
-        mean "cheap", it means the item has NO vendor price at all: drinking
-        it forgoes nothing, which outweighs any bag-space argument. The
-        Auchenai potions are the live case -- they vendor for nothing, so
-        they burn ahead of the injectors.
+	    Cheaper wins, and it sits ABOVE isHighStack because a 0 here does not
+	    mean "cheap", it means the item has NO vendor price at all: drinking
+	    it forgoes nothing, which outweighs any bag-space argument. The
+	    Auchenai potions are the live case -- they vendor for nothing, so
+	    they burn ahead of the injectors.
 
-        A separate "has no sell price" step would be redundant. Ascending
-        price already sorts the zero-price items to the front; the only thing
-        that ever kept them behind was isHighStack outranking this step.
-    ]]
+	    A separate "has no sell price" step would be redundant. Ascending
+	    price already sorts the zero-price items to the front; the only thing
+	    that ever kept them behind was isHighStack outranking this step.
+	]]
 	{ field = "price", kind = "lower" },
 
-	-- Bag economy, and the weakest reason on the list: injectors (stack 20)
-	-- ahead of the potions they are made from spares the reagents and the
-	-- slot. Last of the burn-first steps, so it only separates items already
-	-- equal on restore, shelf life AND price.
+	--[[
+	    Bag economy, and the weakest reason on the list: injectors (stack 20)
+	    ahead of the potions they are made from spares the reagents and the
+	    slot. Last of the burn-first steps, so it only separates items already
+	    equal on restore, shelf life AND price.
+	]]
 	{ field = "isHighStack", kind = "bool" },
 
-	-- Hybrid food/water: the Food macro prefers hybrids; Water and the
-	-- ranked potion lists prefer dedicated items.
+	--[[
+	    Hybrid food/water: the Food macro prefers hybrids; Water and the
+	    ranked potion lists prefer dedicated items.
+	]]
 	{ field = "isHybrid", kind = "bool", truthyWinsWhenPreferHybrid = true },
 
 	-- Fewer copies in bags: burn the smaller pile first.
 	{ field = "count", kind = "lower" },
 
 	--[[
-        Final, never-equal tiebreak. Without it, two items that match on every
-        other field compare equal, so the winner is whichever the pairs() scan
-        over slotItems happened to reach first. That order is not stable
-        between an in-session rescan (a wiped-and-rebuilt table) and a fresh
-        table after /reload, so the selection could flip for identical bags —
-        the item would only "update" after a reload. Comparing itemID last
-        makes the pick deterministic, so a buy-triggered rescan and a reload
-        always agree; it also keeps table.sort's instability from reordering
-        equal ranks between scans and churning macro rewrites.
-    ]]
+	    Final, never-equal tiebreak. Without it, two items that match on every
+	    other field compare equal, so the winner is whichever the pairs() scan
+	    over slotItems happened to reach first. That order is not stable
+	    between an in-session rescan (a wiped-and-rebuilt table) and a fresh
+	    table after /reload, so the selection could flip for identical bags —
+	    the item would only "update" after a reload. Comparing itemID last
+	    makes the pick deterministic, so a buy-triggered rescan and a reload
+	    always agree; it also keeps table.sort's instability from reordering
+	    equal ranks between scans and churning macro rewrites.
+	]]
 	{ field = "id", kind = "lower" },
 }
 
@@ -366,6 +369,13 @@ local DIAGNOSTIC_CANDIDATE_LIMIT = 5
 local diagnosticCandidates = {}
 ns.DiagnosticCandidates = diagnosticCandidates
 
+--[[
+    Carries EVERY field RANKING_PRIORITY compares. A field left out does not
+    make its step neutral -- it makes the step decide: a real boolean tests
+    unequal to a missing one, so the retained ordering tips on the gap, and two
+    copies compared against each other skip the step entirely and report a
+    lower one as the decider. Add a ladder step, add it here.
+]]
 local function CopyCandidateRecord(record)
 	return {
 		id = record.id,
@@ -375,6 +385,9 @@ local function CopyCandidateRecord(record)
 		isBuffFood = record.isBuffFood,
 		isPercent = record.isPercent,
 		isConjured = record.isConjured,
+		hasZones = record.hasZones,
+		isSoulbound = record.isSoulbound,
+		isHighStack = record.isHighStack,
 		isHybrid = record.isHybrid,
 	}
 end
@@ -426,21 +439,21 @@ local function CaptureDiagnosticCandidates()
 		return
 	end
 
-	for _, def in ipairs(ns.RegisteredMacroDefs) do
+	for _, definition in ipairs(ns.RegisteredMacroDefinitions) do
 		local list
 		local allowBuffFood, preferHybrid
 
-		if def.ranked then
-			local source = rankedCandidates[def.typeName]
-			list = GetCandidateList(def.typeName)
+		if definition.ranked then
+			local source = rankedCandidates[definition.typeName]
+			list = GetCandidateList(definition.typeName)
 			for i = 1, math.min(#source, DIAGNOSTIC_CANDIDATE_LIMIT) do
 				list[i] = CopyCandidateRecord(source[i])
 			end
 			allowBuffFood, preferHybrid = false, false
 		else
-			list = diagnosticCandidates[def.typeName]
-			allowBuffFood = def.allowBuffFood and ns.AllowBuffFood
-			preferHybrid = def.preferHybrid
+			list = diagnosticCandidates[definition.typeName]
+			allowBuffFood = definition.allowBuffFood and ns.AllowBuffFood
+			preferHybrid = definition.preferHybrid
 		end
 
 		if list then
@@ -460,23 +473,36 @@ end
 local itemCounts = {}
 local slotItems = {}
 
+--[[
+    The bag walk, published so a second consumer does not have to repeat it.
+    itemCounts is stack totals by itemID across bags 0..NUM_BAG_SLOTS; slotItems
+    is one hyperlink per itemID, from the first slot holding it.
+
+    Assigned once here, and wiped-and-refilled in place by every scan, so the
+    reference stays valid while the contents do not: these are the LAST scan's
+    snapshot and are only current inside the update pass that produced them.
+    Read them, never retain them, and never write to them from outside ScanBags.
+]]
+ns.ScannedItemCounts = itemCounts
+ns.ScannedItemLinks = slotItems
+
 function ns.ScanBags()
 	--[[
-        Refresh the zone at scan time. A zone change during combat is gated out
-        by the lockdown guard in Core's dispatcher, so ZONE_CHANGED_NEW_AREA
-        never updates the cache mid-fight; reading it here keeps zone-restricted
-        item filtering from running against a stale map after combat drops.
-    ]]
+	    Refresh the zone at scan time. A zone change during combat is gated out
+	    by the lockdown guard in Core's dispatcher, so ZONE_CHANGED_NEW_AREA
+	    never updates the cache mid-fight; reading it here keeps zone-restricted
+	    item filtering from running against a stale map after combat drops.
+	]]
 	ns.CachedMapID = C_Map.GetBestMapForUnit("player")
 
 	--[[
-        Party/raid-restricted Buff Food, Scrolls, and Pet Food go stale when
-        group composition or the mode dropdown changes — those flip whether a
-        feature is active but have no dedicated UpdateAuraTracking call, so
-        ns.WellFedState and UNIT_AURA registration would otherwise drift.
-        ScanBags is the single point every rescan passes through, so reconcile
-        aura tracking here, before AllowBuffFood reads ns.WellFedState below.
-    ]]
+	    Party/raid-restricted Buff Food, Scrolls, and Pet Food go stale when
+	    group composition or the mode dropdown changes — those flip whether a
+	    feature is active but have no dedicated UpdateAuraTracking call, so
+	    ns.WellFedState and UNIT_AURA registration would otherwise drift.
+	    ScanBags is the single point every rescan passes through, so reconcile
+	    aura tracking here, before AllowBuffFood reads ns.WellFedState below.
+	]]
 	if ns.UpdateAuraTracking then
 		ns.UpdateAuraTracking()
 	end
@@ -484,12 +510,12 @@ function ns.ScanBags()
 	local playerLevel = ns.CachedPlayerLevel
 	local currentMap = ns.CachedMapID
 	--[[
-        Arena-only consumables (e.g. Star's Tears) are gated on the live
-        instance type instead of a zone-ID list, so every arena is covered with
-        no map IDs to maintain. IsInInstance is safe on Era (returns "none").
-        ScanBags re-runs on PLAYER_ENTERING_WORLD and ZONE_CHANGED_NEW_AREA, so
-        this refreshes on every arena entry and exit.
-    ]]
+	    Arena-only consumables (e.g. Star's Tears) are gated on the live
+	    instance type instead of a zone-ID list, so every arena is covered with
+	    no map IDs to maintain. IsInInstance is safe on Era (returns "none").
+	    ScanBags re-runs on PLAYER_ENTERING_WORLD and ZONE_CHANGED_NEW_AREA, so
+	    this refreshes on every arena entry and exit.
+	]]
 	local inArena = select(2, IsInInstance()) == "arena"
 	local firstAidSkill = ns.CurrentFirstAidSkill or 0
 	local alchemySkill = ns.CurrentAlchemySkill or 0
@@ -498,20 +524,20 @@ function ns.ScanBags()
 	local itemCache = (ns.db and ns.db.profile.itemCache) or {}
 
 	--[[
-        Testing aid: targeting yourself forces the Food macro into plain-food
-        mode — no scrolls, no buff food, just the best non-buff food. Useful
-        for verifying what the macro picks without re-toggling settings.
-        Scrolls are already suppressed on any friendly-player target (including
-        self) in UpdateMacros, so we only need to disable buff-food here.
-    ]]
+	    Testing aid: targeting yourself forces the Food macro into plain-food
+	    mode — no scrolls, no buff food, just the best non-buff food. Useful
+	    for verifying what the macro picks without re-toggling settings.
+	    Scrolls are already suppressed on any friendly-player target (including
+	    self) in UpdateMacros, so we only need to disable buff-food here.
+	]]
 	local targetingSelf = UnitExists("target") and UnitIsUnit("target", "player")
 
 	--[[
-        Arena rule: scrolls, pet buff food, and buff food cannot be consumed in
-        a PvP Arena, so the Food macro must stay in plain (non-buff) food mode
-        there. Buff-food preference is gated here; the scroll and pet-buff
-        override resolvers are gated below.
-    ]]
+	    Arena rule: scrolls, pet buff food, and buff food cannot be consumed in
+	    a PvP Arena, so the Food macro must stay in plain (non-buff) food mode
+	    there. Buff-food preference is gated here; the scroll and pet-buff
+	    override resolvers are gated below.
+	]]
 	ns.AllowBuffFood = settings.useBuffFood
 		and ns.IsModeActive(settings.buffFoodMode)
 		and not ns.WellFedState
@@ -555,11 +581,11 @@ function ns.ScanBags()
 	end
 
 	--[[
-        Overrides check happens before standard consumable scan. Skipped
-        entirely in a PvP Arena (see the arena rule above): scroll mode and pet
-        buff food can't be used there, so both stay nil and the Food macro keeps
-        its plain food/conjure form.
-    ]]
+	    Overrides check happens before standard consumable scan. Skipped
+	    entirely in a PvP Arena (see the arena rule above): scroll mode and pet
+	    buff food can't be used there, so both stay nil and the Food macro keeps
+	    its plain food/conjure form.
+	]]
 	if inArena then
 		ns.ScrollOverrideIDs = nil
 		ns.PetBuffOverrideID = nil
@@ -569,27 +595,29 @@ function ns.ScanBags()
 	end
 
 	-- Both halves of the Ignore List hide an item from every macro's selection.
-	local charIgnoreList = ns:GetIgnoreList() or {}
-	local globalIgnoreList = ns:GetGlobalIgnoreList() or {}
+	local charIgnoreList = ns.GetIgnoreList() or {}
+	local globalIgnoreList = ns.GetGlobalIgnoreList() or {}
 
 	for id, hyperlink in pairs(slotItems) do
 		if not (charIgnoreList[id] or globalIgnoreList[id]) then
-			-- Scroll items skip normal consumable processing; the scroll
-			-- override system handles them.
+			--[[
+			    Scroll items skip normal consumable processing; the scroll
+			    override system handles them.
+			]]
 			if not (ns.ScrollItemLookup and ns.ScrollItemLookup[id]) then
 				local data = itemCache[id]
 				--[[
-                    Drop cache entries from an older schema so CacheItemData
-                    re-derives them below. Test the NEWEST cached field, not an
-                    old one: version-stamp invalidation only fires on a release
-                    bump, so a same-version update (dev edit) that adds a field
-                    would otherwise keep stale entries missing it. The newest
-                    field is isSoulbound (CacheItemData always writes it, as
-                    a plain boolean, so == nil only ever means "older
-                    schema"); the older fields are kept in the test to also
-                    catch pre-maxStack/-arenaUsable/-isConjured/-damageValue
-                    entries.
-                ]]
+				    Drop cache entries from an older schema so CacheItemData
+				    re-derives them below. Test the NEWEST cached field, not an
+				    old one: version-stamp invalidation only fires on a release
+				    bump, so a same-version update (dev edit) that adds a field
+				    would otherwise keep stale entries missing it. The newest
+				    field is isSoulbound (CacheItemData always writes it, as
+				    a plain boolean, so == nil only ever means "older
+				    schema"); the older fields are kept in the test to also
+				    catch pre-maxStack/-arenaUsable/-isConjured/-damageValue
+				    entries.
+				]]
 				if
 					data
 					and data ~= "IGNORE"
@@ -634,14 +662,14 @@ function ns.ScanBags()
 					end
 
 					--[[
-                        Engineering specialization gate (Global Thermal Sapper
-                        Charge requires Goblin Engineer). Checked live rather
-                        than cached at login because the specialization can be
-                        learned mid-session; SPELLS_CHANGED triggers the rescan.
-                        Same IsSpellKnown + IsPlayerSpell fallback as
-                        GetSmartSpell — profession passives can live on either
-                        surface depending on client.
-                    ]]
+					    Engineering specialization gate (Global Thermal Sapper
+					    Charge requires Goblin Engineer). Checked live rather
+					    than cached at login because the specialization can be
+					    learned mid-session; SPELLS_CHANGED triggers the rescan.
+					    Same IsSpellKnown + IsPlayerSpell fallback as
+					    GetSmartSpell — profession passives can live on either
+					    surface depending on client.
+					]]
 					if usable and data.requiredSpellID then
 						local known = IsSpellKnown(data.requiredSpellID)
 						if not known and IsPlayerSpell then
@@ -661,13 +689,13 @@ function ns.ScanBags()
 					end
 
 					--[[
-                        In a PvP Arena only conjured food/water and the arena-only
-                        drinks (Star's Tears/Lament) can be consumed -- regular
-                        food and drink are blocked. Gate the rest out so the macro
-                        never selects a drink that fails on press in the arena.
-                        Ranking within what survives is unchanged (highest value,
-                        then price, then count).
-                    ]]
+					    In a PvP Arena only conjured food/water and the arena-only
+					    drinks (Star's Tears/Lament) can be consumed -- regular
+					    food and drink are blocked. Gate the rest out so the macro
+					    never selects a drink that fails on press in the arena.
+					    Ranking within what survives is unchanged (highest value,
+					    then price, then count).
+					]]
 					if usable and inArena then
 						local t = data.itemType
 						local isFoodOrWater = (t == "food" or t == "water" or t == "foodwater")
@@ -680,29 +708,31 @@ function ns.ScanBags()
 						local totalCount = itemCounts[id]
 
 						--[[
-                            Dispatch the item to every registered definition
-                            whose itemTypes set claims its cached itemType.
-                            Deliberately not first-match-wins: more than one
-                            category may consume the same item — a potion
-                            with both health and mana values feeds Health
-                            Potion and Mana Potion, and a foodwater hybrid
-                            feeds Food and Water.
-                        ]]
-						for _, def in ipairs(ns.RegisteredMacroDefs) do
+						    Dispatch the item to every registered definition
+						    whose itemTypes set claims its cached itemType.
+						    Deliberately not first-match-wins: more than one
+						    category may consume the same item — a potion
+						    with both health and mana values feeds Health
+						    Potion and Mana Potion, and a foodwater hybrid
+						    feeds Food and Water.
+						]]
+						for _, definition in ipairs(ns.RegisteredMacroDefinitions) do
 							if
-								def.itemTypes
-								and def.itemTypes[data.itemType]
-								and (not def.accepts or def.accepts(data))
+								definition.itemTypes
+								and definition.itemTypes[data.itemType]
+								and (not definition.accepts or definition.accepts(data))
 							then
-								local score = def.score(data)
-								if def.ranked then
-									AddRankedCandidate(def.typeName, data, score, totalCount)
+								local score = definition.score(data)
+								if definition.ranked then
+									AddRankedCandidate(definition.typeName, data, score, totalCount)
 								else
-									local entry = best[def.typeName]
-									-- allowBuffFood defs track the live scan
-									-- preference; everyone else compares with
-									-- the buff-food step gated off.
-									local allowBuffFood = def.allowBuffFood and ns.AllowBuffFood
+									local entry = best[definition.typeName]
+									--[[
+									    allowBuffFood defs track the live scan
+									    preference; everyone else compares with
+									    the buff-food step gated off.
+									]]
+									local allowBuffFood = definition.allowBuffFood and ns.AllowBuffFood
 									if
 										IsBetter(
 											data,
@@ -711,21 +741,21 @@ function ns.ScanBags()
 											entry,
 											score,
 											allowBuffFood,
-											def.preferHybrid
+											definition.preferHybrid
 										)
 									then
 										FillRecord(entry, data, totalCount, data.price, score)
-										if def.winnerExtras then
-											def.winnerExtras(entry, data, hyperlink)
+										if definition.winnerExtras then
+											definition.winnerExtras(entry, data, hyperlink)
 										end
 									end
 
 									if ns.diagnostics.enabled then
 										RetainCandidate(
-											def.typeName,
+											definition.typeName,
 											FillRecord(candidateRecord, data, totalCount, data.price, score),
 											allowBuffFood,
-											def.preferHybrid
+											definition.preferHybrid
 										)
 									end
 								end

@@ -13,8 +13,10 @@ ns.RegisterMacroType({
 		return data.manaValue
 	end,
 
-	-- Mage conjure resolution (single right-click slot, checkUnique
-	-- downranking) lives in Tools-Mages.lua; called at update time.
+	--[[
+	    Mage conjure resolution (single right-click slot, checkUnique
+	    downranking) lives in Tools-Mages.lua; called at update time.
+	]]
 	conjure = function()
 		return ns.ResolveMageManaGemConjure()
 	end,
