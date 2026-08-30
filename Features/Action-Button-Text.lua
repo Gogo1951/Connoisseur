@@ -25,6 +25,9 @@ local ACTION_BAR_PREFIXES = {
 	"MultiBarBottomRightButton",
 	"MultiBarRightButton",
 	"MultiBarLeftButton",
+	"MultiBar6Button",
+	"MultiBar7Button",
+	"MultiBar8Button"
 }
 
 function ns.ApplyMacroNameVisibility()
