@@ -82,6 +82,7 @@ ns.RawData.FoodAndWater = {
 	[34062] = { 0, 0, 7500, 0, 7200, nil, 2 }, -- Conjured Manna Biscuit
 	[8077] = { 0, 0, 0, 0, 1992, nil, 2 }, -- Conjured Mineral Water
 	[30703] = { 0, 0, 0, 0, 5100, nil, 2 }, -- Conjured Mountain Spring Water
+	[231778] = { 0, 0, 0, 0, 5100, nil, 2}, -- Conjured Mountain Spring Water (SOD)
 	[5349] = { 0, 0, 61, 0, 0, nil, 2 }, -- Conjured Muffin
 	[1487] = { 0, 0, 874, 0, 0, nil, 2 }, -- Conjured Pumpernickel
 	[2136] = { 0, 0, 0, 0, 835, nil, 2 }, -- Conjured Purified Water
