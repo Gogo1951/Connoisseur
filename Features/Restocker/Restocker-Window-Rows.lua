@@ -11,7 +11,7 @@ local AceGUI = LibStub("AceGUI-3.0")
     is Restocker-Window-Columns.lua, which loads first.
 ]]
 local COLUMNS = ns.RESTOCK_COLUMNS
-local REP_STANDINGS = ns.REPUTATION_STANDINGS
+local REPUTATION_STANDINGS = ns.REPUTATION_STANDINGS
 local BUTTON_FONT = ns.RESTOCK_BUTTON_FONT
 local REMOVE_ICON_SIZE = ns.RESTOCK_REMOVE_ICON_SIZE
 local COLUMN_MIN_WIDTH = ns.RESTOCK_COLUMN_MIN_WIDTH
@@ -62,14 +62,14 @@ local restockItemList = {}
     so a close that is ever missed writes nothing rather than writing to whatever
     row drifted underneath.
 ]]
-local openRepPullout = nil
+local openReputationPullout = nil
 
 local function CloseReputationMenu()
-	if not openRepPullout then
+	if not openReputationPullout then
 		return
 	end
-	local pullout = openRepPullout
-	openRepPullout = nil
+	local pullout = openReputationPullout
+	openReputationPullout = nil
 	pullout:Close()
 	AceGUI:Release(pullout)
 end
@@ -85,13 +85,13 @@ local function OpenReputationMenu(cell, row)
 	end
 
 	local pullout = AceGUI:Create("Dropdown-Pullout")
-	openRepPullout = pullout
+	openReputationPullout = pullout
 
 	local title = AceGUI:Create("Dropdown-Item-Header")
 	title:SetText(L["RESTOCKER_REPUTATION_MENU_TITLE"])
 	pullout:AddItem(title)
 
-	for _, standing in ipairs(REP_STANDINGS) do
+	for _, standing in ipairs(REPUTATION_STANDINGS) do
 		local entry = AceGUI:Create("Dropdown-Item-Toggle")
 		entry:SetText(ReputationMenuText(standing))
 		entry:SetValue((openedForItem.reaction or 0) == standing.value)
@@ -108,7 +108,7 @@ local function OpenReputationMenu(cell, row)
 	end
 
 	pullout:SetCallback("OnClose", function()
-		openRepPullout = nil
+		openReputationPullout = nil
 	end)
 	pullout:Open("TOPLEFT", cell, "BOTTOMLEFT", 0, 0)
 end
@@ -120,7 +120,7 @@ end
 local function CreateAmountEditBox(frame)
 	local editBox = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
 
-	editBox:SetHeight(ns.RESTOCK_BUTTON_HEIGHT - 2)
+	editBox:SetHeight(ns.restockButtonHeight - 2)
 	editBox:SetAutoFocus(false)
 	--[[
 	    Digits only, and every read still falls back to 0: item.amount is compared
@@ -157,20 +157,15 @@ local function CreateAmountEditBox(frame)
 	return editBox
 end
 
---[[
-    Reads self.item, which UpdateRestockListRow rebinds like every other row
-    control -- NOT GetParent().item: the two-line row layout parents this
-    button to line1, which carries no item, and resolving through the parent
-    is exactly how removal silently broke when that layout landed.
-]]
+-- Reads self.item, which UpdateRestockListRow rebinds like every other row control, never GetParent().item.
 local function OnDeleteButtonClick(self)
 	local settings = ns.restockSettings
-	local profile = settings.profiles[settings.currentProfile]
+	local list = settings.lists[settings.currentList]
 	local item = self.item
 
 	if item and item.itemID then
 		-- Profiles are keyed by itemID, so removal is a direct delete
-		profile[item.itemID] = nil
+		list[item.itemID] = nil
 		ns.UpdateRestockList()
 	end
 end
@@ -226,7 +221,7 @@ local COLUMN_STATE = {
 		return item.restockFromBank and CELL_ON or CELL_OFF
 	end,
 	deposit = function(item)
-		return item.stashTobank and CELL_ON or CELL_OFF
+		return item.stashToBank and CELL_ON or CELL_OFF
 	end,
 	buy = function(item)
 		return (item.buyFromMerchant == nil or item.buyFromMerchant) and CELL_ON or CELL_OFF
@@ -258,7 +253,7 @@ local COLUMN_TOGGLE = {
 		item.restockFromBank = not item.restockFromBank
 	end,
 	deposit = function(item)
-		item.stashTobank = not item.stashTobank
+		item.stashToBank = not item.stashToBank
 	end,
 	buy = function(item)
 		if item.buyFromMerchant == nil then
@@ -310,7 +305,7 @@ end
 
 local function CreateGlyphCell(row, column)
 	local cell = CreateFrame("Button", nil, row)
-	cell:SetSize(ns.RESTOCK_COLUMN_WIDTH[column.key] or COLUMN_MIN_WIDTH, ns.RESTOCK_BUTTON_HEIGHT)
+	cell:SetSize(ns.restockColumnWidths[column.key] or COLUMN_MIN_WIDTH, ns.restockButtonHeight)
 
 	local check = cell:CreateTexture(nil, "ARTWORK")
 	check:SetTexture(CHECK_TEXTURE)
@@ -346,7 +341,7 @@ end
 ]]
 local function CreateReputationCell(row, column)
 	local cell = CreateFrame("Button", nil, row)
-	cell:SetSize(ns.RESTOCK_COLUMN_WIDTH[column.key] or COLUMN_MIN_WIDTH, ns.RESTOCK_BUTTON_HEIGHT)
+	cell:SetSize(ns.restockColumnWidths[column.key] or COLUMN_MIN_WIDTH, ns.restockButtonHeight)
 	cell.isActive = true
 
 	local fontString = cell:CreateFontString(nil, "ARTWORK", BUTTON_FONT)
@@ -372,7 +367,7 @@ function ns.CreateRestockListRow(item)
 	    places every row by absolute index rather than chaining them to each other.
 	]]
 	local frame = CreateFrame("Frame", nil, ns.restockHiddenFrame)
-	frame:SetSize(ns.restockWindow.scrollChild:GetWidth(), ns.RESTOCK_ROW_HEIGHT)
+	frame:SetSize(ns.restockWindow.scrollChild:GetWidth(), ns.restockRowHeight)
 	frame.item = item
 
 	--[[
@@ -396,7 +391,7 @@ function ns.CreateRestockListRow(item)
 	frame.removeButton = CreateDeleteButton(frame)
 	frame.amountBox = CreateAmountEditBox(frame)
 	frame.amountBox:SetPoint("RIGHT", frame.removeButton, "LEFT", -AMOUNT_GAP, 0)
-	frame.amountBox:SetWidth(ns.RESTOCK_AMOUNT_WIDTH)
+	frame.amountBox:SetWidth(ns.restockAmountWidth)
 
 	frame.cells, frame.firstCell = LayoutColumns(frame.amountBox, function(column)
 		if column.isText then
@@ -439,7 +434,7 @@ function ns.CreateRestockListRow(item)
 	nameButton:SetScript("OnLeave", function()
 		GameTooltip:Hide()
 	end)
-	frame.iconBtn = nameButton
+	frame.nameButton = nameButton
 
 	table.insert(ns.restockRowPool, frame)
 	return frame
@@ -459,8 +454,8 @@ function ns.UpdateRestockListRow(row, item)
 	    than only at creation. Guarded on a serial, which makes this six SetWidth
 	    calls once and a single comparison thereafter.
 	]]
-	if row.columnSerial ~= ns.RESTOCK_COLUMN_WIDTH_SERIAL then
-		row.columnSerial = ns.RESTOCK_COLUMN_WIDTH_SERIAL
+	if row.columnSerial ~= ns.restockColumnWidthSerial then
+		row.columnSerial = ns.restockColumnWidthSerial
 		ApplyColumnWidths(row.cells)
 	end
 
@@ -476,12 +471,12 @@ function ns.UpdateRestockListRow(row, item)
 	    column of otherwise identical text.
 	]]
 	local standing = ReputationStandingByValue(item.reaction)
-	local repCell = row.cells.rep
-	repCell.text:SetText(standing.label)
+	local reputationCell = row.cells.reputation
+	reputationCell.text:SetText(standing.label)
 	if (item.reaction or 0) > 0 then
-		repCell.text:SetTextColor(REPUTATION_SET.r, REPUTATION_SET.g, REPUTATION_SET.b)
+		reputationCell.text:SetTextColor(REPUTATION_SET.r, REPUTATION_SET.g, REPUTATION_SET.b)
 	else
-		repCell.text:SetTextColor(DASH_OFF.r, DASH_OFF.g, DASH_OFF.b)
+		reputationCell.text:SetTextColor(DASH_OFF.r, DASH_OFF.g, DASH_OFF.b)
 	end
 
 	-- Icon + quality-colored name (from the item cache; falls back until it is known)
@@ -516,23 +511,17 @@ function ns.UpdateRestockList()
 	ns.CloseReputationMenu()
 
 	local settings = ns.restockSettings
-	local currentProfile = settings.profiles[settings.currentProfile]
+	local currentList = settings.lists[settings.currentList]
 
 	-- Gather items (profile is keyed by itemID, so walk it with pairs)
 	wipe(restockItemList)
-	for _, v in pairs(currentProfile) do
-		table.insert(restockItemList, v)
+	for _, item in pairs(currentList) do
+		table.insert(restockItemList, item)
 	end
 
 	--[[
-	    The category pane is filled from the UNFILTERED list, so it can report every
-	    type the profile holds and how many of each. The render list below is the
-	    filtered one: whatever survives the filter box and the selected category.
-	]]
-	--[[
 	    One view per redraw: each item's group resolved once and the filter lowered
-	    once, shared by the category pane and the render list. Both used to resolve
-	    them per item, and the sort comparator per comparison.
+	    once, shared by the category pane and the render list.
 	]]
 	local view = ns.BuildRestockView(restockItemList)
 	ns.UpdateRestockGroupPane(restockItemList, view)
@@ -561,12 +550,12 @@ function ns.UpdateRestockList()
 		row:SetParent(scrollChild)
 		row:ClearAllPoints()
 		row:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 0, -offset)
-		row:SetSize(scrollChild:GetWidth(), ns.RESTOCK_ROW_HEIGHT)
+		row:SetSize(scrollChild:GetWidth(), ns.restockRowHeight)
 		-- Every second row, counting the first as bare so the list starts flush.
 		row.stripe:SetShown(index % 2 == 0)
 		ns.UpdateRestockListRow(row, entry.item)
 		row:Show()
-		offset = offset + ns.RESTOCK_ROW_HEIGHT
+		offset = offset + ns.restockRowHeight
 	end
 
 	scrollChild:SetHeight(math.max(1, offset))

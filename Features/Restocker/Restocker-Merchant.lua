@@ -6,6 +6,7 @@ local L = ns.L
     while a merchant window is open, so anything that moves an item has to know.
 ]]
 ns.merchantIsOpen = false
+ns.merchantBuyingSkipped = false
 
 -- Restock throttle: the client can fire MERCHANT_SHOW more than once per visit.
 local lastTimeRestocked = GetTime()
@@ -56,7 +57,7 @@ local function BuildPurchaseOrder(purchaseOrders, eachRestockRecord, vendorReact
 	    saved line whose name never resolved, and the order then buys a full stack
 	    of something the bags are already carrying.
 	]]
-	local haveInBag = GetItemCount(eachRestockRecord.itemID or eachRestockRecord.itemName, false, false) or 0
+	local haveInBag = C_Item.GetItemCount(eachRestockRecord.itemID or eachRestockRecord.itemName, false, false) or 0
 	local amount = eachRestockRecord.amount or 0
 	local requiredReaction = eachRestockRecord.reaction or 0
 	local buyExtra = eachRestockRecord.buyExtra == true
@@ -115,24 +116,24 @@ end
     resolves those against the merchant's stock). So this answers "what am I low on", which is
     what a shopping list is, rather than "what will this vendor sell me".
 
-    Counts are bags only -- GetItemCount(id, false, false) -- matching what the
+    Counts are bags only -- C_Item.GetItemCount(id, false, false) -- matching what the
     merchant restock compares against, so the list agrees with what would
     actually be bought.
 ]]
 function ns.BuildGroceryList()
 	local settings = ns.restockSettings
-	local profile = settings and settings.profiles and settings.profiles[settings.currentProfile]
+	local restockList = settings and settings.lists and settings.lists[settings.currentList]
 	local list = {}
-	if not profile then
+	if not restockList then
 		return list
 	end
 
-	for _, record in pairs(profile) do
+	for _, record in pairs(restockList) do
 		local wanted = record.amount or 0
 		local key = record.itemID or record.itemName
 		-- nil buyFromMerchant defaults to true, the same rule Restock() uses
 		if key and wanted > 0 and (record.buyFromMerchant == nil or record.buyFromMerchant) then
-			local have = GetItemCount(key, false, false) or 0
+			local have = C_Item.GetItemCount(key, false, false) or 0
 			local short = wanted - have
 			if short > 0 then
 				--[[
@@ -334,7 +335,7 @@ end
 
 function ns.RestockFromMerchant()
 	local settings = ns.restockSettings
-	if CountTableItems(settings.profiles[settings.currentProfile]) == 0 then
+	if CountTableItems(settings.lists[settings.currentList]) == 0 then
 		return
 	end
 
@@ -349,7 +350,7 @@ function ns.RestockFromMerchant()
 	    fail with "Inventory is full". (The bank restock already bails on full bags via
 	    ns.GetRestockSpace.)
 	]]
-	if not ns.HasFreeBagSlot(ns.RESTOCK_PLAYER_BAGS) then
+	if not ns.HasFreeBagSlot(ns.restockPlayerBags) then
 		ns.PrintMessage(L["RESTOCKER_BAGS_FULL_SKIP_MERCHANT"])
 		return
 	end
@@ -375,7 +376,7 @@ function ns.RestockFromMerchant()
 	end
 
 	local purchaseOrders = {}
-	local restockList = settings.profiles[settings.currentProfile]
+	local restockList = settings.lists[settings.currentList]
 	-- "npc" is the unit we are actually interacting with; the vendor is usually not targeted.
 	local vendorReaction = UnitReaction("npc", "player") or UnitReaction("target", "player") or 0
 

@@ -1,5 +1,5 @@
 local _, ns = ...
-ns.RawData = ns.RawData or {}
+ns.RAW_DATA = ns.RAW_DATA or {}
 
 -- TODO: Add SQL Query
 --[[
@@ -13,7 +13,7 @@ ns.RawData = ns.RawData or {}
     scan time -- no arena zone/map IDs are maintained -- see ns.CacheItemData
     and ns.ScanBags.
 ]]
-ns.RawData.FoodAndWater = {
+ns.RAW_DATA.FoodAndWater = {
 	-- [ID] = {Buff Food, Food %, Food Amount, Water %, Water Amount, {Allowed Zones} or nil, Arena or nil}, -- Name
 
 	[19301] = { 0, 0, 4410, 0, 4410 }, -- Alterac Manna Biscuit
@@ -42,13 +42,13 @@ ns.RawData.FoodAndWater = {
 	[29449] = { 0, 0, 7500, 0, 0 }, -- Bladespire Bagel
 	[17404] = { 0, 0, 0, 0, 437 }, -- Blended Bean Brew
 	[13810] = { 1, 0, 1933, 0, 0 }, -- Blessed Sunfruit
-	-- Blessed Sunfruit Juice (13813) is deliberately absent; its Well Fed buff is still recognized via ns.WellFedBuffIDs in Data/Data.lua.
+	-- Blessed Sunfruit Juice (13813) is deliberately absent; its Well Fed buff is still recognized via ns.WELL_FED_BUFF_IDS in Data/Data.lua.
 	[3220] = { 1, 0, 243, 0, 0 }, -- Blood Sausage
 	[13546] = { 0, 0, 1392, 0, 0 }, -- Bloodbelly Fish
 	[20516] = { 1, 2, 0, 0, 0 }, -- Bobbing Apple
 	[5525] = { 1, 0, 243, 0, 0 }, -- Boiled Clams
 	[29293] = { 1, 0, 2148, 0, 0 }, -- Bonestripper Buzzard Hotwings
-	-- Bottled Alterac Spring Water (19318) is deliberately absent; its Well Fed buff is still recognized via ns.WellFedBuffIDs in Data/Data.lua.
+	-- Bottled Alterac Spring Water (19318) is deliberately absent; its Well Fed buff is still recognized via ns.WELL_FED_BUFF_IDS in Data/Data.lua.
 	[1119] = { 0, 0, 552, 0, 0 }, -- Bottled Spirits
 	[19300] = { 0, 0, 0, 0, 1992 }, -- Bottled Winterspring Water
 	[34021] = { 1, 0, 0, 0, 1992 }, -- Brewdoo Magic
@@ -82,7 +82,7 @@ ns.RawData.FoodAndWater = {
 	[34062] = { 0, 0, 7500, 0, 7200, nil, 2 }, -- Conjured Manna Biscuit
 	[8077] = { 0, 0, 0, 0, 1992, nil, 2 }, -- Conjured Mineral Water
 	[30703] = { 0, 0, 0, 0, 5100, nil, 2 }, -- Conjured Mountain Spring Water
-	[231778] = { 0, 0, 0, 0, 5100, nil, 2}, -- Conjured Mountain Spring Water (SoD)
+	[231778] = { 0, 0, 0, 0, 5100, nil, 2 }, -- Conjured Mountain Spring Water (SoD)
 	[5349] = { 0, 0, 61, 0, 0, nil, 2 }, -- Conjured Muffin
 	[1487] = { 0, 0, 874, 0, 0, nil, 2 }, -- Conjured Pumpernickel
 	[2136] = { 0, 0, 0, 0, 835, nil, 2 }, -- Conjured Purified Water

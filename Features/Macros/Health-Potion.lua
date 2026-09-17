@@ -36,9 +36,9 @@ ns.RegisterMacroType({
 		if not (settings and settings.combineHealthstones) then
 			return nil
 		end
-		local hsEntry = best["Healthstone"]
-		if hsEntry and hsEntry.topIDs and #hsEntry.topIDs > 0 then
-			return hsEntry.topIDs
+		local healthstoneEntry = best["Healthstone"]
+		if healthstoneEntry and healthstoneEntry.topIDs and #healthstoneEntry.topIDs > 0 then
+			return healthstoneEntry.topIDs
 		end
 		return nil
 	end,

@@ -1,8 +1,9 @@
+-- luacheck: allow defined, ignore 121 122 131 143
 -- Headless test for the Restock List's column layout (no WoW API needed).
 --
--- Run it with:   lua Tests/ColumnLayoutTest.lua
+-- Run it with:   lua Tests/Restocker-Column-Layout-Test.lua
 --
--- It models the SAME walk Restocker-Window-Rows.lua uses in LayoutColumns, which lays out both the
+-- It models the SAME walk as LayoutColumns in Restocker-Window-Columns.lua, which lays out both the
 -- column header and every item row: start at the row's right edge, step left past the
 -- remove control and the amount box, then past each column in reverse, opening a wider
 -- gap wherever a column declares `gapBefore`.
@@ -34,7 +35,7 @@ local ICON_TEXT_GAP = 4
 local NAME_INSET = ROW_INSET + ICON_SIZE + ICON_TEXT_GAP
 local NAME_COLUMN_GAP = 10
 
-local AMOUNT_WIDTH = 40
+local AMOUNT_WIDTH = 58 -- the English measurement ns.restockAmountWidth starts at
 local AMOUNT_GAP = 6
 local REMOVE_ICON_SIZE = 16
 
@@ -47,11 +48,11 @@ local COLUMNS = {
 	{ key = "deposit" },
 	{ key = "buy", group = "Merchant", gapBefore = true },
 	{ key = "extra" },
-	{ key = "rep" },
+	{ key = "reputation" },
 	{ key = "upgrade", gapBefore = true },
 }
 
-local ENGLISH = { withdraw = 38, deposit = 42, buy = 32, extra = 40, rep = 54, upgrade = 60 }
+local ENGLISH = { withdraw = 38, deposit = 42, buy = 32, extra = 40, reputation = 54, upgrade = 60 }
 
 --[[
   The category pane sizes itself to the longest type name it has to draw, so the
@@ -143,7 +144,7 @@ local function alignmentScenario(label, rowWidth, widths)
 end
 
 print("HEADER AND ROWS AGREE")
-alignmentScenario("English captions, minimum window", rowWidthFor(810), ENGLISH)
+alignmentScenario("English captions, minimum window", rowWidthFor(819), ENGLISH)
 alignmentScenario("English captions, default window", rowWidthFor(870), ENGLISH)
 alignmentScenario("English captions, wide window", rowWidthFor(1390), ENGLISH)
 
@@ -187,8 +188,8 @@ end
 
 assert(covered.withdraw == "Bank" and covered.deposit == "Bank", "Bank must cover both bank columns")
 assert(
-	covered.buy == "Merchant" and covered.extra == "Merchant" and covered.rep == "Merchant",
-	"Merchant must cover buy, extra and rep"
+	covered.buy == "Merchant" and covered.extra == "Merchant" and covered.reputation == "Merchant",
+	"Merchant must cover buy, extra and reputation"
 )
 assert(covered.upgrade == nil, "Upgrade declares no group and must be covered by no band")
 print("  ok  Upgrade is covered by no band")
@@ -212,11 +213,12 @@ print("\nITEM NAME WIDTH")
   MIN_WIDTH and DEFAULT_WIDTH in Restocker-Window.lua. The floor is the point below which a
   consumable name stops being recognisable, and it is what sets MIN_WIDTH: the window has
   to hold the category pane AND leave the table enough for a readable name, so the two
-  numbers move together. Widening the pane without moving MIN_WIDTH is exactly the
-  regression these three catch.
+  numbers move together. Widening the pane or a column without moving MIN_WIDTH is exactly
+  the regression these three catch. The default window's 201 is exactly what DEFAULT_WIDTH
+  leaves, so a column that widens shows up there as well.
 ]]
-nameScenario("minimum window (810)", 810, ENGLISH, 150)
-nameScenario("default window (870)", 870, ENGLISH, 210)
+nameScenario("minimum window (819)", 819, ENGLISH, 150)
+nameScenario("default window (870)", 870, ENGLISH, 201)
 nameScenario("wide window (1190)", 1190, ENGLISH, 500)
 
 --[[
@@ -228,9 +230,9 @@ nameScenario("wide window (1190)", 1190, ENGLISH, 500)
   readable name -- and nothing stronger. It lands well under the 150px minimum even at
   the minimum window, and it was worse still before the gaps were tightened.
 ]]
-local FULL_LENGTH = { withdraw = 62, deposit = 56, buy = 34, extra = 42, rep = 58, upgrade = 58 }
+local FULL_LENGTH = { withdraw = 62, deposit = 56, buy = 34, extra = 42, reputation = 58, upgrade = 58 }
 local MIN_NAME = 150
-local wasWidth = nameWidth(rowWidthFor(810), FULL_LENGTH)
+local wasWidth = nameWidth(rowWidthFor(819), FULL_LENGTH)
 assert(
 	wasWidth < MIN_NAME,
 	("full-length captions leave %dpx, which is not under the %dpx floor they were rejected for"):format(

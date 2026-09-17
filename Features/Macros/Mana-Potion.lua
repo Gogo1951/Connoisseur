@@ -4,7 +4,7 @@ local _, ns = ...
 -- Mana Potion Macro
 --------------------------------------------------------------------------------
 
--- Multi-use ranked macro (ns.MultiUseMacroTypes).
+-- Multi-use ranked macro (ns.MULTI_USE_MACRO_TYPES).
 ns.RegisterMacroType({
 	typeName = "Mana Potion",
 

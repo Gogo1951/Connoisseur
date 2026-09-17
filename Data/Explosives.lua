@@ -1,5 +1,5 @@
 local _, ns = ...
-ns.RawData = ns.RawData or {}
+ns.RAW_DATA = ns.RAW_DATA or {}
 
 --[[
     SELECT CONCAT(
@@ -35,7 +35,7 @@ ns.RawData = ns.RawData or {}
     ORDER BY name;
 ]]
 
-ns.RawData.Explosives = {
+ns.RAW_DATA.Explosives = {
 	-- [ID] = {Min Damage, Max Damage, Engineering Skill, Required Spell ID}, -- Name
 
 	[23737] = { 450, 750, 325 }, -- Adamantite Grenade

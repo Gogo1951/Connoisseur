@@ -2,13 +2,7 @@
 std = "lua51"
 max_line_length = false -- StyLua owns formatting
 ignore = { "212/self", "611", "612", "613", "614", "621" } -- implicit self (house ns: methods) + whitespace — StyLua owns the latter
-exclude_files = {
-	"Includes/", -- vendored, never linted
-	-- Dev-only offline suites, in both homes. They stub the WoW globals this
-	-- config protects, so linting them reports every stub as a violation.
-	"Features/Restocker/Tests/",
-	"Features/Tests/",
-}
+exclude_files = { "Includes/" } -- vendored, never linted
 read_globals = {
 	-- WoW API surface Connoisseur calls
 	"BACKPACK_CONTAINER",
@@ -20,6 +14,8 @@ read_globals = {
 	"C_EventUtils",
 	"C_Item",
 	"C_Map",
+	"C_SpecializationInfo",
+	"C_Spell",
 	"C_Timer",
 	"C_UnitAuras",
 	"ClearCursor",
@@ -40,10 +36,7 @@ read_globals = {
 	"GetInventoryItemDurability",
 	"GetInventoryItemLink",
 	"GetItemCount",
-	"GetItemFamily",
 	"GetItemIcon",
-	"GetItemInfo",
-	"GetItemQualityColor",
 	"GetLocale",
 	"GetMacroBody",
 	"GetMacroIndexByName",
@@ -62,8 +55,8 @@ read_globals = {
 	"GetRealmName",
 	"GetSkillLineInfo",
 	"GetSpellInfo",
+	"GetSpellSubtext",
 	"GetSubZoneText",
-	"GetTalentTabInfo",
 	"GetTime",
 	"GetWeaponEnchantInfo",
 	"GetZoneText",
@@ -118,14 +111,17 @@ read_globals = {
 globals = {
 	-- the add-on's own sanctioned globals
 	"ConnoisseurDB",
-	-- Read once at login and cleared; see Features/Restocker/Restocker-Saved-Migration.lua
+	-- MIGRATION (remove after 2026-09-29): read once at login and cleared; see Features/Restocker/Restocker-Saved-Migration.lua
 	"ConnoisseurRestockerDB",
-	"ConnoisseurState",
+	"ConnoisseurFire",
+	"ConnoisseurTip",
+	"ConnoisseurTipIf",
+	"ConnoisseurNoItem",
+	"SLASH_CONNOISSEUR1",
+	"SLASH_CONNOISSEURRESTOCKER1",
+	-- MIGRATION (remove after 2026-10-18): the short macro globals an older build's saved macro bodies still call
 	"ConnFire",
 	"ConnTip",
 	"ConnIf",
 	"ConnNoItem",
-	"SLASH_CONNOISSEUR1",
-	"SLASH_CONNOISSEURRESTOCKER1",
-	"SlashCmdList",
 }

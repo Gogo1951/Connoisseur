@@ -78,7 +78,7 @@ ns.WAGO_URL = "https://addons.wago.io/addons/connoisseur"
     Options/*.lua for RegisterOptionsTable / AddToBlizOptions. Never localized,
     never built inline.
 ]]
--- Listed in the order the panels appear in Blizzard's tree (see ns.InitializeOptions).
+-- Listed in the order the panels appear in Blizzard's tree (see ns.RegisterOptionsPanels).
 ns.OPTIONS_REGISTRY = {
 	General = ADDON_NAME .. "_General",
 	Macros = ADDON_NAME .. "_Macros",
@@ -86,7 +86,7 @@ ns.OPTIONS_REGISTRY = {
 	Restocker = ADDON_NAME .. "_Restocker",
 	-- Registered but never added to the Blizzard tree: it opens as its own window.
 	StarterListPopup = ADDON_NAME .. "_StarterListPopup",
-	Readiness = ADDON_NAME .. "_Readiness",
+	ReadinessReport = ADDON_NAME .. "_ReadinessReport",
 	Profiles = ADDON_NAME .. "_Profiles",
 	Diagnostics = ADDON_NAME .. "_Diagnostics",
 }
@@ -109,8 +109,8 @@ ns.QUESTION_MARK_ICON = 134400
     whose control needs more room passes its own width to ns.OptionsRowLabel and
     gives the control the remainder.
 ]]
-ns.OPTIONS_ROW_WIDTH = 2.6
-ns.OPTIONS_LABEL_WIDTH = 1.3
+ns.OPTIONS_ROW_WIDTH = 3.4
+ns.OPTIONS_LABEL_WIDTH = 2.1
 ns.OPTIONS_CONTROL_WIDTH = ns.OPTIONS_ROW_WIDTH - ns.OPTIONS_LABEL_WIDTH
 
 -- The item lists' remove column, sized to its icon rather than a caption.
@@ -161,8 +161,8 @@ ns.IGNORE_SCOPE_GLOBAL = "**global**"
 -- Macro Configuration
 --------------------------------------------------------------------------------
 
--- label: localized display name plugged into MSG_NO_ITEM by ConnNoItem.
-ns.MacroConfig = {
+-- label: localized display name plugged into MESSAGE_NO_ITEM by ConnoisseurNoItem.
+ns.MACRO_CONFIG = {
 	["Bandage"] = { macro = ns.L["MACRO_BANDAGE"], defaultID = 1251, label = ns.L["LABEL_BANDAGE"] },
 	["Explosive"] = { macro = ns.L["MACRO_EXPLOSIVES"], defaultID = 4358, label = ns.L["LABEL_EXPLOSIVE"] },
 	["Food"] = { macro = ns.L["MACRO_FOOD"], defaultID = 5349, label = ns.L["LABEL_FOOD"] },
@@ -185,9 +185,10 @@ ns.MacroConfig = {
 ]]
 ns.MULTI_USE_MAX_ITEMS = 3
 
-ns.MultiUseMacroTypes = {
+ns.MULTI_USE_MACRO_TYPES = {
 	["Health Potion"] = true,
 	["Healthstone"] = true,
+	["Mana Gem"] = true,
 	["Mana Potion"] = true,
 }
 
@@ -232,7 +233,7 @@ ns.DRUID_BEAR_FORM_SPELL_ID = 5487
 ns.DRUID_CAT_FORM_SPELL_ID = 768
 
 -- Which macro types are eligible for DMH wrapping when the druid toggle is on.
-ns.DruidMacroHelperTypes = {
+ns.DRUID_MACRO_HELPER_TYPES = {
 	["Health Potion"] = true,
 	["Mana Potion"] = true,
 	["Healthstone"] = true,
@@ -245,50 +246,51 @@ ns.DruidMacroHelperTypes = {
       MP       → "/dmh stun gcd cd pot" (skips the mana check, since the
                  whole point of a mana pot is that the druid is OOM)
 ]]
-ns.DruidMacroHelperGuards = {
+ns.DRUID_MACRO_HELPER_GUARDS = {
 	["Health Potion"] = { "/dmh start", "/dmh cd pot" },
 	["Healthstone"] = { "/dmh start", "/dmh cd hs" },
 	["Mana Potion"] = { "/dmh stun gcd cd pot" },
 }
 
 --------------------------------------------------------------------------------
--- ConnTip Messages
+-- ConnoisseurTip Messages
 --------------------------------------------------------------------------------
 
 --[[
-    Canned chat messages the macro bodies can fire via `/run ConnTip("key")`.
-    ConnTip (in Features/Macros/Runtime.lua) consults two tables:
-      ns.MessageStrings        → static message text
-      ns.MissingSpellMessageIDs → spell IDs that ConnTip resolves at print time
+    Canned chat messages the macro bodies can fire via `/run ConnoisseurTip("key")`.
+    ConnoisseurTip (in Features/Macros/Runtime.lua) consults two tables:
+      ns.TIP_MESSAGES        → static message text
+      ns.MISSING_SPELL_MESSAGE_IDS → spell IDs that ConnoisseurTip resolves at print time
                                    via GetSpellInfo, producing "You don't
                                    currently know <Localized Spell Name>."
     A spell ID that doesn't exist on the current client (e.g. Refreshment
-    Table in Era 1.15) returns nil from GetSpellInfo, so ConnTip silently
+    Table in Era 1.15) returns nil from GetSpellInfo, so ConnoisseurTip silently
     skips the print rather than naming a spell the player will never see.
 ]]
-ns.MessageStrings = {
-	nofood = ns.L["TIP_PET_NO_FOOD"],
-	noskills = ns.L["TIP_PET_NO_SKILLS"],
-	nomend = ns.L["TIP_PET_NO_MEND"],
-	nopois = ns.L["TIP_NO_HAND_POISON"],
+ns.TIP_MESSAGES = {
+	noPetFood = ns.L["TIP_PET_NO_FOOD"],
+	noPetSkills = ns.L["TIP_PET_NO_SKILLS"],
+	noMendPet = ns.L["TIP_PET_NO_MEND"],
+	noHandPoison = ns.L["TIP_NO_HAND_POISON"],
 }
 
 --[[
-    Mage and Warlock conjure spell IDs — keys match the conjure tables in
-    ns.ConjureSpells below. The IDs here are the rank-1 entries from those tables.
+    Spell IDs that ConnoisseurTip resolves at print time: one per conjure table
+    in ns.CONJURE_SPELLS below, taken from its rank-1 entry, plus the Rogue's
+    Poisons skill, which is not a conjure.
 ]]
-ns.MissingSpellMessageIDs = {
+ns.MISSING_SPELL_MESSAGE_IDS = {
 	-- Mage conjures
-	ncwater = 5504, -- Conjure Water (rank 1)
-	ncfood = 587, -- Conjure Food (rank 1)
-	ncgem = 759, -- Conjure Mana Agate
-	nctable = 43987, -- Ritual of Refreshment (TBC+)
+	noConjureWater = 5504, -- Conjure Water (rank 1)
+	noConjureFood = 587, -- Conjure Food (rank 1)
+	noConjureManaGem = 759, -- Conjure Mana Agate
+	noRitualOfRefreshment = 43987, -- Ritual of Refreshment (TBC+)
 	-- Warlock conjures
-	nchs = 6201, -- Create Healthstone (Minor)
-	ncss = 693, -- Create Soulstone (Minor)
-	ncsw = 29893, -- Ritual of Souls (TBC+)
+	noCreateHealthstone = 6201, -- Create Healthstone (Minor)
+	noCreateSoulstone = 693, -- Create Soulstone (Minor)
+	noRitualOfSouls = 29893, -- Ritual of Souls (TBC+)
 	-- Rogue poisons
-	npois = 2842, -- Poisons (the rogue poison-crafting skill)
+	noPoisonsSkill = 2842, -- Poisons (the rogue poison-crafting skill)
 }
 
 --------------------------------------------------------------------------------
@@ -315,6 +317,7 @@ ns.REVIVE_PET_SPELL_ID = 982
 --------------------------------------------------------------------------------
 -- Pet Buff Food
 --------------------------------------------------------------------------------
+
 -- Hunter and Warlock pet buff foods.
 
 ns.KIBLERS_BITS_ITEM_ID = 33874
@@ -328,7 +331,7 @@ ns.SPORELING_BUFF_ID = 33272
 --------------------------------------------------------------------------------
 
 -- { buffID = true }
-ns.WellFedBuffIDs = {
+ns.WELL_FED_BUFF_IDS = {
 	[18125] = true, -- Blessed Sunfruit
 	[18141] = true, -- Blessed Sunfruit Juice
 	[18191] = true, -- Increased Stamina
@@ -349,6 +352,7 @@ ns.MODE_ORDER = { "always", "party", "raid" }
 --------------------------------------------------------------------------------
 -- Mage and Warlock Spells
 --------------------------------------------------------------------------------
+
 --[[
     Conjure spell lists, best rank first. Each entry is:
 
@@ -372,17 +376,17 @@ ns.MODE_ORDER = { "always", "party", "raid" }
                    rankIsTBCOnly pin the rank ONLY on TBC — see the
                    RECURRING BUG note on WarlockCreateHealthstone.
     maxTargetLevel Optional, documentation only (Soulstones) — every
-                   consumer (GetSmartSpell, KnowsAny, the Core spell
+                   consumer (GetSmartSpell, KnowsAny, the conjure-spell
                    cache) reads only the first three fields.
 
     A list may also carry named flags (skipped by ipairs, so harmless to
     every entry walker):
 
     rankIsTBCOnly  The rank column is a TBC-only representation;
-                   GetSmartSpell emits the "(Rank N)" suffix for this
-                   list only when ns.IsTBC.
+                   GetSmartSpell leaves this list's spell names bare
+                   (no "(Rank N)" suffix) only when ns.IS_ERA.
 ]]
-ns.ConjureSpells = {
+ns.CONJURE_SPELLS = {
 	MageCreateTable = {
 		-- {Spell ID, Spell Learn Level}
 		{ 58659, 80 }, -- Ritual of Refreshment, Rank 2

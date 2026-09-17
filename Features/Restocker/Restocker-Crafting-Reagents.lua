@@ -22,7 +22,7 @@ ns.pendingRecipes = {}
 
 --[[
     A recipe needs the localized name of its crafted item AND of every reagent, and
-    GetItemInfo answers nil for anything the client has not cached yet -- the normal
+    C_Item.GetItemInfo answers nil for anything the client has not cached yet -- the normal
     state during a login. A recipe missing any of those names is parked whole and
     retried when the answer arrives; adding it half-named would order reagents
     under a name nothing ever matches.
@@ -78,7 +78,7 @@ function ns.SetupCraftingRecipes()
 		return
 	end
 
-	for _, row in ipairs(ns.PoisonRecipes or {}) do
+	for _, row in ipairs(ns.POISON_RECIPES or {}) do
 		local expansion = row[3]
 		if expansion == nil or expansion == ns.CURRENT_EXPANSION then
 			local reagents = {}
@@ -98,9 +98,9 @@ function ns.BuildCraftingPurchaseOrder()
 	local purchaseOrder = {}
 	local settings = ns.restockSettings
 
-	local profile = settings.profiles[settings.currentProfile]
+	local list = settings.lists[settings.currentList]
 
-	for _, item in pairs(profile) do
+	for _, item in pairs(list) do
 		local recipe = buyIngredients[item.itemName]
 		if recipe ~= nil then
 			--[[
@@ -116,12 +116,11 @@ function ns.BuildCraftingPurchaseOrder()
 			    the bank had been opened that session, which is when the client learns
 			    bank contents.
 
-			    The old gate that rode along with the bank count is gone with it: any
-			    shortfall is worth buying for. It raised the threshold to half the
-			    target whenever anything sat in the bank, so wanting 40 with 21 banked
-			    was 19 short against a floor of 20 and silently bought nothing.
+			    Any shortfall is worth buying for, with no minimum threshold: a floor
+			    such as half the target silently buys nothing for a list 19 short of
+			    40.
 			]]
-			local haveCrafted = GetItemCount(item.itemID, false, false) or 0
+			local haveCrafted = C_Item.GetItemCount(item.itemID, false, false) or 0
 			local craftedMissing = (item.amount or 0) - haveCrafted
 
 			if craftedMissing > 0 then
@@ -147,7 +146,7 @@ function ns.BuildCraftingPurchaseOrder()
 	    shortfall in the add-on that cannot be counted by ID.
 	]]
 	for reagent, _ in pairs(purchaseOrder) do
-		local inBags = GetItemCount(reagent, false) or 0
+		local inBags = C_Item.GetItemCount(reagent, false) or 0
 		if inBags > 0 then
 			local remaining = purchaseOrder[reagent] - inBags
 			purchaseOrder[reagent] = remaining > 0 and remaining or 0

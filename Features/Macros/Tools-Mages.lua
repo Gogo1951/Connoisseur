@@ -23,7 +23,7 @@ local _, ns = ...
     parameterized by the right-click list and its miss key.
 ]]
 function ns.ResolveMageWaterOrFoodConjure(rightList, rightMissKey)
-	if not ns.IsMage then
+	if not ns.isMage then
 		return nil
 	end
 
@@ -50,10 +50,10 @@ function ns.ResolveMageWaterOrFoodConjure(rightList, rightMissKey)
 	    clients where the spell isn't implemented (Era 1.15), the tip
 	    resolves to nil at print time and silently does nothing.
 	]]
-	if ns.KnowsAny(ns.ConjureSpells.MageCreateTable) then
-		info.middleName, info.middleID = ns.GetSmartSpell(ns.ConjureSpells.MageCreateTable, true)
+	if ns.KnowsAny(ns.CONJURE_SPELLS.MageCreateTable) then
+		info.middleName, info.middleID = ns.GetSmartSpell(ns.CONJURE_SPELLS.MageCreateTable, true)
 	else
-		info.middleMiss = "nctable"
+		info.middleMiss = "noRitualOfRefreshment"
 	end
 
 	return info
@@ -65,21 +65,21 @@ end
     conjures the next rank down rather than failing on a duplicate.
 ]]
 function ns.ResolveMageManaGemConjure()
-	if not ns.IsMage then
+	if not ns.isMage then
 		return nil
 	end
 
 	local info = {}
-	if ns.KnowsAny(ns.ConjureSpells.MageCreateManaGem) then
-		info.rightName, info.rightID = ns.GetSmartSpell(ns.ConjureSpells.MageCreateManaGem, true, true)
+	if ns.KnowsAny(ns.CONJURE_SPELLS.MageCreateManaGem) then
+		info.rightName, info.rightID = ns.GetSmartSpell(ns.CONJURE_SPELLS.MageCreateManaGem, true, true)
 	else
-		info.rightMiss = "ncgem"
+		info.rightMiss = "noConjureManaGem"
 		--[[
 		    Mana Gems are class-exclusive; a mage without the spell almost
 		    certainly has no Mana Gem in bags either, so left-click should
 		    explain that rather than the generic "no item found" message.
 		]]
-		info.noItemMiss = "ncgem"
+		info.noItemMiss = "noConjureManaGem"
 	end
 	return info
 end

@@ -20,7 +20,7 @@ local CURRENT_EXPANSION = ns.CURRENT_EXPANSION
 
 -- [itemID] = { chain = <chain>, tier = <index into chain.tiers> }
 local upgradeIndex = {}
-for _, chain in ipairs(ns.FoodUpgradeChains or {}) do
+for _, chain in ipairs(ns.CONSUMABLE_UPGRADE_CHAINS or {}) do
 	for tierIndex, tier in ipairs(chain.tiers) do
 		upgradeIndex[tier[2]] = { chain = chain, tier = tierIndex }
 	end
@@ -44,7 +44,7 @@ end
 
     A tier's optional fourth field is the LAST expansion it exists in --
     Blinding Powder left the game after Classic, so its tier reads
-    { 34, 6510, CLASSIC, CLASSIC } and a TBC client refuses it here the same
+    { 34, 5530, CLASSIC, CLASSIC } and a TBC client refuses it here the same
     way an Era client refuses a TBC tier.
 ]]
 local function BestTier(chain, level)
@@ -80,9 +80,9 @@ end
     amounts add up and the old row goes. Anything else would either drop what
     the player asked for or leave two rows for the same shopping trip.
 ]]
-local function MoveToTier(profile, fromID, toID)
-	local item = profile[fromID]
-	local existing = profile[toID]
+local function MoveToTier(list, fromID, toID)
+	local item = list[fromID]
+	local existing = list[toID]
 
 	if existing then
 		existing.amount = (existing.amount or 0) + (item.amount or 0)
@@ -92,15 +92,15 @@ local function MoveToTier(profile, fromID, toID)
 		item.itemName = info and info.itemName or ""
 		item.itemType = (info and info.itemType) or item.itemType
 		item.itemLink = nil
-		profile[toID] = item
+		list[toID] = item
 	end
 
-	profile[fromID] = nil
+	list[fromID] = nil
 end
 
 --[[
     True when an upgrade was deferred because the client had not resolved the
-    target item yet. GetItemInfo asks the server on a miss, so the retry rides
+    target item yet. C_Item.GetItemInfo asks the server on a miss, so the retry rides
     on GET_ITEM_INFO_RECEIVED (Restocker-List.lua) rather than a timer.
 ]]
 local pendingUpgrade = false
@@ -119,8 +119,8 @@ local pendingUpgrade = false
 ]]
 function ns.UpgradeRestockList(newLevel)
 	local settings = ns.restockSettings
-	local profile = settings and settings.profiles and settings.profiles[settings.currentProfile]
-	if not profile then
+	local list = settings and settings.lists and settings.lists[settings.currentList]
+	if not list then
 		return
 	end
 
@@ -132,7 +132,7 @@ function ns.UpgradeRestockList(newLevel)
 	    keys, and mutating a table while pairs() walks it is undefined.
 	]]
 	local planned = {}
-	for itemID, item in pairs(profile) do
+	for itemID, item in pairs(list) do
 		-- nil means on, matching how buyFromMerchant reads its default
 		if item.upgrade ~= false then
 			local entry = upgradeIndex[itemID]
@@ -175,11 +175,11 @@ function ns.UpgradeRestockList(newLevel)
 	]]
 	ns.PrintMessage(L["RESTOCKER_UPGRADED"])
 	for _, move in ipairs(planned) do
-		local from = profile[move.from]
+		local from = list[move.from]
 		local fromLink = ns.GetItemHyperlink(move.from, from and from.itemName)
 		local fromAmount = (from and from.amount) or 0
-		MoveToTier(profile, move.from, move.to)
-		local moved = profile[move.to]
+		MoveToTier(list, move.from, move.to)
+		local moved = list[move.to]
 		ns.PrintMessage(
 			string.format(
 				L["RESTOCKER_UPGRADED_ITEM"],

@@ -6,15 +6,26 @@ local Header = ns.OptionsHeader
 local Desc = ns.OptionsDesc
 local Spacer = ns.OptionsSpacer
 local RowLabel = ns.OptionsRowLabel
+local SubRow, SubLabel = ns.OptionsSubRow, ns.OptionsSubLabel
+
+--[[
+    Sub-row cells, sized to their contents with room to spare rather than to the
+    row budget; see ns.OptionsSubRow on why an exact fit must be avoided.
+]]
+local SUB_CAPTION_WIDTH = 1.0
+local SUB_SELECT_WIDTH = 1.4
+
+-- The click-layout values are long phrases, so that row gives its label less than the standard share.
+local EXPLOSIVES_LABEL_WIDTH = 1.4
 
 --------------------------------------------------------------------------------
 -- Active-State Predicates
 --------------------------------------------------------------------------------
 
 --[[
-    Each feature's mode dropdown and option sub-controls are hidden until the
-    feature toggle is on, mirroring the guide's "hide unavailable controls"
-    rule. These read the per-character settings table that InitVars guarantees.
+    Each feature's mode sub-row and option sub-controls are hidden until the
+    feature toggle is on. These read the per-character settings table that
+    InitializeSavedVariables guarantees.
 
     Settings live on the AceDB profile, so every character configures its own
     consumables. The exceptions on this panel are account-wide and read
@@ -42,8 +53,8 @@ local function PetBuffActive()
 end
 
 --[[
-    Gates for the dropdowns that sit beside their feature toggle: each is hidden
-    until its toggle is on, matching the mode dropdowns above.
+    Gates for the sub-rows under their feature toggle: each is hidden until its
+    toggle is on, matching the mode sub-rows above.
 ]]
 local function ReapplyThresholdHidden()
 	local settings = GetSettings()
@@ -51,7 +62,7 @@ local function ReapplyThresholdHidden()
 end
 
 local function DruidReturnFormHidden()
-	if not ns.IsDruid then
+	if not ns.isDruid then
 		return true
 	end
 	local settings = GetSettings()
@@ -59,11 +70,11 @@ local function DruidReturnFormHidden()
 end
 
 local function NotDruid()
-	return not ns.IsDruid
+	return not ns.isDruid
 end
 
 local function NotRogue()
-	return not ns.IsRogue
+	return not ns.isRogue
 end
 
 --[[
@@ -71,59 +82,66 @@ end
     Stealth Eating, and Shadowmeld drinking is folded into the Rogue macro.
 ]]
 local function NotNightElf()
-	return not ns.IsNightElf or ns.IsRogue
+	return not ns.isNightElf or ns.isRogue
 end
 
 --------------------------------------------------------------------------------
 -- Shared Widget Factories
 --------------------------------------------------------------------------------
 
---[[
-    Group-restriction mode dropdown shared by Buff Food, Scrolls, and Pet Food.
-    Hidden until the owning feature is enabled; selecting a mode rewrites the
-    macros under the throttle. Shares a row with its feature toggle -- the
-    toggle is width "double" and this select "normal", so both fit one row
-    (same recipe as MagicEraser's Auto Vend row).
-]]
-local function FeatureMode(settingKey, activeFn, order)
+-- A sub-row's silver caption cell, naming the control beside it.
+local function SubCaption(key)
 	return {
-		type = "select",
-		name = "",
-		order = order,
-		width = "normal",
-		values = ns.MODE_VALUES,
-		sorting = ns.MODE_ORDER,
-		hidden = function()
-			return not activeFn()
-		end,
-		get = function()
-			return ns.db.profile[settingKey] or "always"
-		end,
-		set = function(_, value)
-			ns.db.profile[settingKey] = value
-			if ns.ResetMacroState then
-				ns.ResetMacroState()
-			end
-			ns.RequestUpdate()
-		end,
+		type = "description",
+		name = SubLabel(L[key]),
+		fontSize = "medium",
+		width = SUB_CAPTION_WIDTH,
 	}
 end
 
+--[[
+    Group-restriction mode sub-row shared by Buff Food, Scrolls, and Pet Food,
+    indented under the feature toggle and hidden until it is on. Selecting a
+    mode rewrites the macros under the throttle.
+]]
+local function FeatureModeRow(settingKey, featureName, activeFn, order)
+	return SubRow(order, function()
+		return not activeFn()
+	end, {
+		SubCaption("OPTIONS_MODE_CAPTION"),
+		{
+			type = "select",
+			name = "",
+			desc = string.format(L["OPTIONS_MODE_DESCRIPTION"], featureName),
+			width = SUB_SELECT_WIDTH,
+			values = ns.MODE_VALUES,
+			sorting = ns.MODE_ORDER,
+			get = function()
+				return ns.db.profile[settingKey] or "always"
+			end,
+			set = function(_, value)
+				ns.db.profile[settingKey] = value
+				ns.ResetMacroState()
+				ns.RequestUpdate()
+			end,
+		},
+	})
+end
+
 -- Toggle for one entry inside a per-character settings subtable (scroll/pet types).
-local function SubsetToggle(subtable, key, label, order)
+local function SubsetToggle(subtableKey, key, label, order)
 	return {
 		type = "toggle",
 		name = label,
+		desc = string.format(L["OPTIONS_BUFF_TYPE_DESCRIPTION"], label),
 		order = order,
 		get = function()
-			local t = ns.db.profile[subtable]
-			return t and t[key]
+			local subtable = ns.db.profile[subtableKey]
+			return subtable and subtable[key]
 		end,
 		set = function(_, value)
-			ns.db.profile[subtable][key] = value
-			if ns.ResetMacroState then
-				ns.ResetMacroState()
-			end
+			ns.db.profile[subtableKey][key] = value
+			ns.ResetMacroState()
 			ns.RequestUpdate()
 		end,
 	}
@@ -131,33 +149,43 @@ end
 
 --[[
     Poison-group dropdown shared by the Main Hand and Off Hand rows. Values
-    resolve through ns.GetPoisonGroupName each time the dialog renders, so
-    the labels arrive once the client's item cache warms. Rogue-only, like
-    the section that hosts it.
+    resolve through ns.GetPoisonGroupName each time the dialog renders, and any
+    base item still uncached is warmed so the panel repaints with the client's
+    own names. Rogue-only, like the section that hosts it.
 ]]
-local function PoisonHandDropdown(label, settingKey, order)
+local function PoisonHandDropdown(label, description, settingKey, order)
+	local sorting = {}
+	for _, groupID in pairs(ns.POISON_GROUPS) do
+		sorting[#sorting + 1] = groupID
+	end
+	table.sort(sorting)
+
 	return {
 		type = "select",
 		name = label,
+		desc = description,
 		order = order,
-		width = "normal",
+		width = ns.OPTIONS_CONTROL_WIDTH,
 		values = function()
 			local values = {}
-			for groupID in pairs(ns.PoisonGroupBaseItems or {}) do
+			local coldItemIDs = {}
+			for groupID, baseItem in pairs(ns.POISON_GROUP_BASE_ITEMS or {}) do
 				values[groupID] = ns.GetPoisonGroupName(groupID)
+				if not C_Item.GetItemInfo(baseItem) then
+					coldItemIDs[#coldItemIDs + 1] = baseItem
+				end
 			end
+			ns.WarmItemCache(coldItemIDs, ns.OPTIONS_REGISTRY.Macros)
 			return values
 		end,
-		sorting = { 1, 2, 3, 4, 5, 6 },
+		sorting = sorting,
 		hidden = NotRogue,
 		get = function()
 			return ns.db.profile[settingKey] or 4
 		end,
 		set = function(_, value)
 			ns.db.profile[settingKey] = value
-			if ns.ResetMacroState then
-				ns.ResetMacroState()
-			end
+			ns.ResetMacroState()
 			ns.RequestUpdate()
 		end,
 	}
@@ -171,6 +199,7 @@ local function MacroToggle(label, key, order, hiddenFn)
 	return {
 		type = "toggle",
 		name = label,
+		desc = string.format(L["OPTIONS_MACRO_TOGGLE_DESCRIPTION"], ns.MACRO_CONFIG[key].label),
 		order = order,
 		width = "normal",
 		hidden = hiddenFn,
@@ -179,28 +208,10 @@ local function MacroToggle(label, key, order, hiddenFn)
 		end,
 		set = function(_, value)
 			ns.db.global.enabledMacros[key] = value
-			if ns.ResetMacroState then
-				ns.ResetMacroState()
-			end
+			ns.ResetMacroState()
 			ns.RequestUpdate()
 		end,
 	}
-end
-
---[[
-    Buff Food, Scroll Buffs and Pet Food Buffs are all suppressed in a PvP
-    Arena, and all three say so with the same sentence. It lives in one locale
-    key (OPTIONS_DISABLED_IN_ARENAS) and is appended here instead of being
-    written into each description, so every locale translates it once and the
-    caveat cannot drift between the three.
-
-    Appending a whole sentence after a full stop, never a fragment -- the base
-    description stays a complete, independently translatable sentence, which is
-    also what lets the mini-map tooltip reuse the Buff Food one without the
-    arena note (it has no room for the caveat).
-]]
-local function WithArenaNote(descriptionKey)
-	return L[descriptionKey] .. " " .. L["OPTIONS_DISABLED_IN_ARENAS"]
 end
 
 --------------------------------------------------------------------------------
@@ -210,11 +221,11 @@ end
 --[[
     Everything that shapes the macros Connoisseur builds, in one page: which
     macros exist, then how each behaves. Page order is Macro Names on Buttons,
-    Enable Macros, Potions & Healthstones, Buff Re-Application, Buff Food,
-    Scroll Buffs, Pet Food Buffs, Explosives, then the class/race-gated Druids,
-    Rogues, and Night Elves sections, which hide themselves for characters they
-    do not apply to. The Ignore List has its own panel
-    (Options-Ignore-List.lua).
+    Enable Macros, Potions & Healthstones, Mana Gems & Runes, Buff
+    Re-Application, Buff Food, Scroll Buffs, Pet Food Buffs, Explosives, then
+    the class/race-gated Druids, Rogues, and Night Elves sections, which hide
+    themselves for characters they do not apply to. The Ignore List has its
+    own panel (Options-Ignore-List.lua).
 
     Order values keep the spaced blocks these sections used on the General page
     so a section can be reordered or extended without renumbering its
@@ -242,9 +253,7 @@ function ns.BuildMacrosOptions()
 				return ns.db and ns.db.global.showMacroNames
 			end,
 			set = function(_, value)
-				if ns.ToggleMacroNames then
-					ns.ToggleMacroNames(value)
-				end
+				ns.ToggleMacroNames(value)
 			end,
 		},
 
@@ -257,7 +266,7 @@ function ns.BuildMacrosOptions()
 		enableBandage = MacroToggle(L["MACRO_BANDAGE"], "Bandage", 15),
 		enableExplosive = MacroToggle(L["MACRO_EXPLOSIVES"], "Explosive", 16),
 		enableFeedPet = MacroToggle(L["MACRO_FEED_PET"], "Feed Pet", 17, function()
-			return not ns.IsHunter
+			return not ns.isHunter
 		end),
 		enableFood = MacroToggle(L["MACRO_FOOD"], "Food", 18),
 		enableHealthPotion = MacroToggle(L["MACRO_HEALTH_POTION"], "Health Potion", 19),
@@ -286,9 +295,30 @@ function ns.BuildMacrosOptions()
 			end,
 			set = function(_, value)
 				ns.db.profile.combineHealthstones = value
-				if ns.ResetMacroState then
-					ns.ResetMacroState()
-				end
+				ns.ResetMacroState()
+				ns.RequestUpdate()
+			end,
+		},
+
+		-- Mana Gems & Runes
+		spaceManaGems0 = Spacer(40),
+		headerManaGems = Header(L["OPTIONS_MANA_GEMS_HEADER"], 41),
+		spaceManaGems1 = Spacer(42),
+		descManaGems = Desc(GetColor("BODY") .. L["OPTIONS_MANA_GEMS_DESCRIPTION"] .. "|r", 43),
+		spaceManaGems2 = Spacer(44),
+		toggleIncludeManaRunes = {
+			type = "toggle",
+			name = L["OPTIONS_INCLUDE_MANA_RUNES"],
+			desc = L["OPTIONS_INCLUDE_MANA_RUNES_DESCRIPTION"],
+			order = 45,
+			width = "full",
+			get = function()
+				local settings = GetSettings()
+				return settings and settings.includeManaRunes
+			end,
+			set = function(_, value)
+				ns.db.profile.includeManaRunes = value
+				ns.ResetMacroState()
 				ns.RequestUpdate()
 			end,
 		},
@@ -309,102 +339,93 @@ function ns.BuildMacrosOptions()
 			name = L["OPTIONS_REAPPLY"],
 			desc = L["OPTIONS_REAPPLY_DESCRIPTION"],
 			order = 95,
-			--[[
-			    Not the usual toggle "double" + select "normal" split: this
-			    dropdown's values are whole phrases ("When < 2 Minutes...")
-			    rather than the one-word modes the other rows show, and at a
-			    third of the row they crowded the arrow. An even half-and-half
-			    split gives the copy room without wrapping the label.
-			]]
-			width = 1.5,
+			width = "full",
 			get = function()
 				local settings = GetSettings()
 				return settings and settings.earlyReapply
 			end,
 			set = function(_, value)
 				ns.db.profile.earlyReapply = value
-				if ns.ResetMacroState then
-					ns.ResetMacroState()
-				end
+				ns.ResetMacroState()
 				ns.RequestUpdate()
 			end,
 		},
-		reapplyThreshold = {
-			type = "select",
-			name = "",
-			order = 96,
-			width = 1.5,
-			values = {
-				[60] = L["REAPPLY_THRESHOLD_ONE"],
-				[120] = string.format(L["REAPPLY_THRESHOLD_N"], 2),
-				[180] = string.format(L["REAPPLY_THRESHOLD_N"], 3),
-				[240] = string.format(L["REAPPLY_THRESHOLD_N"], 4),
-				[300] = string.format(L["REAPPLY_THRESHOLD_N"], 5),
+		reapplyThreshold = SubRow(96, ReapplyThresholdHidden, {
+			SubCaption("OPTIONS_REAPPLY_THRESHOLD_CAPTION"),
+			{
+				type = "select",
+				name = "",
+				desc = L["OPTIONS_REAPPLY_THRESHOLD_DESCRIPTION"],
+				width = SUB_SELECT_WIDTH,
+				values = {
+					[60] = L["REAPPLY_THRESHOLD_ONE"],
+					[120] = string.format(L["REAPPLY_THRESHOLD_MANY"], 2),
+					[180] = string.format(L["REAPPLY_THRESHOLD_MANY"], 3),
+					[240] = string.format(L["REAPPLY_THRESHOLD_MANY"], 4),
+					[300] = string.format(L["REAPPLY_THRESHOLD_MANY"], 5),
+				},
+				sorting = { 60, 120, 180, 240, 300 },
+				get = function()
+					return ns.db.profile.earlyReapplyThreshold or 120
+				end,
+				set = function(_, value)
+					ns.db.profile.earlyReapplyThreshold = value
+					ns.ResetMacroState()
+					ns.RequestUpdate()
+				end,
 			},
-			sorting = { 60, 120, 180, 240, 300 },
-			hidden = ReapplyThresholdHidden,
-			get = function()
-				return ns.db.profile.earlyReapplyThreshold or 120
-			end,
-			set = function(_, value)
-				ns.db.profile.earlyReapplyThreshold = value
-				if ns.ResetMacroState then
-					ns.ResetMacroState()
-				end
-				ns.RequestUpdate()
-			end,
-		},
+		}),
 
 		-- Buff Food
 		spaceBuff0 = Spacer(100),
 		headerBuff = Header(L["FEATURE_BUFF_FOOD"], 101),
 		spaceBuff1 = Spacer(102),
-		descBuff = Desc(GetColor("BODY") .. WithArenaNote("MENU_BUFF_FOOD_DESCRIPTION") .. "|r", 103),
-		spaceBuff2 = Spacer(104),
+		descBuff = Desc(GetColor("BODY") .. L["OPTIONS_BUFF_FOOD_DESCRIPTION"] .. "|r", 103),
+		detailBuff = Desc(GetColor("HELP") .. L["OPTIONS_BUFF_FOOD_DETAIL"] .. "|r", 104),
+		spaceBuff2 = Spacer(105),
 		toggleBuffFood = {
 			type = "toggle",
 			name = L["OPTIONS_BUFF_FOOD"],
-			desc = WithArenaNote("MENU_BUFF_FOOD_DESCRIPTION"),
-			order = 105,
-			width = "double",
+			desc = L["OPTIONS_BUFF_FOOD_DESCRIPTION"],
+			order = 106,
+			width = "full",
 			get = function()
 				return BuffFoodActive()
 			end,
 			set = function(_, value)
-				if ns.ToggleBuffFood then
-					ns.ToggleBuffFood(value)
-				end
+				ns.ToggleBuffFood(value)
 			end,
 		},
-		buffFoodMode = FeatureMode("buffFoodMode", BuffFoodActive, 106),
-		spaceBuff3 = Spacer(107),
-		detailBuff = Desc(GetColor("HELP") .. L["OPTIONS_BUFF_FOOD_DETAIL"] .. "|r", 108),
+		buffFoodMode = FeatureModeRow("buffFoodMode", L["FEATURE_BUFF_FOOD"], BuffFoodActive, 107),
 
 		-- Scroll Buffs
 		spaceScroll0 = Spacer(200),
 		headerScroll = Header(L["FEATURE_SCROLL_BUFFS"], 201),
 		spaceScroll1 = Spacer(202),
-		descScroll = Desc(GetColor("BODY") .. WithArenaNote("OPTIONS_USE_SCROLLS_DESCRIPTION") .. "|r", 203),
+		descScroll = Desc(GetColor("BODY") .. L["OPTIONS_USE_SCROLLS_DESCRIPTION"] .. "|r", 203),
 		spaceScroll2 = Spacer(204),
 		toggleScrolls = {
 			type = "toggle",
 			name = L["OPTIONS_USE_SCROLLS"],
-			desc = WithArenaNote("OPTIONS_USE_SCROLLS_DESCRIPTION"),
+			desc = L["OPTIONS_USE_SCROLLS_DESCRIPTION"],
 			order = 205,
-			width = "double",
+			width = "full",
 			get = function()
 				return ScrollsActive()
 			end,
 			set = function(_, value)
-				if ns.ToggleScrollBuffs then
-					ns.ToggleScrollBuffs(value)
-				end
+				ns.ToggleScrollBuffs(value)
 			end,
 		},
-		scrollsMode = FeatureMode("scrollsMode", ScrollsActive, 206),
-		spaceScrollTypes0 = Spacer(207, function()
-			return not ScrollsActive()
-		end),
+		scrollsMode = FeatureModeRow("scrollsMode", L["FEATURE_SCROLL_BUFFS"], ScrollsActive, 206),
+		spaceScrollTypes0 = {
+			type = "description",
+			name = " ",
+			order = 207,
+			hidden = function()
+				return not ScrollsActive()
+			end,
+		},
 		scrollTypesGroup = {
 			type = "group",
 			name = L["OPTIONS_SCROLL_TYPES"],
@@ -427,32 +448,33 @@ function ns.BuildMacrosOptions()
 		spacePet0 = Spacer(300),
 		headerPet = Header(L["OPTIONS_PET_HEADER"], 301),
 		spacePet1 = Spacer(302),
-		descPet = Desc(GetColor("BODY") .. WithArenaNote("OPTIONS_USE_PET_BUFFS_DESCRIPTION") .. "|r", 303),
+		descPet = Desc(GetColor("BODY") .. L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] .. "|r", 303),
 		spacePet2 = Spacer(304),
 		togglePetBuffs = {
 			type = "toggle",
 			name = L["OPTIONS_USE_PET_BUFFS"],
-			desc = WithArenaNote("OPTIONS_USE_PET_BUFFS_DESCRIPTION"),
+			desc = L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"],
 			order = 305,
-			width = "double",
+			width = "full",
 			get = function()
 				return PetBuffActive()
 			end,
 			set = function(_, value)
 				ns.db.profile.usePetBuffFood = value
-				if ns.UpdateAuraTracking then
-					ns.UpdateAuraTracking()
-				end
-				if ns.ResetMacroState then
-					ns.ResetMacroState()
-				end
+				ns.UpdateAuraTracking()
+				ns.ResetMacroState()
 				ns.RequestUpdate()
 			end,
 		},
-		petBuffFoodMode = FeatureMode("petBuffFoodMode", PetBuffActive, 306),
-		spacePetTypes0 = Spacer(307, function()
-			return not PetBuffActive()
-		end),
+		petBuffFoodMode = FeatureModeRow("petBuffFoodMode", L["OPTIONS_PET_HEADER"], PetBuffActive, 306),
+		spacePetTypes0 = {
+			type = "description",
+			name = " ",
+			order = 307,
+			hidden = function()
+				return not PetBuffActive()
+			end,
+		},
 		petTypesGroup = {
 			type = "group",
 			name = L["OPTIONS_PET_BUFF_TYPES"],
@@ -473,11 +495,17 @@ function ns.BuildMacrosOptions()
 		spaceExplosives1 = Spacer(352),
 		descExplosives = Desc(GetColor("BODY") .. L["OPTIONS_EXPLOSIVES_DESCRIPTION"] .. "|r", 353),
 		spaceExplosives2 = Spacer(354),
+		labelExplosivesClickMode = RowLabel(
+			GetColor("TITLE") .. L["OPTIONS_EXPLOSIVES_CLICK_LAYOUT"] .. "|r",
+			355,
+			EXPLOSIVES_LABEL_WIDTH
+		),
 		explosivesClickMode = {
 			type = "select",
 			name = "",
-			order = 355,
-			width = "double",
+			desc = L["OPTIONS_EXPLOSIVES_CLICK_LAYOUT_DESCRIPTION"],
+			order = 356,
+			width = ns.OPTIONS_ROW_WIDTH - EXPLOSIVES_LABEL_WIDTH,
 			values = {
 				atplayer = L["EXPLOSIVES_MODE_ATPLAYER"],
 				toss = L["EXPLOSIVES_MODE_TOSS"],
@@ -488,55 +516,51 @@ function ns.BuildMacrosOptions()
 			end,
 			set = function(_, value)
 				ns.db.profile.explosivesClickMode = value
-				if ns.ResetMacroState then
-					ns.ResetMacroState()
-				end
+				ns.ResetMacroState()
 				ns.RequestUpdate()
 			end,
 		},
 
 		-- Druids
-		spaceDruid0 = Spacer(500, NotDruid),
+		spaceDruid0 = { type = "description", name = " ", order = 500, hidden = NotDruid },
 		headerDruid = Header(L["OPTIONS_DRUIDS_HEADER"], 501, NotDruid),
-		spaceDruid1 = Spacer(502, NotDruid),
+		spaceDruid1 = { type = "description", name = " ", order = 502, hidden = NotDruid },
 		toggleDruidMacroHelper = {
 			type = "toggle",
 			name = L["OPTIONS_DRUID_MACRO_HELPER"],
 			desc = L["OPTIONS_DRUID_MACRO_HELPER_DESCRIPTION"],
 			order = 503,
-			width = "double",
+			width = "full",
 			hidden = NotDruid,
 			get = function()
 				return ns.db and ns.db.profile and ns.db.profile.enableDruidMacroHelper
 			end,
 			set = function(_, value)
-				if ns.ToggleDruidMacroHelper then
-					ns.ToggleDruidMacroHelper(value)
-				end
+				ns.ToggleDruidMacroHelper(value)
 			end,
 		},
-		druidReturnForm = {
-			type = "select",
-			name = "",
-			order = 504,
-			width = "normal",
-			values = {
-				bear = L["DRUID_FORM_BEAR"],
-				cat = L["DRUID_FORM_CAT"],
-			},
-			sorting = { "bear", "cat" },
-			hidden = DruidReturnFormHidden,
-			get = function()
-				return ns.db.profile.druidReturnForm or "bear"
-			end,
-			set = function(_, value)
-				ns.db.profile.druidReturnForm = value
-				if ns.ResetMacroState then
+		druidReturnForm = SubRow(504, DruidReturnFormHidden, {
+			SubCaption("OPTIONS_DRUID_RETURN_FORM_CAPTION"),
+			{
+				type = "select",
+				name = "",
+				desc = L["OPTIONS_DRUID_RETURN_FORM_DESCRIPTION"],
+				width = SUB_SELECT_WIDTH,
+				values = {
+					bear = L["DRUID_FORM_BEAR"],
+					cat = L["DRUID_FORM_CAT"],
+				},
+				sorting = { "bear", "cat" },
+				get = function()
+					return ns.db.profile.druidReturnForm or "bear"
+				end,
+				set = function(_, value)
+					ns.db.profile.druidReturnForm = value
 					ns.ResetMacroState()
-				end
-				ns.RequestUpdate()
-			end,
-		},
+					ns.RequestUpdate()
+				end,
+			},
+		}),
 
 		--[[
 		    Rogues -- poison group per weapon slot plus Stealth Eating.
@@ -545,32 +569,38 @@ function ns.BuildMacrosOptions()
 		    free. Hidden for other classes; Night Elf Rogues see THIS
 		    section (the Night Elves one hides itself for Rogues).
 		]]
-		spaceRogue0 = Spacer(520, NotRogue),
+		spaceRogue0 = { type = "description", name = " ", order = 520, hidden = NotRogue },
 		headerRogue = Header(L["OPTIONS_ROGUES_HEADER"], 521, NotRogue),
-		spaceRogue1 = Spacer(522, NotRogue),
-		descPoisons = Desc(GetColor("BODY") .. L["OPTIONS_POISONS_DESCRIPTION"] .. "|r", 523, NotRogue),
-		spaceRogue2 = Spacer(524, NotRogue),
-		--[[
-		    Mixed rows, matching the Buff Food section: a double-width
-		    inline label on the left, the unlabeled dropdown right-aligned
-		    on the same row (same recipe as the toggle + FeatureMode pair).
-		]]
-		labelMainHandPoison = RowLabel(
-			GetColor("TITLE") .. L["OPTIONS_POISON_MAIN_HAND"] .. "|r",
-			525,
-			"double",
-			NotRogue
-		),
-		mainHandPoison = PoisonHandDropdown("", "mainHandPoisonGroup", 526),
-		spaceRogue3 = Spacer(527, NotRogue),
-		labelOffHandPoison = RowLabel(
-			GetColor("TITLE") .. L["OPTIONS_POISON_OFF_HAND"] .. "|r",
-			528,
-			"double",
-			NotRogue
-		),
-		offHandPoison = PoisonHandDropdown("", "offHandPoisonGroup", 529),
-		spaceRogue4 = Spacer(530, NotRogue),
+		spaceRogue1 = { type = "description", name = " ", order = 522, hidden = NotRogue },
+		descPoisons = {
+			type = "description",
+			name = GetColor("BODY") .. L["OPTIONS_POISONS_DESCRIPTION"] .. "|r",
+			fontSize = "medium",
+			order = 523,
+			hidden = NotRogue,
+		},
+		spaceRogue2 = { type = "description", name = " ", order = 524, hidden = NotRogue },
+		-- Label-beside-control rows: the label cell, then the unlabeled dropdown, one row wide together.
+		labelMainHandPoison = {
+			type = "description",
+			name = GetColor("TITLE") .. L["OPTIONS_POISON_MAIN_HAND"] .. "|r",
+			fontSize = "medium",
+			width = ns.OPTIONS_LABEL_WIDTH,
+			order = 525,
+			hidden = NotRogue,
+		},
+		mainHandPoison = PoisonHandDropdown("", L["OPTIONS_POISON_MAIN_HAND_DESCRIPTION"], "mainHandPoisonGroup", 526),
+		spaceRogue3 = { type = "description", name = " ", order = 527, hidden = NotRogue },
+		labelOffHandPoison = {
+			type = "description",
+			name = GetColor("TITLE") .. L["OPTIONS_POISON_OFF_HAND"] .. "|r",
+			fontSize = "medium",
+			width = ns.OPTIONS_LABEL_WIDTH,
+			order = 528,
+			hidden = NotRogue,
+		},
+		offHandPoison = PoisonHandDropdown("", L["OPTIONS_POISON_OFF_HAND_DESCRIPTION"], "offHandPoisonGroup", 529),
+		spaceRogue4 = { type = "description", name = " ", order = 530, hidden = NotRogue },
 		toggleStealthEatingRogue = {
 			type = "toggle",
 			name = L["OPTIONS_STEALTH_EATING"],
@@ -582,55 +612,55 @@ function ns.BuildMacrosOptions()
 				return ns.db and ns.db.profile and ns.db.profile.enableStealthEating
 			end,
 			set = function(_, value)
-				if ns.ToggleStealthEating then
-					ns.ToggleStealthEating(value)
-				end
+				ns.ToggleStealthEating(value)
 			end,
 		},
 
 		-- Night Elves
-		spaceNightElf0 = Spacer(600, NotNightElf),
+		spaceNightElf0 = { type = "description", name = " ", order = 600, hidden = NotNightElf },
 		headerNightElf = Header(L["OPTIONS_NIGHTELF_HEADER"], 601, NotNightElf),
-		spaceNightElf1 = Spacer(602, NotNightElf),
+		spaceNightElf1 = { type = "description", name = " ", order = 602, hidden = NotNightElf },
+		descStealthPickOne = {
+			type = "description",
+			name = GetColor("HELP") .. L["OPTIONS_STEALTH_PICK_ONE"] .. "|r",
+			fontSize = "medium",
+			order = 603,
+			hidden = NotNightElf,
+		},
+		spaceNightElf2 = { type = "description", name = " ", order = 604, hidden = NotNightElf },
 		toggleShadowmeldDrinking = {
 			type = "toggle",
 			name = L["OPTIONS_STEALTH_DRINKING"],
 			desc = L["OPTIONS_STEALTH_DRINKING_DESCRIPTION"],
-			order = 603,
+			order = 605,
 			width = "full",
 			hidden = NotNightElf,
 			get = function()
 				return ns.db and ns.db.profile and ns.db.profile.enableShadowmeldDrinking
 			end,
 			set = function(_, value)
-				if ns.ToggleShadowmeldDrinking then
-					ns.ToggleShadowmeldDrinking(value)
-				end
+				ns.ToggleShadowmeldDrinking(value)
 			end,
 		},
 		toggleStealthEatingNightElf = {
 			type = "toggle",
 			name = L["OPTIONS_STEALTH_EATING"],
 			desc = L["OPTIONS_STEALTH_EATING_NIGHTELF_DESCRIPTION"],
-			order = 604,
+			order = 606,
 			width = "full",
 			hidden = NotNightElf,
 			get = function()
 				return ns.db and ns.db.profile and ns.db.profile.enableStealthEating
 			end,
 			set = function(_, value)
-				if ns.ToggleStealthEating then
-					ns.ToggleStealthEating(value)
-				end
+				ns.ToggleStealthEating(value)
 			end,
 		},
-		spaceNightElf2 = Spacer(605, NotNightElf),
-		descStealthPickOne = Desc(GetColor("HELP") .. L["OPTIONS_STEALTH_PICK_ONE"] .. "|r", 606, NotNightElf),
 	}
 
 	return {
 		type = "group",
-		name = L["OPTIONS_MACROS_TAB"],
+		name = L["TAB_MACROS"],
 		args = args,
 	}
 end

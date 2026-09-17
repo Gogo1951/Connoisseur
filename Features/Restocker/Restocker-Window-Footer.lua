@@ -7,7 +7,7 @@ local AceGUI = LibStub("AceGUI-3.0")
 --------------------------------------------------------------------------------
 
 --[[
-    Profile: [dropdown] [Copy] [Delete]        Rename: [box.....................]
+    List: [selector] [Copy] [Delete]  [box.....................] [Rename]
 
     No width here is a literal: a list named after a character
     ("Gogopaladin-Mankrik") overruns any fixed one. The dropdown is sized to hold
@@ -28,10 +28,10 @@ local AceGUI = LibStub("AceGUI-3.0")
     with a real width, Copy anchors to its edge instead of to a sum of offsets
     guessing where AceGUI drew its box.
 ]]
-local PROFILE_LABEL_X = 10
+local LIST_LABEL_X = 10
 local FOOTER_ROW_HEIGHT = 22
 local FOOTER_RIGHT_INSET = 26
-local PROFILE_SELECTOR_WIDTH = 190
+local LIST_SELECTOR_WIDTH = 190
 local SELECTOR_ARROW_SIZE = 18
 local FOOTER_GAP = 4
 local FOOTER_Y = 12
@@ -77,7 +77,7 @@ local function OpenListPullout(anchor)
 
 	-- Sorted for a stable menu; pairs() order is arbitrary.
 	local names = {}
-	for name in pairs(settings.profiles) do
+	for name in pairs(settings.lists) do
 		names[#names + 1] = name
 	end
 	table.sort(names)
@@ -85,7 +85,7 @@ local function OpenListPullout(anchor)
 	for _, name in ipairs(names) do
 		local entry = AceGUI:Create("Dropdown-Item-Toggle")
 		entry:SetText(name)
-		entry:SetValue(name == settings.currentProfile)
+		entry:SetValue(name == settings.currentList)
 		entry:SetCallback("OnValueChanged", function()
 			-- A toggle item does not close its own pullout, unlike an execute item.
 			CloseListPullout()
@@ -119,11 +119,6 @@ local function OpenListPullout(anchor)
 end
 
 --[[
-    The closed control: an InputBoxTemplate field so it matches Rename beside it,
-    showing the active list. Read-only -- keyboard is off and focus bounces
-    straight back out, so it renders as a field but behaves as a button.
-]]
---[[
     One row for the whole footer, so every control in it centres on the same line
     by construction. Before this each one inherited its vertical position from the
     neighbour to its left, all the way back to the Profile label -- so anything
@@ -132,24 +127,29 @@ end
 ]]
 local function CreateFooterRow(addonFrame)
 	local row = CreateFrame("Frame", nil, addonFrame)
-	row:SetPoint("BOTTOMLEFT", addonFrame, "BOTTOMLEFT", PROFILE_LABEL_X, FOOTER_Y)
+	row:SetPoint("BOTTOMLEFT", addonFrame, "BOTTOMLEFT", LIST_LABEL_X, FOOTER_Y)
 	row:SetPoint("BOTTOMRIGHT", addonFrame, "BOTTOMRIGHT", -FOOTER_RIGHT_INSET, FOOTER_Y)
 	row:SetHeight(FOOTER_ROW_HEIGHT)
 	addonFrame.footerRow = row
 	return row
 end
 
-local function CreateProfilesDropdown(addonFrame)
+--[[
+    The closed control: an InputBoxTemplate field so it matches the Rename box,
+    showing the active list. Read-only -- keyboard is off and focus bounces
+    straight back out, so it renders as a field but behaves as a button.
+]]
+local function CreateListSelector(addonFrame)
 	local footerRow = addonFrame.footerRow
-	local profileText = addonFrame:CreateFontString(nil, "OVERLAY")
-	profileText:SetPoint("LEFT", footerRow, "LEFT", 0, 0)
-	profileText:SetFontObject("GameFontNormal")
-	profileText:SetText(L["RESTOCKER_PROFILE_LABEL"])
-	addonFrame.profileLabel = profileText
+	local listText = addonFrame:CreateFontString(nil, "OVERLAY")
+	listText:SetPoint("LEFT", footerRow, "LEFT", 0, 0)
+	listText:SetFontObject("GameFontNormal")
+	listText:SetText(L["RESTOCKER_PROFILE_LABEL"])
+	addonFrame.listLabel = listText
 
 	local selector = CreateFrame("EditBox", nil, addonFrame, "InputBoxTemplate")
-	selector:SetPoint("LEFT", profileText, "RIGHT", 12, 0)
-	selector:SetWidth(PROFILE_SELECTOR_WIDTH)
+	selector:SetPoint("LEFT", listText, "RIGHT", 12, 0)
+	selector:SetWidth(LIST_SELECTOR_WIDTH)
 	selector:SetHeight(20)
 	selector:SetAutoFocus(false)
 	selector:EnableKeyboard(false)
@@ -176,18 +176,18 @@ local function CreateProfilesDropdown(addonFrame)
 		OpenListPullout(selector)
 	end)
 
-	addonFrame.profileSelector = selector
+	addonFrame.listSelector = selector
 	ns.SetupRestockerTooltip(selector, L["RESTOCKER_PROFILE_LABEL"], L["RESTOCKER_PROFILE_TOOLTIP"])
-	selector:SetText(ns.restockSettings.currentProfile or "")
+	selector:SetText(ns.restockSettings.currentList or "")
 	selector:SetCursorPosition(0)
 end
 
 -- Show the active list in the selector. Called whenever a list is added,
 -- renamed, copied, deleted or switched.
 function ns.RefreshRestockListDropdown()
-	local selector = ns.restockWindow and ns.restockWindow.profileSelector
+	local selector = ns.restockWindow and ns.restockWindow.listSelector
 	if selector then
-		selector:SetText(ns.restockSettings.currentProfile or "")
+		selector:SetText(ns.restockSettings.currentList or "")
 		selector:SetCursorPosition(0)
 	end
 end
@@ -209,12 +209,11 @@ end
     A Button click does not pull keyboard focus off an EditBox, so pressing Rename
     does not trip the discard -- OnClick reads what was typed.
 
-    The word "Rename" moved from a label into the button, so the row reads as one
-    control instead of a caption, a field, and a verb. The locale key is unchanged
-    on purpose: it is the same word, and renaming the key would orphan it in ten
-    locale files this pass is not allowed to touch.
+    The word "Rename" is the button's caption rather than a label beside the field,
+    so the row reads as one control instead of a caption, a field, and a verb. It
+    keeps the RESTOCKER_RENAME_LABEL key, since it is the same word.
 ]]
-local function CreateProfileRenameBox(addonFrame)
+local function CreateListRenameBox(addonFrame)
 	local renameButton = CreateFrame("Button", nil, addonFrame, "UIPanelButtonTemplate")
 	renameButton:SetHeight(22)
 	renameButton:SetPoint("RIGHT", addonFrame.footerRow, "RIGHT", 0, 0)
@@ -223,10 +222,10 @@ local function CreateProfileRenameBox(addonFrame)
 
 	local box = CreateFrame("EditBox", nil, addonFrame, "InputBoxTemplate")
 	box:SetHeight(20)
-	box:SetPoint("LEFT", addonFrame.deleteProfileButton, "RIGHT", 16, 0)
+	box:SetPoint("LEFT", addonFrame.deleteListButton, "RIGHT", 16, 0)
 	box:SetPoint("RIGHT", renameButton, "LEFT", -FOOTER_GAP - 4, 0)
 	box:SetAutoFocus(false)
-	box:SetText(ns.restockSettings.currentProfile or "")
+	box:SetText(ns.restockSettings.currentList or "")
 
 	local function CommitRename()
 		ns.RenameCurrentRestockList(box:GetText())
@@ -234,7 +233,7 @@ local function CreateProfileRenameBox(addonFrame)
 	end
 
 	local function RevertRename()
-		box:SetText(ns.restockSettings.currentProfile or "")
+		box:SetText(ns.restockSettings.currentList or "")
 		box:SetCursorPosition(0)
 	end
 
@@ -248,18 +247,20 @@ local function CreateProfileRenameBox(addonFrame)
 
 	ns.SetupRestockerTooltip(renameButton, L["RESTOCKER_RENAME_LABEL"], L["RESTOCKER_RENAME_TOOLTIP"])
 
-	addonFrame.profileRenameBox = box
-	addonFrame.renameProfileButton = renameButton
+	addonFrame.listRenameBox = box
+	addonFrame.renameListButton = renameButton
 	return box
 end
 
--- PROFILE FOOTER BUTTONS (Copy / Delete)
+--------------------------------------------------------------------------------
+-- Copy And Delete Buttons
+--------------------------------------------------------------------------------
 
 --[[
     Confirmation for the footer Delete button. text_arg1 is the profile name,
     gold-wrapped at show time; StaticPopup_Show's fourth argument carries that same
     name through as the dialog's data, and OnAccept deletes THAT name rather than
-    re-reading currentProfile.
+    re-reading currentList.
 
     Load-bearing: the dialog does not lock the window behind it, so a profile
     switched in the dropdown while the confirm is open would otherwise redirect the
@@ -268,7 +269,7 @@ end
     via ns.DeleteRestockList, which also ignores a nil or already-deleted name.
 ]]
 -- luacheck: globals StaticPopupDialogs
-StaticPopupDialogs["CONNOISSEUR_RESTOCKER_DELETE_PROFILE"] = {
+StaticPopupDialogs["CONNOISSEUR_RESTOCKER_DELETE_LIST"] = {
 	text = L["RESTOCKER_DELETE_PROFILE_CONFIRM"],
 	button1 = YES,
 	button2 = NO,
@@ -282,11 +283,11 @@ StaticPopupDialogs["CONNOISSEUR_RESTOCKER_DELETE_PROFILE"] = {
 	preferredIndex = 3,
 }
 
-local function CreateProfileButtons(addonFrame)
+local function CreateListButtons(addonFrame)
 	local copyButton = CreateFrame("Button", nil, addonFrame, "UIPanelButtonTemplate")
 	copyButton:SetHeight(22)
 	-- Anchored to the selector, which is a real frame with a real width.
-	copyButton:SetPoint("LEFT", addonFrame.profileSelector, "RIGHT", FOOTER_GAP + 4, 0)
+	copyButton:SetPoint("LEFT", addonFrame.listSelector, "RIGHT", FOOTER_GAP + 4, 0)
 	copyButton:SetText(L["RESTOCKER_COPY_PROFILE"])
 	ns.FitRestockButton(copyButton)
 	copyButton:SetScript("OnClick", function()
@@ -301,20 +302,20 @@ local function CreateProfileButtons(addonFrame)
 	ns.FitRestockButton(deleteButton)
 	deleteButton:SetScript("OnClick", function()
 		local settings = ns.restockSettings
-		if not settings.currentProfile then
+		if not settings.currentList then
 			return
 		end
 		StaticPopup_Show(
-			"CONNOISSEUR_RESTOCKER_DELETE_PROFILE",
-			ns.GetColor("TITLE") .. settings.currentProfile .. "|r",
+			"CONNOISSEUR_RESTOCKER_DELETE_LIST",
+			ns.GetColor("TITLE") .. settings.currentList .. "|r",
 			nil,
-			settings.currentProfile
+			settings.currentList
 		)
 	end)
 	ns.SetupRestockerTooltip(deleteButton, L["RESTOCKER_DELETE_PROFILE_TOOLTIP"])
 
-	addonFrame.copyProfileButton = copyButton
-	addonFrame.deleteProfileButton = deleteButton
+	addonFrame.copyListButton = copyButton
+	addonFrame.deleteListButton = deleteButton
 end
 
 --------------------------------------------------------------------------------
@@ -329,7 +330,7 @@ end
 ]]
 function ns.CreateRestockWindowFooter(addonFrame)
 	CreateFooterRow(addonFrame)
-	CreateProfilesDropdown(addonFrame)
-	CreateProfileButtons(addonFrame)
-	CreateProfileRenameBox(addonFrame)
+	CreateListSelector(addonFrame)
+	CreateListButtons(addonFrame)
+	CreateListRenameBox(addonFrame)
 end

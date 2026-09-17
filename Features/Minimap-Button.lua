@@ -2,8 +2,8 @@ local _, ns = ...
 local GetColor = ns.GetColor
 local L = ns.L
 
-local LDB = LibStub("LibDataBroker-1.1")
-local LDBIcon = LibStub("LibDBIcon-1.0")
+local LibDataBroker = LibStub("LibDataBroker-1.1")
+local LibDBIcon = LibStub("LibDBIcon-1.0")
 
 --------------------------------------------------------------------------------
 -- Class Color
@@ -28,29 +28,39 @@ local function GetClassColorEscape(classToken)
 end
 
 --------------------------------------------------------------------------------
--- LDB Icon Update
+-- Registration
+--------------------------------------------------------------------------------
+
+-- Called once at login, after ns.db exists, so LibDBIcon gets the saved button position.
+function ns.RegisterMinimapIcon()
+	if ns.dataBrokerObject and not ns.minimapIconRegistered then
+		LibDBIcon:Register(ns.LOCALE_NAME, ns.dataBrokerObject, ns.db.global.minimap)
+		ns.minimapIconRegistered = true
+	end
+end
+
+--------------------------------------------------------------------------------
+-- Minimap Icon Update
 --------------------------------------------------------------------------------
 
 local UpdateTooltip
 
-function ns.UpdateLDB()
-	if not ns.LDBObject then
+function ns.UpdateMinimapIcon()
+	if not ns.dataBrokerObject then
 		return
 	end
 
-	local iconID = ns.BestFoodID or ns.MacroConfig["Food"].defaultID
+	local iconID = ns.bestFoodID or ns.MACRO_CONFIG["Food"].defaultID
 	local newIcon = ns.GetItemIcon(iconID) or "Interface\\Icons\\INV_Misc_Food_02"
-	ns.LDBObject.icon = newIcon
+	ns.dataBrokerObject.icon = newIcon
 
-	if LDBIcon then
-		local button = LDBIcon:GetMinimapButton(ns.LOCALE_NAME)
-		if button then
-			if button.icon then
-				button.icon:SetTexture(newIcon)
-			end
-			if GameTooltip:GetOwner() == button then
-				UpdateTooltip(button)
-			end
+	local button = LibDBIcon:GetMinimapButton(ns.LOCALE_NAME)
+	if button then
+		if button.icon then
+			button.icon:SetTexture(newIcon)
+		end
+		if GameTooltip:GetOwner() == button then
+			UpdateTooltip(button)
 		end
 	end
 end
@@ -66,7 +76,6 @@ end
     registration — so the choice persists across reloads with no extra wiring.
 ]]
 function ns.ToggleMinimapButton(value)
-	ns.db.global.minimap = ns.db.global.minimap or {}
 	local show
 	if value == nil then
 		show = ns.db.global.minimap.hide
@@ -74,15 +83,7 @@ function ns.ToggleMinimapButton(value)
 		show = value
 	end
 	ns.db.global.minimap.hide = not show
-
-	if not LDBIcon then
-		return
-	end
-	if show then
-		LDBIcon:Show(ns.LOCALE_NAME)
-	else
-		LDBIcon:Hide(ns.LOCALE_NAME)
-	end
+	LibDBIcon:Refresh(ns.LOCALE_NAME, ns.db.global.minimap)
 end
 
 --------------------------------------------------------------------------------
@@ -90,6 +91,9 @@ end
 --------------------------------------------------------------------------------
 
 local KnowsAny = ns.KnowsAny
+
+-- The most restocking orders the Restocker Report lists one per row; a longer list shows only its count.
+local RESTOCKER_REPORT_MAX_ROWS = 8
 
 --[[
     The class tip blocks render one instruction per line, separated by blank
@@ -112,13 +116,13 @@ end
     its own quality color, so the resolved case needs no color of its own.
 
     Nothing resolved -- or an item cache still cold -- renders the one-word
-    UI_NONE instead, leaving the full explanation to the line below it.
+    MINIMAP_NONE instead, leaving the full explanation to the line below it.
 ]]
 local function ItemValue(itemID, itemLink)
 	if itemID and itemLink then
 		return format("|T%s:14:14|t %s", ns.GetItemIcon(itemID), itemLink)
 	end
-	return GetColor("BODY") .. L["UI_NONE"] .. "|r"
+	return GetColor("BODY") .. L["MINIMAP_NONE"] .. "|r"
 end
 
 --[[
@@ -134,7 +138,7 @@ local function AddItemSection(tooltip, title, itemID, itemLink, missingLabel)
 	tooltip:AddLine(" ")
 	tooltip:AddDoubleLine(GetColor("TITLE") .. title .. "|r", ItemValue(itemID, itemLink))
 	if not (itemID and itemLink) then
-		tooltip:AddLine(GetColor("BODY") .. format(L["MSG_NO_ITEM"], missingLabel) .. "|r", 1, 1, 1, true)
+		tooltip:AddLine(GetColor("BODY") .. format(L["MESSAGE_NO_ITEM"], missingLabel) .. "|r", 1, 1, 1, true)
 	end
 end
 
@@ -153,33 +157,44 @@ UpdateTooltip = function(anchor)
 	tooltip:AddLine(" ")
 
 	-- Prioritize Buff Food
-	local buffState = settings.useBuffFood and (GetColor("ON") .. L["UI_ENABLED"] .. "|r")
-		or (GetColor("OFF") .. L["UI_DISABLED"] .. "|r")
+	local buffState = settings.useBuffFood and (GetColor("ON") .. L["MINIMAP_ENABLED"] .. "|r")
+		or (GetColor("OFF") .. L["MINIMAP_DISABLED"] .. "|r")
 	tooltip:AddDoubleLine(GetColor("TITLE") .. L["FEATURE_BUFF_FOOD"] .. "|r", buffState)
 	tooltip:AddLine(GetColor("BODY") .. L["MENU_BUFF_FOOD_DESCRIPTION"] .. "|r", 1, 1, 1, true)
-	tooltip:AddDoubleLine(GetColor("INFO") .. L["UI_LEFT_CLICK"] .. "|r", GetColor("INFO") .. L["UI_TOGGLE"] .. "|r")
+	tooltip:AddDoubleLine(
+		GetColor("INFO") .. L["MINIMAP_LEFT_CLICK"] .. "|r",
+		GetColor("INFO") .. L["MINIMAP_TOGGLE"] .. "|r"
+	)
 	tooltip:AddLine(" ")
 
 	-- Include Scroll Buffs
-	local scrollState = settings.useScrolls and (GetColor("ON") .. L["UI_ENABLED"] .. "|r")
-		or (GetColor("OFF") .. L["UI_DISABLED"] .. "|r")
+	local scrollState = settings.useScrolls and (GetColor("ON") .. L["MINIMAP_ENABLED"] .. "|r")
+		or (GetColor("OFF") .. L["MINIMAP_DISABLED"] .. "|r")
 	tooltip:AddDoubleLine(GetColor("TITLE") .. L["FEATURE_SCROLL_BUFFS"] .. "|r", scrollState)
 	tooltip:AddLine(GetColor("BODY") .. L["MENU_SCROLL_BUFFS_DESCRIPTION"] .. "|r", 1, 1, 1, true)
-	tooltip:AddDoubleLine(GetColor("INFO") .. L["UI_SHIFT_LEFT"] .. "|r", GetColor("INFO") .. L["UI_TOGGLE"] .. "|r")
+	tooltip:AddDoubleLine(
+		GetColor("INFO") .. L["MINIMAP_SHIFT_LEFT"] .. "|r",
+		GetColor("INFO") .. L["MINIMAP_TOGGLE"] .. "|r"
+	)
 
 	--[[
-	    Current Best Food. Shares AddItemSection's row shape, but keeps its own
-	    block: the Ignore hint only belongs here when there is an item to ignore.
+	    Current Food. Unlike AddItemSection's shared title-and-item row, the
+	    title stands alone and the item sits in the right column of the row
+	    beneath it, so a long food name never adds its width to the title's.
+	    With nothing resolved the sentence below answers on its own (a "None"
+	    row above it would only say it twice), and the Ignore hint only
+	    belongs here when there is an item to ignore.
 	]]
 	tooltip:AddLine(" ")
-	tooltip:AddDoubleLine(GetColor("TITLE") .. L["UI_BEST_FOOD"] .. "|r", ItemValue(ns.BestFoodID, ns.BestFoodLink))
-	if ns.BestFoodID and ns.BestFoodLink then
+	tooltip:AddLine(GetColor("TITLE") .. L["MINIMAP_BEST_FOOD"] .. "|r")
+	if ns.bestFoodID and ns.bestFoodLink then
+		tooltip:AddDoubleLine(" ", ItemValue(ns.bestFoodID, ns.bestFoodLink))
 		tooltip:AddDoubleLine(
-			GetColor("INFO") .. L["UI_RIGHT_CLICK"] .. "|r",
+			GetColor("INFO") .. L["MINIMAP_RIGHT_CLICK"] .. "|r",
 			GetColor("INFO") .. L["MENU_IGNORE"] .. "|r"
 		)
 	else
-		tooltip:AddLine(GetColor("BODY") .. format(L["MSG_NO_ITEM"], L["LABEL_FOOD"]) .. "|r", 1, 1, 1, true)
+		tooltip:AddLine(GetColor("BODY") .. format(L["MESSAGE_NO_ITEM"], L["LABEL_FOOD"]) .. "|r", 1, 1, 1, true)
 	end
 
 	--[[
@@ -191,11 +206,11 @@ UpdateTooltip = function(anchor)
 	local hasIgnoredItems = next(ignoreList) ~= nil
 	if hasIgnoredItems then
 		tooltip:AddLine(" ")
-		tooltip:AddLine(GetColor("TITLE") .. L["UI_IGNORE_LIST"] .. "|r")
+		tooltip:AddLine(GetColor("TITLE") .. L["MINIMAP_IGNORE_LIST"] .. "|r")
 
 		local sortedIgnoreList = {}
 		for itemID in pairs(ignoreList) do
-			local name, _, quality, _, _, _, _, _, _, texture = GetItemInfo(itemID)
+			local name, _, quality, _, _, _, _, _, _, texture = C_Item.GetItemInfo(itemID)
 			if name then
 				tinsert(sortedIgnoreList, { id = itemID, name = name, quality = quality, texture = texture })
 			else
@@ -209,7 +224,7 @@ UpdateTooltip = function(anchor)
 
 		for _, item in ipairs(sortedIgnoreList) do
 			if item.texture then
-				local _, _, _, colorHex = GetItemQualityColor(item.quality)
+				local _, _, _, colorHex = C_Item.GetItemQualityColor(item.quality)
 				tooltip:AddLine(format("|T%s:14:14|t |c%s[%s]|r", item.texture, colorHex, item.name))
 			else
 				tooltip:AddLine(GetColor("MUTED") .. format(L["LOADING_ITEM"], item.id) .. "|r")
@@ -217,7 +232,7 @@ UpdateTooltip = function(anchor)
 		end
 
 		tooltip:AddDoubleLine(
-			GetColor("INFO") .. L["UI_MIDDLE_CLICK"] .. "|r",
+			GetColor("INFO") .. L["MINIMAP_MIDDLE_CLICK"] .. "|r",
 			GetColor("INFO") .. L["MENU_CLEAR_IGNORE"] .. "|r"
 		)
 	end
@@ -226,12 +241,12 @@ UpdateTooltip = function(anchor)
 	local _, playerClass = UnitClass("player")
 	local descriptionColor = GetColor("BODY")
 
-	if playerClass == "MAGE" and ns.ConjureSpells then
+	if playerClass == "MAGE" and ns.CONJURE_SPELLS then
 		local classColor = GetClassColorEscape("MAGE")
-		local knowsTable = KnowsAny(ns.ConjureSpells.MageCreateTable)
-		local knowsFood = KnowsAny(ns.ConjureSpells.MageCreateFood)
-		local knowsWater = KnowsAny(ns.ConjureSpells.MageCreateWater)
-		local knowsManaGem = KnowsAny(ns.ConjureSpells.MageCreateManaGem)
+		local knowsTable = KnowsAny(ns.CONJURE_SPELLS.MageCreateTable)
+		local knowsFood = KnowsAny(ns.CONJURE_SPELLS.MageCreateFood)
+		local knowsWater = KnowsAny(ns.CONJURE_SPELLS.MageCreateWater)
+		local knowsManaGem = KnowsAny(ns.CONJURE_SPELLS.MageCreateManaGem)
 
 		if knowsFood or knowsWater or knowsTable or knowsManaGem then
 			tooltip:AddLine(" ")
@@ -251,11 +266,11 @@ UpdateTooltip = function(anchor)
 			end
 			AddSpacedLines(tooltip, descriptionColor, tips)
 		end
-	elseif playerClass == "WARLOCK" and ns.ConjureSpells then
+	elseif playerClass == "WARLOCK" and ns.CONJURE_SPELLS then
 		local classColor = GetClassColorEscape("WARLOCK")
-		local knowsSoulwell = KnowsAny(ns.ConjureSpells.WarlockCreateSoulwell)
-		local knowsHealthstone = KnowsAny(ns.ConjureSpells.WarlockCreateHealthstone)
-		local knowsSoulstone = KnowsAny(ns.ConjureSpells.WarlockCreateSoulstone)
+		local knowsSoulwell = KnowsAny(ns.CONJURE_SPELLS.WarlockCreateSoulwell)
+		local knowsHealthstone = KnowsAny(ns.CONJURE_SPELLS.WarlockCreateHealthstone)
+		local knowsSoulstone = KnowsAny(ns.CONJURE_SPELLS.WarlockCreateSoulstone)
 
 		if knowsHealthstone or knowsSoulstone or knowsSoulwell then
 			tooltip:AddLine(" ")
@@ -295,10 +310,10 @@ UpdateTooltip = function(anchor)
 
 			local mainID, mainLink = ns.GetBestPoisonForHand("main")
 			local offID, offLink = ns.GetBestPoisonForHand("off")
-			AddItemSection(tooltip, L["UI_MAIN_HAND"], mainID, mainLink, L["LABEL_POISONS"])
-			AddItemSection(tooltip, L["UI_OFF_HAND"], offID, offLink, L["LABEL_POISONS"])
+			AddItemSection(tooltip, L["MINIMAP_MAIN_HAND"], mainID, mainLink, L["LABEL_POISONS"])
+			AddItemSection(tooltip, L["MINIMAP_OFF_HAND"], offID, offLink, L["LABEL_POISONS"])
 		end
-	elseif playerClass == "HUNTER" and ns.FeedPetSpellName then
+	elseif playerClass == "HUNTER" and ns.feedPetSpellName then
 		local classColor = GetClassColorEscape("HUNTER")
 
 		tooltip:AddLine(" ")
@@ -312,36 +327,45 @@ UpdateTooltip = function(anchor)
 			L["TIP_HUNTER_MODIFIERS"],
 		})
 
-		AddItemSection(tooltip, L["UI_BEST_PET_FOOD"], ns.BestPetFoodID, ns.BestPetFoodLink, L["LABEL_PET_FOOD"])
+		AddItemSection(tooltip, L["MINIMAP_BEST_PET_FOOD"], ns.bestPetFoodID, ns.bestPetFoodLink, L["LABEL_PET_FOOD"])
 	end
 
 	--[[
-	    Restocker Report -- a count, not a list. Spelling out every shortfall
-	    made the tooltip taller than the screen on a real restock list, and the
-	    only question this section answers is "do I need to shop?". The
-	    Restocker window itself (/crs) is where the items live.
+	    Restocker Report -- the orders themselves while they fit, only their
+	    count past RESTOCKER_REPORT_MAX_ROWS. Spelling out every shortfall made
+	    the tooltip taller than the screen on a real restock list, and at that
+	    length the only question this section answers is "do I need to shop?".
+	    The Restocker window itself (/crs) is where the items live.
+
+	    A row is the item and have/wanted, the ratio the verbose reminder
+	    prints. ns.GetItemHyperlink names the item even while the cache is
+	    cold; a name-only row has no ID to look an icon up by, so it shows the
+	    question mark the Restocker window uses.
 
 	    Read straight off ns.BuildGroceryList so the tooltip and the
 	    entering-town reminder can never disagree, and rendered even when
-	    empty: "fully stocked" is an answer, a missing section is not.
+	    empty: "fully stocked" is an answer, a missing section is not. That
+	    answer is the green congratulation on its own, in place of the header
+	    row -- a "Fully Stocked" value above it would only say it twice.
 	]]
-	if ns.BuildGroceryList then
-		local shortCount = #ns.BuildGroceryList()
-		tooltip:AddLine(" ")
-		if shortCount == 0 then
+	local groceries = ns.BuildGroceryList()
+	tooltip:AddLine(" ")
+	if #groceries == 0 then
+		tooltip:AddLine(GetColor("ON") .. L["MINIMAP_RESTOCKER_STOCKED"] .. "|r", 1, 1, 1, true)
+	elseif #groceries <= RESTOCKER_REPORT_MAX_ROWS then
+		tooltip:AddLine(GetColor("TITLE") .. L["MINIMAP_RESTOCKER_REPORT"] .. "|r")
+		for _, entry in ipairs(groceries) do
+			local icon = entry.itemID and ns.GetItemIcon(entry.itemID) or "Interface\\ICONS\\INV_Misc_QuestionMark"
 			tooltip:AddDoubleLine(
-				GetColor("TITLE") .. L["UI_RESTOCKER_REPORT"] .. "|r",
-				GetColor("ON") .. L["UI_RESTOCKER_STOCKED_SHORT"] .. "|r"
-			)
-			tooltip:AddLine(GetColor("ON") .. L["UI_RESTOCKER_STOCKED"] .. "|r", 1, 1, 1, true)
-		else
-			local countText = (shortCount == 1) and L["UI_RESTOCKER_NEEDED_ONE"]
-				or format(L["UI_RESTOCKER_NEEDED"], shortCount)
-			tooltip:AddDoubleLine(
-				GetColor("TITLE") .. L["UI_RESTOCKER_REPORT"] .. "|r",
-				GetColor("BODY") .. countText .. "|r"
+				format("|T%s:14:14|t %s", icon, ns.GetItemHyperlink(entry.itemID, entry.itemName)),
+				GetColor("BODY") .. format(L["MINIMAP_RESTOCKER_ITEM_COUNT"], entry.have, entry.wanted) .. "|r"
 			)
 		end
+	else
+		tooltip:AddDoubleLine(
+			GetColor("TITLE") .. L["MINIMAP_RESTOCKER_REPORT"] .. "|r",
+			GetColor("BODY") .. format(L["MINIMAP_RESTOCKER_NEEDED"], #groceries) .. "|r"
+		)
 	end
 
 	-- Options block (always the last thing in the tooltip; no hint line below it)
@@ -356,48 +380,36 @@ end
 -- LDB Data Object
 --------------------------------------------------------------------------------
 
-if LDB then
-	ns.LDBObject = LDB:NewDataObject(ns.LOCALE_NAME, {
-		type = "data source",
-		text = L["ADDON_TITLE"],
-		icon = "Interface\\Icons\\INV_Misc_Food_02",
-		OnClick = function(_, button)
-			-- Shift + Middle-Click always opens the options panel; checked first (matches every Gogo1951 add-on).
-			if button == "MiddleButton" and IsShiftKeyDown() then
-				if ns.OpenOptionsPanel then
-					ns.OpenOptionsPanel()
-				end
-				return
-			end
-			if button == "RightButton" and ns.BestFoodID then
-				--[[
-				    BestFoodID is never already ignored (the scanner filters both
+ns.dataBrokerObject = LibDataBroker:NewDataObject(ns.LOCALE_NAME, {
+	type = "data source",
+	text = L["ADDON_TITLE"],
+	icon = "Interface\\Icons\\INV_Misc_Food_02",
+	OnClick = function(_, button)
+		-- Shift + Middle-Click always opens the options panel; checked first (matches every Gogo1951 add-on).
+		if button == "MiddleButton" and IsShiftKeyDown() then
+			ns.OpenOptionsPanel()
+			return
+		end
+		if button == "RightButton" and ns.bestFoodID then
+			--[[
+				    bestFoodID is never already ignored (the scanner filters both
 				    lists), so the toggle only ever adds here.
 				]]
-				if ns.ToggleIgnore then
-					ns.ToggleIgnore(ns.BestFoodID)
-				end
-			elseif button == "LeftButton" and IsShiftKeyDown() then
-				if ns.ToggleScrollBuffs then
-					ns.ToggleScrollBuffs()
-				end
-			elseif button == "LeftButton" then
-				if ns.ToggleBuffFood then
-					ns.ToggleBuffFood()
-				end
-			elseif button == "MiddleButton" then
-				if ns.ClearIgnoreList then
-					ns.ClearIgnoreList()
-				end
-			end
+			ns.ToggleIgnore(ns.bestFoodID)
+		elseif button == "LeftButton" and IsShiftKeyDown() then
+			ns.ToggleScrollBuffs()
+		elseif button == "LeftButton" then
+			ns.ToggleBuffFood()
+		elseif button == "MiddleButton" then
+			ns.ClearIgnoreList()
+		end
 
-			ns.UpdateLDB()
-		end,
-		OnEnter = function(self)
-			UpdateTooltip(self)
-		end,
-		OnLeave = function()
-			GameTooltip:Hide()
-		end,
-	})
-end
+		ns.UpdateMinimapIcon()
+	end,
+	OnEnter = function(self)
+		UpdateTooltip(self)
+	end,
+	OnLeave = function()
+		GameTooltip:Hide()
+	end,
+})

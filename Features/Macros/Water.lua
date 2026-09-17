@@ -11,13 +11,13 @@ ns.RegisterMacroType({
 	    Selection: any drink competes, including the water half of a
 	    foodwater hybrid (which also feeds Food), by raw mana value. The
 	    buff-food gate matches Food's — a buff drink only competes while
-	    ns.AllowBuffFood is on. Unlike Food, ties prefer the DEDICATED
+	    ns.allowBuffFood is on. Unlike Food, ties prefer the DEDICATED
 	    drink (preferHybrid = false): the hybrid is better saved for the
 	    Food slot, and Water never stores a link (nothing reads one).
 	]]
 	itemTypes = { water = true, foodwater = true },
 	accepts = function(data)
-		return not (data.isBuffFood and not ns.AllowBuffFood)
+		return not (data.isBuffFood and not ns.allowBuffFood)
 	end,
 	score = function(data)
 		return data.manaValue
@@ -29,30 +29,35 @@ ns.RegisterMacroType({
 	    middle-click) lives in Tools-Mages.lua; called at update time.
 	]]
 	conjure = function()
-		return ns.ResolveMageWaterOrFoodConjure(ns.ConjureSpells.MageCreateWater, "ncwater")
+		return ns.ResolveMageWaterOrFoodConjure(ns.CONJURE_SPELLS.MageCreateWater, "noConjureWater")
 	end,
 
 	--[[
 	    Night Elf Shadowmeld drinking: appends a stealth cast below the drink
 	    line so the player melds while drinking. The "SM" flag keeps the
 	    append in the state key so toggling the option rewrites the macro.
+	    Only a body with a drink carries it: with nothing to drink the press
+	    would meld for nothing.
 	]]
-	appendBlock = function()
+	appendBlock = function(itemID)
+		if not itemID then
+			return nil
+		end
 		--[[
 		    Night Elves only -- and not Night Elf Rogues: their options section
 		    is the Rogues one (which has no Stealth Drinking toggle), so this
 		    append must never fire off a stale enableShadowmeldDrinking value.
 		]]
-		if not ns.IsNightElf or ns.IsRogue then
+		if not ns.isNightElf or ns.isRogue then
 			return nil
 		end
 		local settings = ns.db and ns.db.profile
 		if not settings or not settings.enableShadowmeldDrinking then
 			return nil
 		end
-		if not ns.ShadowmeldSpellName then
+		if not ns.shadowmeldSpellName then
 			return nil
 		end
-		return "\n/cast [nostealth] " .. ns.ShadowmeldSpellName, "SM"
+		return "\n/cast [nostealth] " .. ns.shadowmeldSpellName, "SM"
 	end,
 })

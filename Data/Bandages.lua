@@ -1,5 +1,5 @@
 local _, ns = ...
-ns.RawData = ns.RawData or {}
+ns.RAW_DATA = ns.RAW_DATA or {}
 
 --[[
 
@@ -28,7 +28,7 @@ ns.RawData = ns.RawData or {}
             END,
 
             '}, -- ', it.name
-        ) AS `ns.RawData.Bandage`
+        ) AS `ns.RAW_DATA.Bandage`
     FROM item_template it
     JOIN spell_template st ON it.spellid_1 = st.Id
     WHERE it.class = 0
@@ -42,7 +42,7 @@ ns.RawData = ns.RawData or {}
 
 ]]
 
-ns.RawData.Bandage = {
+ns.RAW_DATA.Bandage = {
 	-- [ID] = {Bandage Amount, First Aid Skill, Vendor Value, {Allowed Zones}}, -- Name
 
 	[19307] = { 2000, 225, 100, { 1459 } }, -- Alterac Heavy Runecloth Bandage
@@ -74,5 +74,5 @@ ns.RawData.Bandage = {
 	[19066] = { 2000, 225, 100, { 1460 } }, -- Warsong Gulch Runecloth Bandage
 	[19068] = { 640, 125, 50, { 1460 } }, -- Warsong Gulch Silk Bandage
 	[3530] = { 161, 50, 25 }, -- Wool Bandage
-	-- Dense Frostweave Bandage (38640) and Dalaran Bandage (44646) are deliberately absent as Wrath-era entries; the query above excludes them too, so a regeneration will not bring them back.
+	-- Dense Frostweave Bandage (38640) and Dalaran Bandage (44646) are deliberately absent; the query above excludes them too, so a regeneration will not bring them back.
 }

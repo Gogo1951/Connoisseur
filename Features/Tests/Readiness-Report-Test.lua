@@ -1,13 +1,14 @@
+-- luacheck: allow defined, ignore 121 122 131 143
 -- Headless test for the Readiness Report (no WoW client needed).
 --
--- Run it with:   lua Features/Tests/ReadinessTest.lua        (from the add-on root)
+-- Run it with:   lua Features/Tests/Readiness-Report-Test.lua        (from the add-on root)
 --
--- Like UpgradeLevelTest, this does NOT model the logic: it loads the REAL
--- Data/Soulstones.lua, Features/Readiness-Probes.lua and Features/Readiness.lua
--- and drives ns.ReportReadiness behind the thinnest stubs that will hold them
--- up (a bag-scan result, an aura table, a chat sink, and the group/unit APIs).
--- Modelling would have re-implemented the very gates these scenarios exist to
--- pin down.
+-- Like Restocker-Upgrade-Level-Test, this does NOT model the logic: it loads
+-- the REAL Data/Soulstones.lua, Features/Readiness-Report-Probes.lua and
+-- Features/Readiness-Report.lua and drives ns.ReportReadiness behind the
+-- thinnest stubs that will hold them up (a bag-scan result, an aura table, a
+-- chat sink, and the group/unit APIs). Modelling would have re-implemented the
+-- very gates these scenarios exist to pin down.
 --
 -- WHAT IS PINNED HERE.
 --
@@ -18,21 +19,21 @@
 -- scenarios re-check in passing.
 --
 -- Then the crossings: fifteen account-wide switches against gates that answer to
--- the GROUP (a warlock for the two warlock-made items), to the CLASS (Mage for
--- the gem, a mana class for the mana potion), to the CLIENT (flask on TBC and
--- not on Era), and to the per-character macro switches for the buffs. None of
--- those crossings is visible in any one function.
+-- the GROUP (a warlock for the Healthstone), to the CLASS (Warlock for the
+-- soulstone, Mage for the gem, a mana class for the mana potion), to the CLIENT
+-- (flask on TBC and not on Era), and to the per-character macro switches for the
+-- buffs. None of those crossings is visible in any one function.
 --
 -- The soulstone entry is the odd one out and gets the most attention: it asks
 -- whether a stone is ACTIVE ON SOMEONE IN THE GROUP, not whether one is sitting
 -- in a bag, and it matches the aura by spell id OR by the localized name every
 -- rank shares. One scenario deliberately hands it an id that is NOT in
--- ns.SoulstoneBuffSpellIDs, because the name pass is what makes a wrong or
+-- ns.SOULSTONE_BUFF_SPELL_IDS, because the name pass is what makes a wrong or
 -- missing id in that table harmless.
 
 local ROOT = arg[1] or "."
 
-local ns = { L = {}, RawData = {} }
+local ns = { L = {}, RAW_DATA = {} }
 
 --------------------------------------------------------------------------------
 -- Stubs
@@ -41,7 +42,9 @@ local ns = { L = {}, RawData = {} }
 --[[
     Locale keys resolve to their own name, so an assertion can read back exactly
     which string the report chose without depending on its English wording.
-    Format keys keep their placeholders so the substitution still shows.
+    Format keys keep their placeholders so the substitution still shows, and
+    the join keys keep their English punctuation so the expected lines read
+    the way the report prints them.
 ]]
 setmetatable(ns.L, {
 	__index = function(_, key)
@@ -51,8 +54,14 @@ setmetatable(ns.L, {
 			return "%s|<1m"
 		elseif key == "READINESS_SPEC_FORMAT" then
 			return "%s(%s)"
-		elseif key == "READINESS_UNSPENT_TALENTS" then
+		elseif key == "READINESS_UNSPENT_TALENTS_MANY" then
 			return "%dunspent"
+		elseif key == "READINESS_CLAUSE_FORMAT" then
+			return "%s %s"
+		elseif key == "READINESS_CLAUSE_SEPARATOR" then
+			return ". "
+		elseif key == "LIST_SEPARATOR" then
+			return ", "
 		end
 		return key
 	end,
@@ -74,8 +83,10 @@ local function ResetWorld()
 		classes = {},
 		-- Aura list per unit: { {name = ..., spellID = ..., expiration = ...}, ... }
 		auras = {},
-		-- ns.BestSelection stand-in: an id means "carrying one".
+		-- ns.bestSelection stand-in: an id means "carrying one".
 		carrying = {},
+		-- Ranked topIDs per category, for the entries that read past the winner.
+		ranked = {},
 		instanceType = "raid",
 		wellFed = nil,
 		petFed = nil,
@@ -87,6 +98,8 @@ local function ResetWorld()
 		damaged = {},
 		questionable = {},
 		spec = nil,
+		-- Talent trees for the real spec label: { {name = ..., points = ...}, ... }
+		talentTrees = {},
 		unspent = nil,
 		pvp = false,
 		usesMana = true,
@@ -138,9 +151,9 @@ function GetSpellInfo(spellID)
 	return SPELL_NAMES[spellID]
 end
 
-ns.BestSelection = setmetatable({}, {
+ns.bestSelection = setmetatable({}, {
 	__index = function(_, typeName)
-		return { id = world.carrying[typeName] }
+		return { id = world.carrying[typeName], topIDs = world.ranked[typeName] }
 	end,
 })
 
@@ -164,11 +177,29 @@ function ns.IsModeActive()
 end
 
 --[[
+    The talent surface the real ns.GetCurrentSpecLabel reads. Each tree answers
+    with the ten values C_SpecializationInfo.GetSpecializationInfo returns, in
+    their real order, so a probe reading the wrong position gets a string where
+    it wants its points.
+]]
+function GetNumTalentTabs()
+	return #world.talentTrees
+end
+C_SpecializationInfo = {
+	GetSpecializationInfo = function(index)
+		local tree = world.talentTrees[index]
+		return index, tree.name, "Description", 132292, "DAMAGER", 1, tree.points, "Background", 0, true
+	end,
+}
+
+--[[
     The probes are stubbed rather than loaded: every one of them reads an API
-    this harness has no business modelling (durability, talent tabs, weapon
-    enchants), and what the report does WITH their answers is the thing under
-    test. ns.GetExpiringBuffs is the exception -- it is the real one, loaded
-    below, because the sorting and the sub-minute split are report behaviour.
+    this harness has no business modelling (durability, weapon enchants), and
+    what the report does WITH their answers is the thing under test.
+    ns.GetExpiringBuffs is the exception -- it is the real one, loaded below,
+    because the sorting and the sub-minute split are report behaviour. The real
+    ns.GetCurrentSpecLabel is kept aside for its own scenarios while the report
+    scenarios use this stub.
 ]]
 function ns.HasFlaskOrElixirs()
 	return world.flasked
@@ -216,18 +247,23 @@ local function loadAddonFile(path)
 end
 
 loadAddonFile("Data/Soulstones.lua")
-loadAddonFile("Features/Readiness.lua")
+loadAddonFile("Data/Mana-Gems.lua")
+loadAddonFile("Features/Readiness-Report.lua")
 
 --[[
     The real ns.GetExpiringBuffs, taken from the probes file and grafted on after
-    the stubs above so it wins. Loading the whole probes file would drag in the
-    equipment and talent APIs this harness deliberately does not model.
+    the stubs above so it wins, and the real ns.GetCurrentSpecLabel, kept aside
+    so the report scenarios still read the stub. Loading the whole probes file
+    over ns would drag in the equipment APIs this harness deliberately does not
+    model.
 ]]
+local RealGetCurrentSpecLabel
 do
 	local probes = { L = ns.L }
 	setmetatable(probes, { __index = ns, __newindex = rawset })
-	loadfile(ROOT .. "/Features/Readiness-Probes.lua")("Consumable-Connoisseur", probes)
+	loadfile(ROOT .. "/Features/Readiness-Report-Probes.lua")("Consumable-Connoisseur", probes)
 	ns.GetExpiringBuffs = probes.GetExpiringBuffs
+	RealGetCurrentSpecLabel = probes.GetCurrentSpecLabel
 end
 
 --------------------------------------------------------------------------------
@@ -258,7 +294,7 @@ end
 ]]
 local function settings(overrides)
 	local global = {
-		readinessReport = true,
+		readinessReportEnabled = true,
 		readinessFlask = false,
 		readinessWellFed = false,
 		readinessPetWellFed = false,
@@ -286,10 +322,12 @@ local function settings(overrides)
 		global = global,
 		profile = { useBuffFood = true, useScrolls = true, usePetBuffFood = true, scrollTypes = { arcane = true } },
 	}
-	ns.IsEra = world.isEra
-	ns.IsMage = world.classes.player == "MAGE"
+	ns.IS_ERA = world.isEra
+	ns.isMage = world.classes.player == "MAGE"
+	ns.isWarlock = world.classes.player == "WARLOCK"
 end
 
+local WARLOCK_PLAYER = { player = "WARLOCK" }
 local WARLOCK_IN_RAID = { raid2 = "WARLOCK" }
 local SOULSTONE_ON_RAID3 = { raid3 = { { name = "Soulstone Resurrection", spellID = 20707 } } }
 
@@ -299,7 +337,7 @@ say("SILENCE")
 
 say("1. Nothing wrong anywhere: the report does not print at all")
 ResetWorld()
-world.classes = WARLOCK_IN_RAID
+world.classes = WARLOCK_PLAYER
 world.auras = SOULSTONE_ON_RAID3
 settings({ readinessSoulstone = true, readinessHealthstone = true })
 world.carrying = { Healthstone = 5512 }
@@ -308,16 +346,33 @@ check("no output", #printed, 0)
 
 say("2. Master switch off: silent even with everything missing")
 ResetWorld()
-world.classes = WARLOCK_IN_RAID
-settings({ readinessReport = false, readinessSoulstone = true, readinessHealthstone = true })
+world.classes = WARLOCK_PLAYER
+settings({ readinessReportEnabled = false, readinessSoulstone = true, readinessHealthstone = true })
 ns.ReportReadiness()
 check("no output", #printed, 0)
 
-say("3. In an arena: silent, nothing in the report is actionable there")
+say("3. In an arena: buffs, items and the PvP flag drop, damaged gear still reports")
 ResetWorld()
 world.instanceType = "arena"
-world.classes = WARLOCK_IN_RAID
-settings({ readinessSoulstone = true })
+world.classes = WARLOCK_PLAYER
+settings({
+	readinessSoulstone = true,
+	readinessHealthstone = true,
+	readinessBandages = true,
+	readinessDurability = true,
+	readinessPvP = true,
+})
+world.damaged = { "[Axe]" }
+world.pvp = true
+ns.ReportReadiness()
+check("header plus one line", #printed, 2)
+check("damaged gear alone", report(), "READINESS_TITLE ~ READINESS_DAMAGED_GEAR [Axe]")
+
+say("3a. In an arena with only consumable gaps: silent")
+ResetWorld()
+world.instanceType = "arena"
+world.classes = WARLOCK_PLAYER
+settings({ readinessSoulstone = true, readinessHealthstone = true, readinessBandages = true })
 ns.ReportReadiness()
 check("no output", #printed, 0)
 
@@ -334,29 +389,30 @@ say("MISSING BUFFS")
 
 say("5. Soulstone ACTIVE on a raid member: nothing to report")
 ResetWorld()
-world.classes = WARLOCK_IN_RAID
+world.classes = WARLOCK_PLAYER
 world.auras = SOULSTONE_ON_RAID3
 settings({ readinessSoulstone = true })
 ns.ReportReadiness()
 check("no output", #printed, 0)
 
-say("6. Warlock present, NO soulstone up anywhere: reported")
+say("6. You are the Warlock, NO soulstone up anywhere: reported")
 ResetWorld()
-world.classes = WARLOCK_IN_RAID
+world.classes = WARLOCK_PLAYER
 settings({ readinessSoulstone = true })
 ns.ReportReadiness()
 check("soulstone named", report(), "READINESS_TITLE ~ READINESS_MISSING_BUFFS READINESS_SOULSTONE")
 
 say("7. Aura id NOT in the table, matched on the shared name instead")
 ResetWorld()
-world.classes = WARLOCK_IN_RAID
+world.classes = WARLOCK_PLAYER
 world.auras = { raid3 = { { name = "Soulstone Resurrection", spellID = 999999 } } }
 settings({ readinessSoulstone = true })
 ns.ReportReadiness()
 check("name pass covers it", #printed, 0)
 
-say("8. No warlock in the group: not actionable, so not reported")
+say("8. A Hunter with a Warlock in the raid: only the Warlock can put one up, so silent")
 ResetWorld()
+world.classes = { player = "HUNTER", raid2 = "WARLOCK" }
 settings({ readinessSoulstone = true })
 ns.ReportReadiness()
 check("no output", #printed, 0)
@@ -487,14 +543,32 @@ settings({ readinessManaGem = true })
 ns.ReportReadiness()
 check("no output", #printed, 0)
 
-say("22. Mana potion on a class with no mana bar: not reported")
+say("22. Mage whose only Mana Gem candidates are runes: the gem is still missing")
+ResetWorld()
+world.classes = { player = "MAGE" }
+world.carrying = { ["Mana Gem"] = 12662 }
+world.ranked = { ["Mana Gem"] = { 12662, 20520 } }
+settings({ readinessManaGem = true })
+ns.ReportReadiness()
+check("gem named", report(), "READINESS_TITLE ~ READINESS_MISSING_ITEMS READINESS_MANA_GEM")
+
+say("23. Mage whose rune outranks a held Mana Citrine: a gem is carried, so silent")
+ResetWorld()
+world.classes = { player = "MAGE" }
+world.carrying = { ["Mana Gem"] = 20520 }
+world.ranked = { ["Mana Gem"] = { 20520, 8007 } }
+settings({ readinessManaGem = true })
+ns.ReportReadiness()
+check("no output", #printed, 0)
+
+say("24. Mana potion on a class with no mana bar: not reported")
 ResetWorld()
 settings({ readinessManaPotion = true })
 world.usesMana = false
 ns.ReportReadiness()
 check("no output", #printed, 0)
 
-say("23. Damaged gear rides the Items line, after what is missing")
+say("25. Damaged gear rides the Items line, after what is missing")
 ResetWorld()
 settings({ readinessBandages = true, readinessDurability = true })
 world.damaged = { "[Axe]" }
@@ -508,7 +582,7 @@ check(
 say("")
 say("CHARACTER")
 
-say("24. Spec and unspent points print together")
+say("26. Spec and unspent points print together")
 ResetWorld()
 settings({ readinessSpec = true })
 world.spec = "Fury(0/31/20)"
@@ -516,14 +590,40 @@ world.unspent = 3
 ns.ReportReadiness()
 check("both", report(), "READINESS_TITLE ~ READINESS_CHARACTER Fury(0/31/20), 3unspent")
 
-say("25. No unspent points: only the spec")
+say("26a. One unspent point takes the singular string")
+ResetWorld()
+settings({ readinessSpec = true })
+world.spec = "Fury(0/31/20)"
+world.unspent = 1
+ns.ReportReadiness()
+check("singular", report(), "READINESS_TITLE ~ READINESS_CHARACTER Fury(0/31/20), READINESS_UNSPENT_TALENTS_ONE")
+
+say("27. No unspent points: only the spec")
 ResetWorld()
 settings({ readinessSpec = true })
 world.spec = "Fury(0/31/20)"
 ns.ReportReadiness()
 check("spec alone", report(), "READINESS_TITLE ~ READINESS_CHARACTER Fury(0/31/20)")
 
-say("26. Questionable gear rides the Character line")
+say("27a. The real spec label: the fullest tree, named with the whole spread")
+ResetWorld()
+world.talentTrees = {
+	{ name = "Arms", points = 0 },
+	{ name = "Fury", points = 31 },
+	{ name = "Protection", points = 20 },
+}
+check("label", RealGetCurrentSpecLabel(), "Fury(0/31/20)")
+
+say("27b. The real spec label with no points spent: nil, so the line drops")
+ResetWorld()
+world.talentTrees = {
+	{ name = "Arms", points = 0 },
+	{ name = "Fury", points = 0 },
+	{ name = "Protection", points = 0 },
+}
+check("no label", RealGetCurrentSpecLabel(), nil)
+
+say("28. Questionable gear rides the Character line")
 ResetWorld()
 settings({ readinessQuestionableGear = true })
 world.questionable = { "[Fishing Pole]" }
@@ -533,9 +633,9 @@ check("gear named", report(), "READINESS_TITLE ~ READINESS_QUESTIONABLE_GEAR [Fi
 say("")
 say("ALL THREE LINES")
 
-say("27. A wholly unprepared character: three lines, every clause present")
+say("29. A wholly unprepared character: three lines, every clause present")
 ResetWorld()
-world.classes = WARLOCK_IN_RAID
+world.classes = WARLOCK_PLAYER
 settings({
 	readinessSoulstone = true,
 	readinessHealthstone = true,

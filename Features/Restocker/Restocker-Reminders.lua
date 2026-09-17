@@ -126,11 +126,10 @@ local LOGIN_SETTLE_DELAY = 5
     a load arrive too early to tell them apart:
 
       Logging in IS an arrival -- you have just walked up to the game -- so a
-      character who logs in resting gets the reminder. That was inconsistent
-      before this gate existed: an inn happened to fire a late
-      PLAYER_UPDATE_RESTING and a city did not, so the same standing-in-town
-      login reminded you or did not depending on which side of the door you
-      logged out on.
+      character who logs in resting gets the reminder. The gate keeps that
+      consistent: an inn fires a late PLAYER_UPDATE_RESTING and a city does
+      not, so without it the same standing-in-town login would remind you or
+      not depending on which side of the door you logged out on.
 
       A /reload is NOT an arrival. It records where the character already is --
       so the next real arrival still has an edge to trip -- and says nothing,
@@ -210,8 +209,9 @@ function ns.OnRestockerControlGained()
 end
 
 --[[
-    The one PLAYER_ENTERING_WORLD handler (the dispatcher in Restocker-Events.lua keeps
-    one per event), shared by the arrival check and the Starter List pop-up.
+    The one PLAYER_ENTERING_WORLD handler (the dispatcher in Features/Core.lua routes
+    one per event from Restocker-Events.lua's handler table), shared by the arrival
+    check and the Starter List pop-up.
 
     isReloadingUi is the only entry that is not an arrival: a login is one, and
     so is any other loading screen -- a hearth, a portal, an instance door. Both
@@ -247,7 +247,5 @@ function ns.OnRestockerEnteringWorld(isInitialLogin, isReloadingUi)
 	    of the list. A cold item cache at login needs no special handling: the move
 	    defers and rides GET_ITEM_INFO_RECEIVED like any other.
 	]]
-	if ns.UpgradeRestockList then
-		ns.UpgradeRestockList()
-	end
+	ns.UpgradeRestockList()
 end

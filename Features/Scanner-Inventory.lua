@@ -15,8 +15,8 @@ local _, ns = ...
 -- State
 --------------------------------------------------------------------------------
 
-ns.BestFoodID = nil
-ns.BestFoodLink = nil
+ns.bestFoodID = nil
+ns.bestFoodLink = nil
 
 --------------------------------------------------------------------------------
 -- Best Item Tracking
@@ -24,7 +24,7 @@ ns.BestFoodLink = nil
 
 --[[
     Per-category winner records and ranked-candidate lists, built from the
-    definition registry (ns.RegisteredMacroDefinitions) instead of hardcoded here:
+    definition registry (ns.REGISTERED_MACRO_DEFINITIONS) instead of hardcoded here:
     every registered definition with an itemTypes set gets a winner record,
     and ranked definitions also get a topIDs list plus a candidate
     collector. Definitions register from Features/Macros/*.lua, which load
@@ -38,9 +38,9 @@ local best = {}
     repopulates these entries in place every pass, so the reference always
     reflects the last scan. Read-only for consumers (Diagnostics' context
     report); the scanner itself owns all writes. This is what lets the context
-    report show the per-category winner for every type, not just BestFoodID.
+    report show the per-category winner for every type, not just bestFoodID.
 ]]
-ns.BestSelection = best
+ns.bestSelection = best
 
 local rankedCandidates = {}
 
@@ -69,7 +69,7 @@ local function BuildSelectionTables()
 		return
 	end
 	selectionTablesBuilt = true
-	for _, definition in ipairs(ns.RegisteredMacroDefinitions) do
+	for _, definition in ipairs(ns.REGISTERED_MACRO_DEFINITIONS) do
 		if definition.itemTypes then
 			local entry = {}
 			if definition.ranked then
@@ -102,10 +102,9 @@ end
                                    wins when the caller prefers hybrids (Food);
                                    falsy wins otherwise (Water, ranked potions)
 
-    Boolean fields are compared RAW (~=), never coerced: winner entries store
-    e.g. `data.isBuffFood` unnormalized, so nil-vs-false pairs occur in
-    practice, count as a difference, and decide the step — that outcome is
-    part of the long-standing observed ordering and must not change.
+    Boolean fields are compared RAW (~=), never coerced. Both sides are
+    FillRecord output, built from the item cache's own true/false flags, so a
+    nil never reaches a step; a new flag has to keep that true.
 ]]
 
 local RANKING_PRIORITY = {
@@ -149,11 +148,10 @@ local RANKING_PRIORITY = {
 	    (1800) in a battleground -- "worthless elsewhere" is a reason to spend
 	    a tie, never a reason to drink the weaker potion.
 
-	    The three above plus isHighStack replace four numeric bonuses that
-	    used to be added into value (+2 zone, +2 soulbound, +1 stack). Ladder
-	    steps are strictly safer:
-	    a bonus could outweigh a genuine restore difference of 1 or 2, and two
-	    equal bonuses cancelled each other instead of ranking.
+	    The three above plus isHighStack are ladder steps, never numeric
+	    bonuses added into value: a bonus can outweigh a genuine restore
+	    difference of 1 or 2, and two equal bonuses cancel each other instead
+	    of ranking.
 
 	    Uniform inside a category is a no-op, which covers most of them:
 	    zones and binding only really vary across the potion and bandage
@@ -224,16 +222,16 @@ local function CompareRecords(a, b, allowBuffFood, preferHybrid)
 	for i = 1, #RANKING_PRIORITY do
 		local step = RANKING_PRIORITY[i]
 		if not (step.gatedOnAllowBuffFood and not allowBuffFood) then
-			local av, bv = a[step.field], b[step.field]
-			if av ~= bv then
+			local valueA, valueB = a[step.field], b[step.field]
+			if valueA ~= valueB then
 				if step.kind == "higher" then
-					return av > bv, step.field
+					return valueA > valueB, step.field
 				elseif step.kind == "lower" then
-					return av < bv, step.field
+					return valueA < valueB, step.field
 				elseif step.truthyWinsWhenPreferHybrid and not preferHybrid then
-					return not av, step.field
+					return not valueA, step.field
 				else
-					return (av and true or false), step.field
+					return (valueA and true or false), step.field
 				end
 			end
 		end
@@ -264,7 +262,7 @@ local function FillRecord(record, candidate, candidateCount, candidatePrice, sco
 	record.price = candidatePrice
 	record.isHybrid = (candidate.healthValue > 0 and candidate.manaValue > 0)
 	record.count = candidateCount
-	record.id = candidate.id
+	record.id = candidate.itemID
 	return record
 end
 
@@ -296,7 +294,7 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-    The ranked definitions (ranked = true — the ns.MultiUseMacroTypes
+    The ranked definitions (ranked = true — the ns.MULTI_USE_MACRO_TYPES
     categories) stack up to ns.MULTI_USE_MAX_ITEMS /use lines per macro, so
     instead of tracking a single running winner they collect every usable
     candidate during the scan into rankedCandidates (declared above, keyed
@@ -367,7 +365,7 @@ end
 local DIAGNOSTIC_CANDIDATE_LIMIT = 5
 
 local diagnosticCandidates = {}
-ns.DiagnosticCandidates = diagnosticCandidates
+ns.diagnosticCandidates = diagnosticCandidates
 
 --[[
     Carries EVERY field RANKING_PRIORITY compares. A field left out does not
@@ -439,7 +437,7 @@ local function CaptureDiagnosticCandidates()
 		return
 	end
 
-	for _, definition in ipairs(ns.RegisteredMacroDefinitions) do
+	for _, definition in ipairs(ns.REGISTERED_MACRO_DEFINITIONS) do
 		local list
 		local allowBuffFood, preferHybrid
 
@@ -452,7 +450,7 @@ local function CaptureDiagnosticCandidates()
 			allowBuffFood, preferHybrid = false, false
 		else
 			list = diagnosticCandidates[definition.typeName]
-			allowBuffFood = definition.allowBuffFood and ns.AllowBuffFood
+			allowBuffFood = definition.allowBuffFood and ns.allowBuffFood
 			preferHybrid = definition.preferHybrid
 		end
 
@@ -483,8 +481,8 @@ local slotItems = {}
     snapshot and are only current inside the update pass that produced them.
     Read them, never retain them, and never write to them from outside ScanBags.
 ]]
-ns.ScannedItemCounts = itemCounts
-ns.ScannedItemLinks = slotItems
+ns.scannedItemCounts = itemCounts
+ns.scannedItemLinks = slotItems
 
 function ns.ScanBags()
 	--[[
@@ -493,22 +491,20 @@ function ns.ScanBags()
 	    never updates the cache mid-fight; reading it here keeps zone-restricted
 	    item filtering from running against a stale map after combat drops.
 	]]
-	ns.CachedMapID = C_Map.GetBestMapForUnit("player")
+	ns.cachedMapID = C_Map.GetBestMapForUnit("player")
 
 	--[[
 	    Party/raid-restricted Buff Food, Scrolls, and Pet Food go stale when
 	    group composition or the mode dropdown changes — those flip whether a
 	    feature is active but have no dedicated UpdateAuraTracking call, so
-	    ns.WellFedState and UNIT_AURA registration would otherwise drift.
+	    ns.wellFedState and UNIT_AURA registration would otherwise drift.
 	    ScanBags is the single point every rescan passes through, so reconcile
-	    aura tracking here, before AllowBuffFood reads ns.WellFedState below.
+	    aura tracking here, before allowBuffFood reads ns.wellFedState below.
 	]]
-	if ns.UpdateAuraTracking then
-		ns.UpdateAuraTracking()
-	end
+	ns.UpdateAuraTracking()
 
-	local playerLevel = ns.CachedPlayerLevel
-	local currentMap = ns.CachedMapID
+	local playerLevel = ns.cachedPlayerLevel
+	local currentMap = ns.cachedMapID
 	--[[
 	    Arena-only consumables (e.g. Star's Tears) are gated on the live
 	    instance type instead of a zone-ID list, so every arena is covered with
@@ -517,9 +513,9 @@ function ns.ScanBags()
 	    this refreshes on every arena entry and exit.
 	]]
 	local inArena = select(2, IsInInstance()) == "arena"
-	local firstAidSkill = ns.CurrentFirstAidSkill or 0
-	local alchemySkill = ns.CurrentAlchemySkill or 0
-	local engineeringSkill = ns.CurrentEngineeringSkill or 0
+	local firstAidSkill = ns.currentFirstAidSkill or 0
+	local alchemySkill = ns.currentAlchemySkill or 0
+	local engineeringSkill = ns.currentEngineeringSkill or 0
 	local settings = (ns.db and ns.db.profile) or {}
 	local itemCache = (ns.db and ns.db.profile.itemCache) or {}
 
@@ -538,9 +534,9 @@ function ns.ScanBags()
 	    there. Buff-food preference is gated here; the scroll and pet-buff
 	    override resolvers are gated below.
 	]]
-	ns.AllowBuffFood = settings.useBuffFood
+	ns.allowBuffFood = settings.useBuffFood
 		and ns.IsModeActive(settings.buffFoodMode)
-		and not ns.WellFedState
+		and not ns.wellFedState
 		and not targetingSelf
 		and not inArena
 
@@ -587,46 +583,56 @@ function ns.ScanBags()
 	    its plain food/conjure form.
 	]]
 	if inArena then
-		ns.ScrollOverrideIDs = nil
-		ns.PetBuffOverrideID = nil
+		ns.scrollOverrideIDs = nil
+		ns.petBuffOverrideID = nil
 	else
-		ns.ScrollOverrideIDs = ns.FindScrollOverrides(itemCounts)
-		ns.PetBuffOverrideID = ns.FindPetBuffOverride(itemCounts)
+		ns.scrollOverrideIDs = ns.FindScrollOverrides(itemCounts)
+		ns.petBuffOverrideID = ns.FindPetBuffOverride(itemCounts)
 	end
 
 	-- Both halves of the Ignore List hide an item from every macro's selection.
-	local charIgnoreList = ns.GetIgnoreList() or {}
+	local characterIgnoreList = ns.GetIgnoreList() or {}
 	local globalIgnoreList = ns.GetGlobalIgnoreList() or {}
 
 	for id, hyperlink in pairs(slotItems) do
-		if not (charIgnoreList[id] or globalIgnoreList[id]) then
+		if not (characterIgnoreList[id] or globalIgnoreList[id]) then
 			--[[
 			    Scroll items skip normal consumable processing; the scroll
 			    override system handles them.
 			]]
-			if not (ns.ScrollItemLookup and ns.ScrollItemLookup[id]) then
+			if not (ns.SCROLL_ITEM_LOOKUP and ns.SCROLL_ITEM_LOOKUP[id]) then
 				local data = itemCache[id]
+				--[[
+				    The cache holds consumables only, so a stored "IGNORE" is
+				    stale: clear it and let ns.CacheItemData answer from the
+				    RAW_DATA tables. Version-stamp invalidation only wipes the
+				    cache on a release bump, never on a dev copy, whose version
+				    is always "Dev".
+				]]
+				if data == "IGNORE" then
+					data = nil
+					itemCache[id] = nil
+				end
 				--[[
 				    Drop cache entries from an older schema so CacheItemData
 				    re-derives them below. Test the NEWEST cached field, not an
 				    old one: version-stamp invalidation only fires on a release
 				    bump, so a same-version update (dev edit) that adds a field
 				    would otherwise keep stale entries missing it. The newest
-				    field is isSoulbound (CacheItemData always writes it, as
-				    a plain boolean, so == nil only ever means "older
-				    schema"); the older fields are kept in the test to also
-				    catch pre-maxStack/-arenaUsable/-isConjured/-damageValue
-				    entries.
+				    field is itemID (CacheItemData always writes it, so == nil
+				    only ever means "older schema"); the older fields are kept
+				    in the test to also catch pre-maxStack/-arenaUsable/
+				    -isConjured/-damageValue/-isSoulbound entries.
 				]]
 				if
 					data
-					and data ~= "IGNORE"
 					and (
 						data.maxStack == nil
 						or data.arenaUsable == nil
 						or data.isConjured == nil
 						or data.damageValue == nil
 						or data.isSoulbound == nil
+						or data.itemID == nil
 					)
 				then
 					data = nil
@@ -697,8 +703,8 @@ function ns.ScanBags()
 					    then price, then count).
 					]]
 					if usable and inArena then
-						local t = data.itemType
-						local isFoodOrWater = (t == "food" or t == "water" or t == "foodwater")
+						local itemType = data.itemType
+						local isFoodOrWater = (itemType == "food" or itemType == "water" or itemType == "foodwater")
 						if isFoodOrWater and not data.arenaUsable then
 							usable = false
 						end
@@ -716,7 +722,7 @@ function ns.ScanBags()
 						    Potion and Mana Potion, and a foodwater hybrid
 						    feeds Food and Water.
 						]]
-						for _, definition in ipairs(ns.RegisteredMacroDefinitions) do
+						for _, definition in ipairs(ns.REGISTERED_MACRO_DEFINITIONS) do
 							if
 								definition.itemTypes
 								and definition.itemTypes[data.itemType]
@@ -732,7 +738,7 @@ function ns.ScanBags()
 									    preference; everyone else compares with
 									    the buff-food step gated off.
 									]]
-									local allowBuffFood = definition.allowBuffFood and ns.AllowBuffFood
+									local allowBuffFood = definition.allowBuffFood and ns.allowBuffFood
 									if
 										IsBetter(
 											data,
@@ -770,8 +776,8 @@ function ns.ScanBags()
 	RankCandidates()
 	CaptureDiagnosticCandidates()
 
-	ns.BestFoodID = best["Food"].id
-	ns.BestFoodLink = best["Food"].link
+	ns.bestFoodID = best["Food"].id
+	ns.bestFoodLink = best["Food"].link
 
 	return best, dataRetry
 end

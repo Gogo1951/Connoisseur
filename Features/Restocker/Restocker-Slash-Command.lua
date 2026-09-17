@@ -13,7 +13,7 @@ local function SlashHelpLine(command, description)
 	return ns.GetColor("INFO") .. command .. "|r" .. ns.GetColor("TEXT") .. "  " .. description
 end
 
-ns.restockerCommands = {
+ns.RESTOCKER_COMMANDS = {
 	show = SlashHelpLine("/crs show", L["RESTOCKER_HELP_SHOW"]),
 	config = SlashHelpLine("/crs config", L["OPTIONS_COMMAND_DESCRIPTION"]),
 	profile = {
@@ -37,8 +37,8 @@ function ns.HandleRestockerCommand(args)
 		ns.ShowRestockWindow()
 	elseif command == "profile" then
 		if rest == "" or rest == nil then
-			for _, v in pairs(ns.restockerCommands.profile) do
-				ns.PrintMessage(v)
+			for _, helpLine in pairs(ns.RESTOCKER_COMMANDS.profile) do
+				ns.PrintMessage(helpLine)
 			end
 			return
 		end
@@ -49,8 +49,8 @@ function ns.HandleRestockerCommand(args)
 		    Every profile subcommand needs a name; print its usage line instead of
 		    erroring on a nil table key when the name is missing.
 		]]
-		if (name == nil or name == "") and ns.restockerCommands.profile[subcommand] then
-			ns.PrintMessage(ns.restockerCommands.profile[subcommand])
+		if (name == nil or name == "") and ns.RESTOCKER_COMMANDS.profile[subcommand] then
+			ns.PrintMessage(ns.RESTOCKER_COMMANDS.profile[subcommand])
 			return
 		end
 
@@ -66,7 +66,7 @@ function ns.HandleRestockerCommand(args)
 			ns.CopyIntoCurrentRestockList(name)
 		end
 	elseif command == "help" then
-		for _, eachCommand in pairs(ns.restockerCommands) do
+		for _, eachCommand in pairs(ns.RESTOCKER_COMMANDS) do
 			if type(eachCommand) == "table" then
 				for _, eachSubcommand in pairs(eachCommand) do
 					ns.PrintMessage(eachSubcommand)
@@ -77,9 +77,7 @@ function ns.HandleRestockerCommand(args)
 		end
 		return
 	elseif command == "config" then
-		if ns.OpenOptionsPanel then
-			ns.OpenOptionsPanel()
-		end
+		ns.OpenOptionsPanel()
 		return
 	else
 		ns.ToggleRestockWindow()

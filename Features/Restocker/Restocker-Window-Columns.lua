@@ -16,16 +16,16 @@ local L = ns.L
 --------------------------------------------------------------------------------
 
 -- The standings themselves are Data/Data.lua's; these two format them.
-local REP_STANDINGS = ns.REPUTATION_STANDINGS
+local REPUTATION_STANDINGS = ns.REPUTATION_STANDINGS
 
 local function ReputationStandingByValue(value)
 	value = value or 0
-	for _, standing in ipairs(REP_STANDINGS) do
+	for _, standing in ipairs(REPUTATION_STANDINGS) do
 		if standing.value == value then
 			return standing
 		end
 	end
-	return REP_STANDINGS[1] -- default to "Any"
+	return REPUTATION_STANDINGS[1] -- default to "Any"
 end
 
 -- Menu label, e.g. "Honored  (10% off)"
@@ -46,12 +46,12 @@ end
     with, so a larger UI font, or a longer word in another locale, widens the
     control instead of overflowing it.
 
-    ns.RESTOCK_ROW_HEIGHT and ns.RESTOCK_BUTTON_HEIGHT start at the values the fixed layout used
+    ns.restockRowHeight and ns.restockButtonHeight start at the values the fixed layout used
     and are recomputed by ns.RefreshRestockRowMetrics once the frame exists. With the
     stock font the measurement lands back on exactly these numbers.
 ]]
-ns.RESTOCK_ROW_HEIGHT = 26
-ns.RESTOCK_BUTTON_HEIGHT = 22
+ns.restockRowHeight = 26
+ns.restockButtonHeight = 22
 
 --[[
     A row is one line and shows everything about its item: the six toggles are lit
@@ -63,7 +63,7 @@ ns.RESTOCK_BUTTON_HEIGHT = 22
 ]]
 --[[
     The font every control in the window measures itself against, shared with the
-    category pane so the two halves cannot drift apart. On Restocker rather than a
+    category pane so the two halves cannot drift apart. On ns rather than a
     file-local for that reason alone.
 ]]
 ns.RESTOCK_BUTTON_FONT = "GameFontNormalSmall"
@@ -145,21 +145,17 @@ local COLUMNS = {
 		key = "extra",
 		caption = "RESTOCKER_EXTRA_LABEL",
 		title = "RESTOCKER_EXTRA_TOOLTIP_TITLE",
-		body = { "RESTOCKER_EXTRA_TOOLTIP_STOCK", "RESTOCKER_EXTRA_TOOLTIP_LIMITED" },
+		body = { "RESTOCKER_EXTRA_TOOLTIP_STOCK" },
 	},
 	{
 		--[[
 		    The only column that draws text rather than a glyph: reputation has five
 		    states, not two, so the cell has to name the one it is in.
 		]]
-		key = "rep",
+		key = "reputation",
 		caption = "RESTOCKER_COLUMN_REPUTATION",
 		title = "RESTOCKER_REPUTATION_TOOLTIP_TITLE",
-		body = {
-			"RESTOCKER_REPUTATION_TOOLTIP_STANDING",
-			"RESTOCKER_REPUTATION_TOOLTIP_DISCOUNTS",
-			"RESTOCKER_REPUTATION_TOOLTIP_CLICK",
-		},
+		body = { "RESTOCKER_REPUTATION_TOOLTIP_STANDING" },
 		isText = true,
 	},
 	{
@@ -183,7 +179,7 @@ local COLUMN_MIN_WIDTH = 24
     names. It was the one hardcoded width left in a file that measures
     everything else, and at 40px the heading read "Am...".
 ]]
-ns.RESTOCK_AMOUNT_WIDTH = 58
+ns.restockAmountWidth = 58
 local AMOUNT_DIGITS_SAMPLE = "8888"
 
 --[[
@@ -192,15 +188,15 @@ local AMOUNT_DIGITS_SAMPLE = "8888"
     because each cell is anchored to its neighbour's edge rather than to a fixed
     x, setting a new width is all it takes to reflow the whole chain.
 ]]
-ns.RESTOCK_COLUMN_WIDTH = {
+ns.restockColumnWidths = {
 	withdraw = 38,
 	deposit = 42,
 	buy = 32,
 	extra = 40,
-	rep = 54,
+	reputation = 54,
 	upgrade = 60,
 }
-ns.RESTOCK_COLUMN_WIDTH_SERIAL = 0 -- bumped when the widths change, so rows notice
+ns.restockColumnWidthSerial = 0 -- bumped when the widths change, so rows notice
 
 local columnsResolved = false
 
@@ -216,7 +212,7 @@ local function MeasureColumns()
 			    A text column has to hold its widest VALUE, not just its caption:
 			    "Rep" is three letters and "Exalted" is seven.
 			]]
-			for _, standing in ipairs(REP_STANDINGS) do
+			for _, standing in ipairs(REPUTATION_STANDINGS) do
 				fontString:SetText(standing.label)
 				local standingWidth = fontString:GetStringWidth() or 0
 				if standingWidth > width then
@@ -264,9 +260,9 @@ local function ResolveColumns()
 	end
 	local widths, amountWidth = MeasureColumns()
 	if widths then
-		ns.RESTOCK_COLUMN_WIDTH = widths
-		ns.RESTOCK_AMOUNT_WIDTH = amountWidth
-		ns.RESTOCK_COLUMN_WIDTH_SERIAL = ns.RESTOCK_COLUMN_WIDTH_SERIAL + 1
+		ns.restockColumnWidths = widths
+		ns.restockAmountWidth = amountWidth
+		ns.restockColumnWidthSerial = ns.restockColumnWidthSerial + 1
 		columnsResolved = true
 	end
 end
@@ -277,13 +273,13 @@ end
 ]]
 function ns.RefreshRestockRowMetrics()
 	local line = FontLineHeight()
-	ns.RESTOCK_BUTTON_HEIGHT = math.max(22, math.ceil(line + BUTTON_PAD_Y))
-	ns.RESTOCK_ROW_HEIGHT = ns.RESTOCK_BUTTON_HEIGHT + ROW_PAD_Y
-	ns.RESTOCK_COLUMN_HEADER_HEIGHT = ns.RESTOCK_BUTTON_HEIGHT + math.ceil(line) + 2
+	ns.restockButtonHeight = math.max(22, math.ceil(line + BUTTON_PAD_Y))
+	ns.restockRowHeight = ns.restockButtonHeight + ROW_PAD_Y
+	ns.restockColumnHeaderHeight = ns.restockButtonHeight + math.ceil(line) + 2
 	ResolveColumns()
 end
 
-ns.RESTOCK_COLUMN_HEADER_HEIGHT = 38
+ns.restockColumnHeaderHeight = 38
 
 --[[
     Size a button to the caption it is currently showing. The button keeps its
@@ -300,7 +296,7 @@ local function FitButton(button)
 		return -- font not resolved yet; the next UpdateRestockListRow re-fits it
 	end
 	button:SetWidth(math.max(BUTTON_MIN_WIDTH, math.ceil(width) + BUTTON_PAD_X))
-	button:SetHeight(ns.RESTOCK_BUTTON_HEIGHT)
+	button:SetHeight(ns.restockButtonHeight)
 end
 
 ns.FitRestockButton = FitButton
@@ -358,8 +354,8 @@ local AMOUNT_GAP = 6 -- amount box to the remove control
 local GOLD = ns.COLORS_RGB.TITLE
 local WHITE = ns.COLORS_RGB.TEXT
 
-local DASH_OFF = { r = 0.48, g = 0.48, b = 0.48 } -- a setting that is off
-local DASH_NOT_APPLICABLE = { r = 0.28, g = 0.28, b = 0.28 } -- a setting that cannot apply
+local DASH_OFF = ns.HexToRGB("7A7A7A") -- a setting that is off
+local DASH_NOT_APPLICABLE = ns.HexToRGB("474747") -- a setting that cannot apply
 --[[
     Column headings are coloured by the band they belong to, so the eye can see
     where Bank stops and Merchant starts without a rule between them. The three
@@ -392,7 +388,7 @@ local GROUP_TONE = {
 		caption = ns.HexToRGB("D38EAF"),
 	},
 }
-local REPUTATION_SET = { r = 0.85, g = 0.6, b = 0.35 } -- a standing is required, amber to stand out
+local REPUTATION_SET = ns.HexToRGB("D99959") -- a standing is required, amber to stand out
 
 --[[
     Lay the cells out right to left, and hand back the leftmost one. Used by both
@@ -419,7 +415,7 @@ local function ApplyColumnWidths(cells)
 	for _, column in ipairs(COLUMNS) do
 		local cell = cells[column.key]
 		if cell then
-			cell:SetWidth(ns.RESTOCK_COLUMN_WIDTH[column.key] or COLUMN_MIN_WIDTH)
+			cell:SetWidth(ns.restockColumnWidths[column.key] or COLUMN_MIN_WIDTH)
 		end
 	end
 end
@@ -472,7 +468,7 @@ function ns.CreateRestockColumnHeader(parent, scrollFrame)
 	local header = CreateFrame("Frame", nil, parent)
 	header:SetPoint("BOTTOMLEFT", scrollFrame, "TOPLEFT", 0, 2)
 	header:SetPoint("BOTTOMRIGHT", scrollFrame, "TOPRIGHT", 0, 2)
-	header:SetHeight(ns.RESTOCK_COLUMN_HEADER_HEIGHT)
+	header:SetHeight(ns.restockColumnHeaderHeight)
 
 	local rule = header:CreateTexture(nil, "ARTWORK")
 	rule:SetPoint("BOTTOMLEFT", header, "BOTTOMLEFT", 0, 0)
@@ -489,7 +485,7 @@ function ns.CreateRestockColumnHeader(parent, scrollFrame)
 	local captionRow = CreateFrame("Frame", nil, header)
 	captionRow:SetPoint("BOTTOMLEFT", header, "BOTTOMLEFT", 0, 2)
 	captionRow:SetPoint("BOTTOMRIGHT", header, "BOTTOMRIGHT", 0, 2)
-	captionRow:SetHeight(ns.RESTOCK_BUTTON_HEIGHT)
+	captionRow:SetHeight(ns.restockButtonHeight)
 
 	local function caption(parentFrame, text, tone, width)
 		local fontString = parentFrame:CreateFontString(nil, "OVERLAY")
@@ -512,7 +508,7 @@ function ns.CreateRestockColumnHeader(parent, scrollFrame)
 	removeSpacer:SetSize(REMOVE_ICON_SIZE, 1)
 	removeSpacer:SetPoint("RIGHT", captionRow, "RIGHT", -ROW_INSET, 0)
 
-	local amount = caption(captionRow, L["RESTOCKER_COLUMN_AMOUNT"], HEADER_CAPTION_UNGROUPED, ns.RESTOCK_AMOUNT_WIDTH)
+	local amount = caption(captionRow, L["RESTOCKER_COLUMN_AMOUNT"], HEADER_CAPTION_UNGROUPED, ns.restockAmountWidth)
 	amount:SetPoint("RIGHT", removeSpacer, "LEFT", -AMOUNT_GAP, 0)
 	header.amountCaption = amount
 
@@ -524,7 +520,7 @@ function ns.CreateRestockColumnHeader(parent, scrollFrame)
 	]]
 	header.cells = LayoutColumns(amount, function(column)
 		local button = CreateFrame("Button", nil, captionRow)
-		button:SetSize(ns.RESTOCK_COLUMN_WIDTH[column.key] or COLUMN_MIN_WIDTH, ns.RESTOCK_BUTTON_HEIGHT)
+		button:SetSize(ns.restockColumnWidths[column.key] or COLUMN_MIN_WIDTH, ns.restockButtonHeight)
 		local fontString = button:CreateFontString(nil, "OVERLAY")
 		fontString:SetFontObject(BUTTON_FONT)
 		local tone = COLUMN_TONE[column.key]
@@ -585,7 +581,7 @@ function ns.RefreshRestockColumnHeader()
 	if header and header.cells then
 		ApplyColumnWidths(header.cells)
 		-- The amount heading is not one of the laid-out cells, so it re-widths here.
-		header.amountCaption:SetWidth(ns.RESTOCK_AMOUNT_WIDTH)
+		header.amountCaption:SetWidth(ns.restockAmountWidth)
 	end
 end
 

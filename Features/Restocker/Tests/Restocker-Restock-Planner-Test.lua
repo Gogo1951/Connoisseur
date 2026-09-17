@@ -1,6 +1,7 @@
+-- luacheck: allow defined, ignore 121 122 131 143
 -- Headless test for the bank restock planner (no WoW API needed).
 --
--- Run it with:   lua Tests/RestockPlannerTest.lua
+-- Run it with:   lua Tests/Restocker-Restock-Planner-Test.lua
 --
 -- It models the SAME algorithm the live addon uses (Restocker-Bank.lua + Restocker-Bags.lua):
 --   * re-scan the CURRENT bag/bank contents every step and re-derive the outstanding work

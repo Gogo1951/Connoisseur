@@ -1,11 +1,11 @@
 local _, ns = ...
-ns.RawData = ns.RawData or {}
+ns.RAW_DATA = ns.RAW_DATA or {}
 
 --[[
 
     SELECT
         CONCAT('    [', s.entry, '] = {', (st.EffectBasePoints1 + 1),
-               ', ', s.RequiredLevel, '}, -- ', s.name) AS `RawData`
+               ', ', s.RequiredLevel, '}, -- ', s.name) AS `RAW_DATA`
     FROM (
         SELECT entry, name, RequiredLevel, spellid_1 AS spellid, spellcategory_1 AS cat FROM item_template
         UNION ALL SELECT entry, name, RequiredLevel, spellid_2, spellcategory_2 FROM item_template
@@ -34,8 +34,8 @@ ns.RawData = ns.RawData or {}
 
 ]]
 
-ns.RawData.Healthstone = {
-	-- [ID] = {Healthstone Amount, Required Level, {Allowed Zones}}, -- Name
+ns.RAW_DATA.Healthstone = {
+	-- [ID] = {Healthstone Amount, Required Level}, -- Name
 
 	[36894] = { 5136, 69 }, -- Fel Healthstone
 	[36893] = { 4708, 69 }, -- Fel Healthstone
@@ -77,13 +77,13 @@ ns.RawData.Healthstone = {
     a tier as held when any variant is present, so the macro conjures the
     next rank down instead of failing on a duplicate.
 ]]
-ns.ConjuredItemIDsBySpell = ns.ConjuredItemIDsBySpell or {}
+ns.CONJURED_ITEM_IDS_BY_SPELL = ns.CONJURED_ITEM_IDS_BY_SPELL or {}
 
-ns.ConjuredItemIDsBySpell[47878] = { 36892, 36893, 36894 } -- Fel Healthstone
-ns.ConjuredItemIDsBySpell[47871] = { 36889, 36890, 36891 } -- Demonic Healthstone
-ns.ConjuredItemIDsBySpell[27230] = { 22103, 22104, 22105 } -- Master Healthstone
-ns.ConjuredItemIDsBySpell[11730] = { 9421, 19012, 19013 } -- Major Healthstone
-ns.ConjuredItemIDsBySpell[11729] = { 5510, 19010, 19011 } -- Greater Healthstone
-ns.ConjuredItemIDsBySpell[5699] = { 5509, 19008, 19009 } -- Healthstone
-ns.ConjuredItemIDsBySpell[6202] = { 5511, 19006, 19007 } -- Lesser Healthstone
-ns.ConjuredItemIDsBySpell[6201] = { 5512, 19004, 19005 } -- Minor Healthstone
+ns.CONJURED_ITEM_IDS_BY_SPELL[47878] = { 36892, 36893, 36894 } -- Fel Healthstone
+ns.CONJURED_ITEM_IDS_BY_SPELL[47871] = { 36889, 36890, 36891 } -- Demonic Healthstone
+ns.CONJURED_ITEM_IDS_BY_SPELL[27230] = { 22103, 22104, 22105 } -- Master Healthstone
+ns.CONJURED_ITEM_IDS_BY_SPELL[11730] = { 9421, 19012, 19013 } -- Major Healthstone
+ns.CONJURED_ITEM_IDS_BY_SPELL[11729] = { 5510, 19010, 19011 } -- Greater Healthstone
+ns.CONJURED_ITEM_IDS_BY_SPELL[5699] = { 5509, 19008, 19009 } -- Healthstone
+ns.CONJURED_ITEM_IDS_BY_SPELL[6202] = { 5511, 19006, 19007 } -- Lesser Healthstone
+ns.CONJURED_ITEM_IDS_BY_SPELL[6201] = { 5512, 19004, 19005 } -- Minor Healthstone

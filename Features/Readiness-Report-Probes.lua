@@ -1,13 +1,14 @@
 local _, ns = ...
 
 --[[
-    Readiness-Probes -- the live reads behind the Readiness Report's newer
-    lines: what is about to lapse, what the weapons are carrying, what the
+    Readiness-Report-Probes -- the live reads behind the Readiness Report's
+    newer lines: what is about to lapse, what the weapons are carrying, what the
     character is wearing and specced into.
 
     Every function here answers about the player right now and nothing else. No
-    state, no settings: which of these the report asks for is Readiness.lua's
-    business, and each of these only has to answer honestly when asked.
+    state, no settings: which of these the report asks for is
+    Readiness-Report.lua's business, and each of these only has to answer
+    honestly when asked.
 ]]
 
 --------------------------------------------------------------------------------
@@ -75,7 +76,7 @@ function ns.HasFlaskOrElixirs()
 	    doubly-elixired player unflasked, which is the false alarm that gets a
 	    switch turned off for good.
 	]]
-	if next(ns.FlaskBuffIDs) == nil or next(ns.ElixirBuffIDs) == nil then
+	if next(ns.FLASK_BUFF_IDS) == nil or next(ns.ELIXIR_BUFF_IDS) == nil then
 		return true
 	end
 
@@ -88,11 +89,11 @@ function ns.HasFlaskOrElixirs()
 			break
 		end
 		local spellID = aura.spellId
-		if ns.FlaskBuffIDs[spellID] then
+		if ns.FLASK_BUFF_IDS[spellID] then
 			return true
 		end
 		-- Distinct ids only: one elixir reported twice must never read as two.
-		if ns.ElixirBuffIDs[spellID] and not seen[spellID] then
+		if ns.ELIXIR_BUFF_IDS[spellID] and not seen[spellID] then
 			seen[spellID] = true
 			elixirs = elixirs + 1
 			if elixirs >= 2 then
@@ -126,7 +127,7 @@ local function SlotHoldsEnchantableOffHand()
 	if not link then
 		return false
 	end
-	local equipLoc = select(9, GetItemInfo(link))
+	local equipLoc = select(9, C_Item.GetItemInfo(link))
 	return ENCHANTABLE_OFF_HAND[equipLoc] == true
 end
 
@@ -185,7 +186,7 @@ end
     a fight, no table has to be kept in step with the client, and a pole added
     in a later patch is covered the day it ships.
 
-    Read as the numeric class and subclass, never as GetItemInfo's type NAMES,
+    Read as the numeric class and subclass, never as C_Item.GetItemInfo's type NAMES,
     which are localized -- matching on "Fishing Pole" would answer correctly in
     English and nowhere else.
 ]]
@@ -198,7 +199,7 @@ local NON_COMBAT_WEAPON_SUBCLASSES = {
 
 --[[
     Equipped items that do not belong in a fight, as item links, in slot order.
-    Two ways in: the subclass rule above, and ns.QuestionableEquipment for the
+    Two ways in: the subclass rule above, and ns.QUESTIONABLE_EQUIPMENT for the
     exceptions it cannot reach -- a Riding Crop shares its subclass with every
     real trinket, so only a name can tell them apart.
 ]]
@@ -209,10 +210,10 @@ function ns.GetQuestionableEquipment()
 		local link = GetInventoryItemLink("player", slot)
 		if link then
 			local itemID = tonumber(link:match("item:(%d+)"))
-			local classID, subclassID = select(12, GetItemInfo(link))
+			local classID, subclassID = select(12, C_Item.GetItemInfo(link))
 
 			local byRule = classID == WEAPON_CLASS_ID and NON_COMBAT_WEAPON_SUBCLASSES[subclassID] == true
-			local byName = itemID ~= nil and ns.QuestionableEquipment[itemID] == true
+			local byName = itemID ~= nil and ns.QUESTIONABLE_EQUIPMENT[itemID] == true
 
 			if byRule or byName then
 				wrong[#wrong + 1] = link
@@ -244,7 +245,7 @@ function ns.GetCurrentSpecLabel()
 	local best, bestPoints, spread = nil, -1, {}
 
 	for index = 1, tabs do
-		local name, _, pointsSpent = GetTalentTabInfo(index)
+		local _, name, _, _, _, _, pointsSpent = C_SpecializationInfo.GetSpecializationInfo(index)
 		pointsSpent = pointsSpent or 0
 		spread[#spread + 1] = pointsSpent
 		if pointsSpent > bestPoints then

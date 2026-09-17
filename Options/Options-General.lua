@@ -25,15 +25,14 @@ local LINK_URL_WIDTH = ns.OPTIONS_ROW_WIDTH - LINK_LABEL_WIDTH
 
     Everything that shapes a macro lives on the Macros panel
     (Options-Macros.lua), Restocker on its own (Options-Restocker.lua), and the
-    Readiness Report on its own (Options-Readiness.lua), beside the Ignore
-    List, Profiles and Diagnostic Tools.
+    Readiness Report on its own (Options-Readiness-Report.lua), beside the
+    Ignore List, Profiles and Diagnostic Tools.
 
     Every toggle on this page is account-wide (ns.db.global) -- see
     Data/Default-Settings.lua for why each one stays there.
 
     Order values are grouped in spaced blocks so sections can be reordered or
-    extended without renumbering their neighbors. The gap the Ready Check
-    section left at 150-155 is deliberately not reclaimed, for the same reason.
+    extended without renumbering their neighbors.
 ]]
 
 function ns.BuildGeneralOptions()
@@ -72,9 +71,7 @@ function ns.BuildGeneralOptions()
 					return not (ns.db and ns.db.global.minimap and ns.db.global.minimap.hide)
 				end,
 				set = function(_, value)
-					if ns.ToggleMinimapButton then
-						ns.ToggleMinimapButton(value)
-					end
+					ns.ToggleMinimapButton(value)
 				end,
 			},
 
@@ -87,7 +84,7 @@ function ns.BuildGeneralOptions()
 				23
 			),
 			spaceCommands2 = Spacer(24),
-			descCommandsCrs = Desc(
+			descCommandsRestocker = Desc(
 				GetColor("INFO") .. L["RESTOCKER_COMMAND"] .. "|r" .. "  " .. L["RESTOCKER_COMMAND_DESCRIPTION"],
 				25
 			),

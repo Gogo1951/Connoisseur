@@ -5,7 +5,7 @@ local _, ns = ...
 --------------------------------------------------------------------------------
 
 -- TODO: Add SQL Query
-ns.ScrollData = {
+ns.SCROLL_DATA = {
 	Agility = {
 		-- {itemID, buffID, requiredLevel, amount}, -- Name
 		items = {

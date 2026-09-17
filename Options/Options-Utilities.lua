@@ -25,29 +25,25 @@ function ns.OptionsHeader(text, order, hidden)
 end
 
 --[[
-    `hidden` is optional on all four builders here, and takes the same predicate
-    AceConfig does. It is on every one of them rather than just the header
-    because a section hides as a unit: gating the header while its blurb and the
-    blank line under it stay put leaves a stray gap where the section used to
-    be, and a class-gated row whose label stayed behind would leave its caption
-    stranded beside nothing.
+    Only the header takes `hidden`, which collapses a gated section. A gated
+    spacer, description or row label is written inline as its own description
+    widget with a `hidden` function, so it hides with the section instead of
+    leaving a stray gap behind.
 ]]
-function ns.OptionsDesc(text, order, hidden)
+function ns.OptionsDesc(text, order)
 	return {
 		type = "description",
 		name = text,
 		fontSize = "medium",
 		order = order,
-		hidden = hidden,
 	}
 end
 
-function ns.OptionsSpacer(order, hidden)
+function ns.OptionsSpacer(order)
 	return {
 		type = "description",
 		name = " ",
 		order = order,
-		hidden = hidden,
 	}
 end
 
@@ -56,15 +52,76 @@ end
     with name = "" ordered immediately after it. A caption left on the control
     would put the label back above the widget and break the row.
 ]]
-function ns.OptionsRowLabel(text, order, width, hidden)
+function ns.OptionsRowLabel(text, order, width)
 	return {
 		type = "description",
 		name = text,
 		fontSize = "medium",
 		width = width or ns.OPTIONS_LABEL_WIDTH,
 		order = order,
-		hidden = hidden,
 	}
+end
+
+--------------------------------------------------------------------------------
+-- Sub-Option Rows
+--------------------------------------------------------------------------------
+
+--[[
+    A sub-option is a control that only means anything while the toggle above it
+    is on, and it is marked two ways at once.
+
+    The row leads with a blank indent cell, which moves the checkbox itself.
+    Padding the label instead would indent only the caption -- AceConfig pins a
+    checkbox at the left edge of its own widget -- leaving the box lined up with
+    its parent's and the words drifting away from it.
+
+    ns.OptionsSubLabel then colors the caption HELP silver against the parent's
+    white, so the row reads as subordinate rather than merely shifted.
+
+    The whole row is wrapped in an inline group with no name, which AceConfig
+    renders as a bare SimpleGroup -- no border, no title, no padding -- at
+    "fill" width. That wrapper is load-bearing, not decoration. Laid out flat,
+    the indent and its control are just two more widgets in the panel's flow,
+    kept together only by their widths happening to fill the line; the pair
+    after them then packs onto whatever space is left and its indent stops
+    indenting anything. A fill widget always gets a line to itself, so one group
+    per sub-option pins one row per sub-option no matter what the pane is doing.
+
+    Inside the group the controls need slack rather than an exact fit: a row
+    summing to the full pane width sits on the wrap boundary, where a pass that
+    measures a control before its width is applied tips the control onto its own
+    line and strands the indent above it.
+
+    Hiding belongs on the group, never on the controls inside it -- hiding only
+    the control would leave its indent cell behind as a blank line.
+]]
+function ns.OptionsSubRow(order, hidden, controls)
+	local args = {
+		indent = {
+			type = "description",
+			name = " ",
+			width = ns.OPTIONS_SUB_INDENT_WIDTH,
+			order = 1,
+		},
+	}
+
+	for index, control in ipairs(controls) do
+		control.order = index + 1
+		args["control" .. index] = control
+	end
+
+	return {
+		type = "group",
+		name = "",
+		inline = true,
+		order = order,
+		hidden = hidden,
+		args = args,
+	}
+end
+
+function ns.OptionsSubLabel(text)
+	return GetColor("HELP") .. text .. "|r"
 end
 
 --------------------------------------------------------------------------------
@@ -83,7 +140,7 @@ ns.MODE_VALUES = {
 --------------------------------------------------------------------------------
 
 --[[
-    GetItemInfo answers nil for an item the client has not cached yet, which is
+    C_Item.GetItemInfo answers nil for an item the client has not cached yet, which is
     the normal state for a list of item ids on a fresh login -- nothing has put
     those items in front of the player, so nothing has pulled their data. A panel
     that lists items renders those rows as L["LOADING_ITEM"] and hands the cold
@@ -126,7 +183,7 @@ function ns.WarmItemCache(itemIDs, registryName)
 
 		local stillCold = 0
 		for _, itemID in ipairs(itemIDs) do
-			if not GetItemInfo(itemID) then
+			if not C_Item.GetItemInfo(itemID) then
 				stillCold = stillCold + 1
 			end
 		end
@@ -182,8 +239,8 @@ end
 ]]
 function ns.SortItemIdentifiersByName(identifiers)
 	table.sort(identifiers, function(a, b)
-		local nameA = GetItemInfo(a) or ""
-		local nameB = GetItemInfo(b) or ""
+		local nameA = C_Item.GetItemInfo(a) or ""
+		local nameB = C_Item.GetItemInfo(b) or ""
 		if nameA == nameB then
 			return a < b
 		end
@@ -208,7 +265,7 @@ end
     the panel as the data lands.
 ]]
 function ns.GetItemDisplayName(itemID)
-	local _, itemLink, _, _, _, _, _, _, _, icon = GetItemInfo(itemID)
+	local _, itemLink, _, _, _, _, _, _, _, icon = C_Item.GetItemInfo(itemID)
 
 	if itemLink and icon then
 		return format("|T%s:16|t %s", icon, itemLink)
@@ -311,13 +368,13 @@ function ns.BuildItemListOptions(spec)
 		itemWidth = itemWidth - actionColumn.width
 	end
 
-	local coldItemIds = {}
+	local coldItemIDs = {}
 
 	for _, itemID in ipairs(identifiers) do
 		local capturedID = itemID
 
-		if not GetItemInfo(capturedID) then
-			coldItemIds[#coldItemIds + 1] = capturedID
+		if not C_Item.GetItemInfo(capturedID) then
+			coldItemIDs[#coldItemIDs + 1] = capturedID
 		end
 
 		--[[
@@ -401,7 +458,7 @@ function ns.BuildItemListOptions(spec)
 		order = order + 1
 	end
 
-	ns.WarmItemCache(coldItemIds, spec.notifyKey)
+	ns.WarmItemCache(coldItemIDs, spec.notifyKey)
 
 	return args
 end
@@ -426,7 +483,7 @@ local function OnItemLinkEnter(frame)
 		return
 	end
 	--[[
-	    The bare "item:id" form rather than the link off GetItemInfo, so a row
+	    The bare "item:id" form rather than the link off C_Item.GetItemInfo, so a row
 	    still waiting on its item data gets a tooltip too -- and hovering it pulls
 	    the very data the row is waiting for.
 	]]
