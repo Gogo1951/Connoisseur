@@ -16,7 +16,7 @@ local L = ns.L
     switch, clone, copy, delete -- via ns.UseRestockList plus the two direct sites
     in ns.DeleteRestockList and ns.CopyIntoCurrentRestockList that never pass through it.
 
-    Deliberately a plain field on Restocker rather than anything under settings: this is
+    Deliberately a plain field on ns rather than anything under settings: this is
     view state for one sitting and must never reach SavedVariables.
 ]]
 ns.restockNewItems = {}
@@ -48,8 +48,11 @@ ns.restockItemWait = {}
 function ns.SyncRestockItemInfoSubscription()
 	local waiting = next(ns.restockItemWait) ~= nil
 		or next(ns.pendingRecipes) ~= nil
-		or (ns.HasPendingUpgrade and ns.HasPendingUpgrade())
-		or (ns.HasPendingStarterAdds and ns.HasPendingStarterAdds())
+		or ns.HasPendingUpgrade()
+		or ns.HasPendingStarterAdds()
+
+	-- MIGRATION (remove after 2026-10-18): a repaired Blinding Powder row waiting for its name (Restocker-Saved-Migration.lua)
+	waiting = ns.NameBlindingPowderRows() or waiting
 
 	if waiting then
 		ns.RequestItemInfoEvents("restocker")
@@ -65,7 +68,8 @@ function ns.OnRestockerItemInfoReceived(itemID, success)
 
 	--[[
 	    This event IS the answer, so the remembered miss has to go first: every
-	    retry below asks ns.GetItemData again and would otherwise read the sentinel.
+	    retry below asks ns.GetItemData again and would otherwise still be told
+	    the item is missing.
 	]]
 	ns.ForgetItemDataMiss(itemID)
 
@@ -85,11 +89,11 @@ function ns.OnRestockerItemInfoReceived(itemID, success)
 	end
 
 	--[[
-	    An upgrade deferred because its target had not resolved yet. GetItemInfo
+	    An upgrade deferred because its target had not resolved yet. C_Item.GetItemInfo
 	    asked the server on that miss, so this event is the answer arriving; the
 	    retry is free once nothing is pending.
 	]]
-	if ns.HasPendingUpgrade and ns.HasPendingUpgrade() then
+	if ns.HasPendingUpgrade() then
 		ns.UpgradeRestockList()
 	end
 
@@ -97,7 +101,7 @@ function ns.OnRestockerItemInfoReceived(itemID, success)
 	    A Starter List tick deferred the same way (Restocker-Starter-List.lua): its item had
 	    not resolved when the box was ticked, and this event is the answer arriving.
 	]]
-	if ns.HasPendingStarterAdds and ns.HasPendingStarterAdds() then
+	if ns.HasPendingStarterAdds() then
 		ns.RetryPendingStarterAdds()
 	end
 
@@ -108,49 +112,13 @@ end
 -- Adding An Item
 --------------------------------------------------------------------------------
 
---[[
-    Shift-clicking an item routes through HandleModifiedItemClick, which asks
-    ChatEdit_InsertLink to place the link. Replacing that global is the only way
-    to claim the click, because the add box has to SUPPRESS the default (return
-    true) rather than run alongside it, which is what hooksecurefunc would do.
-
-    Installed at PLAYER_LOGIN, not at file scope. Every add-on that hooks this
-    global does it while its own files load, so a file-scope install races them
-    and loses to anyone loading later who replaces rather than chains -- and the
-    symptom is silent, since the click just goes somewhere else. By login the
-    field has settled, so chaining on top of it puts this last.
-
-    Guarded on the window: the frame is only built at PLAYER_LOGIN too, so an
-    early or failed-build click must fall through to whatever we chained.
-]]
-function ns.InstallRestockLinkCapture()
-	-- luacheck: globals ChatEdit_InsertLink
-	local previousInsertLink = ChatEdit_InsertLink
-	ChatEdit_InsertLink = function(link)
-		local editBox = ns.restockWindow and ns.restockWindow.editBox
-		if editBox and editBox:IsVisible() and editBox:HasFocus() then
-			ns.AddRestockItem(link)
-			return true
-		end
-		return previousInsertLink(link)
-	end
-	ns.restockLinkCapture = ChatEdit_InsertLink
-end
-
---[[
-    Whether the capture above is still the live ChatEdit_InsertLink. Another
-    add-on replacing it without chaining is the one failure this feature has, and
-    it is invisible from in game, so Diagnostics reports it rather than leaving a
-    dead shift-click to be guessed at.
-]]
-function ns.IsRestockLinkCaptureInstalled()
-	-- luacheck: read_globals ChatEdit_InsertLink
-	return ns.restockLinkCapture ~= nil and ChatEdit_InsertLink == ns.restockLinkCapture
-end
-
 function ns.AddRestockItem(text)
 	local settings = ns.restockSettings
-	local currentProfile = settings.profiles[settings.currentProfile]
+	local currentList = settings.lists[settings.currentList]
+
+	if type(text) == "string" and text:match("^%s*$") then
+		return
+	end
 
 	if tonumber(text) then
 		text = tonumber(text)
@@ -159,15 +127,20 @@ function ns.AddRestockItem(text)
 	local itemInfo = ns.GetItemData(text)
 	if itemInfo == nil then
 		--[[
-		    Park the pending add under its itemID whenever the input carries one: the
-		    retry in ns.OnRestockerItemInfoReceived looks up by the numeric itemID the
-		    event hands it, so an add keyed by a raw item link (what a shift-click from
-		    chat drops in) would never be found again and the item would silently never
-		    arrive. Unparseable input keeps its own key, which simply never retries.
+		    Park the pending add under its itemID: the retry in
+		    ns.OnRestockerItemInfoReceived looks up by the numeric itemID the event
+		    hands it, so an add keyed by a raw item link (what a drag from the bags
+		    hands in) would never be found again and the item would silently never
+		    arrive. Input carrying no itemID is dropped rather than parked: no answer
+		    can ever clear its key, and a parked key would hold GET_ITEM_INFO_RECEIVED
+		    registered for the rest of the session.
 		]]
 		local waitKey = text
 		if type(text) == "string" then
-			waitKey = tonumber(text:match("item:(%d+)")) or text
+			waitKey = tonumber(text:match("item:(%d+)"))
+		end
+		if waitKey == nil then
+			return
 		end
 		ns.restockItemWait[waitKey] = true
 		ns.SyncRestockItemInfoSubscription()
@@ -177,7 +150,7 @@ function ns.AddRestockItem(text)
 	local itemID = (itemInfo).itemID
 
 	-- Profiles are keyed by itemID, so a duplicate is a simple lookup
-	if currentProfile[itemID] ~= nil then
+	if currentList[itemID] ~= nil then
 		return
 	end
 
@@ -195,10 +168,10 @@ function ns.AddRestockItem(text)
 	buyItem.amount = math.max(1, (itemInfo).itemStackCount or 1)
 	-- New items default to everything ON: buy from merchant, stash to bank, restock from bank
 	buyItem.buyFromMerchant = true
-	buyItem.stashTobank = true
+	buyItem.stashToBank = true
 	buyItem.restockFromBank = true
 
-	currentProfile[itemID] = buyItem
+	currentList[itemID] = buyItem
 
 	--[[
 	    Flag it for the "New" group and jump the list back to the top, so the row

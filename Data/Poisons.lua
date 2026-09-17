@@ -5,21 +5,21 @@ local _, ns = ...
 --------------------------------------------------------------------------------
 
 --[[
-    Poison items grouped by type. Group NAMES are never localized here: each
-    group's display name is resolved at runtime via GetItemInfo on the base
-    (rank 1) item of the series, so the client's own item localization does
-    the work (see ns.GetPoisonGroupName in Features/Macros/Tools-Rogues.lua).
+    Poison items grouped by type. Each group's display name is resolved at
+    runtime via C_Item.GetItemInfo on the base (rank 1) item of the series, so the
+    client's own item localization does the work, with a locale string standing
+    in until that item is cached (see ns.GetPoisonGroupName in
+    Features/Macros/Tools-Rogues.lua).
 
     Items from later expansions than the running client simply never appear
-    in bags, so no per-flavor gating is needed — same policy as the other
-    Data/ tables.
+    in bags, so no per-flavor gating is needed.
 ]]
 
 -- The canonical group numbering, keyed off by every table below and by the Starter List.
 ns.POISON_GROUPS = { ANESTHETIC = 1, CRIPPLING = 2, DEADLY = 3, INSTANT = 4, MIND_NUMBING = 5, WOUND = 6 }
 
 -- [groupID] = base item of the series (the group's runtime display name)
-ns.PoisonGroupBaseItems = {
+ns.POISON_GROUP_BASE_ITEMS = {
 	[1] = 21835, -- Anesthetic Poison
 	[2] = 3775, -- Crippling Poison
 	[3] = 2892, -- Deadly Poison
@@ -28,23 +28,19 @@ ns.PoisonGroupBaseItems = {
 	[6] = 10918, -- Wound Poison
 }
 
---[[
-    English fallback names, used only while GetItemInfo is still cold for a
-    base item (first dropdown open on a fresh cache). Not a locale surface —
-    the real names come from the client.
-]]
-ns.PoisonGroupFallbackNames = {
-	[1] = "Anesthetic Poison",
-	[2] = "Crippling Poison",
-	[3] = "Deadly Poison",
-	[4] = "Instant Poison",
-	[5] = "Mind-numbing Poison",
-	[6] = "Wound Poison",
+-- [groupID] = locale key naming the group while its base item is still uncached
+ns.POISON_GROUP_NAME_KEYS = {
+	[1] = "POISON_GROUP_ANESTHETIC",
+	[2] = "POISON_GROUP_CRIPPLING",
+	[3] = "POISON_GROUP_DEADLY",
+	[4] = "POISON_GROUP_INSTANT",
+	[5] = "POISON_GROUP_MIND_NUMBING",
+	[6] = "POISON_GROUP_WOUND",
 }
 
 -- TODO: Add SQL Query
 -- [ID] = {Required Level, Poison Group}, -- Item Name
-ns.PoisonData = {
+ns.POISON_DATA = {
 	[21835] = { 68, 1 }, -- Anesthetic Poison
 	[43237] = { 77, 1 }, -- Anesthetic Poison II
 	[3775] = { 20, 2 }, -- Crippling Poison

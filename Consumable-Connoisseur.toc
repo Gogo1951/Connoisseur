@@ -1,5 +1,5 @@
 ## Title: Connoisseur & Restocker
-## Notes: Macros that automatically use your best food, buff food, water, potions, healthstones, bandages, and scrolls, plus a Restock List that keeps your bags full and upgrades your consumables as you level. Quality of life automation, peak performance.
+## Notes: Macros that automatically use your best food, buff food, water, potions, healthstones, bandages, and scrolls, plus a Restock List that keeps your bags full and upgrades your consumables as you level. Quality-of-life automation for peak performance.
 ## Author: Gogo1951
 
 ## IconTexture: Interface/AddOns/Consumable-Connoisseur/Includes/Images/Connoisseur.tga
@@ -22,9 +22,9 @@
 ## X-Curse-Project-ID: 1416865
 ## X-Wago-ID: aN0XyQNj
 
+# MIGRATION (remove after 2026-09-29)
 # ConnoisseurRestockerDB is the Restock List's old home, declared only so the
-# upgrade shim can read it back. RETIRE AFTER 2026-09-29 — see
-# Features/Restocker/Restocker-Saved-Migration.lua.
+# upgrade shim can read it back; see Features/Restocker/Restocker-Saved-Migration.lua.
 ## SavedVariables: ConnoisseurDB, ConnoisseurRestockerDB
 
 # Includes
@@ -97,15 +97,13 @@ Features/Macros/Soulstone.lua
 Features/Macros/Water.lua
 Features/Macros/Integration-Druid-Macro-Helper.lua
 Features/Action-Button-Text.lua
-Features/Readiness-Probes.lua
-Features/Readiness.lua
+Features/Readiness-Report-Probes.lua
+Features/Readiness-Report.lua
 Features/Ignore-List.lua
-
-# Restocker
 Features/Restocker/Restocker-List.lua
 Features/Restocker/Restocker-Saved-Lists.lua
 Features/Restocker/Restocker-Saved-Format.lua
-# Upgrade shim — RETIRE AFTER 2026-09-29, with the line below it.
+# MIGRATION (remove after 2026-10-18)
 Features/Restocker/Restocker-Saved-Migration.lua
 Features/Restocker/Restocker-Bags.lua
 Features/Restocker/Restocker-Bank.lua
@@ -122,18 +120,15 @@ Features/Restocker/Restocker-Starter-List.lua
 Features/Restocker/Restocker-Reminders.lua
 Features/Restocker/Restocker-Events.lua
 Features/Restocker/Restocker-Slash-Command.lua
-
-# Diagnostics & Options
 Features/Diagnostics.lua
 Features/Minimap-Button.lua
-
 Options/Options-Utilities.lua
 Options/Options-General.lua
 Options/Options-Macros.lua
+Options/Options-Ignore-List.lua
 Options/Options-Restocker.lua
 Options/Options-Starter-List-Popup.lua
-Options/Options-Ignore-List.lua
-Options/Options-Readiness.lua
+Options/Options-Readiness-Report.lua
 Options/Options-Profiles.lua
 Options/Options-Diagnostics.lua
 Options/Options.lua

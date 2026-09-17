@@ -62,18 +62,18 @@ end
     The single source of truth for which game client we are running on. The
     TOC ships one Lua codebase for both target clients (see the TOC
     ## Interface line), and a handful of spell mechanics differ between
-    them. Anything that must branch on flavor reads ns.IsEra / ns.IsTBC — never
+    them. Anything that must branch on flavor reads ns.IS_ERA / ns.IS_TBC — never
     re-derives WOW_PROJECT_ID inline, and never assumes one flavor's behavior
     is universal. WOW_PROJECT_ID is a client global set before addons load, so
     these are safe to resolve here at file-load time.
 
     The known flavor split — warlock Healthstone/Soulstone rank pinning — is
-    declared in data (rankIsTBCOnly in ns.ConjureSpells, Data/Data.lua) and
+    declared in data (rankIsTBCOnly in ns.CONJURE_SPELLS, Data/Data.lua) and
     applied by ns.GetSmartSpell (Features/Macros/Engine.lua). See the
     RECURRING BUG note on WarlockCreateHealthstone before touching either.
 ]]
-ns.IsEra = (WOW_PROJECT_ID == WOW_PROJECT_CLASSIC)
-ns.IsTBC = (WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC)
+ns.IS_ERA = (WOW_PROJECT_ID == WOW_PROJECT_CLASSIC)
+ns.IS_TBC = (WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC)
 
 --[[
     The same flavor as the number the Data/ tables flag their rows with -- the
@@ -83,9 +83,9 @@ ns.IsTBC = (WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC)
     future client on Classic data.
 ]]
 ns.CURRENT_EXPANSION = ns.EXPANSION_WRATH
-if ns.IsEra then
+if ns.IS_ERA then
 	ns.CURRENT_EXPANSION = ns.EXPANSION_CLASSIC
-elseif ns.IsTBC then
+elseif ns.IS_TBC then
 	ns.CURRENT_EXPANSION = ns.EXPANSION_TBC
 end
 
@@ -98,13 +98,14 @@ end
     branch-free and never hit "attempt to index nil" on a missing global. Each
     shim picks the API by existence, never by a truthy result.
 
-    Item readers live on C_Item on retail and as globals on Classic/TBC, and
-    the two surfaces return the same shape, so those fall back freely.
+    Item readers live on C_Item on both target clients, and the legacy globals
+    are Blizzard's deprecated aliases of the same functions, so those fall back
+    freely.
 
     C_Container is the container surface on both target clients (see the TOC
     ## Interface line), so the two container readers below are that surface and
-    nothing else -- which is why Features/Item-Cache.lua and the Restocker call
-    C_Container directly with no shim at all. Neither has a legacy fallback and
+    nothing else -- which is why the Restocker calls C_Container directly with
+    no shim at all. Neither has a legacy fallback and
     neither may be given one: the legacy GetContainerItemInfo returns a flat
     list of values where C_Container returns a table, and every call site here
     indexes the result (info.itemID, info.stackCount, info.hyperlink), so a

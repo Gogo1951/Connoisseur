@@ -29,9 +29,8 @@ local GetColor = ns.GetColor
     Each category answers to its own account-wide switch, all of them dead while
     the master switch is off; see Data/Default-Settings.lua for the defaults.
 
-    The whole report is skipped inside a PvP Arena. That predates the character
-    and gear lines, which ARE actionable in an arena prep window -- see the note
-    on ns.ReportReadiness before changing it.
+    Inside a PvP Arena the report drops what an arena makes moot and keeps what
+    the prep room can still fix; see ns.BuildReadinessLines.
 ]]
 
 --------------------------------------------------------------------------------
@@ -39,14 +38,18 @@ local GetColor = ns.GetColor
 --------------------------------------------------------------------------------
 
 --[[
-    One "Label : a, b, c" clause. Sections are joined with ". " into a line, so
-    a clause never carries its own trailing stop.
+    One "Label : a, b, c" clause. Line joins clauses with
+    READINESS_CLAUSE_SEPARATOR, so a clause never carries its own trailing stop.
 ]]
 local function Clause(label, values)
 	if #values == 0 then
 		return nil
 	end
-	return GetColor("TITLE") .. label .. "|r " .. GetColor("TEXT") .. table.concat(values, ", ") .. "|r"
+	return string.format(
+		L["READINESS_CLAUSE_FORMAT"],
+		GetColor("TITLE") .. label .. "|r",
+		GetColor("TEXT") .. table.concat(values, L["LIST_SEPARATOR"]) .. "|r"
+	)
 end
 
 --[[
@@ -67,7 +70,7 @@ local function Line(...)
 	if #clauses == 0 then
 		return nil
 	end
-	return table.concat(clauses, GetColor("SEPARATOR") .. ". |r")
+	return table.concat(clauses, GetColor("SEPARATOR") .. L["READINESS_CLAUSE_SEPARATOR"] .. "|r")
 end
 
 --------------------------------------------------------------------------------
@@ -102,9 +105,9 @@ end
     Whether anyone present is of a class, the player included -- AnyGroupMember
     tests "player" first, so "in the group" always covers "is you".
 
-    Two entries ask this. A Warlock is who produces a Healthstone or a
-    Soulstone, so with none present neither is actionable. A Shaman is who makes
-    the weapon-buff line moot; see its caller.
+    Two entries ask this. A Warlock is who produces a Healthstone, so with none
+    present it is not actionable. A Shaman is who makes the weapon-buff line
+    moot; see its caller.
 ]]
 local function GroupHasClass(classToken)
 	return AnyGroupMember(function(unit)
@@ -114,7 +117,7 @@ end
 
 --[[
     The soulstone aura's own localized name, resolved once from whichever id in
-    ns.SoulstoneBuffSpellIDs the client answers for. Every rank shares one name,
+    ns.SOULSTONE_BUFF_SPELL_IDS the client answers for. Every rank shares one name,
     so this single string covers them all -- including a rank whose id is wrong
     or missing from that list, which is why the name pass exists at all. `false`
     is the cached "asked and got nothing" answer, so a cold spell cache costs
@@ -125,7 +128,7 @@ local soulstoneBuffName
 local function SoulstoneBuffName()
 	if soulstoneBuffName == nil then
 		soulstoneBuffName = false
-		for _, spellID in ipairs(ns.SoulstoneBuffSpellIDs) do
+		for _, spellID in ipairs(ns.SOULSTONE_BUFF_SPELL_IDS) do
 			local name = GetSpellInfo(spellID)
 			if name then
 				soulstoneBuffName = name
@@ -137,7 +140,7 @@ local function SoulstoneBuffName()
 end
 
 local soulstoneBuffLookup = {}
-for _, spellID in ipairs(ns.SoulstoneBuffSpellIDs) do
+for _, spellID in ipairs(ns.SOULSTONE_BUFF_SPELL_IDS) do
 	soulstoneBuffLookup[spellID] = true
 end
 
@@ -179,10 +182,10 @@ end
 --[[
     Every buff answers to TWO switches: the per-character macro switch saying
     the character uses the thing at all, and the account-wide report switch
-    saying to mention it. The macro switch stays first in each test -- reporting
-    a buff the character never applies would be noise whatever the report is set
-    to. Flask, weapon buffs and the group soulstone have no macro behind them,
-    so they answer to their report switch alone.
+    saying to mention it. Both must be on, because reporting a buff the
+    character never applies would be noise whatever the report is set to.
+    Flask, weapon buffs and the group soulstone have no macro behind them, so
+    they answer to their report switch alone.
 ]]
 local function BuildMissingBuffs(settings, reports)
 	local missing = {}
@@ -191,9 +194,9 @@ local function BuildMissingBuffs(settings, reports)
 	    TBC and later only, which is a maintainer decision rather than a data
 	    one: Era has flasks and elixirs, but they are not what an Era raid runs
 	    on, so the line would be wrong for most of the people it fired at. The
-	    option hides itself on Era to match (Options/Options-Readiness.lua).
+	    option hides itself on Era to match (Options/Options-Readiness-Report.lua).
 	]]
-	if reports.readinessFlask and not ns.IsEra and not ns.HasFlaskOrElixirs() then
+	if reports.readinessFlask and not ns.IS_ERA and not ns.HasFlaskOrElixirs() then
 		missing[#missing + 1] = L["READINESS_FLASK"]
 	end
 
@@ -216,7 +219,7 @@ local function BuildMissingBuffs(settings, reports)
 
 	--[[
 	    Coverage is settled from the aura snapshot, never from
-	    ns.ScrollOverrideIDs alone: that list holds only scrolls the player has
+	    ns.scrollOverrideIDs alone: that list holds only scrolls the player has
 	    in bags, so someone missing the buffs with no scrolls to fire would read
 	    as covered. A type counts as covered by its own scroll buff or by a
 	    conflicting class buff.
@@ -232,17 +235,17 @@ local function BuildMissingBuffs(settings, reports)
 				end
 			end
 		end
-		if uncovered or (ns.ScrollOverrideIDs and #ns.ScrollOverrideIDs > 0) then
+		if uncovered or (ns.scrollOverrideIDs and #ns.scrollOverrideIDs > 0) then
 			missing[#missing + 1] = L["READINESS_SCROLLS"]
 		end
 	end
 
 	--[[
-	    The one entry that asks the GROUP rather than the player. Gated on a
-	    Warlock being present, because with nobody to cast it a missing soulstone
-	    is not actionable, just a nag nothing can clear.
+	    The one entry that asks the GROUP rather than the player: is a stone up
+	    on anyone. Only a Warlock sees it, because only a Warlock can put one
+	    up. Everyone else would be reading a nag they cannot clear.
 	]]
-	if reports.readinessSoulstone and GroupHasClass("WARLOCK") and not GroupHasSoulstone() then
+	if reports.readinessSoulstone and ns.isWarlock and not GroupHasSoulstone() then
 		missing[#missing + 1] = L["READINESS_SOULSTONE"]
 	end
 
@@ -299,7 +302,7 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-    Reads the winners from the last ScanBags pass (ns.BestSelection) rather than
+    Reads the winners from the last ScanBags pass (ns.bestSelection) rather than
     rescanning: the scan re-runs on every bag change under its own throttle, so
     the result is already current. A nil id means nothing usable was found.
 
@@ -309,25 +312,45 @@ end
     answer about what they are carrying.
 ]]
 local function CarryingNone(typeName)
-	local selection = ns.BestSelection
+	local selection = ns.bestSelection
 	local entry = selection and selection[typeName]
 	return entry ~= nil and entry.id == nil
+end
+
+--[[
+    The Mana Gem category can be won by a Demonic or Dark Rune once the player
+    adds runes to that macro, and a rune is not the gem this line asks a Mage to
+    conjure. So only a gem among the ranked ids counts. A held gem always makes
+    the list: there are two runes and three ranked slots.
+]]
+local function CarryingNoManaGem()
+	local selection = ns.bestSelection
+	local entry = selection and selection["Mana Gem"]
+	if entry == nil then
+		return false
+	end
+	local gems = ns.RAW_DATA.ManaGem or {}
+	for _, id in ipairs(entry.topIDs or { entry.id }) do
+		if gems[id] then
+			return false
+		end
+	end
+	return true
 end
 
 local function BuildMissingItems(reports)
 	local missing = {}
 
 	--[[
-	    The Healthstone carries a Warlock gate on top of its switch, for the same
-	    reason the soulstone does: with nobody present to ask, a missing stone is
-	    not something the player can act on.
+	    The Healthstone carries a Warlock gate on top of its switch: with no Warlock
+	    present to ask, a missing stone is not something the player can act on.
 	]]
 	if reports.readinessHealthstone and CarryingNone("Healthstone") and GroupHasClass("WARLOCK") then
 		missing[#missing + 1] = L["READINESS_HEALTHSTONE"]
 	end
 
 	-- Mage-only: mana gems are conjured, so anywhere else this could only ever read "missing".
-	if reports.readinessManaGem and ns.IsMage and CarryingNone("Mana Gem") then
+	if reports.readinessManaGem and ns.isMage and CarryingNoManaGem() then
 		missing[#missing + 1] = L["READINESS_MANA_GEM"]
 	end
 
@@ -350,7 +373,7 @@ end
 -- Character
 --------------------------------------------------------------------------------
 
-local function BuildCharacter(reports)
+local function BuildCharacter(reports, inArena)
 	local entries = {}
 
 	if reports.readinessSpec then
@@ -359,12 +382,14 @@ local function BuildCharacter(reports)
 			entries[#entries + 1] = spec
 		end
 		local unspent = ns.GetUnspentTalentPoints()
-		if unspent then
-			entries[#entries + 1] = string.format(L["READINESS_UNSPENT_TALENTS"], unspent)
+		if unspent == 1 then
+			entries[#entries + 1] = L["READINESS_UNSPENT_TALENTS_ONE"]
+		elseif unspent then
+			entries[#entries + 1] = string.format(L["READINESS_UNSPENT_TALENTS_MANY"], unspent)
 		end
 	end
 
-	if reports.readinessPvP and ns.IsPvPFlagged() then
+	if reports.readinessPvP and not inArena and ns.IsPvPFlagged() then
 		-- The one entry coloured as a warning rather than a value; it is the one that bites.
 		entries[#entries + 1] = GetColor("OFF") .. L["READINESS_PVP_ON"] .. "|r" .. GetColor("TEXT")
 	end
@@ -385,30 +410,39 @@ end
     identical in a chat window, which is exactly how long a silent failure can
     hide.
 
-    Deliberately ignores the master switch and the arena gate: this answers what
-    the report WOULD say, and the caller decides whether it is allowed to say it.
+    Deliberately ignores the master switch: this answers what the report WOULD
+    say, and the caller decides whether it is allowed to say it.
+
+    inArena applies the arena rule. Arenas block the buffs and consumables the
+    Missing Buffs, Expiring Soon and Missing Items clauses ask for, and flag
+    every player for PvP, so those clauses and the PvP entry drop. Damaged gear,
+    the spec and unspent points, and non-combat gear stay, because the prep
+    room can still fix them.
 ]]
-function ns.BuildReadinessLines()
+function ns.BuildReadinessLines(inArena)
 	local reports = ns.db and ns.db.global
 	local settings = ns.db and ns.db.profile
 	if not (reports and settings) then
 		return nil
 	end
 
-	local buffsLine = Line(
-		Clause(L["READINESS_MISSING_BUFFS"], BuildMissingBuffs(settings, reports)),
-		Clause(L["READINESS_EXPIRING"], BuildExpiring(reports))
-	)
+	local buffsLine
+	local missingItems = {}
+	if not inArena then
+		buffsLine = Line(
+			Clause(L["READINESS_MISSING_BUFFS"], BuildMissingBuffs(settings, reports)),
+			Clause(L["READINESS_EXPIRING"], BuildExpiring(reports))
+		)
+		missingItems = BuildMissingItems(reports)
+	end
 
 	local damaged = reports.readinessDurability and ns.GetDamagedGear(reports.readinessDurabilityThreshold or 20) or {}
-	local itemsLine = Line(
-		Clause(L["READINESS_MISSING_ITEMS"], BuildMissingItems(reports)),
-		Clause(L["READINESS_DAMAGED_GEAR"], damaged)
-	)
+	local itemsLine =
+		Line(Clause(L["READINESS_MISSING_ITEMS"], missingItems), Clause(L["READINESS_DAMAGED_GEAR"], damaged))
 
 	local questionable = reports.readinessQuestionableGear and ns.GetQuestionableEquipment() or {}
 	local characterLine = Line(
-		Clause(L["READINESS_CHARACTER"], BuildCharacter(reports)),
+		Clause(L["READINESS_CHARACTER"], BuildCharacter(reports, inArena)),
 		Clause(L["READINESS_QUESTIONABLE_GEAR"], questionable)
 	)
 
@@ -443,33 +477,23 @@ function ns.BuildReadinessLines()
 end
 
 --[[
-    Routed from Core's dispatcher on READY_CHECK. Owns the two gates that decide
-    whether the report is allowed to speak at all -- the master switch and the
-    arena skip; what it would say is ns.BuildReadinessLines' business.
+    Routed from Core's dispatcher on READY_CHECK. Owns the master switch, the
+    gate that decides whether the report is allowed to speak at all, and hands
+    ns.BuildReadinessLines the live arena test; what it would say is that
+    function's business.
 
-    THERE IS NO GROUP TEST, deliberately. One used to sit here, guarding against
-    a solo report -- but a ready check cannot be STARTED outside a group, so the
-    event never arrives solo and the test could never be false when this runs.
-    It was unreachable rather than protective, and every group-dependent entry
-    already gates on the relevant class being present anyway.
-
-    The arena skip predates the character and gear lines. Arenas block buff
-    food, scrolls and pet food, so when the report was only about consumables
-    there was nothing left in it worth printing there. Durability, the PvP flag
-    and a wrong trinket ARE actionable in the prep window, so this gate is now
-    suppressing lines it was never written about -- revisit it rather than
-    assuming it still earns its place.
+    THERE IS NO GROUP TEST, deliberately: a ready check cannot be STARTED outside
+    a group, so the event never arrives solo and such a test could never be false
+    here. Every group-dependent entry already gates on the relevant class being
+    present.
 ]]
 function ns.ReportReadiness()
 	local reports = ns.db and ns.db.global
 	if not (reports and reports.readinessReportEnabled) then
 		return
 	end
-	if select(2, IsInInstance()) == "arena" then
-		return
-	end
 
-	local lines = ns.BuildReadinessLines()
+	local lines = ns.BuildReadinessLines(select(2, IsInInstance()) == "arena")
 	if not lines then
 		return
 	end

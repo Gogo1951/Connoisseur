@@ -62,8 +62,7 @@ local POISONS_NOTE_HEIGHT = 45 -- the two-line ingredients note plus its spacer
     renders its text in the small highlight font. A reagent with a fixed
     amount draws no dropdown; its checkbox spans the whole pair, so the
     columns keep their rhythm. A locale that overruns a label wraps that row
-    onto another line -- revisit these widths before shipping long-label
-    locales.
+    onto another line.
 ]]
 local STAPLE_TOGGLE_WIDTH = 0.5
 local STAPLE_STACKS_WIDTH = 0.65
@@ -81,12 +80,12 @@ local COLUMN_GUTTER_WIDTH = 0.2
     "1 Stack" .. "N Stacks" choice lists, one per distinct cap -- the food
     dropdowns stop at 4 stacks where the ammo ones run to 18, so the lists
     are built per category.maxStacks and cached by that cap. The label is
-    unit-agnostic on purpose, because a stack is 20 for most staples and 200
-    for the ammo and the dropdown's tooltip is what says which.
+    unit-agnostic on purpose, because a stack is whatever its item stacks to
+    and the dropdown's tooltip is what says how many.
 
-    A category whose stack size is 1 counts items instead (Soul Shards), and
-    gets a bare-number list: "1 Stack" of a thing that cannot stack reads as a
-    bug, and the row's own label already says what is being counted.
+    A category that counts items instead (countsItems: Soul Shards) gets a
+    bare-number list: "1 Stack" of a thing that cannot stack reads as a bug,
+    and the row's own label already says what is being counted.
 
     A category carrying a choices list offers exactly those counts rather than
     every number to a cap -- Restocker-Starter-List.lua owns which, and why. Same
@@ -96,7 +95,7 @@ local COLUMN_GUTTER_WIDTH = 0.2
 local stackOptionsByCap = {}
 
 local function StackOptions(category)
-	local counting = category.stackSize == 1
+	local counting = category.countsItems
 	local choices = category.choices
 	local cacheKey = (counting and "count:" or "stacks:")
 		.. (choices and table.concat(choices, ",") or category.maxStacks)
@@ -133,6 +132,15 @@ local function StackOptions(category)
 end
 
 --[[
+    The tooltip text for a staple whose item the client has not resolved yet:
+    the stack size and count its real text needs come off that item, so the
+    panels' own loading placeholder stands in until ns.WarmItemCache repaints.
+]]
+local function LoadingText(category)
+	return GetColor("MUTED") .. string.format(L["LOADING_ITEM"], ns.GetStarterCategoryItemID(category)) .. "|r"
+end
+
+--[[
     One staple checkbox. Ticking adds the item -- Restocker-Starter-List.lua picks the
     tier for the character's level -- and unticking removes it, whichever tier
     the list is holding by then. The tooltip names the exact item and count a
@@ -143,7 +151,7 @@ local function StapleToggle(category, order, width)
 		type = "toggle",
 		name = category.label,
 		desc = function()
-			return ns.DescribeStarterCategory(category)
+			return ns.DescribeStarterCategory(category) or LoadingText(category)
 		end,
 		order = order,
 		width = width,
@@ -168,10 +176,14 @@ local function StapleStacks(category, order, width)
 		type = "select",
 		name = "",
 		desc = function()
-			if category.stackSize == 1 then
+			if category.countsItems then
 				return L["STARTER_POPUP_COUNT_DESCRIPTION"]
 			end
-			return string.format(L["STARTER_POPUP_STACKS_DESCRIPTION"], category.stackSize)
+			local stackSize = ns.GetStarterCategoryStackSize(category)
+			if not stackSize then
+				return LoadingText(category)
+			end
+			return string.format(L["STARTER_POPUP_STACKS_DESCRIPTION"], stackSize)
 		end,
 		order = order,
 		width = width,
@@ -317,6 +329,33 @@ local function PopupHeight()
 	return math.min(height, POPUP_MAX_HEIGHT)
 end
 
+--[[
+    Every offered staple whose item the client has not resolved yet, handed
+    to ns.WarmItemCache so the window repaints as the answers land. Called on
+    every build, like the other item panels. It is the only warming the
+    window gets from either way in (the login trigger and the List Builder
+    button), and a resolved item is simply not cold.
+]]
+local function WarmOfferedItems()
+	local coldItemIDs = {}
+	for _, category in ipairs(ns.GetStarterCategories()) do
+		if
+			ns.IsStarterCategoryForClass(category)
+			and ns.IsStarterCategoryAvailable(category)
+			and not ns.GetStarterCategoryStackSize(category)
+		then
+			coldItemIDs[#coldItemIDs + 1] = ns.GetStarterCategoryItemID(category)
+		end
+	end
+	ns.WarmItemCache(coldItemIDs, ns.OPTIONS_REGISTRY.StarterListPopup)
+end
+
+--[[
+    True while the window the login trigger opened is up, from
+    ns.ShowStarterListPopup until the host frame's OnHide below.
+]]
+local openedFromLogin = false
+
 function ns.BuildStarterListPopupOptions()
 	local args = {}
 	local order = 1
@@ -330,10 +369,13 @@ function ns.BuildStarterListPopupOptions()
 	    The opening line answers to how the window was reached, because both
 	    routes are real: the login trigger only fires over an empty list, while
 	    the Restocker's List Builder button opens it over whatever the player
-	    already has. Resolved per build rather than once, since AceConfig
-	    re-invokes this builder on every open.
+	    already has. The login route is read from openedFromLogin rather than
+	    from the list, because the trigger writes the class's pre-ticked
+	    staples onto the list just before the window opens. Resolved per build
+	    rather than once, since AceConfig re-invokes this builder on every open.
 	]]
-	local introKey = ns.IsRestockListEmpty() and "STARTER_POPUP_INTRO_EMPTY" or "STARTER_POPUP_INTRO_STOCKED"
+	local introKey = (openedFromLogin or ns.IsRestockListEmpty()) and "STARTER_POPUP_INTRO_EMPTY"
+		or "STARTER_POPUP_INTRO_STOCKED"
 	args.descIntro = Desc(
 		GetColor("BODY")
 			.. L[introKey]
@@ -450,6 +492,8 @@ function ns.BuildStarterListPopupOptions()
 		args.spacerAmmo = Spacer(order)
 	end
 
+	WarmOfferedItems()
+
 	return {
 		type = "group",
 		name = L["RESTOCKER_WINDOW_TITLE"],
@@ -523,8 +567,8 @@ local function AttachDismissCheckbox(host)
 	dismissCheckbox:SetChecked(ns.IsStarterPopupDismissed())
 	dismissCheckbox:Show()
 
-	if not host.crsStarterDismissHooked then
-		host.crsStarterDismissHooked = true
+	if not host.connoisseurStarterDismissHooked then
+		host.connoisseurStarterDismissHooked = true
 		host:HookScript("OnHide", function()
 			if dismissCheckbox and dismissCheckbox:GetParent() == host then
 				dismissCheckbox:Hide()
@@ -540,6 +584,7 @@ local function AttachDismissCheckbox(host)
 			]]
 			if starterPopupOpen then
 				starterPopupOpen = false
+				openedFromLogin = false
 				ns.ClearRestockNewItems()
 				ns.UpdateRestockList()
 			end
@@ -547,7 +592,9 @@ local function AttachDismissCheckbox(host)
 	end
 end
 
-function ns.ShowStarterListPopup()
+-- fromLogin: true only from the login trigger, and set before Open, which builds the window.
+function ns.ShowStarterListPopup(fromLogin)
+	openedFromLogin = fromLogin == true
 	AceConfigDialog:SetDefaultSize(ns.OPTIONS_REGISTRY.StarterListPopup, POPUP_WIDTH, PopupHeight())
 	AceConfigDialog:Open(ns.OPTIONS_REGISTRY.StarterListPopup)
 	starterPopupOpen = true

@@ -23,7 +23,7 @@ end
 
 --[[
     The item-type group used for sorting and the category pane -- the exact WoW item class
-    from GetItemInfo (e.g. "Consumable", "Weapon", "Armor", "Quest", "Trade Goods",
+    from C_Item.GetItemInfo (e.g. "Consumable", "Weapon", "Armor", "Quest", "Trade Goods",
     "Miscellaneous"). Falls back to a stored type, then "Other" until the item is cached.
     Just-added items report the "New" group instead, until the window closes.
 ]]
@@ -114,8 +114,7 @@ end
 
 --[[
     Apply the text filter and the selected category, then sort into a flat render list.
-    Section headers are gone: the category pane names the groups now, so the list holds
-    nothing but items.
+    The category pane names the groups, so the list holds nothing but items.
 ]]
 function ns.BuildRestockRenderList(items, view)
 	local selected = ns.restockSelectedGroup

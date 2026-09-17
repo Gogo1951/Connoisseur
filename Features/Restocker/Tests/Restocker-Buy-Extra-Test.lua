@@ -1,6 +1,7 @@
+-- luacheck: allow defined, ignore 121 122 131 143
 -- Headless test for the Buy Extra vendor toggle (no WoW API needed).
 --
--- Run it with:   lua Tests/BuyExtraTest.lua
+-- Run it with:   lua Tests/Restocker-Buy-Extra-Test.lua
 --
 -- It models the SAME two steps the live addon uses:
 --   * Restocker-Merchant.lua BuildPurchaseOrder    -- whether an order exists, and for how much
@@ -29,9 +30,9 @@
 --      you see" -- a deliberate choice, and the one case where a 0-amount row spends gold.
 --      An amount of 0 with Extra OFF must still buy nothing.
 --
--- The chunked-buy scenarios at the end guard the same trap ReagentBuyTest documents:
--- BuyMerchantItem will not sell more than one stack per call, so a limited slot holding
--- several stacks has to be chunked, not passed through in one call.
+-- The chunked-buy scenarios at the end guard the same trap Restocker-Reagent-Buy-Test
+-- documents: BuyMerchantItem will not sell more than one stack per call, so a limited
+-- slot holding several stacks has to be chunked, not passed through in one call.
 
 local pass = 0
 
@@ -49,7 +50,7 @@ local function buildPurchaseOrder(orders, record, haveInBag, vendorReaction)
 	local requiredReaction = record.reaction or 0
 	local buyExtra = record.buyExtra == true
 
-	if requiredReaction > vendorReaction then
+	if requiredReaction > vendorReaction then -- luacheck: ignore 542
 	-- Deliberately silent, same as the shipped code.
 	elseif amount > 0 or buyExtra then
 		local toBuy = math.max(0, amount - haveInBag)
@@ -254,7 +255,7 @@ local function itemToString(item)
 	parts[#parts + 1] = item.itemType or ""
 	parts[#parts + 1] = item.itemName or ""
 	parts[#parts + 1] = item.amount or 0
-	parts[#parts + 1] = item.stashTobank and 1 or 0
+	parts[#parts + 1] = item.stashToBank and 1 or 0
 	parts[#parts + 1] = item.restockFromBank and 1 or 0
 	parts[#parts + 1] = (item.buyFromMerchant == false) and 0 or 1
 	parts[#parts + 1] = (item.reaction and item.reaction > 0) and item.reaction or 0
@@ -331,7 +332,7 @@ roundTripScenario("Extra on, round trip", {
 	itemType = "Consumable",
 	itemName = "Major Mana Potion",
 	amount = 35,
-	stashTobank = true,
+	stashToBank = true,
 	restockFromBank = true,
 	buyExtra = true,
 }, true)
@@ -340,7 +341,7 @@ roundTripScenario("Extra off, round trip", {
 	itemType = "Consumable",
 	itemName = "Major Healing Potion",
 	amount = 10,
-	stashTobank = true,
+	stashToBank = true,
 	restockFromBank = true,
 }, false)
 
@@ -363,7 +364,7 @@ roundTripScenario("Upgrade off survives a logout", {
 	itemType = "Consumable",
 	itemName = "Superior Mana Potion",
 	amount = 10,
-	stashTobank = true,
+	stashToBank = true,
 	restockFromBank = true,
 	upgrade = false,
 }, false, true)

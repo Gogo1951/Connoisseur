@@ -53,8 +53,8 @@ end
     as bare triples at the call sites.
 ]]
 local GOLD = ns.COLORS_RGB.TITLE
-local ROW_LABEL = { r = 0.78, g = 0.74, b = 0.68 } -- an unselected type
-local ROW_COUNT = { r = 0.52, g = 0.50, b = 0.46 } -- its count, one step quieter
+local ROW_LABEL = ns.HexToRGB("C7BDAD") -- an unselected type
+local ROW_COUNT = ns.HexToRGB("858075") -- its count, one step quieter
 
 local GROUP_ROW_HEIGHT = 20
 local GROUP_ROW_INSET = 8
@@ -63,7 +63,7 @@ local GROUP_COUNT_WIDTH = 30
 --[[
     The pane is as wide as the longest type name it actually has to show, because
     a guessed width truncates the moment it is wrong: type names come from
-    GetItemInfo and are localized by the CLIENT, so no fixed number is right in
+    C_Item.GetItemInfo and are localized by the CLIENT, so no fixed number is right in
     every locale, and "Miscellaneous" already overruns a guess that looked generous
     in English.
 
@@ -75,7 +75,7 @@ local GROUP_COUNT_WIDTH = 30
 local GROUP_PANE_MIN_WIDTH = 132
 local GROUP_PANE_MAX_WIDTH = 180
 
-ns.RESTOCK_GROUP_PANE_WIDTH = GROUP_PANE_MIN_WIDTH
+ns.restockGroupPaneWidth = GROUP_PANE_MIN_WIDTH
 ns.RESTOCK_GROUP_PANE_GAP = 8 -- pane to table
 
 -- Scratch FontString used only to measure the row font; never shown.
@@ -85,7 +85,7 @@ local measureFontString
     Size the pane to the widest label it will draw. Called once before the window
     is laid out, since the table's left edge is anchored past the pane.
 
-    Types are read from the saved rows rather than from GetItemInfo: this runs at
+    Types are read from the saved rows rather than from C_Item.GetItemInfo: this runs at
     window build time, when the item cache may still be cold, and the stored label
     is the same string the pane goes on to display.
 ]]
@@ -101,8 +101,8 @@ function ns.ResolveRestockGroupPaneWidth()
 		[L["RESTOCKER_GROUP_OTHER"]] = true,
 	}
 	local settings = ns.restockSettings
-	for _, profile in pairs((settings and settings.profiles) or {}) do
-		for _, item in pairs(profile) do
+	for _, list in pairs((settings and settings.lists) or {}) do
+		for _, item in pairs(list) do
 			if type(item) == "table" and item.itemType and item.itemType ~= "" then
 				labels[item.itemType] = true
 			end
@@ -120,7 +120,7 @@ function ns.ResolveRestockGroupPaneWidth()
 
 	-- Name column, then the gap and the count column, then both insets.
 	local needed = math.ceil(widest) + 4 + GROUP_COUNT_WIDTH + (GROUP_ROW_INSET * 2)
-	ns.RESTOCK_GROUP_PANE_WIDTH = math.max(GROUP_PANE_MIN_WIDTH, math.min(GROUP_PANE_MAX_WIDTH, needed))
+	ns.restockGroupPaneWidth = math.max(GROUP_PANE_MIN_WIDTH, math.min(GROUP_PANE_MAX_WIDTH, needed))
 end
 
 local function GetCategoryRow()
@@ -197,7 +197,7 @@ function ns.CreateRestockGroupPane(parent, listInset, topInset)
 	-- The same top and bottom insets the table uses, so the two line up row for row.
 	pane:SetPoint("TOPLEFT", listInset, "TOPLEFT", 8, -topInset)
 	pane:SetPoint("BOTTOMLEFT", listInset, "BOTTOMLEFT", 8, ns.RESTOCK_LIST_BOTTOM_INSET)
-	pane:SetWidth(ns.RESTOCK_GROUP_PANE_WIDTH)
+	pane:SetWidth(ns.restockGroupPaneWidth)
 
 	--[[
 	    Its own scroll frame, but a bare one driven by the wheel rather than
@@ -264,7 +264,7 @@ function ns.UpdateRestockGroupPane(items, view)
 	]]
 	local width = pane.scrollFrame:GetWidth()
 	if not width or width <= 0 then
-		width = ns.RESTOCK_GROUP_PANE_WIDTH
+		width = ns.restockGroupPaneWidth
 	end
 	local offset = 0
 

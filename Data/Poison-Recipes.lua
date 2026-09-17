@@ -32,7 +32,7 @@ local CLASSIC, TBC = ns.EXPANSION_CLASSIC, ns.EXPANSION_TBC
 ]]
 
 -- { craftedItemID, { { reagentID, count }, ... }[, expansion] }, -- Crafted item
-ns.PoisonRecipes = {
+ns.POISON_RECIPES = {
 	-- Instant Poisons
 	{ 21927, { { 2931, 1 }, { 8925, 1 } }, TBC }, -- Instant Poison VII
 	{ 8928, { { 8924, 2 }, { 8925, 1 } }, TBC }, -- Instant Poison VI

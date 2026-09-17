@@ -15,31 +15,21 @@ local AceConfigRegistry = LibStub("AceConfigRegistry-3.0")
     profile), so it lives directly in the profile as a flat table. The
     account-wide list is its mirror in global, shared by every character.
 
-    Both are created on first use, so a brand-new character simply starts empty,
-    and both return nil only before the database exists.
+    Both are declared in ns.DATABASE_DEFAULTS, so a brand-new character simply
+    starts empty, and both return nil only before the database exists.
 ]]
 function ns.GetIgnoreList()
 	if not ns.db then
 		return nil
 	end
-	local ignoreList = ns.db.profile.ignoreList
-	if type(ignoreList) ~= "table" then
-		ignoreList = {}
-		ns.db.profile.ignoreList = ignoreList
-	end
-	return ignoreList
+	return ns.db.profile.ignoreList
 end
 
 function ns.GetGlobalIgnoreList()
 	if not ns.db then
 		return nil
 	end
-	local ignoreList = ns.db.global.ignoreList
-	if type(ignoreList) ~= "table" then
-		ignoreList = {}
-		ns.db.global.ignoreList = ignoreList
-	end
-	return ignoreList
+	return ns.db.global.ignoreList
 end
 
 --[[
@@ -60,16 +50,12 @@ end
     Every mutation ends here. The lists are a scan input: an item ignored while
     its macro already names it has to be written out of that body, not just out
     of the list -- so the macro state is wiped and the rebuild is forced.
-    UpdateMacros defers itself through RequestUpdate in combat or while the
-    Blizzard Macro UI is open, so forcing here is safe everywhere.
+    UpdateMacros defers itself in combat or while the Blizzard Macro UI is
+    open, so forcing here is safe everywhere.
 ]]
 local function RefreshMacros()
-	if ns.ResetMacroState then
-		ns.ResetMacroState()
-	end
-	if ns.UpdateMacros then
-		ns.UpdateMacros(true)
-	end
+	ns.ResetMacroState()
+	ns.UpdateMacros(true)
 end
 
 --[[
@@ -125,9 +111,8 @@ end
     Every other profile is read straight out of ns.db.sv.profiles, because AceDB
     only materializes the profile you are on -- and it strips default-valued
     tables at logout, so a character who never added an entry has no stored
-    ignoreList, and one who never changed a setting has no stored profile at
-    all. A read returns nil in those cases; a write passes createIfMissing and
-    builds what it needs on the spot.
+    ignoreList. A read returns nil in that case; a write passes createIfMissing
+    and builds what it needs on the spot.
 ]]
 function ns.GetIgnoreListForScope(scopeKey, createIfMissing)
 	if not (ns.db and scopeKey) then

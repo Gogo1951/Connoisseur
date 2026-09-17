@@ -47,8 +47,9 @@ local _, ns = ...
                           reason is on the key itself.
 
     The derived item cache (itemCache / itemCacheVersion) is deliberately NOT
-    declared here: Core lazy-inits it on the profile and owns its version-stamp
-    invalidation, so it never needs a default.
+    declared here: ns.EnsureItemCache (Features/Item-Cache.lua) creates it on
+    the profile at login and after every profile change, and owns its
+    version-stamp invalidation, so it never needs a default.
 ]]
 --[[
     Retired saved keys, cleared out of every saved file. Two eras are in here.
@@ -60,10 +61,10 @@ local _, ns = ...
 
     readinessReport is the Readiness Report's first master switch, retired when
     the report became opt-in. It has to be cleared rather than reused: AceDB
-    copies scalar defaults into the saved table, so it already sits as true in
-    every existing saved file, and reading that back would switch the report on
-    for exactly the players the soft launch keeps it off for. Its replacement is
-    readinessReportEnabled below.
+    strips a value equal to its default at logout, but a value the player set
+    stays in the saved file after its key leaves the defaults, where nothing
+    fills or strips it any more, so a reused name would read back a choice made
+    under its old meaning. Its replacement is readinessReportEnabled below.
 
     Features/Core.lua nils them all at the same point it clears the Restocker's
     own retired keys.
@@ -89,6 +90,7 @@ ns.DATABASE_DEFAULTS = {
 	profile = {
 		ignoreList = {},
 		combineHealthstones = false,
+		includeManaRunes = false,
 		--[[
 		    Early re-application: with earlyReapply on, a food/scroll/pet buff
 		    whose remaining time is under earlyReapplyThreshold (seconds)
@@ -139,7 +141,7 @@ ns.DATABASE_DEFAULTS = {
 		]]
 		enableStealthEating = false,
 		--[[
-		    Rogue poison groups per weapon slot, keyed by ns.PoisonGroupBaseItems
+		    Rogue poison groups per weapon slot, keyed by ns.POISON_GROUP_BASE_ITEMS
 		    group IDs (4 = Instant Poison). See Data/Poisons.lua.
 		]]
 		mainHandPoisonGroup = 4,
@@ -150,8 +152,8 @@ ns.DATABASE_DEFAULTS = {
 		showWelcome = true,
 		--[[
 		    The Restock List subsystem, account-wide in full. None of it is an
-		    AceDB profile: `profiles` here are the player's own named shopping
-		    lists and `profileKeys` maps a character to the one it uses, so the
+		    AceDB profile: `lists` here are the player's own named shopping
+		    lists and `listsByCharacter` maps a character to the one it uses, so the
 		    stock Reset Profile control must never reach them. Putting them on
 		    global is what guarantees that -- a profile switch or reset cannot
 		    empty a hand-built list or re-offer the Starter List to a character
@@ -162,10 +164,10 @@ ns.DATABASE_DEFAULTS = {
 		    a bank you are already looking at the window that fixes it.
 		]]
 		restocker = {
-			profiles = {},
-			profileKeys = {},
+			lists = {},
+			listsByCharacter = {},
 			starterListDismissed = {},
-			framePos = {},
+			framePosition = {},
 			restockReminderChat = true,
 			restockReminderSound = true,
 			restockReminderMode = "verbose",
@@ -179,12 +181,12 @@ ns.DATABASE_DEFAULTS = {
 		--[[
 		    Macro-name text on the default action bars. Off by default so the
 		    add-on hides the names Blizzard recently began showing again; the
-		    "Enable Macro Names on Buttons" toggle is its inverse (see
-		    Features/Action-Button-Text.lua).
+		    "Enable Macro Names on Buttons" toggle reads it directly, so checked
+		    means the names show (see Features/Action-Button-Text.lua).
 		]]
 		showMacroNames = false,
 		--[[
-		    The Readiness Report: on a ready check, one private print naming what
+		    The Readiness Report: on a ready check, a private report naming what
 		    still needs fixing. A behaviour preference -- whether you want
 		    Connoisseur speaking up at all -- rather than a consumable choice, so
 		    it is answered once for the account rather than per character, and so
@@ -196,11 +198,9 @@ ns.DATABASE_DEFAULTS = {
 		    should only ever be able to ADD a line about something broken.
 
 		    Beta soft launch: the report ships OFF and every player opts in. The
-		    key is deliberately a NEW one rather than the retired readinessReport
-		    -- that name already sits as true in every existing saved file, so
-		    re-using it would read the old value back and switch the report on for
-		    everyone who already has the add-on. See ns.RETIRED_READY_CHECK_KEYS
-		    above, which is what clears it.
+		    key is deliberately a NEW one rather than the retired readinessReport,
+		    whose saved values belong to its old meaning; see
+		    ns.RETIRED_READY_CHECK_KEYS above, which clears it.
 		]]
 		readinessReportEnabled = false,
 		--[[
@@ -211,9 +211,10 @@ ns.DATABASE_DEFAULTS = {
 		    Three ship ON, and they share a reason: each is something another
 		    player standing next to you can fix inside the few seconds a ready
 		    check gives you. A Warlock can hand you a stone, a Warlock can put a
-		    soulstone up, and a Mage conjures their own gem. Every one of them
-		    also self-gates on the class being present, so none of the three can
-		    nag at a group that cannot answer it.
+		    soulstone up, and a Mage conjures their own gem. Each also gates on
+		    who can fix it, so none of the three can nag someone who cannot
+		    answer it: the Healthstone on a Warlock being in the group, the
+		    soulstone and the gem on the player being that class.
 
 		    Everything else ships OFF. A report that fires on a fresh install for
 		    things the player never asked about is one they switch off entirely

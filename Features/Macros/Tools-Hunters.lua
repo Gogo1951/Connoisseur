@@ -1,5 +1,5 @@
 local _, ns = ...
-local Config = ns.MacroConfig
+local MACRO_CONFIG = ns.MACRO_CONFIG
 
 --------------------------------------------------------------------------------
 -- Hunter Tools
@@ -16,7 +16,7 @@ local Config = ns.MacroConfig
     macro state, all in this file. The definition at the bottom scans pet food
     for every Hunter, then routes the engine's update to UpdateFeedPetMacro or
     removes the macro when disabled; for non-Hunters it does nothing at all.
-    The scan sits outside that branch because ns.BestPetFoodID is read by the
+    The scan sits outside that branch because ns.bestPetFoodID is read by the
     mini-map tooltip and by Diagnostics whether or not the macro exists.
 ]]
 
@@ -43,22 +43,22 @@ local function ResolveIfKnown(spellID)
 end
 
 function ns.ResolveHunterSpells()
-	if not ns.IsHunter then
+	if not ns.isHunter then
 		return
 	end
-	ns.FeedPetSpellName = ResolveIfKnown(ns.FEED_PET_SPELL_ID)
-	ns.RevivePetSpellName = ResolveIfKnown(ns.REVIVE_PET_SPELL_ID)
-	ns.MendPetSpellName = ResolveIfKnown(ns.MEND_PET_SPELL_ID)
-	ns.CallPetSpellName = ResolveIfKnown(ns.CALL_PET_SPELL_ID)
-	ns.DismissPetSpellName = ResolveIfKnown(ns.DISMISS_PET_SPELL_ID)
+	ns.feedPetSpellName = ResolveIfKnown(ns.FEED_PET_SPELL_ID)
+	ns.revivePetSpellName = ResolveIfKnown(ns.REVIVE_PET_SPELL_ID)
+	ns.mendPetSpellName = ResolveIfKnown(ns.MEND_PET_SPELL_ID)
+	ns.callPetSpellName = ResolveIfKnown(ns.CALL_PET_SPELL_ID)
+	ns.dismissPetSpellName = ResolveIfKnown(ns.DISMISS_PET_SPELL_ID)
 end
 
 --------------------------------------------------------------------------------
 -- Pet Food Scanning
 --------------------------------------------------------------------------------
 
-ns.BestPetFoodID = nil
-ns.BestPetFoodLink = nil
+ns.bestPetFoodID = nil
+ns.bestPetFoodLink = nil
 
 --[[
     Builds a set of quest IDs the player currently has in their quest log.
@@ -76,6 +76,45 @@ local function BuildActiveQuestSet()
 			activeQuestIDs[questID] = true
 		end
 	end
+end
+
+--[[
+    Every quest some pet food is an objective for, gathered from ns.PET_FOOD_DATA
+    on first use. Only those quests joining or leaving the log can change which
+    food the Feed Pet macro picks.
+]]
+local petFoodQuestIDs
+local lastPetFoodQuestSignature
+
+--[[
+    Whether the active quests that matter to pet food changed since the last
+    call, so the dispatcher can skip the rebuild for QUEST_LOG_UPDATE's many
+    firings that change nothing. The signature starts nil, so the first call
+    counts as a change.
+]]
+function ns.PetFoodQuestsChanged()
+	if not petFoodQuestIDs then
+		petFoodQuestIDs = {}
+		for _, foodData in pairs(ns.PET_FOOD_DATA) do
+			for _, questID in ipairs(foodData[4] or {}) do
+				petFoodQuestIDs[questID] = true
+			end
+		end
+	end
+
+	BuildActiveQuestSet()
+	local activeFoodQuests = {}
+	for questID in pairs(activeQuestIDs) do
+		if petFoodQuestIDs[questID] then
+			activeFoodQuests[#activeFoodQuests + 1] = questID
+		end
+	end
+	table.sort(activeFoodQuests)
+
+	local signature = table.concat(activeFoodQuests, ",")
+	local changed = signature ~= lastPetFoodQuestSignature
+	lastPetFoodQuestSignature = signature
+	return changed
 end
 
 local function IsNeededForQuest(questIDs)
@@ -102,8 +141,8 @@ end
     so the *least* wasteful option still wins when multiple are available.
 
     Every food's own facts (itemLevel, dietID, sellPrice, questIDs) come from
-    the stored ns.PetFoodData table, and what is in the bags comes from
-    ns.ScannedItemCounts / ns.ScannedItemLinks -- the walk ns.ScanBags just
+    the stored ns.PET_FOOD_DATA table, and what is in the bags comes from
+    ns.scannedItemCounts / ns.scannedItemLinks -- the walk ns.ScanBags just
     finished in this same update pass. Walking the containers again here cost a
     second full pass per rebuild on every Hunter with a pet out. No server
     queries are needed either way.
@@ -114,10 +153,10 @@ end
 ]]
 
 function ns.ScanPetFood()
-	ns.BestPetFoodID = nil
-	ns.BestPetFoodLink = nil
+	ns.bestPetFoodID = nil
+	ns.bestPetFoodLink = nil
 
-	if not ns.PetFoodData or not ns.PetDietMap then
+	if not ns.PET_FOOD_DATA or not ns.PET_DIET_MAP then
 		return
 	end
 
@@ -139,19 +178,19 @@ function ns.ScanPetFood()
 
 	local dietSet = {}
 	for _, dietName in ipairs(petDiets) do
-		local dietID = ns.PetDietMap[dietName]
+		local dietID = ns.PET_DIET_MAP[dietName]
 		if dietID then
 			dietSet[dietID] = true
 		end
 	end
 
 	--[[
-	    Nothing scanned yet (the first pass of a login can land before ScanBags
-	    has filled anything), so there is nothing to pick from. Leave both
+	    Empty bags, so there is nothing to pick from: this runs only inside the
+	    update pass, right after ns.ScanBags refilled the snapshot. Leave both
 	    published fields nil, exactly as the no-pet path above does, and skip the
 	    quest-log walk with them.
 	]]
-	if next(ns.ScannedItemCounts) == nil then
+	if next(ns.scannedItemCounts) == nil then
 		return
 	end
 
@@ -159,7 +198,7 @@ function ns.ScanPetFood()
 	BuildActiveQuestSet()
 
 	-- Both halves of the Ignore List hide an item from every macro's selection.
-	local charIgnoreList = ns.GetIgnoreList() or {}
+	local characterIgnoreList = ns.GetIgnoreList() or {}
 	local globalIgnoreList = ns.GetGlobalIgnoreList() or {}
 
 	local bestID, bestLink
@@ -176,10 +215,10 @@ function ns.ScanPetFood()
 	local fallbackPrice = 999999
 	local fallbackCount = 999999
 
-	for id, totalCount in pairs(ns.ScannedItemCounts) do
-		local foodData = ns.PetFoodData[id]
+	for id, totalCount in pairs(ns.scannedItemCounts) do
+		local foodData = ns.PET_FOOD_DATA[id]
 
-		if foodData and not (charIgnoreList[id] or globalIgnoreList[id]) then
+		if foodData and not (characterIgnoreList[id] or globalIgnoreList[id]) then
 			local foodLevel = foodData[1]
 			local foodDiet = foodData[2]
 			local sellPrice = foodData[3]
@@ -224,7 +263,7 @@ function ns.ScanPetFood()
 
 							if isBetter then
 								bestID = id
-								bestLink = ns.ScannedItemLinks[id]
+								bestLink = ns.scannedItemLinks[id]
 								bestLevel = foodLevel
 								bestPrice = sellPrice
 								bestCount = totalCount
@@ -253,7 +292,7 @@ function ns.ScanPetFood()
 
 							if isBetter then
 								fallbackID = id
-								fallbackLink = ns.ScannedItemLinks[id]
+								fallbackLink = ns.scannedItemLinks[id]
 								fallbackLevel = foodLevel
 								fallbackPrice = sellPrice
 								fallbackCount = totalCount
@@ -266,11 +305,11 @@ function ns.ScanPetFood()
 	end
 
 	if bestID then
-		ns.BestPetFoodID = bestID
-		ns.BestPetFoodLink = bestLink
+		ns.bestPetFoodID = bestID
+		ns.bestPetFoodLink = bestLink
 	else
-		ns.BestPetFoodID = fallbackID
-		ns.BestPetFoodLink = fallbackLink
+		ns.bestPetFoodID = fallbackID
+		ns.bestPetFoodLink = fallbackLink
 	end
 end
 
@@ -282,7 +321,7 @@ end
     Written by ScanBags on every rescan (forced nil in a PvP Arena); Food.lua's
     macro hooks read it to splice the pet-buff-food line into the Food macro.
 ]]
-ns.PetBuffOverrideID = nil
+ns.petBuffOverrideID = nil
 
 --[[
     Returns the item ID of the pet food buff that should be used, or nil.
@@ -345,15 +384,15 @@ end
     fires mid-fight.
 ]]
 function ns.HandleHunterPetError(message)
-	if not ns.IsHunter then
+	if not ns.isHunter then
 		return
 	end
 	if UnitExists("pet") or not message then
 		return
 	end
-	local deadMsg = SPELL_FAILED_TARGETS_DEAD
-	if deadMsg and message == deadMsg then
-		ns.PetDeadDismissed = true
+	local deadMessage = SPELL_FAILED_TARGETS_DEAD
+	if deadMessage and message == deadMessage then
+		ns.petDeadDismissed = true
 		ns.RequestUpdate()
 	end
 end
@@ -372,8 +411,8 @@ function ns.HandlePetChanged(unit)
 	if unit ~= "player" then
 		return
 	end
-	if ns.IsHunter and UnitExists("pet") and not UnitIsDead("pet") then
-		ns.PetDeadDismissed = false
+	if ns.isHunter and UnitExists("pet") and not UnitIsDead("pet") then
+		ns.petDeadDismissed = false
 	end
 	ns.RequestUpdate()
 end
@@ -432,18 +471,18 @@ end
     macro's core feed/summon behavior survives in every locale.
 ]]
 local function ComposeFeedPetBody(tier, itemID, includeDismiss, includeRevive)
-	local feedName = ns.FeedPetSpellName
-	local reviveName = ns.RevivePetSpellName
-	local callName = ns.CallPetSpellName
-	local dismissName = ns.DismissPetSpellName
-	local mendName = ns.MendPetSpellName -- nil in Tier B
+	local feedName = ns.feedPetSpellName
+	local reviveName = ns.revivePetSpellName
+	local callName = ns.callPetSpellName
+	local dismissName = ns.dismissPetSpellName
+	local mendName = ns.mendPetSpellName -- nil in Tier B
 
 	--[[
 	    When we know the pet is dead but dismissed, [nopet] uses Revive Pet
 	    instead of Call Pet so a single click revives without the user
 	    needing to remember the dead state.
 	]]
-	local nopetSpell = (ns.PetDeadDismissed and reviveName) or callName
+	local nopetSpell = (ns.petDeadDismissed and reviveName) or callName
 
 	--[[
 	    Modifier cascade. Tier C includes the Mend Pet branch on
@@ -474,7 +513,7 @@ local function ComposeFeedPetBody(tier, itemID, includeDismiss, includeRevive)
 		    try to /cast Feed Pet in combat (it would fail) or on a
 		    right-click the user expected to mean Mend.
 		]]
-		lines[#lines + 1] = '/run ConnIf("[btn:2][combat]","nomend")'
+		lines[#lines + 1] = '/run ConnoisseurTipIf("[btn:2][combat]","noMendPet")'
 		lines[#lines + 1] = "/stopmacro [btn:2][combat]"
 	end
 
@@ -510,7 +549,7 @@ local function ComposeFeedPetBody(tier, itemID, includeDismiss, includeRevive)
 		    No useful food in bags: clicking Feed Pet should explain that
 		    rather than silently doing nothing on the food line.
 		]]
-		lines[#lines + 1] = '/run ConnTip("nofood")'
+		lines[#lines + 1] = '/run ConnoisseurTip("noPetFood")'
 	end
 
 	return table.concat(lines, "\n")
@@ -520,7 +559,7 @@ local function BuildFeedPetBody(tier, itemID)
 	if tier == "A" then
 		return table.concat({
 			"#showtooltip",
-			'/run ConnTip("noskills")',
+			'/run ConnoisseurTip("noPetSkills")',
 		}, "\n")
 	end
 
@@ -545,21 +584,15 @@ end
 --------------------------------------------------------------------------------
 
 local function UpdateFeedPetMacro(forced)
-	if InCombatLockdown() then
-		ns.RequestUpdate()
-		return
-	end
-
 	if forced then
 		currentPetFoodState = nil
 	end
 
-	local config = Config["Feed Pet"]
+	local config = MACRO_CONFIG["Feed Pet"]
 	if not config then
 		return
 	end
 	local macroName = config.macro
-	local icon = ns.QUESTION_MARK_ICON
 
 	--[[
 	    Knowledge tier drives the macro shape. The Tier B/C cast line
@@ -573,9 +606,9 @@ local function UpdateFeedPetMacro(forced)
 	    who hasn't trained the level-12 spell yet.
 	]]
 	local tier
-	if not (ns.FeedPetSpellName and ns.RevivePetSpellName and ns.CallPetSpellName and ns.DismissPetSpellName) then
+	if not (ns.feedPetSpellName and ns.revivePetSpellName and ns.callPetSpellName and ns.dismissPetSpellName) then
 		tier = "A"
-	elseif not ns.MendPetSpellName then
+	elseif not ns.mendPetSpellName then
 		tier = "B"
 	else
 		tier = "C"
@@ -586,13 +619,13 @@ local function UpdateFeedPetMacro(forced)
 	    Feed Pet — so we don't encode itemID into the state. Tiers B and C
 	    both rely on the food line, so we include it.
 	]]
-	local itemID = (tier ~= "A") and ns.BestPetFoodID or nil
+	local itemID = (tier ~= "A") and ns.bestPetFoodID or nil
 
 	local stateID = tier
 		.. "_"
 		.. (itemID and tostring(itemID) or "none")
 		.. "_"
-		.. (ns.PetDeadDismissed and "DD" or "ND")
+		.. (ns.petDeadDismissed and "DD" or "ND")
 
 	if currentPetFoodState == stateID and not forced then
 		return
@@ -600,18 +633,10 @@ local function UpdateFeedPetMacro(forced)
 
 	local body = BuildFeedPetBody(tier, itemID)
 
-	local index = GetMacroIndexByName(macroName)
-	if index == 0 then
-		-- On a failed create, leave the state unset so the next update retries.
-		if not ns.TryCreateMacro(macroName, icon, body) then
-			currentPetFoodState = nil
-			return
-		end
-	else
-		local existingBody = GetMacroBody(macroName)
-		if existingBody ~= body then
-			EditMacro(index, macroName, icon, body)
-		end
+	-- On a failed create, leave the state unset so the next update retries.
+	if not ns.WriteMacroBody(macroName, body) then
+		currentPetFoodState = nil
+		return
 	end
 
 	currentPetFoodState = stateID
@@ -625,17 +650,17 @@ ns.RegisterMacroType({
 	typeName = "Feed Pet",
 
 	customUpdate = function(forced)
-		if not ns.IsHunter then
+		if not ns.isHunter then
 			return
 		end
 
 		--[[
-		    Ahead of the enabled check, because ns.BestPetFoodID and
-		    ns.BestPetFoodLink are published state with readers that stay live
+		    Ahead of the enabled check, because ns.bestPetFoodID and
+		    ns.bestPetFoodLink are published state with readers that stay live
 		    whether or not the macro is built -- the mini-map tooltip's pet-food
 		    row and two Diagnostics reports. Scanning only when the macro is on
 		    froze all three at whatever the last enabled pass left behind. It
-		    costs nothing extra: the scan reads ns.ScannedItemCounts, which
+		    costs nothing extra: the scan reads ns.scannedItemCounts, which
 		    ns.ScanBags refilled earlier in this same update pass.
 		]]
 		ns.ScanPetFood()
@@ -643,12 +668,9 @@ ns.RegisterMacroType({
 		if ns.IsMacroEnabled("Feed Pet") then
 			UpdateFeedPetMacro(forced)
 		else
-			local config = Config["Feed Pet"]
+			local config = MACRO_CONFIG["Feed Pet"]
 			if config then
-				local index = GetMacroIndexByName(config.macro)
-				if index and index > 0 then
-					DeleteMacro(index)
-				end
+				ns.DeleteMacroByName(config.macro)
 				ns.ResetHunterMacroState()
 			end
 		end

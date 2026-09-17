@@ -18,20 +18,19 @@ end
     One-line saved format. Each item is stored as a single comma-separated string
     so the SavedVariables file has exactly one physical line per item (a real Lua
     table would be expanded across many lines by WoW's serializer).
-    Field order: itemType, itemName, amount, stashTobank, restockFromBank,
+    Field order: itemType, itemName, amount, stashToBank, restockFromBank,
                  buyFromMerchant, reaction, upgrade, buyExtra.  Booleans are 1 / 0.
     Every trailing field is always written. A new one can be appended without a
     version bump because the parser treats a missing trailing field as absent, and
     absent reads as each flag's own default: a line written before buyExtra
     existed reads Extra off, which is what a row that never asked for it means.
-    itemType is the human-readable class from GetItemInfo (e.g. "Consumable",
+    itemType is the human-readable class from C_Item.GetItemInfo (e.g. "Consumable",
     "Quest", "Trade Goods") and leads so the file sorts into groups. It is purely a
     convenience label (re-derived from the itemID); only the name is used at runtime.
     The itemID is NOT stored -- the table key IS the itemID (single source of truth).
     Neither itemType nor itemName may contain a comma (no WoW values do).
-    There is no version stamp, and none is needed: the parser reads every shape the
-    format has ever had -- lines with no leading type, and older lines that repeated
-    the id -- and the next save rewrites them in the current form.
+    There is no version stamp, and none is needed: the parser also reads a line with
+    no leading type, and the next save rewrites it in the current form.
 ]]
 
 --[[
@@ -54,7 +53,7 @@ local function ItemToString(item)
 	end
 	parts[#parts + 1] = item.itemName or ""
 	parts[#parts + 1] = item.amount or 0
-	parts[#parts + 1] = item.stashTobank and 1 or 0
+	parts[#parts + 1] = item.stashToBank and 1 or 0
 	parts[#parts + 1] = item.restockFromBank and 1 or 0
 	-- buyFromMerchant defaults to true (nil), so only false is "off"
 	parts[#parts + 1] = (item.buyFromMerchant == false) and 0 or 1
@@ -80,9 +79,8 @@ local function ItemFromString(line, key)
 
 	--[[
 	    The label (type and/or name) is the leading run of non-numeric fields; the
-	    numeric data (amount, flags, [reaction]) follows. This makes the parser tolerant
-	    of every format we've used: "type, name, ...", "name, ...", and the old
-	    "name, id, ..." (the repeated id is handled just below).
+	    numeric data (amount, flags, [reaction]) follows. This lets the parser read
+	    both "type, name, ..." and a line with no type, "name, ...".
 	]]
 	local dataStart
 	for j = 1, #fields do
@@ -128,7 +126,7 @@ local function ItemFromString(line, key)
 		itemType = itemType,
 		itemID = itemID,
 		amount = amount,
-		stashTobank = (stash == 1) or nil,
+		stashToBank = (stash == 1) or nil,
 		restockFromBank = (fromBank == 1) or nil,
 		buyFromMerchant = buyFromMerchant,
 		reaction = reaction > 0 and reaction or nil,
@@ -147,8 +145,8 @@ end
     to the table key and drops any stale itemLink. Idempotent.
 ]]
 function ns.InflateSavedRestockItems(db)
-	for _, profile in pairs(db.profiles or {}) do
-		for key, item in pairs(profile) do
+	for _, list in pairs(db.lists or {}) do
+		for key, item in pairs(list) do
 			if type(item) == "string" then
 				local inflated = ItemFromString(item, key)
 				-- Best-effort: refresh name/type from the item cache when it's known
@@ -161,7 +159,7 @@ function ns.InflateSavedRestockItems(db)
 						inflated.itemType = info.itemType
 					end
 				end
-				profile[key] = inflated
+				list[key] = inflated
 			elseif type(item) == "table" then
 				CleanItem(item, tonumber(key) or item.itemID)
 			end
@@ -174,18 +172,18 @@ end
     so WoW writes the compact format to disk). Idempotent.
 ]]
 local function DeflateSavedItems(db)
-	for _, profile in pairs(db.profiles or {}) do
-		for key, item in pairs(profile) do
+	for _, list in pairs(db.lists or {}) do
+		for key, item in pairs(list) do
 			if type(item) == "table" then
-				profile[key] = ItemToString(item)
+				list[key] = ItemToString(item)
 			end
 		end
 	end
 end
 
 --[[
-    Remove empty profiles that no character points at or owns (e.g. a leftover
-    "default" from an older version). Both sides of profileKeys are kept: the
+    Remove empty lists that no character points at or owns (e.g. a leftover
+    "default" from an older version). Both sides of listsByCharacter are kept: the
     list a character POINTS AT (the value), and any legacy "Name-Realm" list
     still matching a character key -- older versions created one per character,
     and a player who kept theirs must not lose it to a prune. New characters
@@ -193,16 +191,16 @@ end
 ]]
 function ns.PruneEmptyOrphanRestockLists(db)
 	local keep = {}
-	for charKey, name in pairs(db.profileKeys or {}) do
+	for characterKey, name in pairs(db.listsByCharacter or {}) do
 		keep[name] = true
-		keep[charKey] = true
+		keep[characterKey] = true
 	end
-	if db.currentProfile then
-		keep[db.currentProfile] = true
+	if db.currentList then
+		keep[db.currentList] = true
 	end
-	for name, profile in pairs(db.profiles or {}) do
-		if not keep[name] and next(profile) == nil then
-			db.profiles[name] = nil
+	for name, list in pairs(db.lists or {}) do
+		if not keep[name] and next(list) == nil then
+			db.lists[name] = nil
 		end
 	end
 end

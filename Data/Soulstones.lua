@@ -1,5 +1,5 @@
 local _, ns = ...
-ns.RawData = ns.RawData or {}
+ns.RAW_DATA = ns.RAW_DATA or {}
 
 -- TODO: Add SQL Query
 --[[
@@ -7,7 +7,7 @@ ns.RawData = ns.RawData or {}
     preference score (Minor < Lesser < Soulstone < Greater < Major <
     Master < Demonic).
 ]]
-ns.RawData.Soulstone = {
+ns.RAW_DATA.Soulstone = {
 	-- [ID] = {Rank Value}, -- Name
 	[36895] = { 5300 }, -- Demonic Soulstone
 	[22116] = { 2900 }, -- Master Soulstone
@@ -29,7 +29,7 @@ ns.RawData.Soulstone = {
 
 --[[
     The Soulstone RESURRECTION auras — what a stone leaves on whoever it was
-    used on. Distinct from the Create Soulstone spells in ns.ConjureSpells
+    used on. Distinct from the Create Soulstone spells in ns.CONJURE_SPELLS
     (Data/Data.lua), which are what a warlock casts to MAKE one, and distinct
     again from the item ids above, which are the stones sitting in a bag.
 
@@ -46,7 +46,7 @@ ns.RawData.Soulstone = {
     id in this list costs nothing as long as one id still resolves. Confirm
     them before relying on the id path alone.
 ]]
-ns.SoulstoneBuffSpellIDs = {
+ns.SOULSTONE_BUFF_SPELL_IDS = {
 	20707, -- Rank 1, Minor    (conjure 693)
 	20762, -- Rank 2, Lesser   (conjure 20752)
 	20763, -- Rank 3, Soulstone (conjure 20755)

@@ -1,12 +1,12 @@
 local _, ns = ...
 local L = ns.L
-local GetColor = ns.GetColor
 
 local AceConfigRegistry = LibStub("AceConfigRegistry-3.0")
 
 local Header = ns.OptionsHeader
 local Desc = ns.OptionsDesc
 local Spacer = ns.OptionsSpacer
+local SubRow, SubLabel = ns.OptionsSubRow, ns.OptionsSubLabel
 
 --------------------------------------------------------------------------------
 -- Readiness Report Panel
@@ -20,20 +20,18 @@ local Spacer = ns.OptionsSpacer
 
     Every switch here can only ever ADD a line about something that is wrong.
     The report says nothing when a character is ready, and that silence is what
-    lets it cover this much without becoming noise -- see Features/Readiness.lua.
+    lets it cover this much without becoming noise -- see
+    Features/Readiness-Report.lua.
 
-    The report itself is built in Features/Readiness.lua; this only owns the
-    switches. All of them are account-wide (ns.db.global) -- see
+    The report itself is built in Features/Readiness-Report.lua; this only owns
+    the switches. All of them are account-wide (ns.db.global) -- see
     Data/Default-Settings.lua for why, and for the defaults.
 
     LAYOUT. Seventeen switches is more than a page can present as a plain column
     of checkboxes, so the rows are BUILT rather than declared: SECTIONS below
-    says what exists, and AddReportRow gives every one of them the same three
-    parts -- the switch, the silver line saying what it reports, then a blank
-    line. Building them is what holds that rhythm identical across all
-    seventeen. Written out as literals it had already drifted: no break between
-    any two switches, and the description visible under three rows and hidden on
-    hover for the other fourteen.
+    says what exists, and AddReportRow gives every one of them the same parts --
+    the switch, its threshold dropdown where it has one, then a blank line.
+    Building them is what holds that rhythm identical across all seventeen.
 ]]
 
 --[[
@@ -49,15 +47,15 @@ end
     Hidden on Classic Era on top of the standard gate, matching the check
     itself: Era has flasks and elixirs but does not run on them, so the switch
     would only offer a line that is wrong for most of the characters it fired
-    at. See ns.HasFlaskOrElixirs' caller in Features/Readiness.lua.
+    at. See ns.HasFlaskOrElixirs' caller in Features/Readiness-Report.lua.
 ]]
 local function FlaskHidden()
-	return ReportsHidden() or ns.IsEra
+	return ReportsHidden() or ns.IS_ERA
 end
 
 -- Repaint the page so a reset shows in the controls without a reopen.
 local function Refresh()
-	AceConfigRegistry:NotifyChange(ns.OPTIONS_REGISTRY.Readiness)
+	AceConfigRegistry:NotifyChange(ns.OPTIONS_REGISTRY.ReadinessReport)
 end
 
 --------------------------------------------------------------------------------
@@ -142,13 +140,15 @@ local function DurabilityValues()
 end
 
 --[[
-    A row's optional dropdown: which key it writes, the choices, their order,
-    and what to read when the key is unset. `fallback` matches the default in
-    Data/Default-Settings.lua -- the two have to agree, or the dropdown opens on
-    a value the report is not using.
+    A row's optional dropdown: which key it writes, its caption and hover text,
+    the choices, their order, and what to read when the key is unset. `fallback`
+    matches the default in Data/Default-Settings.lua -- the two have to agree,
+    or the dropdown opens on a value the report is not using.
 ]]
 local EXPIRING_THRESHOLD = {
 	key = "readinessExpiringThreshold",
+	caption = "OPTIONS_READINESS_EXPIRING_CAPTION",
+	description = "OPTIONS_READINESS_EXPIRING_THRESHOLD_DESCRIPTION",
 	values = ExpiringValues,
 	sorting = EXPIRING_SECONDS,
 	fallback = 150,
@@ -156,6 +156,8 @@ local EXPIRING_THRESHOLD = {
 
 local DURABILITY_THRESHOLD = {
 	key = "readinessDurabilityThreshold",
+	caption = "OPTIONS_READINESS_DURABILITY_CAPTION",
+	description = "OPTIONS_READINESS_DURABILITY_THRESHOLD_DESCRIPTION",
 	values = DurabilityValues,
 	sorting = DURABILITY_PERCENTS,
 	fallback = 20,
@@ -171,8 +173,7 @@ local DURABILITY_THRESHOLD = {
 
     Locale KEYS rather than resolved strings, the same way the Restocker
     window's column table carries its captions: this is a file-scope constant,
-    and resolving at build time is what lets the panel pick up a locale the
-    client had not finished loading when this file did.
+    and the panel resolves each key when it builds.
 
     A row is its account-wide settings key, its label, and the sentence saying
     what it reports. `hidden` overrides the standard gate; `threshold` adds the
@@ -185,18 +186,18 @@ local SECTIONS = {
 		rows = {
 			{
 				key = "readinessFlask",
-				name = "OPTIONS_READINESS_FLASK",
+				name = "READINESS_FLASK",
 				description = "OPTIONS_READINESS_FLASK_DESCRIPTION",
 				hidden = FlaskHidden,
 			},
 			{
 				key = "readinessWellFed",
-				name = "OPTIONS_READINESS_WELL_FED",
+				name = "READINESS_WELL_FED",
 				description = "OPTIONS_READINESS_WELL_FED_DESCRIPTION",
 			},
 			{
 				key = "readinessPetWellFed",
-				name = "OPTIONS_READINESS_PET_WELL_FED",
+				name = "READINESS_PET_WELL_FED",
 				description = "OPTIONS_READINESS_PET_WELL_FED_DESCRIPTION",
 			},
 			{
@@ -206,7 +207,7 @@ local SECTIONS = {
 			},
 			{
 				key = "readinessSoulstone",
-				name = "OPTIONS_READINESS_SOULSTONE",
+				name = "READINESS_SOULSTONE",
 				description = "OPTIONS_READINESS_SOULSTONE_DESCRIPTION",
 			},
 			{
@@ -217,7 +218,7 @@ local SECTIONS = {
 			{
 				key = "readinessOffHandBuff",
 				name = "OPTIONS_READINESS_OFF_HAND",
-				description = "OPTIONS_READINESS_WEAPON_DESCRIPTION",
+				description = "OPTIONS_READINESS_OFF_HAND_DESCRIPTION",
 			},
 			{
 				key = "readinessExpiring",
@@ -233,27 +234,27 @@ local SECTIONS = {
 		rows = {
 			{
 				key = "readinessHealthstone",
-				name = "OPTIONS_READINESS_HEALTHSTONE",
+				name = "READINESS_HEALTHSTONE",
 				description = "OPTIONS_READINESS_HEALTHSTONE_DESCRIPTION",
 			},
 			{
 				key = "readinessManaGem",
-				name = "OPTIONS_READINESS_MANA_GEM",
+				name = "READINESS_MANA_GEM",
 				description = "OPTIONS_READINESS_MANA_GEM_DESCRIPTION",
 			},
 			{
 				key = "readinessHealingPotion",
-				name = "OPTIONS_READINESS_HEALING_POTION",
+				name = "READINESS_HEALING_POTION",
 				description = "OPTIONS_READINESS_HEALING_POTION_DESCRIPTION",
 			},
 			{
 				key = "readinessManaPotion",
-				name = "OPTIONS_READINESS_MANA_POTION",
+				name = "READINESS_MANA_POTION",
 				description = "OPTIONS_READINESS_MANA_POTION_DESCRIPTION",
 			},
 			{
 				key = "readinessBandages",
-				name = "OPTIONS_READINESS_BANDAGES",
+				name = "READINESS_BANDAGES",
 				description = "OPTIONS_READINESS_BANDAGES_DESCRIPTION",
 			},
 			{
@@ -292,36 +293,32 @@ local SECTIONS = {
 --------------------------------------------------------------------------------
 
 --[[
-    A switch paired with the dropdown that sets its threshold. The toggle takes
-    the larger share because it carries a phrase and the dropdown carries two
-    words; together they fill one row, the same split the Restocker's reminder
-    rows use.
+    A threshold's sub-row cells, sized to their contents with room to spare
+    rather than to the row budget; see ns.OptionsSubRow.
 ]]
-local TOGGLE_WITH_VALUE_WIDTH = 1.8
-local VALUE_DROPDOWN_WIDTH = 0.8
+local THRESHOLD_CAPTION_WIDTH = 1.0
+local THRESHOLD_DROPDOWN_WIDTH = 0.8
 
 --[[
     Opens a section: a break, its header, then a break under it -- the house
     rhythm every other panel's sections open with. Returns the next order.
 ]]
 local function AddSection(args, section, order)
-	args["space" .. section.key .. "Top"] = Spacer(order, ReportsHidden)
+	args["space" .. section.key .. "Top"] = { type = "description", name = " ", order = order, hidden = ReportsHidden }
 	args["header" .. section.key] = Header(L[section.title], order + 1, ReportsHidden)
-	args["space" .. section.key .. "Under"] = Spacer(order + 2, ReportsHidden)
+	args["space" .. section.key .. "Under"] =
+		{ type = "description", name = " ", order = order + 2, hidden = ReportsHidden }
 	return order + 3
 end
 
 --[[
-    One category row: the switch, its threshold dropdown where it has one, the
-    silver line naming what it reports, and the break under it.
-
-    The description is both that visible line and the toggle's hover text, the
-    same doubling the Macros panel's sections use -- the line answers a player
-    reading down the page, the hover answers a mouse already on the control.
+    One category row: the switch, the sub-row holding its threshold dropdown
+    where it has one, and the break under it. What the row reports is the
+    switch's hover text.
 
     Every part carries the row's own `hidden`, so a row that is not offered
-    (Flask on Era) takes its description and its break with it rather than
-    leaving a gap where a switch used to be.
+    (Flask on Era) takes its break with it rather than leaving a gap where a
+    switch used to be. A threshold also hides while its own switch is off.
 ]]
 local function AddReportRow(args, row, order)
 	local hidden = row.hidden or ReportsHidden
@@ -334,7 +331,7 @@ local function AddReportRow(args, row, order)
 		name = L[row.name],
 		desc = description,
 		order = order,
-		width = threshold and TOGGLE_WITH_VALUE_WIDTH or "full",
+		width = "full",
 		hidden = hidden,
 		get = function()
 			return ns.db and ns.db.global[key]
@@ -346,34 +343,44 @@ local function AddReportRow(args, row, order)
 	order = order + 1
 
 	if threshold then
-		args["value" .. key] = {
-			type = "select",
-			name = "",
-			order = order,
-			width = VALUE_DROPDOWN_WIDTH,
-			values = threshold.values,
-			sorting = threshold.sorting,
-			hidden = hidden,
-			get = function()
-				return (ns.db and ns.db.global[threshold.key]) or threshold.fallback
-			end,
-			set = function(_, value)
-				ns.db.global[threshold.key] = value
-			end,
-		}
+		local function ThresholdHidden()
+			return hidden() or not (ns.db and ns.db.global[key])
+		end
+
+		args["value" .. key] = SubRow(order, ThresholdHidden, {
+			{
+				type = "description",
+				name = SubLabel(L[threshold.caption]),
+				fontSize = "medium",
+				width = THRESHOLD_CAPTION_WIDTH,
+			},
+			{
+				type = "select",
+				name = "",
+				desc = L[threshold.description],
+				width = THRESHOLD_DROPDOWN_WIDTH,
+				values = threshold.values,
+				sorting = threshold.sorting,
+				get = function()
+					return (ns.db and ns.db.global[threshold.key]) or threshold.fallback
+				end,
+				set = function(_, value)
+					ns.db.global[threshold.key] = value
+				end,
+			},
+		})
 		order = order + 1
 	end
 
-	args["desc" .. key] = Desc(GetColor("HELP") .. description .. "|r", order, hidden)
-	args["space" .. key] = Spacer(order + 1, hidden)
-	return order + 2
+	args["space" .. key] = { type = "description", name = " ", order = order, hidden = hidden }
+	return order + 1
 end
 
 --------------------------------------------------------------------------------
 -- Panel
 --------------------------------------------------------------------------------
 
-function ns.BuildReadinessOptions()
+function ns.BuildReadinessReportOptions()
 	local args = {}
 	local order = 1
 
@@ -430,12 +437,7 @@ function ns.BuildReadinessOptions()
 
 	return {
 		type = "group",
-		--[[
-		    Named from the section header rather than a tab key of its own: the
-		    two are the same two words, and a second key holding the same string
-		    is one more thing for ten locales to keep in sync for no gain.
-		]]
-		name = L["OPTIONS_READINESS_HEADER"],
+		name = L["TAB_READINESS_REPORT"],
 		args = args,
 	}
 end

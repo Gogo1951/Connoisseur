@@ -6,7 +6,7 @@ local L = ns.L
 --------------------------------------------------------------------------------
 
 --[[
-    Size and position both live in ns.db.global.restocker.framePos. That is the
+    Size and position both live in ns.db.global.restocker.framePosition. That is the
     account-wide half of the AceDB database, so one window layout follows the
     player across every character and no profile switch can move it.
 
@@ -14,7 +14,7 @@ local L = ns.L
     of two things that each have their own floor:
 
       the category pane   its widest ALLOWED width (180) plus the gap (8)
-      the table           580, below which the item name stops being readable
+      the table           591, below which the item name stops being readable
       window chrome       the inset (2 + 4), its padding (8), the scroll bar (26)
 
     which is where MIN_WIDTH comes from. The pane sizes itself to the longest type
@@ -30,7 +30,7 @@ local L = ns.L
 ]]
 local DEFAULT_WIDTH = 870
 local DEFAULT_HEIGHT = 400
-local MIN_WIDTH = 810
+local MIN_WIDTH = 819
 local MIN_HEIGHT = 260
 local MAX_WIDTH = 1600
 local MAX_HEIGHT = 1200
@@ -54,15 +54,13 @@ function ns.SaveRestockWindowGeometry()
 		return
 	end
 	local settings = ns.restockSettings
-	settings.framePos = settings.framePos or {}
-
-	local point, _, relativePoint, xOfs, yOfs = frame:GetPoint(frame:GetNumPoints())
-	settings.framePos.point = point
-	settings.framePos.relativePoint = relativePoint
-	settings.framePos.xOfs = xOfs
-	settings.framePos.yOfs = yOfs
-	settings.framePos.width = math.floor(frame:GetWidth() + 0.5)
-	settings.framePos.height = math.floor(frame:GetHeight() + 0.5)
+	local point, _, relativePoint, xOffset, yOffset = frame:GetPoint(frame:GetNumPoints())
+	settings.framePosition.point = point
+	settings.framePosition.relativePoint = relativePoint
+	settings.framePosition.xOffset = xOffset
+	settings.framePosition.yOffset = yOffset
+	settings.framePosition.width = math.floor(frame:GetWidth() + 0.5)
+	settings.framePosition.height = math.floor(frame:GetHeight() + 0.5)
 end
 
 --[[
@@ -74,15 +72,15 @@ local RelayoutFrame
 local function CreateAddonFrame()
 	local settings = ns.restockSettings
 	local addonFrame = CreateFrame("Frame", "ConnoisseurRestockerFrame", UIParent, "BasicFrameTemplate")
-	addonFrame.width = Clamp(settings.framePos.width, MIN_WIDTH, MAX_WIDTH, DEFAULT_WIDTH)
-	addonFrame.height = Clamp(settings.framePos.height, MIN_HEIGHT, MAX_HEIGHT, DEFAULT_HEIGHT)
+	addonFrame.width = Clamp(settings.framePosition.width, MIN_WIDTH, MAX_WIDTH, DEFAULT_WIDTH)
+	addonFrame.height = Clamp(settings.framePosition.height, MIN_HEIGHT, MAX_HEIGHT, DEFAULT_HEIGHT)
 	addonFrame:SetSize(addonFrame.width, addonFrame.height)
 	addonFrame:SetPoint(
-		settings.framePos.point or "RIGHT",
+		settings.framePosition.point or "RIGHT",
 		UIParent,
-		settings.framePos.relativePoint or "RIGHT",
-		settings.framePos.xOfs or -5,
-		settings.framePos.yOfs or 0
+		settings.framePosition.relativePoint or "RIGHT",
+		settings.framePosition.xOffset or -5,
+		settings.framePosition.yOffset or 0
 	)
 	addonFrame:SetFrameStrata("FULLSCREEN")
 	addonFrame:SetMovable(true)
@@ -222,7 +220,7 @@ local ADD_BUTTON_WIDTH = 60
     the wrong width. Fitting only ever widens it from here.
 ]]
 local LIST_BUILDER_BUTTON_WIDTH = 130
-local LIST_BOTTOM_MARGIN = 8 -- the list no longer shares its inset with a control row
+local LIST_BOTTOM_MARGIN = 8 -- no control row shares the list's inset
 
 --[[
     The magnifying glass beside the filter, saying what that box is for without
@@ -272,7 +270,7 @@ local CONTROL_ROW_INSET_RIGHT = 12
     and the item rows sit on the same baseline.
 ]]
 local function ListTopInset()
-	return CONTROL_ROW_GAP + CONTROL_ROW_HEIGHT + CONTROL_ROW_GAP + ns.RESTOCK_COLUMN_HEADER_HEIGHT + 4
+	return CONTROL_ROW_GAP + CONTROL_ROW_HEIGHT + CONTROL_ROW_GAP + ns.restockColumnHeaderHeight + 4
 end
 
 --[[
@@ -292,7 +290,7 @@ local function CreateScrollFrame(addonFrame, listInset)
 	    than measured against the inset, so it inherits the same right edge the
 	    rows lay out from.
 	]]
-	local left = 8 + ns.RESTOCK_GROUP_PANE_WIDTH + ns.RESTOCK_GROUP_PANE_GAP
+	local left = 8 + ns.restockGroupPaneWidth + ns.RESTOCK_GROUP_PANE_GAP
 	scrollFrame:SetPoint("TOPLEFT", listInset, "TOPLEFT", left, -ListTopInset())
 	scrollFrame:SetPoint("BOTTOMRIGHT", listInset, "BOTTOMRIGHT", -26, ns.RESTOCK_LIST_BOTTOM_INSET)
 	scrollFrame.width = scrollFrame:GetWidth()
@@ -426,7 +424,7 @@ local function CreateAddButton(addonFrame, controlRow)
 	    still reads as one control rather than a field and a button that happen
 	    to be adjacent.
 	]]
-	addButton:SetPoint("RIGHT", addonFrame.listBuilderBtn, "LEFT", -CONTROL_GROUP_GAP, 0)
+	addButton:SetPoint("RIGHT", addonFrame.listBuilderButton, "LEFT", -CONTROL_GROUP_GAP, 0)
 	addButton:SetSize(ADD_BUTTON_WIDTH, CONTROL_ROW_HEIGHT)
 	addButton:SetText(L["RESTOCKER_ADD_BUTTON"])
 	addButton:SetNormalFontObject("GameFontNormal")
@@ -451,7 +449,7 @@ local function CreateAddButton(addonFrame, controlRow)
 	]]
 	ns.SetupRestockerTooltip(addButton, L["RESTOCKER_ADD_TOOLTIP_TITLE"], L["RESTOCKER_ADD_TOOLTIP_BODY"])
 
-	addonFrame.addBtn = addButton
+	addonFrame.addButton = addButton
 	return addButton
 end
 
@@ -466,7 +464,7 @@ local function CreateEditBox(addonFrame, controlRow)
 	    The 3px overlap tucks the box's right border art under the button, which
 	    is what makes the two read as one control.
 	]]
-	editBox:SetPoint("RIGHT", addonFrame.addBtn, "LEFT", 3, 0)
+	editBox:SetPoint("RIGHT", addonFrame.addButton, "LEFT", 3, 0)
 	editBox:SetWidth(TEXT_BOX_WIDTH)
 	editBox:SetAutoFocus(false)
 	editBox:SetHeight(EDIT_BOX_HEIGHT)
@@ -478,17 +476,17 @@ local function CreateEditBox(addonFrame, controlRow)
 	end)
 	editBox:SetScript("OnMouseUp", function(self, button)
 		if button == "LeftButton" then
-			local infoType, _, info2 = GetCursorInfo()
+			local infoType, _, itemLink = GetCursorInfo()
 			if infoType == "item" then
-				ns.AddRestockItem(info2)
+				ns.AddRestockItem(itemLink)
 				ClearCursor()
 			end
 		end
 	end)
 	editBox:SetScript("OnReceiveDrag", function(self)
-		local infoType, _, info2 = GetCursorInfo()
+		local infoType, _, itemLink = GetCursorInfo()
 		if infoType == "item" then
-			ns.AddRestockItem(info2)
+			ns.AddRestockItem(itemLink)
 			ClearCursor()
 		end
 	end)
@@ -547,14 +545,12 @@ local function CreateListBuilderButton(addonFrame, controlRow)
 		    whatever was just ticked.
 		]]
 		ns.HideRestockWindow()
-		if ns.ShowStarterListPopup then
-			ns.ShowStarterListPopup()
-		end
+		ns.ShowStarterListPopup()
 	end)
 
 	ns.SetupRestockerTooltip(button, L["RESTOCKER_LIST_BUILDER_BUTTON"], L["RESTOCKER_LIST_BUILDER_TOOLTIP"])
 
-	addonFrame.listBuilderBtn = button
+	addonFrame.listBuilderButton = button
 	return button
 end
 

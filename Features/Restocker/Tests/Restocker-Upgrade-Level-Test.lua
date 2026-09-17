@@ -1,6 +1,7 @@
+-- luacheck: allow defined, ignore 121 122 131 143
 -- Headless test for the Restock List consumable upgrader (no WoW client needed).
 --
--- Run it with:   lua Tests/UpgradeLevelTest.lua        (from Features/Restocker/)
+-- Run it with:   lua Tests/Restocker-Upgrade-Level-Test.lua        (from Features/Restocker/)
 --
 -- Unlike the other tests in this folder, this one does NOT model the algorithm: it
 -- loads the REAL Data/Consumable-Upgrade-Paths.lua and Restocker-Upgrade.lua and drives
@@ -26,8 +27,8 @@ local ROOT = arg[1] or "../.."
     stub declares it beside the flags it is derived from instead, so the two
     cannot disagree about which client this run is pretending to be.
 ]]
-local ns = { IsEra = true, IsTBC = false, L = {} }
-ns.CURRENT_EXPANSION = 0 -- ns.EXPANSION_CLASSIC, matching IsEra above
+local ns = { IS_ERA = true, IS_TBC = false, L = {} }
+ns.CURRENT_EXPANSION = 0 -- ns.EXPANSION_CLASSIC, matching IS_ERA above
 ns.L["RESTOCKER_UPGRADED"] = "Your Restock List has been upgraded."
 ns.L["RESTOCKER_UPGRADED_ITEM"] = "%sx%d upgrade to %sx%d."
 
@@ -72,7 +73,7 @@ function ns.GetItemHyperlink(id, fallbackName)
 	return "[" .. (names[id] or fallbackName or id) .. "]"
 end
 
-local settings = { currentProfile = "Test", profiles = { Test = {} } }
+local settings = { currentList = "Test", lists = { Test = {} } }
 ns.restockSettings = settings
 
 -- What the client reports AFTER the level has settled. Held one behind the ding in the
@@ -105,7 +106,7 @@ end
 
 ---A fresh Restock List, with the chat log cleared so each scenario counts its own lines.
 local function setList(entries)
-	settings.profiles.Test = entries
+	settings.lists.Test = entries
 	prints = {}
 	return entries
 end

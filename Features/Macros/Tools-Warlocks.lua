@@ -11,7 +11,7 @@ local _, ns = ...
     Both stone families are represented differently per client flavor (Era:
     distinctly-named tiers cast bare; TBC: numeric ranks). That split is
     handled at engine level, NOT here: the rankIsTBCOnly flag lives on the
-    ns.ConjureSpells tables (Data/Data.lua) and ns.GetSmartSpell (Engine.lua)
+    ns.CONJURE_SPELLS tables (Data/Data.lua) and ns.GetSmartSpell (Engine.lua)
     applies it. See the RECURRING BUG note on WarlockCreateHealthstone in
     Data/Data.lua before touching rank handling.
 ]]
@@ -27,17 +27,17 @@ local _, ns = ...
     if so.
 ]]
 function ns.ResolveWarlockHealthstoneConjure()
-	if not ns.IsWarlock then
+	if not ns.isWarlock then
 		return nil
 	end
 
 	local info = {}
 
-	if ns.KnowsAny(ns.ConjureSpells.WarlockCreateHealthstone) then
-		info.rightName, info.rightID = ns.GetSmartSpell(ns.ConjureSpells.WarlockCreateHealthstone, false, true)
+	if ns.KnowsAny(ns.CONJURE_SPELLS.WarlockCreateHealthstone) then
+		info.rightName, info.rightID = ns.GetSmartSpell(ns.CONJURE_SPELLS.WarlockCreateHealthstone, false, true)
 	else
-		info.rightMiss = "nchs"
-		info.noItemMiss = "nchs"
+		info.rightMiss = "noCreateHealthstone"
+		info.noItemMiss = "noCreateHealthstone"
 	end
 
 	--[[
@@ -45,10 +45,10 @@ function ns.ResolveWarlockHealthstoneConjure()
 	    low-level friendly target from downranking it; the unpinned
 	    /cast always fires the highest rank known.
 	]]
-	if ns.KnowsAny(ns.ConjureSpells.WarlockCreateSoulwell) then
-		info.middleName, info.middleID = ns.GetSmartSpell(ns.ConjureSpells.WarlockCreateSoulwell, true)
+	if ns.KnowsAny(ns.CONJURE_SPELLS.WarlockCreateSoulwell) then
+		info.middleName, info.middleID = ns.GetSmartSpell(ns.CONJURE_SPELLS.WarlockCreateSoulwell, true)
 	else
-		info.middleMiss = "ncsw"
+		info.middleMiss = "noRitualOfSouls"
 	end
 
 	return info
@@ -69,17 +69,17 @@ end
     /use).
 ]]
 function ns.ResolveWarlockSoulstoneConjure()
-	if not ns.IsWarlock then
+	if not ns.isWarlock then
 		return nil
 	end
 
 	local info = {}
 
-	if ns.KnowsAny(ns.ConjureSpells.WarlockCreateSoulstone) then
-		info.rightName, info.rightID = ns.GetSmartSpell(ns.ConjureSpells.WarlockCreateSoulstone, true, false)
+	if ns.KnowsAny(ns.CONJURE_SPELLS.WarlockCreateSoulstone) then
+		info.rightName, info.rightID = ns.GetSmartSpell(ns.CONJURE_SPELLS.WarlockCreateSoulstone, true, false)
 	else
-		info.rightMiss = "ncss"
-		info.noItemMiss = "ncss"
+		info.rightMiss = "noCreateSoulstone"
+		info.noItemMiss = "noCreateSoulstone"
 	end
 
 	return info

@@ -6,7 +6,7 @@ local _, ns = ...
 
 --[[
     What counts as being flasked, for the Readiness Report's Flask or 2x Elixirs
-    check (Features/Readiness-Probes.lua).
+    check (Features/Readiness-Report-Probes.lua).
 
     The rule the check applies is: a flask, OR two different elixirs.
 
@@ -29,7 +29,7 @@ local _, ns = ...
     guardian elixir (1 and 2, both collected here) from a utility one. Water
     Breathing and Noggenfogger are elixirs by item subclass but appear in no
     mask, which is exactly right: they occupy no elixir slot, so counting them
-    would call a player with water breathing and water walking fully flasked.
+    would call a player with water breathing and Noggenfogger fully flasked.
 
     Flasks are masks 3, 7 and 11 (plain, Unstable, Shattrath), unioned with the
     flask items the item_template pass found. The union is deliberate and errs
@@ -46,7 +46,7 @@ local _, ns = ...
 ]]
 
 -- { [buffSpellID] = true }, -- Flask Name
-ns.FlaskBuffIDs = {
+ns.FLASK_BUFF_IDS = {
 	[28521] = true, -- Flask of Blinding Light
 	[17629] = true, -- Flask of Chromatic Resistance
 	[42735] = true, -- Flask of Chromatic Wonder
@@ -86,7 +86,8 @@ ns.FlaskBuffIDs = {
 	[67018] = true, -- (buff with no matching item)
 }
 
-ns.ElixirBuffIDs = {
+-- { [buffSpellID] = true }, -- Elixir Name
+ns.ELIXIR_BUFF_IDS = {
 	[54452] = true, -- Adept's Elixir
 	[11390] = true, -- Arcane Elixir
 	[45373] = true, -- Bloodberry Elixir

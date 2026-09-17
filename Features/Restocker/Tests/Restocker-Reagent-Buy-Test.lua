@@ -1,6 +1,7 @@
+-- luacheck: allow defined, ignore 121 122 131 143
 -- Headless test for the crafting-reagent purchase order (no WoW API needed).
 --
--- Run it with:   lua Tests/ReagentBuyTest.lua
+-- Run it with:   lua Tests/Restocker-Reagent-Buy-Test.lua
 --
 -- It models the SAME two steps the live addon uses:
 --   * Restocker-Crafting-Reagents.lua BuildCraftingPurchaseOrder -- how many reagents the shortfall needs
@@ -28,11 +29,11 @@ local pass = 0
 ]]
 ---@param wanted number Profile amount for the crafted item
 ---@param inBags number Crafted items in BAGS
----@param inBank number Crafted items in the BANK (must not affect the result)
+---@param _inBank number Crafted items in the BANK (must not affect the result)
 ---@param reagentsInBags table<string, number>
-local function craftingPurchaseOrder(wanted, inBags, inBank, reagentsInBags)
+local function craftingPurchaseOrder(wanted, inBags, _inBank, reagentsInBags)
 	local order = {}
-	local missing = wanted - inBags -- inBank is deliberately unused
+	local missing = wanted - inBags -- _inBank is deliberately unused
 	if missing > 0 then
 		for _, ing in ipairs(RECIPE) do
 			order[ing.name] = (order[ing.name] or 0) + ing.count * missing

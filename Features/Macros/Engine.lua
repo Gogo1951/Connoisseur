@@ -1,6 +1,6 @@
 local _, ns = ...
 local L = ns.L
-local Config = ns.MacroConfig
+local MACRO_CONFIG = ns.MACRO_CONFIG
 
 --[[
     Engine -- the shared macro-writing machinery. Owns the definition
@@ -12,7 +12,7 @@ local Config = ns.MacroConfig
     Per-macro behavior lives in Features/Macros/<Name>.lua files, each of
     which calls ns.RegisterMacroType with a definition table:
 
-      typeName          -- key into ns.MacroConfig (required)
+      typeName          -- key into ns.MACRO_CONFIG (required)
 
     Selection fields — how the scanner picks this category's item. A
     definition with an itemTypes set participates in ScanBags: every usable
@@ -33,14 +33,14 @@ local Config = ns.MacroConfig
                            winner's topIDs (the multi-use types); otherwise
                            a single running winner is kept
       allowBuffFood     -- true: compare with the scanner's live
-                           ns.AllowBuffFood preference (Food, Water); absent:
+                           ns.allowBuffFood preference (Food, Water); absent:
                            the ladder's buff-food step stays gated off
       preferHybrid      -- direction of the ladder's hybrid step: true
                            prefers hybrid food/water (Food), false prefers
                            dedicated items (Water)
       winnerExtras(winner, data, hyperlink) -- store NON-comparison fields on
                            the winning record (Food: link, for
-                           ns.BestFoodLink). Everything the ladder compares is
+                           ns.bestFoodLink). Everything the ladder compares is
                            filled by the scanner's FillRecord
 
     Body hooks — what the written macro looks like.
@@ -64,16 +64,19 @@ local Config = ns.MacroConfig
                            transition into or out of the mode always rewrites.
       stateExtras(parts, id) -- append extra state-key parts (Explosive's
                            "EX:mode" click layout)
-      appendBlock()     -- returns (text, stateFlag) appended after the action
-                           block: Water's Shadowmeld line (flag "SM") and
-                           Food's Stealth Eating line (flag "SE")
+      appendBlock(id)   -- returns (text, stateFlag) appended after the action
+                           block, given the item the body uses (after
+                           modifyItem; nil when there is none): Water's
+                           Shadowmeld line (flag "SM") and Food's Stealth
+                           Eating line (flag "SE")
       customUpdate(forced) -- the definition owns its whole update; it is
                            skipped by the standard loop (Feed Pet, which
                            routes to the Hunter builder)
 
-    The macro-callback globals (ConnFire, ConnTip, ConnIf, ConnNoItem) and the
-    ConnoisseurState transport live in Features/Macros/Runtime.lua, which loads
-    immediately after this file. This file only emits `/run Conn...` lines into
+    The macro-callback globals (ConnoisseurFire, ConnoisseurTip,
+    ConnoisseurTipIf, ConnoisseurNoItem) and the state they share live in
+    Features/Macros/Runtime.lua, which loads immediately after this file. This
+    file only emits `/run Connoisseur...` lines into
     macro bodies at update time, long after load, so the later load order is
     safe -- nothing here calls those globals while the file is being read.
 ]]
@@ -96,7 +99,7 @@ local customDefinitions = {}
     time (Scanner-Inventory loads before this file, so it cannot see the
     local directly; every scan happens long after all registrations).
 ]]
-ns.RegisteredMacroDefinitions = macroDefinitions
+ns.REGISTERED_MACRO_DEFINITIONS = macroDefinitions
 
 --[[
     The custom definitions, exposed on the same terms for diagnostics only.
@@ -104,7 +107,7 @@ ns.RegisteredMacroDefinitions = macroDefinitions
     so the Selection Report names them as resolved elsewhere rather than
     leaving the reader to wonder why Feed Pet and Poisons are missing from it.
 ]]
-ns.RegisteredCustomMacroDefinitions = customDefinitions
+ns.REGISTERED_CUSTOM_MACRO_DEFINITIONS = customDefinitions
 
 function ns.RegisterMacroType(definition)
 	if definition.customUpdate then
@@ -124,11 +127,11 @@ end
       {
         rightName, rightID,    -- /cast spell on [btn:2] (or nil)
         middleName, middleID,  -- /cast spell on [btn:3] (or nil)
-        rightMiss,             -- ConnTip key to fire on [btn:2] when right
+        rightMiss,             -- ConnoisseurTip key to fire on [btn:2] when right
                                   is not yet learned (or nil)
-        middleMiss,            -- ConnTip key to fire on [btn:3] when middle
+        middleMiss,            -- ConnoisseurTip key to fire on [btn:3] when middle
                                   is not yet learned (or nil)
-        noItemMiss,            -- ConnTip key to fire on left-click when there
+        noItemMiss,            -- ConnoisseurTip key to fire on left-click when there
                                   is no item to /use AND the class can learn
                                   the conjure (replaces the generic no-item
                                   message). (or nil)
@@ -136,7 +139,7 @@ end
 
     Returning nil from the resolver means "no conjure semantics for this
     macro type for this player" — leave the macro body as plain /use item.
-    Class gating (ns.IsMage / ns.IsWarlock) lives inside each resolver.
+    Class gating (ns.isMage / ns.isWarlock) lives inside each resolver.
 ]]
 
 --------------------------------------------------------------------------------
@@ -153,6 +156,61 @@ local function HasFriendlyPlayerTarget()
 	return UnitExists("target") and UnitIsFriend("player", "target") and UnitIsPlayer("target")
 end
 ns.HasFriendlyPlayerTarget = HasFriendlyPlayerTarget
+
+--------------------------------------------------------------------------------
+-- Target and Group Tracking
+--------------------------------------------------------------------------------
+
+--[[
+    PLAYER_TARGET_CHANGED fires on every tab, and a rebuild is a full bag
+    rescan, so an unconditional request there costs one of those per mob
+    targeted. Only three things about a target reach a macro body:
+
+      is it a friendly player  -- scroll suppression (ns.HasFriendlyPlayerTarget)
+      is it the player         -- plain-food mode (targetingSelf in ns.ScanBags)
+      its level                -- the conjure downrank cap (ns.GetSmartSpell)
+
+    Those three ARE the whole of what a target contributes to a written body,
+    so anything new that reads the target MUST join this signature or its macro
+    goes stale. Same diff-before-requesting shape ns.HandleUnitAura uses on
+    UNIT_AURA, and the group signature and ns.PetFoodQuestsChanged use on the
+    other firehoses.
+
+    GROUP_ROSTER_UPDATE fires on every raid roster change, yet the only group
+    state a written body reads is whether the player is grouped and whether that
+    group is a raid (the group-restricted modes, ns.IsModeActive). Hunters'
+    QUEST_LOG_UPDATE fires on every objective tick and is diffed by
+    ns.PetFoodQuestsChanged in Tools-Hunters.lua.
+
+    Left nil until the first firing, so the first reading always counts as a
+    change rather than being compared against a state nobody has read yet.
+]]
+local lastTargetFriendly, lastTargetIsSelf, lastTargetLevel
+local lastInGroup, lastInRaid
+
+-- Records this firing's target readings and reports whether any of the three moved.
+function ns.TargetSignatureChanged()
+	local isFriendly = HasFriendlyPlayerTarget() and true or false
+	local isSelf = (UnitExists("target") and UnitIsUnit("target", "player")) and true or false
+	local level = UnitLevel("target")
+
+	local changed = isFriendly ~= lastTargetFriendly or isSelf ~= lastTargetIsSelf or level ~= lastTargetLevel
+	lastTargetFriendly, lastTargetIsSelf, lastTargetLevel = isFriendly, isSelf, level
+	return changed
+end
+
+-- Records this firing's group readings and reports whether either moved.
+function ns.GroupSignatureChanged()
+	local inGroup, inRaid = IsInGroup(), IsInRaid()
+	local changed = inGroup ~= lastInGroup or inRaid ~= lastInRaid
+	lastInGroup, lastInRaid = inGroup, inRaid
+	return changed
+end
+
+function ns.ResetTargetTracking()
+	lastTargetFriendly, lastTargetIsSelf, lastTargetLevel = nil, nil, nil
+	lastInGroup, lastInRaid = nil, nil
+end
 
 --------------------------------------------------------------------------------
 -- Smart Spell Resolution
@@ -172,11 +230,11 @@ function ns.GetSmartSpell(spellList, ignoreTarget, checkUnique)
 	    RECURRING BUG guard — on Era the warlock stone tiers are
 	    distinctly-named spells and must be cast bare; appending "(Rank N)"
 	    builds a spell name that does not exist and the /cast silently
-	    no-ops. Those lists are flagged rankIsTBCOnly in ns.ConjureSpells —
+	    no-ops. Those lists are flagged rankIsTBCOnly in ns.CONJURE_SPELLS —
 	    see the note on WarlockCreateHealthstone in Data/Data.lua. Unflagged
 	    lists (Mage Conjure Water/Food) pin ranks on both flavors.
 	]]
-	local pinRank = not (ns.IsEra and spellList.rankIsTBCOnly)
+	local pinRank = not (ns.IS_ERA and spellList.rankIsTBCOnly)
 
 	local levelCap = UnitLevel("player")
 
@@ -198,7 +256,9 @@ function ns.GetSmartSpell(spellList, ignoreTarget, checkUnique)
 		if known and requiredLevel <= levelCap then
 			local shouldSkip = false
 
-			local conjuredItems = checkUnique and ns.ConjuredItemIDsBySpell and ns.ConjuredItemIDsBySpell[spellID]
+			local conjuredItems = checkUnique
+				and ns.CONJURED_ITEM_IDS_BY_SPELL
+				and ns.CONJURED_ITEM_IDS_BY_SPELL[spellID]
 			if conjuredItems then
 				for _, conjuredItemID in ipairs(conjuredItems) do
 					if ns.GetItemCount(conjuredItemID) > 0 then
@@ -269,10 +329,7 @@ function ns.IsMacroEnabled(typeName)
 end
 
 local function DeleteMacroIfExists(macroName, typeName)
-	local index = GetMacroIndexByName(macroName)
-	if index and index > 0 then
-		DeleteMacro(index)
-	end
+	ns.DeleteMacroByName(macroName)
 	currentMacroState[typeName] = nil
 end
 
@@ -281,12 +338,12 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-    CreateMacro wrapper, shared with the Hunter builder. The perCharacter
+    CreateMacro wrapper, used by ns.WriteMacroBody. The perCharacter
     argument is deliberately omitted: Connoisseur macros always live in
-    the General (account-wide) tab. All characters share the same nine
-    slots, and each character's first update pass after login rewrites
-    the shared bodies to its own best items, so the macros self-heal on
-    every character switch.
+    the General (account-wide) tab. Every character shares those macros,
+    and each character's first update pass after login rewrites the
+    shared bodies to its own best items, so the macros self-heal on every
+    character switch.
 
     Do NOT pass a numeric 1 here to "mean" General — this client
     boolean-checks the argument (verified in-game: true lands in the
@@ -310,7 +367,7 @@ local macroSlotsWarned = false
 local function WarnMacroSlots()
 	if not macroSlotsWarned then
 		macroSlotsWarned = true
-		ns.PrintMessage(L["MSG_MACRO_SLOTS_FULL"])
+		ns.PrintMessage(L["MESSAGE_MACRO_SLOTS_FULL"])
 	end
 end
 
@@ -330,46 +387,59 @@ function ns.TryCreateMacro(macroName, icon, body)
 	return false
 end
 
-local function WriteMacro(macroName, icon, body, stateKey, typeName)
+--[[
+    The one writer every macro goes through, the engine's and the custom
+    definitions' alike. Creates the macro when it is missing and edits it only
+    when the body differs, always with the question-mark icon. Returns true when
+    the macro now holds `body`; on a failed create the caller leaves its state
+    unset so the next update cycle retries -- the macro then appears
+    automatically once the player frees a slot, no /reload needed.
+]]
+function ns.WriteMacroBody(macroName, body)
 	local index = GetMacroIndexByName(macroName)
 	if index == 0 then
-		--[[
-		    On a failed create, leave the state key unset so the next
-		    update cycle retries — the macro then appears automatically
-		    once the player frees a slot, no /reload needed.
-		]]
-		if not ns.TryCreateMacro(macroName, icon, body) then
-			currentMacroState[typeName] = nil
-			return
-		end
-	else
-		local existingBody = GetMacroBody(macroName)
-		if existingBody ~= body then
-			EditMacro(index, macroName, icon, body)
-		end
+		return ns.TryCreateMacro(macroName, ns.QUESTION_MARK_ICON, body)
 	end
-	currentMacroState[typeName] = stateKey
+	if GetMacroBody(macroName) ~= body then
+		EditMacro(index, macroName, ns.QUESTION_MARK_ICON, body)
+	end
+	return true
+end
+
+function ns.DeleteMacroByName(macroName)
+	local index = GetMacroIndexByName(macroName)
+	if index and index > 0 then
+		DeleteMacro(index)
+	end
+end
+
+local function WriteMacro(macroName, body, stateKey, typeName)
+	if ns.WriteMacroBody(macroName, body) then
+		currentMacroState[typeName] = stateKey
+	else
+		currentMacroState[typeName] = nil
+	end
 end
 
 --[[
-    Builds the line that records macro-fire context to ConnoisseurState via
-    the global helper defined in Features/Macros/Runtime.lua. The Core
+    Builds the line that records macro-fire context through the global
+    helper defined in Features/Macros/Runtime.lua. The Core
     UI_ERROR_MESSAGE handler reads lastID and lastTime to correlate a
     zone-restriction error with the item that triggered it.
 
     Using the global helper instead of an inline /run snippet keeps the macro
     body short — important for the Food macro when stacking scroll uses
-    against the 255 macro-body ceiling. The helper name is deliberately short
-    but distinctive (Conn... prefix) to minimize collision risk with other
-    addons while saving characters in every consumable macro.
+    against the 255 macro-body ceiling. The helper name carries the
+    distinctive Connoisseur prefix to keep collision risk with other add-ons
+    negligible.
 ]]
 local function StateWriteLine(itemID)
-	return "/run ConnFire(" .. itemID .. ")\n"
+	return "/run ConnoisseurFire(" .. itemID .. ")\n"
 end
 
 --[[
     Builds the stacked /use block for a multi-use macro type
-    (ns.MultiUseMacroTypes): one line per ranked item, best first. Items
+    (ns.MULTI_USE_MACRO_TYPES): one line per ranked item, best first. Items
     within each such category share an item cooldown, so a press consumes
     exactly one item — the first /use whose item is in bags fires and its
     cooldown blocks the rest. The extra lines exist for combat, where
@@ -394,7 +464,7 @@ ns.BuildUseBlock = BuildUseBlock
 --[[
     Composes the conjure portion of a standard macro body. Handles both
     learned and not-yet-learned spells: known spells emit /cast lines, and
-    not-yet-learned spells emit /run ConnIf calls that print a "you'll get
+    not-yet-learned spells emit /run ConnoisseurTipIf calls that print a "you'll get
     this later" tip when the user actually presses the click that would
     have used the spell.
 
@@ -420,10 +490,10 @@ local function BuildConjureBlock(info)
 	    expected to do something else.
 	]]
 	if rightMiss then
-		lines[#lines + 1] = '/run ConnIf("[btn:2]","' .. rightMiss .. '")'
+		lines[#lines + 1] = '/run ConnoisseurTipIf("[btn:2]","' .. rightMiss .. '")'
 	end
 	if middleMiss then
-		lines[#lines + 1] = '/run ConnIf("[btn:3]","' .. middleMiss .. '")'
+		lines[#lines + 1] = '/run ConnoisseurTipIf("[btn:3]","' .. middleMiss .. '")'
 	end
 
 	local missStop = ""
@@ -464,16 +534,16 @@ end
     Connoisseur macro body look like." The canonical emitted macro is:
 
       #showtooltip item:13446
-      /run ConnFire(13446)
+      /run ConnoisseurFire(13446)
       /use item:13446
 
     Every other line is contributed by a definition hook:
 
       #showtooltip item:<id>  -- always first; config.defaultID when no item
-      <conjure block>         -- definition.conjure, via BuildConjureBlock: /run ConnIf
+      <conjure block>         -- definition.conjure, via BuildConjureBlock: /run ConnoisseurTipIf
                                  miss tips with their /stopmacro guard, then the
                                  /cast [btn:3]/[btn:2] line and its /stopmacro
-      /run ConnFire(<id>)     -- StateWriteLine (macro-fire context for the
+      /run ConnoisseurFire(<id>)     -- StateWriteLine (macro-fire context for the
                                  zone-error handler); only when an item exists
       /use item:<id>          -- the action: definition.buildUseLine's custom line(s)
                                  (Explosive's click layout, Food's [@pet] line),
@@ -483,8 +553,8 @@ end
                                  block (Health Potion's healthstone stacking)
       <appended block>        -- definition.appendBlock text (Water's Shadowmeld line)
 
-    With no item in bags the action line becomes /run ConnTip("<noItemMiss>")
-    when the class can learn the conjure, else /run ConnNoItem("<typeName>").
+    With no item in bags the action line becomes /run ConnoisseurTip("<noItemMiss>")
+    when the class can learn the conjure, else /run ConnoisseurNoItem("<typeName>").
     Ends with the macro-length trim, which sheds stacked healthstone lines and
     then ranked fallback /use lines from the bottom up.
 ]]
@@ -516,10 +586,10 @@ local function BuildStandardBody(definition, config, itemID, useIDs, stackIDs, c
 		    level.
 		]]
 		tooltipLine = "#showtooltip item:" .. config.defaultID .. "\n"
-		actionBlock = '/run ConnTip("' .. conjureInfo.noItemMiss .. '")'
+		actionBlock = '/run ConnoisseurTip("' .. conjureInfo.noItemMiss .. '")'
 	else
 		tooltipLine = "#showtooltip item:" .. config.defaultID .. "\n"
-		actionBlock = '/run ConnNoItem("' .. definition.typeName .. '")'
+		actionBlock = '/run ConnoisseurNoItem("' .. definition.typeName .. '")'
 	end
 
 	local conjureBlock = ""
@@ -700,16 +770,17 @@ function ns.UpdateMacros(forced)
 	    concludes the rebuild is broken), and its save-back then reverts the
 	    write -- leaving currentMacroState recording a body the macro no longer
 	    has, which blocks every later rewrite whose state key matches (the
-	    "stale macros until something else changes" failure). Defer exactly
-	    like combat: leave the work pending and let the throttle retry; the
-	    OnHide hook above forces the full rebuild the moment the frame closes.
+	    "stale macros until something else changes" failure). Leave the work
+	    pending without re-arming the throttle: the OnHide hook above replays it
+	    as a full rebuild the moment the frame closes, and it is always armed by
+	    now, since EnsureMacroUIHook ran first and the frame exists.
 	]]
 	if MacroFrame and MacroFrame:IsShown() then
-		ns.RequestUpdate()
+		ns.MarkUpdatePending()
 		return
 	end
 
-	if not ns.ConjureSpells then
+	if not ns.CONJURE_SPELLS then
 		return
 	end
 
@@ -730,12 +801,12 @@ function ns.UpdateMacros(forced)
 	local friendlyPlayerTarget = HasFriendlyPlayerTarget()
 	local context = {
 		best = best,
-		activeScrollIDs = (not friendlyPlayerTarget) and ns.ScrollOverrideIDs or nil,
+		activeScrollIDs = (not friendlyPlayerTarget) and ns.scrollOverrideIDs or nil,
 	}
 
 	for _, definition in ipairs(macroDefinitions) do
 		local typeName = definition.typeName
-		local config = Config[typeName]
+		local config = MACRO_CONFIG[typeName]
 
 		if not ns.IsMacroEnabled(typeName) then
 			DeleteMacroIfExists(config.macro, typeName)
@@ -753,7 +824,7 @@ function ns.UpdateMacros(forced)
 			    itself, so the list only adds fallback lines below it.
 			]]
 			local useIDs
-			if itemID and ns.MultiUseMacroTypes[typeName] and bestEntry.topIDs and #bestEntry.topIDs > 0 then
+			if itemID and ns.MULTI_USE_MACRO_TYPES[typeName] and bestEntry.topIDs and #bestEntry.topIDs > 0 then
 				useIDs = bestEntry.topIDs
 			end
 
@@ -774,7 +845,7 @@ function ns.UpdateMacros(forced)
 			    for this type/item" — fall through to the standard body.
 			]]
 			local classBody, classStateID
-			if itemID and ns.BuildDruidMacroOverride then
+			if itemID then
 				classBody, classStateID = ns.BuildDruidMacroOverride(typeName, itemID, useIDs, stackIDs)
 			end
 
@@ -799,7 +870,7 @@ function ns.UpdateMacros(forced)
 				    scroll item, etc).
 				]]
 				if currentMacroState[typeName] ~= modeStateID or forced then
-					WriteMacro(config.macro, ns.QUESTION_MARK_ICON, modeBody, modeStateID, typeName)
+					WriteMacro(config.macro, modeBody, modeStateID, typeName)
 				end
 			elseif classBody then
 				--[[
@@ -811,7 +882,7 @@ function ns.UpdateMacros(forced)
 				    of override mode always triggers a rewrite.
 				]]
 				if currentMacroState[typeName] ~= classStateID or forced then
-					WriteMacro(config.macro, ns.QUESTION_MARK_ICON, classBody, classStateID, typeName)
+					WriteMacro(config.macro, classBody, classStateID, typeName)
 				end
 			else
 				--[[
@@ -821,10 +892,10 @@ function ns.UpdateMacros(forced)
 				]]
 				local conjureInfo = definition.conjure and definition.conjure() or nil
 
-				-- Definition hook: appended block + its state flag (Shadowmeld).
+				-- Definition hook: appended block + its state flag, given the item the body uses.
 				local appendText, appendFlag
 				if definition.appendBlock then
-					appendText, appendFlag = definition.appendBlock()
+					appendText, appendFlag = definition.appendBlock(itemID)
 				end
 
 				local stateID = BuildStateKey(definition, itemID, useIDs, stackIDs, conjureInfo, appendFlag)
@@ -832,7 +903,7 @@ function ns.UpdateMacros(forced)
 				if currentMacroState[typeName] ~= stateID or forced then
 					local body =
 						BuildStandardBody(definition, config, itemID, useIDs, stackIDs, conjureInfo, appendText)
-					WriteMacro(config.macro, ns.QUESTION_MARK_ICON, body, stateID, typeName)
+					WriteMacro(config.macro, body, stateID, typeName)
 				end
 			end
 		end
@@ -840,29 +911,85 @@ function ns.UpdateMacros(forced)
 
 	--[[
 	    Definitions that own their whole update cycle (Feed Pet, which routes
-	    to the Hunter builder and gates on ns.IsHunter internally).
+	    to the Hunter builder and gates on ns.isHunter internally).
 	]]
 	for _, definition in ipairs(customDefinitions) do
 		definition.customUpdate(forced)
 	end
 
-	if ns.UpdateLDB then
-		ns.UpdateLDB()
-	end
+	ns.UpdateMinimapIcon()
 end
 
 function ns.ResetMacroState()
 	wipe(currentMacroState)
-	if ns.ResetHunterMacroState then
-		ns.ResetHunterMacroState()
+	ns.ResetHunterMacroState()
+	ns.ResetPoisonMacroState()
+	ns.ResetScrollBuffTracking()
+	ns.ResetTargetTracking()
+end
+
+--------------------------------------------------------------------------------
+-- Feature Toggles
+--------------------------------------------------------------------------------
+
+--[[
+    Each toggle accepts an optional value. No argument flips the current state
+    (minimap click path). A boolean argument sets state directly (options-panel
+    path) and matches what AceConfig hands back to the set callback.
+]]
+function ns.ToggleBuffFood(value)
+	local settings = ns.db.profile
+	if value == nil then
+		settings.useBuffFood = not settings.useBuffFood
+	else
+		settings.useBuffFood = value
 	end
-	if ns.ResetPoisonMacroState then
-		ns.ResetPoisonMacroState()
+	ns.UpdateAuraTracking()
+	ns.ResetMacroState()
+	ns.RequestUpdate()
+end
+
+function ns.ToggleScrollBuffs(value)
+	local settings = ns.db.profile
+	if value == nil then
+		settings.useScrolls = not settings.useScrolls
+	else
+		settings.useScrolls = value
 	end
-	if ns.ResetScrollBuffTracking then
-		ns.ResetScrollBuffTracking()
+	ns.UpdateAuraTracking()
+	ns.ResetMacroState()
+	ns.RequestUpdate()
+end
+
+function ns.ToggleShadowmeldDrinking(value)
+	local settings = ns.db.profile
+	if value == nil then
+		settings.enableShadowmeldDrinking = not settings.enableShadowmeldDrinking
+	else
+		settings.enableShadowmeldDrinking = value
 	end
-	if ns.ResetTargetTracking then
-		ns.ResetTargetTracking()
+	ns.ResetMacroState()
+	ns.RequestUpdate()
+end
+
+function ns.ToggleStealthEating(value)
+	local settings = ns.db.profile
+	if value == nil then
+		settings.enableStealthEating = not settings.enableStealthEating
+	else
+		settings.enableStealthEating = value
 	end
+	ns.ResetMacroState()
+	ns.RequestUpdate()
+end
+
+function ns.ToggleDruidMacroHelper(value)
+	local settings = ns.db.profile
+	if value == nil then
+		settings.enableDruidMacroHelper = not settings.enableDruidMacroHelper
+	else
+		settings.enableDruidMacroHelper = value
+	end
+	ns.ResetMacroState()
+	ns.RequestUpdate()
 end

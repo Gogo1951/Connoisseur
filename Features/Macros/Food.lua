@@ -6,7 +6,7 @@ local _, ns = ...
 
 --[[
     The busiest macro definition: plain food by default, buff food when the
-    live ns.AllowBuffFood preference allows it (the scanner computes that
+    live ns.allowBuffFood preference allows it (the scanner computes that
     flag from setting/mode/Well Fed/arena state; the selection fields below
     declare how it applies), a pet-buff-food override when the Hunter
     feature wants the pet fed, and a full-body scroll-only mode when scroll
@@ -14,11 +14,11 @@ local _, ns = ...
 ]]
 
 --[[
-    Pet buff override flag — set by modifyItem, read by buildUseLine within
-    the same update iteration (the engine calls them in that order). The
-    override replaces the Food slot item with pet food; scrolls are still
-    allowed alongside (they target the player, pet food targets the pet —
-    no conflict).
+    Pet buff override flag — set by modifyItem, read by appendBlock and
+    buildUseLine later in the same update iteration (the engine always calls
+    modifyItem first). The override replaces the Food slot item with pet food.
+    It never shares a body with scrolls: scroll-only mode replaces the whole
+    body, pet line included, until the scrolls are applied.
 ]]
 local petBuffOverride = false
 
@@ -52,16 +52,16 @@ ns.RegisterMacroType({
 	--[[
 	    Selection: any food competes, including the food half of a foodwater
 	    hybrid (which also feeds Water), by raw food value. Buff food only
-	    competes while the scanner's live ns.AllowBuffFood preference is on
+	    competes while the scanner's live ns.allowBuffFood preference is on
 	    (setting + mode + not Well Fed + not self-targeting + not arena),
 	    and the allowBuffFood flag additionally makes the ladder prefer buff
 	    food outright when it is. Hybrids beat dedicated food on ties —
 	    one bag slot covering both needs. The winner record carries the
-	    item link that ns.BestFoodLink and the Food body hooks read.
+	    item link that ns.bestFoodLink and the Food body hooks read.
 	]]
 	itemTypes = { food = true, foodwater = true },
 	accepts = function(data)
-		return not (data.isBuffFood and not ns.AllowBuffFood)
+		return not (data.isBuffFood and not ns.allowBuffFood)
 	end,
 	score = function(data)
 		return data.healthValue
@@ -81,14 +81,14 @@ ns.RegisterMacroType({
 	    middle-click) lives in Tools-Mages.lua; called at update time.
 	]]
 	conjure = function()
-		return ns.ResolveMageWaterOrFoodConjure(ns.ConjureSpells.MageCreateFood, "ncfood")
+		return ns.ResolveMageWaterOrFoodConjure(ns.CONJURE_SPELLS.MageCreateFood, "noConjureFood")
 	end,
 
 	modifyItem = function(itemID)
 		petBuffOverride = false
-		if ns.PetBuffOverrideID then
+		if ns.petBuffOverrideID then
 			petBuffOverride = true
-			return ns.PetBuffOverrideID
+			return ns.petBuffOverrideID
 		end
 		return itemID
 	end,
@@ -119,20 +119,25 @@ ns.RegisterMacroType({
 	    Stealth Eating: appends a stealth cast below the food line -- Stealth
 	    for Rogues, Shadowmeld for other Night Elves -- so the player stealths
 	    while eating. The "SE" flag keeps the append in the state key so
-	    toggling the option rewrites the macro. Scroll-only mode bypasses this
-	    (mode overrides never reach appendBlock), which is correct: a scroll
-	    tap is not a meal.
+	    toggling the option rewrites the macro. Only a body the player eats
+	    from carries it: with no food the press would stealth for nothing, and
+	    the pet-buff override feeds the pet rather than the player. Scroll-only
+	    mode bypasses this too (mode overrides never reach appendBlock), which
+	    is correct: a scroll tap is not a meal.
 	]]
-	appendBlock = function()
+	appendBlock = function(itemID)
+		if not itemID or petBuffOverride then
+			return nil
+		end
 		local settings = ns.db and ns.db.profile
 		if not settings or not settings.enableStealthEating then
 			return nil
 		end
-		if ns.IsRogue and ns.StealthSpellName then
-			return "\n/cast [nostealth] " .. ns.StealthSpellName, "SE"
+		if ns.isRogue and ns.stealthSpellName then
+			return "\n/cast [nostealth] " .. ns.stealthSpellName, "SE"
 		end
-		if ns.IsNightElf and ns.ShadowmeldSpellName then
-			return "\n/cast [nostealth] " .. ns.ShadowmeldSpellName, "SE"
+		if ns.isNightElf and ns.shadowmeldSpellName then
+			return "\n/cast [nostealth] " .. ns.shadowmeldSpellName, "SE"
 		end
 		return nil
 	end,

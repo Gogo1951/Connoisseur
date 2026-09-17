@@ -7,7 +7,7 @@ ns.restockerLoaded = false
     Each takes the event's own arguments with no leading event-name, which is what
     Core's own branches use. Filled by ns.InitRestockerEvents.
 ]]
-ns.RESTOCKER_EVENT_HANDLERS = {}
+ns.restockerEventHandlers = {}
 
 --[[
     A table from the first frame, so the options panel's guarded accessors index
@@ -46,7 +46,7 @@ function ns.InitializeRestocker()
 	-- Select this character's own list (creating it if this is a fresh character)
 	ns.InitCharacterRestockList()
 
-	-- Drop leftover empty orphan profiles (e.g. an old shared "default")
+	-- Drop leftover empty orphan lists (e.g. an old shared "default")
 	ns.PruneEmptyOrphanRestockLists(ns.restockSettings)
 	--[[
 	    (Re-packing into the one-line form happens in ns.OnRestockerLogout, which calls
@@ -54,7 +54,6 @@ function ns.InitializeRestocker()
 	]]
 
 	ns.InitRestockerEvents()
-	ns.InstallRestockLinkCapture()
 
 	--[[
 	    The two modules with real one-time setup, called by name. A registry that
@@ -83,12 +82,14 @@ function ns.OnRestockerMerchantShow()
 	ns.SetupCraftingRecipes()
 
 	ns.restockBuying = true
+	ns.merchantIsOpen = true
 
 	if IsShiftKeyDown() then
+		ns.merchantBuyingSkipped = true
 		return
 	end
 
-	ns.merchantIsOpen = true
+	ns.merchantBuyingSkipped = false
 	ns.RestockFromMerchant() -- each item can be individually enabled to restock from merchant
 end
 
@@ -124,6 +125,7 @@ end
 function ns.OnRestockerMerchantClose()
 	local merchantWasOpen = ns.merchantIsOpen
 	ns.merchantIsOpen = false
+	ns.merchantBuyingSkipped = false
 	ns.HideRestockWindow()
 
 	local settings = ns.restockSettings
@@ -135,7 +137,7 @@ end
 function ns.OnRestockerBankOpen()
 	local settings = ns.restockSettings
 
-	if IsShiftKeyDown() or settings.profiles[settings.currentProfile] == nil then
+	if IsShiftKeyDown() or settings.lists[settings.currentList] == nil then
 		return
 	end
 
@@ -174,9 +176,7 @@ end
     flag on each tier is for.
 ]]
 function ns.OnRestockerLevelUp(newLevel)
-	if ns.UpgradeRestockList then
-		ns.UpgradeRestockList(newLevel)
-	end
+	ns.UpgradeRestockList(newLevel)
 end
 
 function ns.OnRestockerLogout()
@@ -215,7 +215,7 @@ end
     handler rather than registering a second one of its own.
 ]]
 function ns.InitRestockerEvents()
-	ns.RESTOCKER_EVENT_HANDLERS = {
+	ns.restockerEventHandlers = {
 		MERCHANT_SHOW = ns.OnRestockerMerchantShow,
 		MERCHANT_CLOSED = ns.OnRestockerMerchantClose,
 		BANKFRAME_OPENED = ns.OnRestockerBankOpen,

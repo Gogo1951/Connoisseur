@@ -16,7 +16,7 @@ local L = ns.L
 -- Add List
 --------------------------------------------------------------------------------
 
-function ns.AddRestockList(newProfile)
+function ns.AddRestockList(newListName)
 	local settings = ns.restockSettings
 
 	--[[
@@ -24,13 +24,13 @@ function ns.AddRestockList(newProfile)
 	    one and the items were unrecoverable. Same refusal ns.RenameCurrentRestockList makes.
 	    ns.CreateRestockList and ns.CloneCurrentRestockList pick a free name before calling in.
 	]]
-	if settings.profiles[newProfile] ~= nil then
-		ns.PrintMessage(string.format(L["RESTOCKER_PROFILE_EXISTS"], newProfile))
+	if settings.lists[newListName] ~= nil then
+		ns.PrintMessage(string.format(L["RESTOCKER_PROFILE_EXISTS"], newListName))
 		return
 	end
 
-	settings.profiles[newProfile] = {}
-	ns.UseRestockList(newProfile)
+	settings.lists[newListName] = {}
+	ns.UseRestockList(newListName)
 
 	local menu = ns.restockWindow or ns.CreateRestockWindow()
 	menu:Show()
@@ -55,14 +55,14 @@ end
     would let that character's Starter List picks and level-up upgrades write
     into it uninvited. The new list takes a numbered variant instead
     ("Warrior (2)"), and merging the two stays the player's own call, through
-    Copy. Characters that already have a profileKeys entry never come through
+    Copy. Characters that already have a listsByCharacter entry never come through
     here, so nobody's existing setup is renamed or moved.
 ]]
 local function FreeClassListName(settings)
 	local className = UnitClass("player")
 	local name = className
 	local suffix = 2
-	while settings.profiles[name] ~= nil do
+	while settings.lists[name] ~= nil do
 		name = className .. " (" .. suffix .. ")"
 		suffix = suffix + 1
 	end
@@ -73,9 +73,9 @@ end
 -- Delete List
 --------------------------------------------------------------------------------
 
-function ns.DeleteRestockList(profile)
+function ns.DeleteRestockList(listName)
 	local settings = ns.restockSettings
-	if profile == nil or settings.profiles[profile] == nil then
+	if listName == nil or settings.lists[listName] == nil then
 		return
 	end
 	--[[
@@ -83,21 +83,21 @@ function ns.DeleteRestockList(profile)
 	    this covers deleting any other list, which ns.UseRestockList never sees.
 	]]
 	ns.ClearRestockNewItems()
-	local currentProfile = settings.currentProfile
+	local currentListName = settings.currentList
 
-	if currentProfile == profile then
-		settings.profiles[currentProfile] = nil
-		local firstKey = next(settings.profiles)
+	if currentListName == listName then
+		settings.lists[currentListName] = nil
+		local firstKey = next(settings.lists)
 		if firstKey then
 			ns.UseRestockList(firstKey)
 		else
 			-- Nothing left: start a fresh class-named list (no name can collide here).
 			local fallback = FreeClassListName(settings)
-			settings.profiles[fallback] = {}
+			settings.lists[fallback] = {}
 			ns.UseRestockList(fallback)
 		end
 	else
-		settings.profiles[profile] = nil
+		settings.lists[listName] = nil
 	end
 
 	if not ns.restockWindow then
@@ -117,9 +117,9 @@ function ns.UpdateRestockListWidgets()
 		return
 	end
 	ns.RefreshRestockListDropdown()
-	local box = ns.restockWindow.profileRenameBox
+	local box = ns.restockWindow.listRenameBox
 	if box then
-		box:SetText(settings.currentProfile or "")
+		box:SetText(settings.currentList or "")
 		box:ClearFocus()
 	end
 end
@@ -130,31 +130,31 @@ end
 
 function ns.RenameCurrentRestockList(newName)
 	local settings = ns.restockSettings
-	local currentProfile = settings.currentProfile
+	local currentListName = settings.currentList
 
 	-- Trim; ignore empty names and no-ops, and never clobber an existing profile.
 	newName = (newName or ""):gsub("^%s+", ""):gsub("%s+$", "")
-	if newName == "" or newName == currentProfile then
+	if newName == "" or newName == currentListName then
 		ns.UpdateRestockListWidgets()
 		return
 	end
-	if settings.profiles[newName] ~= nil then
+	if settings.lists[newName] ~= nil then
 		ns.PrintMessage(string.format(L["RESTOCKER_PROFILE_EXISTS"], newName))
 		ns.UpdateRestockListWidgets()
 		return
 	end
 
-	settings.profiles[newName] = settings.profiles[currentProfile]
-	settings.profiles[currentProfile] = nil
+	settings.lists[newName] = settings.lists[currentListName]
+	settings.lists[currentListName] = nil
 
 	--[[
 	    Every character following the old name keeps following it under the new
-	    name (otherwise their profileKeys entries would dangle and they'd get a fresh
+	    name (otherwise their listsByCharacter entries would dangle and they'd get a fresh
 	    empty list with the old name on next login).
 	]]
-	for charKey, profileName in pairs(settings.profileKeys or {}) do
-		if profileName == currentProfile then
-			settings.profileKeys[charKey] = newName
+	for characterKey, listName in pairs(settings.listsByCharacter or {}) do
+		if listName == currentListName then
+			settings.listsByCharacter[characterKey] = newName
 		end
 	end
 
@@ -169,7 +169,7 @@ end
 ]]
 function ns.CreateRestockList()
 	ns.AddRestockList(FreeClassListName(ns.restockSettings))
-	local box = ns.restockWindow and ns.restockWindow.profileRenameBox
+	local box = ns.restockWindow and ns.restockWindow.listRenameBox
 	if box then
 		box:SetFocus()
 		box:HighlightText()
@@ -183,8 +183,8 @@ end
 ]]
 function ns.CloneCurrentRestockList()
 	local settings = ns.restockSettings
-	local sourceName = settings.currentProfile
-	local source = sourceName and settings.profiles[sourceName]
+	local sourceName = settings.currentList
+	local source = sourceName and settings.lists[sourceName]
 	if not source then
 		return
 	end
@@ -192,12 +192,12 @@ function ns.CloneCurrentRestockList()
 	local base = string.format(L["RESTOCKER_PROFILE_COPY_NAME"], sourceName)
 	local name = base
 	local suffix = 2
-	while settings.profiles[name] ~= nil do
+	while settings.lists[name] ~= nil do
 		name = base .. " " .. suffix
 		suffix = suffix + 1
 	end
 
-	settings.profiles[name] = CopyTable(source)
+	settings.lists[name] = CopyTable(source)
 	ns.UseRestockList(name)
 
 	local menu = ns.restockWindow or ns.CreateRestockWindow()
@@ -205,7 +205,7 @@ function ns.CloneCurrentRestockList()
 	ns.UpdateRestockList()
 	ns.UpdateRestockListWidgets()
 
-	local box = ns.restockWindow and ns.restockWindow.profileRenameBox
+	local box = ns.restockWindow and ns.restockWindow.listRenameBox
 	if box then
 		box:SetFocus()
 		box:HighlightText()
@@ -216,11 +216,11 @@ end
 -- Change List
 --------------------------------------------------------------------------------
 
-function ns.SwitchRestockList(newProfile)
-	if newProfile == nil or newProfile == "" then
+function ns.SwitchRestockList(newListName)
+	if newListName == nil or newListName == "" then
 		return
 	end
-	ns.UseRestockList(newProfile)
+	ns.UseRestockList(newListName)
 
 	ns.UpdateRestockListWidgets()
 	ns.UpdateRestockList()
@@ -229,7 +229,7 @@ function ns.SwitchRestockList(newProfile)
 		ns.OnRestockerBankOpen()
 	end
 
-	if ns.merchantIsOpen then
+	if ns.merchantIsOpen and not ns.merchantBuyingSkipped then
 		ns.OnRestockerMerchantShow()
 	end
 end
@@ -238,15 +238,15 @@ end
 -- Copy List
 --------------------------------------------------------------------------------
 
-function ns.CopyIntoCurrentRestockList(profileToCopy)
+function ns.CopyIntoCurrentRestockList(listToCopy)
 	local settings = ns.restockSettings
 
-	if profileToCopy == nil or settings.profiles[profileToCopy] == nil then
+	if listToCopy == nil or settings.lists[listToCopy] == nil then
 		return
 	end
 
-	local copyProfile = CopyTable(settings.profiles[profileToCopy])
-	settings.profiles[settings.currentProfile] = copyProfile
+	local copiedList = CopyTable(settings.lists[listToCopy])
+	settings.lists[settings.currentList] = copiedList
 
 	--[[
 	    The copy replaced this list's contents wholesale, so the "New" notes no
@@ -256,7 +256,7 @@ function ns.CopyIntoCurrentRestockList(profileToCopy)
 	ns.UpdateRestockList()
 end
 
--- Stable per-character identity: profileKeys and the Starter List dismissal flags key on it.
+-- Stable per-character identity: listsByCharacter and the Starter List dismissal flags key on it.
 function ns.GetCharacterKey()
 	local name = UnitName("player") or "Unknown"
 	local realm = GetRealmName() or ""
@@ -270,7 +270,7 @@ end
 --[[
     Switch the active profile AND remember the choice for THIS character, so each
     character returns to its own list next login. Use this instead of writing
-    settings.currentProfile directly.
+    settings.currentList directly.
 ]]
 function ns.UseRestockList(name)
 	if name == nil or name == "" then
@@ -284,29 +284,26 @@ function ns.UseRestockList(name)
 	]]
 	ns.ClearRestockNewItems()
 	local settings = ns.restockSettings
-	settings.currentProfile = name
-	settings.profileKeys = settings.profileKeys or {}
-	settings.profileKeys[ns.GetCharacterKey()] = name
+	settings.currentList = name
+	settings.listsByCharacter[ns.GetCharacterKey()] = name
 end
 
 --[[
     Pick the list this character uses on login: its remembered choice, or --
     for a character seen for the first time -- a fresh class-named list
-    (FreeClassListName above). Only characters with no profileKeys entry get
+    (FreeClassListName above). Only characters with no listsByCharacter entry get
     the class scheme, so no existing setup is renamed or moved.
 
     The pointed-at list is created when missing, because another character can
-    delete it between logins. The old backstop that gave every character an
-    eponymous "Name-Realm" list is gone with the naming scheme that needed it,
-    so hand-deleting one of those legacy lists finally sticks.
+    delete it between logins. No character is given an eponymous "Name-Realm"
+    list, so hand-deleting one of those legacy lists sticks.
 ]]
 function ns.InitCharacterRestockList()
 	local settings = ns.restockSettings
-	settings.profiles = settings.profiles or {}
-	settings.profileKeys = settings.profileKeys or {}
+	local listName = settings.listsByCharacter[ns.GetCharacterKey()] or FreeClassListName(settings)
 
-	local profileName = settings.profileKeys[ns.GetCharacterKey()] or FreeClassListName(settings)
-
-	settings.profiles[profileName] = settings.profiles[profileName] or {}
-	ns.UseRestockList(profileName)
+	if settings.lists[listName] == nil then
+		settings.lists[listName] = {}
+	end
+	ns.UseRestockList(listName)
 end

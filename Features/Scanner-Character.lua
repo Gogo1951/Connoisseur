@@ -10,25 +10,25 @@ local _, ns = ...
 -- State
 --------------------------------------------------------------------------------
 
-ns.ScrollOverrideIDs = nil
-ns.CurrentFirstAidSkill = 0
-ns.CurrentAlchemySkill = 0
-ns.CurrentEngineeringSkill = 0
+ns.scrollOverrideIDs = nil
+ns.currentFirstAidSkill = 0
+ns.currentAlchemySkill = 0
+ns.currentEngineeringSkill = 0
 
 --------------------------------------------------------------------------------
 -- Derived Scroll Lookups
 --------------------------------------------------------------------------------
 
 --[[
-    Built once at load from ns.ScrollData (defined in Data/Scrolls.lua, which
-    loads before this file). ns.ScrollItemLookup maps each scroll itemID to its
+    Built once at load from ns.SCROLL_DATA (defined in Data/Scrolls.lua, which
+    loads before this file). ns.SCROLL_ITEM_LOOKUP maps each scroll itemID to its
     scroll type so the bag scanners route scroll items away from normal
     consumable processing; data.buffIDs is the per-type set of scroll buff spell
     IDs, precomputed so HasScrollBuff doesn't rebuild it on every aura tick.
     Every consumer reads these from inside a function (runtime), so the build
     only needs to finish before the first scan.
 ]]
-ns.ScrollItemLookup = {}
+ns.SCROLL_ITEM_LOOKUP = {}
 
 --[[
     Reverse maps from a spell ID back to the scroll type(s) it covers, so the
@@ -40,10 +40,10 @@ ns.ScrollItemLookup = {}
 local scrollBuffOwners = {}
 local scrollConflictOwners = {}
 
-for scrollType, data in pairs(ns.ScrollData) do
+for scrollType, data in pairs(ns.SCROLL_DATA) do
 	local buffIDs = {}
 	for _, entry in ipairs(data.items) do
-		ns.ScrollItemLookup[entry[1]] = scrollType
+		ns.SCROLL_ITEM_LOOKUP[entry[1]] = scrollType
 		buffIDs[entry[2]] = true
 	end
 	data.buffIDs = buffIDs
@@ -67,55 +67,116 @@ end
 function ns.UpdateFirstAidSkill()
 	local firstAidSpellName = GetSpellInfo(3273)
 	if not firstAidSpellName then
-		ns.CurrentFirstAidSkill = 0
+		ns.currentFirstAidSkill = 0
 		return
 	end
 
 	for i = 1, GetNumSkillLines() do
 		local skillName, isHeader, _, skillRank = GetSkillLineInfo(i)
 		if not isHeader and skillName == firstAidSpellName then
-			ns.CurrentFirstAidSkill = skillRank
+			ns.currentFirstAidSkill = skillRank
 			return
 		end
 	end
 
-	ns.CurrentFirstAidSkill = 0
+	ns.currentFirstAidSkill = 0
 end
 
 function ns.UpdateAlchemySkill()
 	local alchemySpellName = GetSpellInfo(2259)
 	if not alchemySpellName then
-		ns.CurrentAlchemySkill = 0
+		ns.currentAlchemySkill = 0
 		return
 	end
 
 	for i = 1, GetNumSkillLines() do
 		local skillName, isHeader, _, skillRank = GetSkillLineInfo(i)
 		if not isHeader and skillName == alchemySpellName then
-			ns.CurrentAlchemySkill = skillRank
+			ns.currentAlchemySkill = skillRank
 			return
 		end
 	end
 
-	ns.CurrentAlchemySkill = 0
+	ns.currentAlchemySkill = 0
 end
 
 function ns.UpdateEngineeringSkill()
 	local engineeringSpellName = GetSpellInfo(4036)
 	if not engineeringSpellName then
-		ns.CurrentEngineeringSkill = 0
+		ns.currentEngineeringSkill = 0
 		return
 	end
 
 	for i = 1, GetNumSkillLines() do
 		local skillName, isHeader, _, skillRank = GetSkillLineInfo(i)
 		if not isHeader and skillName == engineeringSpellName then
-			ns.CurrentEngineeringSkill = skillRank
+			ns.currentEngineeringSkill = skillRank
 			return
 		end
 	end
 
-	ns.CurrentEngineeringSkill = 0
+	ns.currentEngineeringSkill = 0
+end
+
+--------------------------------------------------------------------------------
+-- Session Constants
+--------------------------------------------------------------------------------
+
+--[[
+    One-time, session-constant character setup: race/class detection,
+    spell-name caches, the conjure-spell existence cache, and profession skills.
+    None of these change during a session, so they resolve once and the event
+    handlers (PLAYER_LEVEL_UP, SPELLS_CHANGED, SKILL_LINES_CHANGED) keep the
+    level-dependent pieces fresh afterward. Called once at login, after ns.db
+    exists.
+]]
+function ns.InitCharacterConstants()
+	local _, raceToken = UnitRace("player")
+	ns.isNightElf = (raceToken == "NightElf")
+
+	-- Resolve the Shadowmeld spell name once for macro building
+	if ns.isNightElf then
+		ns.shadowmeldSpellName = GetSpellInfo(ns.SHADOWMELD_SPELL_ID)
+	end
+
+	--[[
+	    Class detection. Used by macro builders to decide which conjure
+	    branches the player could *eventually* know — so a low-level mage
+	    gets "You don't currently know Conjure Food." while a hunter sees no
+	    message at all (they'll never learn that spell).
+	]]
+	local _, classToken = UnitClass("player")
+	ns.isHunter = (classToken == "HUNTER")
+	ns.isDruid = (classToken == "DRUID")
+	ns.isMage = (classToken == "MAGE")
+	ns.isWarlock = (classToken == "WARLOCK")
+	ns.isRogue = (classToken == "ROGUE")
+
+	-- Resolve the Stealth spell name once for macro building (Stealth Eating)
+	if ns.isRogue then
+		ns.stealthSpellName = GetSpellInfo(ns.STEALTH_SPELL_ID)
+	end
+
+	if ns.isHunter then
+		ns.ResolveHunterSpells()
+		ns.petDeadDismissed = false
+	end
+
+	ns.spellCache = {}
+	if ns.CONJURE_SPELLS then
+		for _, spellList in pairs(ns.CONJURE_SPELLS) do
+			for _, data in ipairs(spellList) do
+				local spellID = data[1]
+				if GetSpellInfo(spellID) then
+					ns.spellCache[spellID] = true
+				end
+			end
+		end
+	end
+
+	ns.UpdateFirstAidSkill()
+	ns.UpdateAlchemySkill()
+	ns.UpdateEngineeringSkill()
 end
 
 --------------------------------------------------------------------------------
@@ -175,8 +236,8 @@ end
 
 --[[
     One walk of the player's helpful auras, shared by the Well Fed and scroll
-    probes below and by the readiness report (Features/Readiness.lua). The
-    snapshot holds raw expiration times, never a verdict: the probes apply
+    probes below and by the readiness report (Features/Readiness-Report.lua).
+    The snapshot holds raw expiration times, never a verdict: the probes apply
     BuffCountsAsActive, which owns the early re-application threshold and its
     rebuild timer, while the report reads the same numbers with no side
     effects of its own.
@@ -205,7 +266,7 @@ local WELL_FED_ICON_ID = 136000
 local WELL_FED_ICON_ID_2 = 133943
 
 local snapshot = { scrolls = {} }
-for scrollType in pairs(ns.ScrollData) do
+for scrollType in pairs(ns.SCROLL_DATA) do
 	snapshot.scrolls[scrollType] = {}
 end
 
@@ -237,7 +298,7 @@ function ns.GetPlayerBuffSnapshot()
 		if
 			icon == WELL_FED_ICON_ID
 			or icon == WELL_FED_ICON_ID_2
-			or (ns.WellFedBuffIDs and ns.WellFedBuffIDs[spellID])
+			or (ns.WELL_FED_BUFF_IDS and ns.WELL_FED_BUFF_IDS[spellID])
 		then
 			if IsLongerExpiration(expirationTime, snapshot.wellFedExpiration) then
 				snapshot.wellFedExpiration = expirationTime
@@ -302,7 +363,7 @@ end
     fresh one.
 ]]
 function ns.HasScrollBuff(scrollType, scrollAmount, callerSnapshot)
-	if not ns.ScrollData or not ns.ScrollData[scrollType] then
+	if not ns.SCROLL_DATA or not ns.SCROLL_DATA[scrollType] then
 		return true
 	end
 
@@ -329,12 +390,12 @@ end
     Returns itemID, amount (or nil, nil if nothing usable is found).
 ]]
 local function FindBestScroll(scrollType, bagItemCounts)
-	if not ns.ScrollData or not ns.ScrollData[scrollType] then
+	if not ns.SCROLL_DATA or not ns.SCROLL_DATA[scrollType] then
 		return nil, nil
 	end
 
-	local playerLevel = ns.CachedPlayerLevel or 1
-	local items = ns.ScrollData[scrollType].items
+	local playerLevel = ns.cachedPlayerLevel or 1
+	local items = ns.SCROLL_DATA[scrollType].items
 	for _, entry in ipairs(items) do
 		--[[
 		    The scroll override path never passes the scanner's ignore filter
@@ -405,8 +466,8 @@ local PET_BUFF_FOOD_MIN_LEVEL = 55
 
     Single source of truth on purpose. Both ns.FindPetBuffOverride
     (Macros/Tools-Hunters.lua), which decides whether to splice the feed line
-    into the Food macro, and the readiness report (Features/Readiness.lua) have
-    to agree -- when they drifted, the report asked a level-30 Hunter for a
+    into the Food macro, and the readiness report (Features/Readiness-Report.lua)
+    have to agree -- when they drifted, the report asked a level-30 Hunter for a
     buff its own macro would never apply, with no way to satisfy it.
 ]]
 function ns.ShouldTrackPetFood()
@@ -417,7 +478,7 @@ function ns.ShouldTrackPetFood()
 	if not ns.IsModeActive(settings.petBuffFoodMode) then
 		return false
 	end
-	if (ns.CachedPlayerLevel or 1) < PET_BUFF_FOOD_MIN_LEVEL then
+	if (ns.cachedPlayerLevel or 1) < PET_BUFF_FOOD_MIN_LEVEL then
 		return false
 	end
 	if not UnitExists("pet") or UnitIsDead("pet") or UnitIsGhost("pet") then
@@ -457,6 +518,26 @@ end
 function ns.HasPetFoodBuff()
 	local expiration = ns.GetPetFoodBuffExpiration()
 	return expiration ~= nil and BuffCountsAsActive(expiration)
+end
+
+--------------------------------------------------------------------------------
+-- Aura Tracking
+--------------------------------------------------------------------------------
+
+function ns.UpdateAuraTracking()
+	local settings = ns.db.profile
+
+	local buffFoodActive = settings.useBuffFood and ns.IsModeActive(settings.buffFoodMode)
+	local scrollsActive = settings.useScrolls and ns.IsModeActive(settings.scrollsMode)
+	local petBuffActive = settings.usePetBuffFood and ns.IsModeActive(settings.petBuffFoodMode)
+
+	if buffFoodActive or scrollsActive then
+		ns.wellFedState = ns.HasWellFedBuff()
+	else
+		ns.wellFedState = false
+	end
+
+	ns.SetEventRegistered("UNIT_AURA", buffFoodActive or scrollsActive or petBuffActive, "player", "pet")
 end
 
 --------------------------------------------------------------------------------
@@ -535,8 +616,8 @@ function ns.HandleUnitAura(unit)
 		local currentSnapshot = ns.GetPlayerBuffSnapshot()
 
 		local wellFedState = WellFedFromSnapshot(currentSnapshot)
-		if wellFedState ~= ns.WellFedState then
-			ns.WellFedState = wellFedState
+		if wellFedState ~= ns.wellFedState then
+			ns.wellFedState = wellFedState
 			needsUpdate = true
 			reason = "wellfed"
 		end
@@ -556,9 +637,7 @@ function ns.HandleUnitAura(unit)
 	end
 
 	if needsUpdate then
-		if ns.LogEventNow then
-			ns.LogEventNow("UNIT_AURA", unit, reason)
-		end
+		ns.LogEventNow("UNIT_AURA", unit, reason)
 		ns.RequestUpdate()
 	end
 end

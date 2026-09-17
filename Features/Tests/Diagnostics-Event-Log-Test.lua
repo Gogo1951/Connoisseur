@@ -1,0 +1,139 @@
+-- luacheck: allow defined, ignore 121 122 131 143
+-- Headless test for the Diagnostics event-log filter (no WoW client needed).
+--
+-- Run it with:   lua Features/Tests/Diagnostics-Event-Log-Test.lua        (from the add-on root)
+--
+-- Like Readiness-Report-Test, this does NOT model the logic: it loads the REAL
+-- Features/Diagnostics.lua and drives ns.LogEvent, ns.LogEventNow and
+-- ns.BuildEventLogReport behind the thinnest stubs that will hold them up.
+--
+-- WHAT IS PINNED HERE. A bounded log that fills with noise evicts the entries a
+-- bug report needs, so uncorrelated UI_ERROR_MESSAGE traffic folds into one
+-- counted row. The filter must never swallow what the add-on acts on, and a
+-- firing it cannot classify is signal, so it logs verbatim. UNIT_AURA is only
+-- counted at capture, and its handler writes the firings that mattered.
+
+local ROOT = arg[1] or "."
+
+--[[
+    Locale keys resolve to their own name. RAW_DATA is the one Data/ table the
+    Validate Data manifest indexes into at load; every other table it names may
+    be nil here.
+]]
+local ns = {
+	L = setmetatable({}, {
+		__index = function(_, key)
+			return key
+		end,
+	}),
+	Version = "Test",
+	RAW_DATA = {},
+}
+
+--------------------------------------------------------------------------------
+-- Stubs
+--------------------------------------------------------------------------------
+
+ERR_ITEM_WRONG_ZONE = "You can't use that item in this zone."
+SPELL_FAILED_TARGETS_DEAD = "Your target is dead."
+ERR_INV_FULL = "Inventory is full."
+ERR_BANK_FULL = "Your bank is full."
+WOW_PROJECT_ID = 2
+
+function GetTime()
+	return 1000
+end
+function GetBuildInfo()
+	return "1.15.9", "69109", "Sep 1 2026", 11509
+end
+function GetLocale()
+	return "enUS"
+end
+
+local realPrint = io.write
+local function say(text)
+	realPrint(text .. "\n")
+end
+
+assert(loadfile(ROOT .. "/Features/Diagnostics.lua"))("Consumable-Connoisseur", ns)
+
+--------------------------------------------------------------------------------
+
+local failures = 0
+
+local function check(label, got, want)
+	if got == want then
+		say(("  ok    %s = %s"):format(label, tostring(got)))
+	else
+		failures = failures + 1
+		say(("  FAIL  %s: got %s, want %s"):format(label, tostring(got), tostring(want)))
+	end
+end
+
+-- The report's log lines (timestamped entries), without the header or summary.
+local function logLines(report)
+	local lines = {}
+	for line in (report .. "\n"):gmatch("(.-)\n") do
+		if line:find("^%d+%.%d%d%d ") then
+			lines[#lines + 1] = line
+		end
+	end
+	return lines
+end
+
+local function hasLine(report, wanted)
+	for line in (report .. "\n"):gmatch("(.-)\n") do
+		if line == wanted then
+			return true
+		end
+	end
+	return false
+end
+
+--------------------------------------------------------------------------------
+
+say("1. Fifty uncorrelated UI_ERROR_MESSAGE firings fold into one counted row")
+ns.StartEventLog()
+for _ = 1, 50 do
+	ns.LogEvent("UI_ERROR_MESSAGE", 56, "Ability is not ready yet.")
+end
+local report = ns.BuildEventLogReport()
+check("no log lines", #logLines(report), 0)
+check("counted row", hasLine(report, "UI_ERROR_MESSAGE(Ability is not ready yet.) x50"), true)
+
+say("2. A message the add-on acts on still logs as a full line")
+ns.StartEventLog()
+ns.LogEvent("UI_ERROR_MESSAGE", 3, ERR_INV_FULL)
+report = ns.BuildEventLogReport()
+check("one log line", #logLines(report), 1)
+check("full line", logLines(report)[1], "1000.000 UI_ERROR_MESSAGE(3, Inventory is full.)")
+check("nothing suppressed", report:find("Suppressed", 1, true), nil)
+
+say("3. A firing without a string message logs verbatim and is not counted")
+ns.StartEventLog()
+ns.LogEvent("UI_ERROR_MESSAGE", 56, 12)
+report = ns.BuildEventLogReport()
+check("one log line", #logLines(report), 1)
+check("verbatim", logLines(report)[1], "1000.000 UI_ERROR_MESSAGE(56, 12)")
+check("nothing suppressed", report:find("Suppressed", 1, true), nil)
+
+say("4. UNIT_AURA is counted at capture, and ns.LogEventNow writes the firing that mattered")
+ns.StartEventLog()
+for _ = 1, 3 do
+	ns.LogEvent("UNIT_AURA", "player")
+end
+report = ns.BuildEventLogReport()
+check("no log lines", #logLines(report), 0)
+check("counted row", hasLine(report, "UNIT_AURA(player) x3"), true)
+ns.LogEventNow("UNIT_AURA", "player")
+report = ns.BuildEventLogReport()
+check("one log line", #logLines(report), 1)
+check("full line", logLines(report)[1], "1000.000 UNIT_AURA(player)")
+
+say("")
+if failures == 0 then
+	say("ALL EVENT LOG SCENARIOS PASSED")
+else
+	say(failures .. " EVENT LOG SCENARIOS FAILED")
+	os.exit(1)
+end

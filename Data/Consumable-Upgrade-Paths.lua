@@ -10,7 +10,7 @@ local _, ns = ...
     Banana Bread" is what you want, at 55 it is not.
 
     Deliberately a table of its own rather than columns on
-    ns.RawData.FoodAndWater or ns.RawData.Potions. Those answer "what does this
+    ns.RAW_DATA.FoodAndWater or ns.RAW_DATA.Potions. Those answer "what does this
     item restore?" for hundreds of items; this one answers "what should replace
     this on a shopping list?" for a curated few. Bolting the second onto the
     first would nil-pad most rows, push an already-positional row wider, and
@@ -66,7 +66,7 @@ ns.EXPANSION_TBC = 1
 ns.EXPANSION_WRATH = 2
 
 --[[
-    diet uses ns.PetDietMap's numbering (Data/Pet-Foods.lua), NOT
+    diet uses ns.PET_DIET_MAP's numbering (Data/Pet-Foods.lua), NOT
     item_template.FoodType. The two disagree on four of six values -- the
     database calls cheese 3 and bread 4, Connoisseur calls bread 3 and cheese
     4, and it swaps fruit and fungus too -- so a FoodType pasted in raw from
@@ -79,7 +79,7 @@ local CLASSIC, TBC, WRATH = ns.EXPANSION_CLASSIC, ns.EXPANSION_TBC, ns.EXPANSION
 
 --[[
     kind is what the ladder is, for anything that needs to tell them apart;
-    diet is carried on the food chains only, where it ties to ns.PetDietMap.
+    diet is carried on the food chains only, where it ties to ns.PET_DIET_MAP.
 
     Arrows and bullets are separate ladders on purpose. A hunter's weapon
     decides which they can fire, so upgrading an arrow into a bullet would
@@ -90,7 +90,7 @@ local CLASSIC, TBC, WRATH = ns.EXPANSION_CLASSIC, ns.EXPANSION_TBC, ns.EXPANSION
     selector keeps the last one it accepts, so a TBC client stops at the TBC
     item and a Wrath client goes on to the Wrath one.
 ]]
-ns.FoodUpgradeChains = {
+ns.CONSUMABLE_UPGRADE_CHAINS = {
 	{
 		kind = "water",
 		diet = WATER,
@@ -265,16 +265,18 @@ ns.FoodUpgradeChains = {
 	--[[
 	    ROGUE POISONS
 
-	    The tier rows mirror ns.PoisonData (Data/Poisons.lua), which the
+	    The tier rows mirror ns.POISON_DATA (Data/Poisons.lua), which the
 	    Poisons macro already ships -- keep the two in step. group is
-	    ns.PoisonGroupBaseItems' numbering from the same file, which is how
+	    ns.POISON_GROUP_BASE_ITEMS' numbering from the same file, which is how
 	    the Starter List popup finds each ladder.
 
-	    Poisons are vendor staples like the ammo above -- every rank is
-	    gold-buyable in unlimited stock from poison vendors -- so the ladder
-	    rule applies as written. Confirm against the database with the food
-	    query up top, filtered by name instead of class/subclass (the poison
-	    subclass moved between client generations):
+	    Poisons are crafted, not bought: on both shipping clients a Rogue makes
+	    every rank, no vendor sells one, and the Restocker buys the reagents for
+	    a listed rank instead (Features/Restocker/Restocker-Crafting-Reagents.lua).
+	    Like the potions above, the ladder is real without the "sold by a
+	    merchant" rule. List the ranks with the food query up top, filtered by
+	    name instead of class/subclass (the poison subclass moved between client
+	    generations):
 
 	        SELECT it.entry, it.name, it.ItemLevel, it.RequiredLevel, it.BuyPrice,
 	               COUNT(DISTINCT nv.entry) AS vendors, MIN(nv.maxcount) AS minStock,
@@ -291,9 +293,9 @@ ns.FoodUpgradeChains = {
 
 	    THE EXPANSION FLAG IS HAND-SET here too, from release history:
 	    Anesthetic is TBC's new poison, so its whole chain waits for a TBC
-	    client; the 22xxx ranks are TBC vendor goods and the 43xxx ranks are
-	    Wrath's -- inert on both shipping clients, here for the day that
-	    changes, like the Runic potions below.
+	    client; the 22xxx ranks came with TBC, and the 43xxx ranks are Wrath's --
+	    inert on both shipping clients, here for the day that changes, like the
+	    Runic potions below.
 	]]
 	{
 		kind = "poison",
@@ -515,7 +517,7 @@ ns.FoodUpgradeChains = {
 		kind = "reagent",
 		reagent = "blinding-powder",
 		tiers = {
-			{ 34, 6510, CLASSIC, CLASSIC }, -- Blinding Powder (Blind)
+			{ 34, 5530, CLASSIC, CLASSIC }, -- Blinding Powder (Blind)
 		},
 	},
 	{
@@ -592,7 +594,7 @@ ns.FoodUpgradeChains = {
 	--[[
 	    POTIONS -- HAND-CURATED
 
-	    The standard Alchemy ladders, taken from ns.RawData.Potions (the
+	    The standard Alchemy ladders, taken from ns.RAW_DATA.Potions (the
 	    restore amounts there confirm the ordering: 70/140/280/455/700/1050/
 	    1500 healing, 140/280/455/700/900/1350/1800 mana). Every non-standard
 	    potion in that table is deliberately absent -- the Combat, Auchenai,
@@ -616,7 +618,7 @@ ns.FoodUpgradeChains = {
 	    level. That is correct, not a rounding error in this table.
 
 	    Runic Healing and Runic Mana are Wrath items and are NOT in
-	    ns.RawData.Potions, which stops at TBC like the rest of the add-on.
+	    ns.RAW_DATA.Potions, which stops at TBC like the rest of the add-on.
 	    They are inert on both shipping clients and are here for the day that
 	    changes.
 	]]

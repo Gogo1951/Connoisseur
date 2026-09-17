@@ -11,12 +11,12 @@ local _, ns = ...
     Maps diet names from GetPetFoodTypes() to internal diet IDs. The API
     returns LOCALIZED names ("Fleisch" on deDE), so the localized names from
     the L["DIET_*"] locale keys are layered on top of the English baseline.
-    (ns.L is available here: Data.lua loads first.) The English keys
-    stay in as a fallback for locales whose DIET_* translations haven't
-    landed yet — AceLocale falls back to the enUS value, so the overlay is
-    a harmless overwrite of the same key on English clients.
+    (ns.L is available here: Data.lua loads first.) The English rows add no
+    match of their own, since an untranslated DIET_* key already falls back
+    to English; they stay because Data/Starter-List-Categories.lua looks diet
+    IDs up by English name.
 ]]
-ns.PetDietMap = {
+ns.PET_DIET_MAP = {
 	["Meat"] = 1,
 	["Fish"] = 2,
 	["Bread"] = 3,
@@ -26,12 +26,12 @@ ns.PetDietMap = {
 }
 
 local L = ns.L
-ns.PetDietMap[L["DIET_MEAT"]] = 1
-ns.PetDietMap[L["DIET_FISH"]] = 2
-ns.PetDietMap[L["DIET_BREAD"]] = 3
-ns.PetDietMap[L["DIET_CHEESE"]] = 4
-ns.PetDietMap[L["DIET_FRUIT"]] = 5
-ns.PetDietMap[L["DIET_FUNGUS"]] = 6
+ns.PET_DIET_MAP[L["DIET_MEAT"]] = 1
+ns.PET_DIET_MAP[L["DIET_FISH"]] = 2
+ns.PET_DIET_MAP[L["DIET_BREAD"]] = 3
+ns.PET_DIET_MAP[L["DIET_CHEESE"]] = 4
+ns.PET_DIET_MAP[L["DIET_FRUIT"]] = 5
+ns.PET_DIET_MAP[L["DIET_FUNGUS"]] = 6
 
 --[[
     SELECT entry, name, ItemLevel, FoodType, SellPrice
@@ -46,7 +46,7 @@ ns.PetDietMap[L["DIET_FUNGUS"]] = 6
     questIDs is a table of quest IDs that use this item as an objective,
     or nil when the item is not a quest objective.
 ]]
-ns.PetFoodData = {
+ns.PET_FOOD_DATA = {
 	--[[
 	    8950, Homemade Cherry Pie... this is often incorrectly categorized as Fruit and has to be manually adjusted
 	    Meat

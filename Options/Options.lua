@@ -12,7 +12,7 @@ local REGISTRY = ns.OPTIONS_REGISTRY
 local mainCategoryID
 
 --[[
-    Registration is deferred to ns.InitializeOptions, called once from
+    Registration is deferred to ns.RegisterOptionsPanels, called once from
     Features/Core.lua after AceDB creates ns.db. It has to wait for ns.db
     because the Profiles panel's tree label is read from the stock
     AceDBOptions-3.0 table (ns.BuildProfilesOptions().name), which needs the
@@ -27,16 +27,16 @@ local function RegisterChild(appName, builder, displayName)
 	AceConfigDialog:AddToBlizOptions(appName, displayName, L["ADDON_TITLE"])
 end
 
-function ns.InitializeOptions()
+function ns.RegisterOptionsPanels()
 	AceConfig:RegisterOptionsTable(REGISTRY.General, ns.BuildGeneralOptions)
 	mainCategoryID = select(2, AceConfigDialog:AddToBlizOptions(REGISTRY.General, L["ADDON_TITLE"]))
 
 	--[[
 	    Macros panel (Options-Macros.lua) -- the Enable Macros section, given
-	    its own page. Its tree label is the short OPTIONS_MACROS_TAB rather
-	    than the section's "Enable Macros" header, which the page still shows.
+	    its own page. Its tree label is TAB_MACROS rather than the section's
+	    "Enable Macros" header, which the page still shows.
 	]]
-	RegisterChild(REGISTRY.Macros, ns.BuildMacrosOptions, L["OPTIONS_MACROS_TAB"])
+	RegisterChild(REGISTRY.Macros, ns.BuildMacrosOptions, L["TAB_MACROS"])
 
 	--[[
 	    Ignore List panel (Options-Ignore-List.lua). The builder function, not a
@@ -44,7 +44,7 @@ function ns.InitializeOptions()
 	    re-invokes it on every open and every NotifyChange and the panel never
 	    renders a stale list.
 	]]
-	RegisterChild(REGISTRY.IgnoreList, ns.BuildIgnoreListOptions, L["OPTIONS_IGNORE_LIST_TAB"])
+	RegisterChild(REGISTRY.IgnoreList, ns.BuildIgnoreListOptions, L["TAB_IGNORE_LIST"])
 
 	--[[
 	    Widen the Ignore List tree. AceGUI defaults it to 175px, which truncates
@@ -61,7 +61,7 @@ function ns.InitializeOptions()
 	    the locale table like every player-facing string, but stays "Restocker"
 	    in every locale (brand fragment, localization allowlist).
 	]]
-	RegisterChild(REGISTRY.Restocker, ns.BuildRestockerOptions, L["OPTIONS_RESTOCKER_TAB"])
+	RegisterChild(REGISTRY.Restocker, ns.BuildRestockerOptions, L["TAB_RESTOCKER"])
 
 	--[[
 	    Starter List pop-up (Options-Starter-List-Popup.lua): registered only,
@@ -71,11 +71,10 @@ function ns.InitializeOptions()
 	AceConfig:RegisterOptionsTable(REGISTRY.StarterListPopup, ns.BuildStarterListPopupOptions)
 
 	--[[
-	    Readiness Report panel (Options-Readiness.lua) -- what Connoisseur says
-	    when a ready check starts. Its tree label is the section header rather
-	    than a tab key of its own; the reason is on ns.BuildReadinessOptions.
+	    Readiness Report panel (Options-Readiness-Report.lua) -- what Connoisseur
+	    says when a ready check starts.
 	]]
-	RegisterChild(REGISTRY.Readiness, ns.BuildReadinessOptions, L["OPTIONS_READINESS_HEADER"])
+	RegisterChild(REGISTRY.ReadinessReport, ns.BuildReadinessReportOptions, L["TAB_READINESS_REPORT"])
 
 	--[[
 	    Profiles panel: the stock AceDBOptions-3.0 table, unmodified
@@ -123,10 +122,9 @@ end
 --------------------------------------------------------------------------------
 
 SLASH_CONNOISSEUR1 = "/foodie"
+-- luacheck: globals SlashCmdList
 SlashCmdList["CONNOISSEUR"] = function()
-	if ns.OpenOptionsPanel then
-		ns.OpenOptionsPanel()
-	end
+	ns.OpenOptionsPanel()
 end
 
 --[[

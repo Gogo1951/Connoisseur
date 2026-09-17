@@ -6,7 +6,8 @@ local _, ns = ...
 
 --[[
     Items that are fine to own and wrong to be wearing when a pull starts. Read
-    by the Non-combat Gear Equipped check in Features/Readiness-Probes.lua.
+    by the Non-combat Gear Equipped check in
+    Features/Readiness-Report-Probes.lua.
 
     THIS TABLE IS THE EXCEPTIONS, NOT THE LIST. Nearly everything worth catching
     is a whole weapon subclass -- every fishing pole, every mining pick and
@@ -18,15 +19,9 @@ local _, ns = ...
     No property tells a Riding Crop from a raid trinket, so those are named.
 ]]
 
---[[
-    SELECT entry, name, class, subclass, InventoryType
-    FROM item_template
-    WHERE class = 4 AND subclass = 0 AND InventoryType = 12
-    ORDER BY name;
-]]
-
+-- TODO: Add SQL Query
 -- [itemID] = true, -- Item Name
-ns.QuestionableEquipment = {
+ns.QUESTIONABLE_EQUIPMENT = {
 	[25653] = true, -- Riding Crop
 	[37254] = true, -- Super Simian Sphere
 }

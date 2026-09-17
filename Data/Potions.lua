@@ -1,12 +1,12 @@
 local _, ns = ...
-ns.RawData = ns.RawData or {}
+ns.RAW_DATA = ns.RAW_DATA or {}
 
 -- TODO: Add SQL Query
 --[[
     Healing/Mana amounts derived from item_template.spellid_1 spell
     effects; Allowed Zones from Map/Area restrictions where present.
 ]]
-ns.RawData.Potions = {
+ns.RAW_DATA.Potions = {
 	-- [ID] = {Healing Amount, Mana Amount, {Allowed Zones} or nil, requiredAlchemy or nil}, -- Name
 
 	[32947] = { 1500, 0 }, -- Auchenai Healing Potion

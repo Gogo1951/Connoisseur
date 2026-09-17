@@ -182,8 +182,8 @@ function RestockState:ClearCursorForScan()
 	local infoType, cursorItemID = GetCursorInfo()
 	local isOurs = infoType == "item"
 		and cursorItemID ~= nil
-		and self.currentProfile ~= nil
-		and self.currentProfile[cursorItemID] ~= nil
+		and self.currentList ~= nil
+		and self.currentList[cursorItemID] ~= nil
 
 	if not isOurs and self.cursorSteps < MAX_STUCK_STEPS then
 		self.cursorSteps = self.cursorSteps + 1
@@ -198,9 +198,9 @@ end
 
 --[[
     Refresh the profile and re-scan bags + bank. Called at the START OF EVERY restock step,
-    so the plan is always derived from what is actually in the containers right now. This is
-    the core of the fix: a move the server rejected or only partially placed shows up as
-    "still short" on the next step and gets retried, instead of being assumed done. Never
+    so the plan is always derived from what is actually in the containers right now. That way
+    a move the server rejected or only partially placed shows up as "still short" on the
+    next step and gets retried, instead of being assumed done. Never
     deduct from a plan optimistically: a move that does not fully land leaves the item short
     in silence. Recomputing every step is safe only because the watchdog in RunRestockLogic
     stops the run once it stops making progress; without that guard it spins on "Couldn't
@@ -213,7 +213,7 @@ end
 ]]
 function RestockState:Rescan()
 	local settings = ns.restockSettings
-	self.currentProfile = settings.profiles[settings.currentProfile]
+	self.currentList = settings.lists[settings.currentList]
 
 	if not self:ClearCursorForScan() then
 		return false
@@ -230,7 +230,7 @@ end
 ]]
 function RestockState:RemainingWork()
 	local work = 0
-	for itemID, eachItem in pairs(self.currentProfile) do
+	for itemID, eachItem in pairs(self.currentList) do
 		local haveInBag = self.playerInventory.summary[itemID] or 0
 		local haveInBank = self.bankInventory.summary[itemID] or 0
 		--[[
@@ -243,10 +243,10 @@ function RestockState:RemainingWork()
 			work = work + math.min(wanted - haveInBag, haveInBank)
 		end
 		--[[
-		    Overshoot excess counts as stash work even without stashTobank: the addon created it
+		    Overshoot excess counts as stash work even without stashToBank: the addon created it
 		    (whole-stack fallback pull), so the addon returns it.
 		]]
-		if (eachItem.stashTobank or self.overshotItems[itemID]) and haveInBag > wanted then
+		if (eachItem.stashToBank or self.overshotItems[itemID]) and haveInBag > wanted then
 			work = work + (haveInBag - wanted)
 		end
 	end
@@ -259,7 +259,7 @@ end
 ]]
 function RestockState:ComputeTotals()
 	local totals = {}
-	for itemID in pairs(self.currentProfile) do
+	for itemID in pairs(self.currentList) do
 		totals[itemID] = (self.playerInventory.summary[itemID] or 0) + (self.bankInventory.summary[itemID] or 0)
 	end
 	return totals
@@ -294,7 +294,7 @@ function RestockState:StuckMessage()
 	end
 
 	local parts = {}
-	for itemID, eachItem in pairs(self.currentProfile) do
+	for itemID, eachItem in pairs(self.currentList) do
 		local haveInBag = self.playerInventory.summary[itemID] or 0
 		local haveInBank = self.bankInventory.summary[itemID] or 0
 		local wanted = eachItem.amount or 0
@@ -305,7 +305,7 @@ function RestockState:StuckMessage()
 				math.min(wanted - haveInBag, haveInBank),
 				eachItem.itemName
 			)
-		elseif (eachItem.stashTobank or self.overshotItems[itemID]) and haveInBag > wanted then
+		elseif (eachItem.stashToBank or self.overshotItems[itemID]) and haveInBag > wanted then
 			parts[#parts + 1] =
 				string.format(L["RESTOCKER_STUCK_ITEM_EXTRA_FORMAT"], haveInBag - wanted, eachItem.itemName)
 		end
@@ -314,7 +314,7 @@ function RestockState:StuckMessage()
 	if #parts == 0 then
 		return L["RESTOCKER_STOPPED_NO_PROGRESS"]
 	end
-	return string.format(L["RESTOCKER_STOPPED_COULD_NOT_MOVE"], table.concat(parts, ", "))
+	return string.format(L["RESTOCKER_STOPPED_COULD_NOT_MOVE"], table.concat(parts, L["LIST_SEPARATOR"]))
 end
 
 --[[
@@ -324,12 +324,13 @@ end
 local function StashToBank()
 	local state = restockState
 
-	for itemID, eachItem in pairs(state.currentProfile) do
-		if eachItem.stashTobank or state.overshotItems[itemID] then
+	for itemID, eachItem in pairs(state.currentList) do
+		if eachItem.stashToBank or state.overshotItems[itemID] then
 			local haveInBag = state.playerInventory.summary[itemID] or 0
-			local excess = haveInBag - eachItem.amount
+			local wanted = eachItem.amount or 0
+			local excess = haveInBag - wanted
 			if excess > 0 then
-				ns.RestockerDebug("Too many %s in bag (%d need %d)", eachItem.itemName, haveInBag, eachItem.amount)
+				ns.RestockerDebug("Too many %s in bag (%d need %d)", eachItem.itemName, haveInBag, wanted)
 				if ns.MoveRestockItemToBank(state.bankInventory, itemID, excess) then
 					return true -- issued one move; caller yields and re-scans next step
 				end
@@ -347,13 +348,14 @@ end
 local function RestockFromBank()
 	local state = restockState
 
-	for itemID, eachItem in pairs(state.currentProfile) do
+	for itemID, eachItem in pairs(state.currentList) do
 		if eachItem.restockFromBank then
 			local haveInBag = state.playerInventory.summary[itemID] or 0
 			local haveInBank = state.bankInventory.summary[itemID] or 0
-			local short = eachItem.amount - haveInBag
+			local wanted = eachItem.amount or 0
+			local short = wanted - haveInBag
 			if short > 0 and haveInBank > 0 then
-				ns.RestockerDebug("Too few %s in bag (%d need %d)", eachItem.itemName, haveInBag, eachItem.amount)
+				ns.RestockerDebug("Too few %s in bag (%d need %d)", eachItem.itemName, haveInBag, wanted)
 				--[[
 				    stuckSteps > 0 means the previous step's move never landed -- in practice the
 				    flaky exact split. Switch to whole-stack overshoot, which always lands; the
@@ -367,7 +369,7 @@ local function RestockFromBank()
 					if overshoot then
 						--[[
 						    The whole-stack pull may go past the target. That excess is the addon's
-						    doing, not the player's stock -- trim it back even without stashTobank.
+						    doing, not the player's stock -- trim it back even without stashToBank.
 						]]
 						state.overshotItems[itemID] = true
 					end
@@ -432,15 +434,15 @@ end
     slot. Hoisted out of UpdateInventory, which runs on every restock step: it
     reads the list off this upvalue rather than closing over a fresh one each time.
 ]]
-local maintainedProfile
+local maintainedList
 
 local function IsMaintainedItem(itemID)
-	return maintainedProfile[itemID] ~= nil
+	return maintainedList[itemID] ~= nil
 end
 
 function RestockState:UpdateInventory()
 	local settings = ns.restockSettings
-	maintainedProfile = settings.profiles[settings.currentProfile]
+	maintainedList = settings.lists[settings.currentList]
 
 	self.playerInventory = ns.GetRestockItemsInBags(IsMaintainedItem)
 	self.bankInventory = ns.GetRestockItemsInBank(IsMaintainedItem)
@@ -523,10 +525,10 @@ local function RunRestockLogic()
 		for itemID, previousTotal in pairs(state.lastTotals) do
 			if (totals[itemID] or 0) < previousTotal then
 				state.suspectSteps = state.suspectSteps + 1
-				local profileItem = state.currentProfile[itemID]
+				local listItem = state.currentList[itemID]
 				ns.RestockerDebug(
 					"%s in transit (bag+bank %d, was %d), waiting",
-					profileItem and profileItem.itemName or tostring(itemID),
+					listItem and listItem.itemName or tostring(itemID),
 					totals[itemID] or 0,
 					previousTotal
 				)
@@ -546,9 +548,8 @@ local function RunRestockLogic()
 		    Watchdog. We only get here with locks already settled (OnBankRestockUpdate gates on that), so
 		    if the outstanding work did NOT shrink since last step, the last move genuinely didn't
 		    land -- a rejected split, or something we can't place. Retry a few times to absorb
-		    transient races, then give up with a clear message. This is the piece both previous
-		    designs lacked: it neither spams forever (recompute-every-step) nor reports success
-		    while short (optimistic-deduct).
+		    transient races, then give up with a clear message. With it the run neither spins
+		    forever on a move that never lands nor reports success while still short.
 		]]
 		if remaining < state.lastRemainingWork then
 			state.stuckSteps = 0
@@ -625,7 +626,7 @@ end
 
 local restockCoroutine = coroutine.create(RunRestockCoroutine)
 
-local function MaintainAndResumeCoro()
+local function MaintainAndResumeCoroutine()
 	if restockCoroutine == nil or coroutine.status(restockCoroutine) == "dead" then
 		ns.RestockerDebug("Maintain: create coro")
 		restockCoroutine = coroutine.create(RunRestockCoroutine)
@@ -636,7 +637,7 @@ local function MaintainAndResumeCoro()
 		return
 	end
 
-	local ok, err = coroutine.resume(restockCoroutine)
+	local ok, errorMessage = coroutine.resume(restockCoroutine)
 
 	if not ok then
 		--[[
@@ -644,7 +645,7 @@ local function MaintainAndResumeCoro()
 		    respawn the coroutine and re-trigger the same error every tick. Reopening the bank
 		    (ns.RestartBankRestock) creates a fresh coroutine and retries.
 		]]
-		ns.PrintMessage(string.format(L["RESTOCKER_STOPPED_ERROR"], tostring(err)))
+		ns.PrintMessage(string.format(L["RESTOCKER_STOPPED_ERROR"], tostring(errorMessage)))
 		FinishRestocking(nil)
 		restockCoroutine = nil
 	end
@@ -686,10 +687,10 @@ local function OnBankRestockUpdate(_frame, elapsed)
 			    items". The fixed tick interval alone isn't enough on a laggy connection. Only wait
 			    on OUR items -- an unrelated locked slot must not stall the restock forever.
 			]]
-			if restockState and ns.IsRestockItemLocked(restockState.currentProfile) then
+			if restockState and ns.IsRestockItemLocked(restockState.currentList) then
 				return
 			end
-			MaintainAndResumeCoro()
+			MaintainAndResumeCoroutine()
 		end
 	end
 end
@@ -710,5 +711,6 @@ ns.restockUpdateFrame:SetScript("OnUpdate", OnBankRestockUpdate)
     Diagnostic Tools panel: that panel is read-only by rule, and a restock moves
     the player's items. Closing and reopening the bank restarts a run, and the
     step-by-step trace behind ns.RestockerDebug is what actually explains a stuck
-    one. For the logic with no game running, see Tests/RestockPlannerTest.lua.
+    one. For the logic with no game running, see
+    Tests/Restocker-Restock-Planner-Test.lua.
 ]]

@@ -1,5 +1,6 @@
 local _, ns = ...
-local Config = ns.MacroConfig
+local L = ns.L
+local MACRO_CONFIG = ns.MACRO_CONFIG
 
 --------------------------------------------------------------------------------
 -- Poisons Macro (Rogue)
@@ -48,23 +49,23 @@ end
 
 --[[
     Per-group candidate lists sorted best-first (highest required level =
-    highest rank), precomputed once from ns.PoisonData (Data/Poisons.lua, which
+    highest rank), precomputed once from ns.POISON_DATA (Data/Poisons.lua, which
     loads before this file) so the per-update scan is a plain walk. Same pattern
     as the derived scroll lookups in Features/Scanner-Character.lua. Every
-    consumer reads ns.PoisonsByGroup from inside a function, so the build only
+    consumer reads ns.POISONS_BY_GROUP from inside a function, so the build only
     needs to finish before the first macro update.
 ]]
-ns.PoisonsByGroup = {}
-for itemID, row in pairs(ns.PoisonData) do
+ns.POISONS_BY_GROUP = {}
+for itemID, row in pairs(ns.POISON_DATA) do
 	local group = row[2]
-	local list = ns.PoisonsByGroup[group]
+	local list = ns.POISONS_BY_GROUP[group]
 	if not list then
 		list = {}
-		ns.PoisonsByGroup[group] = list
+		ns.POISONS_BY_GROUP[group] = list
 	end
 	list[#list + 1] = { itemID, row[1] }
 end
-for _, list in pairs(ns.PoisonsByGroup) do
+for _, list in pairs(ns.POISONS_BY_GROUP) do
 	table.sort(list, function(a, b)
 		if a[2] ~= b[2] then
 			return a[2] > b[2]
@@ -79,34 +80,35 @@ end
 
 --[[
     Localized group name for the Options dropdowns: the base (rank 1) item's
-    client-localized name, so poison types never need locale strings. Falls
-    back to the English series name while GetItemInfo is still cold (the
-    call itself triggers the async load, so a reopened dropdown heals).
+    client-localized name. Falls back to the group's locale string while
+    C_Item.GetItemInfo is still cold; the call itself starts the async load.
 ]]
 function ns.GetPoisonGroupName(groupID)
-	local baseItem = ns.PoisonGroupBaseItems and ns.PoisonGroupBaseItems[groupID]
+	local baseItem = ns.POISON_GROUP_BASE_ITEMS and ns.POISON_GROUP_BASE_ITEMS[groupID]
 	if baseItem then
-		local name = GetItemInfo(baseItem)
+		local name = C_Item.GetItemInfo(baseItem)
 		if name then
 			return name
 		end
 	end
-	return ns.PoisonGroupFallbackNames and ns.PoisonGroupFallbackNames[groupID] or tostring(groupID)
+	local key = ns.POISON_GROUP_NAME_KEYS[groupID]
+	return key and L[key] or tostring(groupID)
 end
 
 --[[
-    Best usable poison for a group: the lists in ns.PoisonsByGroup are sorted
-    best-first, so the first entry the rogue meets the level requirement for
-    AND has in bags wins. Returns nil when the group has nothing usable.
+    Best usable poison for a group: the lists in ns.POISONS_BY_GROUP are sorted
+    best-first, so the first entry the rogue meets the level requirement for,
+    has in bags AND has not ignored wins. Returns nil when the group has nothing
+    usable.
 ]]
 local function FindBestPoison(groupID)
-	local list = ns.PoisonsByGroup and ns.PoisonsByGroup[groupID]
+	local list = ns.POISONS_BY_GROUP and ns.POISONS_BY_GROUP[groupID]
 	if not list then
 		return nil
 	end
-	local playerLevel = ns.CachedPlayerLevel or 1
+	local playerLevel = ns.cachedPlayerLevel or 1
 	for _, entry in ipairs(list) do
-		if entry[2] <= playerLevel and ns.GetItemCount(entry[1]) > 0 then
+		if entry[2] <= playerLevel and ns.GetItemCount(entry[1]) > 0 and not ns.IsIgnored(entry[1]) then
 			return entry[1]
 		end
 	end
@@ -126,7 +128,7 @@ end
 
 --[[
     Resolved poison for one hand as (itemID, itemLink), for the minimap
-    tooltip. Resolved on demand rather than published the way ns.BestPetFoodID
+    tooltip. Resolved on demand rather than published the way ns.bestPetFoodID
     is: the answer tracks bag contents, which change without a macro rebuild,
     and there is no rebuild at all while the Poisons macro is disabled.
 ]]
@@ -135,7 +137,7 @@ function ns.GetBestPoisonForHand(hand)
 	if not id then
 		return nil, nil
 	end
-	return id, select(2, GetItemInfo(id))
+	return id, select(2, C_Item.GetItemInfo(id))
 end
 
 local function KnowsPoisons()
@@ -156,7 +158,7 @@ end
       no Poisons skill → tip-only stub ("You don't currently know Poisons.")
       neither hand     → crafting middle-click + "no suitable Poison found"
       one hand missing → working hand keeps its branch; the missing hand's
-                         click prints TIP_NO_HAND_POISON via ConnIf and halts
+                         click prints TIP_NO_HAND_POISON via ConnoisseurTipIf and halts
       both hands       → the full dual-apply body
 
     [btn:2] is the Main Hand branch; everything that isn't btn:2/btn:3 —
@@ -164,11 +166,11 @@ end
     Macros/Explosive.lua) — is the Off Hand branch, tested as [btn:1].
 ]]
 local function BuildPoisonsBody(knows, mainID, offID)
-	local tooltipID = mainID or offID or Config["Poisons"].defaultID
+	local tooltipID = mainID or offID or MACRO_CONFIG["Poisons"].defaultID
 	local lines = { "#showtooltip item:" .. tooltipID }
 
 	if not knows then
-		lines[#lines + 1] = '/run ConnTip("npois")'
+		lines[#lines + 1] = '/run ConnoisseurTip("noPoisonsSkill")'
 		return table.concat(lines, "\n")
 	end
 
@@ -179,15 +181,15 @@ local function BuildPoisonsBody(knows, mainID, offID)
 	end
 
 	if not mainID and not offID then
-		lines[#lines + 1] = '/run ConnNoItem("Poisons")'
+		lines[#lines + 1] = '/run ConnoisseurNoItem("Poisons")'
 		return table.concat(lines, "\n")
 	end
 
 	if not mainID then
-		lines[#lines + 1] = '/run ConnIf("[btn:2]","nopois")'
+		lines[#lines + 1] = '/run ConnoisseurTipIf("[btn:2]","noHandPoison")'
 		lines[#lines + 1] = "/stopmacro [btn:2]"
 	elseif not offID then
-		lines[#lines + 1] = '/run ConnIf("[btn:1]","nopois")'
+		lines[#lines + 1] = '/run ConnoisseurTipIf("[btn:1]","noHandPoison")'
 		lines[#lines + 1] = "/stopmacro [btn:1]"
 	end
 
@@ -213,16 +215,11 @@ end
 --------------------------------------------------------------------------------
 
 local function UpdatePoisonsMacro(forced)
-	if InCombatLockdown() then
-		ns.RequestUpdate()
-		return
-	end
-
 	if forced then
 		currentPoisonState = nil
 	end
 
-	local config = Config["Poisons"]
+	local config = MACRO_CONFIG["Poisons"]
 	if not config then
 		return
 	end
@@ -248,18 +245,10 @@ local function UpdatePoisonsMacro(forced)
 
 	local body = BuildPoisonsBody(knows, mainID, offID)
 
-	local index = GetMacroIndexByName(config.macro)
-	if index == 0 then
-		-- On a failed create, leave the state unset so the next update retries.
-		if not ns.TryCreateMacro(config.macro, ns.QUESTION_MARK_ICON, body) then
-			currentPoisonState = nil
-			return
-		end
-	else
-		local existingBody = GetMacroBody(config.macro)
-		if existingBody ~= body then
-			EditMacro(index, config.macro, ns.QUESTION_MARK_ICON, body)
-		end
+	-- On a failed create, leave the state unset so the next update retries.
+	if not ns.WriteMacroBody(config.macro, body) then
+		currentPoisonState = nil
+		return
 	end
 
 	currentPoisonState = stateID
@@ -273,18 +262,15 @@ ns.RegisterMacroType({
 	typeName = "Poisons",
 
 	customUpdate = function(forced)
-		if not ns.IsRogue then
+		if not ns.isRogue then
 			return
 		end
 		if ns.IsMacroEnabled("Poisons") then
 			UpdatePoisonsMacro(forced)
 		else
-			local config = Config["Poisons"]
+			local config = MACRO_CONFIG["Poisons"]
 			if config then
-				local index = GetMacroIndexByName(config.macro)
-				if index and index > 0 then
-					DeleteMacro(index)
-				end
+				ns.DeleteMacroByName(config.macro)
 				ns.ResetPoisonMacroState()
 			end
 		end

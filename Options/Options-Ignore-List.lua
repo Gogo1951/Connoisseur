@@ -138,7 +138,7 @@ function ns.BuildIgnoreListOptions()
 
 	return {
 		type = "group",
-		name = L["OPTIONS_IGNORE_LIST_TAB"],
+		name = L["TAB_IGNORE_LIST"],
 		childGroups = "tree",
 		args = args,
 	}

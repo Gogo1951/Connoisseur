@@ -65,6 +65,9 @@ ns.DiagnosticsStrings = {
 	SAVED_BUTTON = "Dump Saved Variables",
 	LIBS_TITLE = "Library Versions",
 	LIBS_BUTTON = "List Library Versions",
+	VALIDATE_TITLE = "Validate Data: %s",
+	VALIDATE_BUTTON = "Validate Data",
+	VALIDATE_PROGRESS = "Validated %s / %s items...",
 	TAINT_TITLE = "Taint Log",
 	TAINT_STATE = "Taint logging is currently set to level %d (0 = off, 2 = verbose).",
 	TAINT_ON = "Turn On Taint Log",
@@ -112,10 +115,9 @@ local EVENT_LOG_SIZE = 500
 local EVENT_LOG_MAX_ARGS = 8
 
 --[[
-    Per-argument byte cap. 64 was too small: a single item link
-    (|cff...|Hitem:...|h[Name]|h|r) already runs past 80 bytes, so the link was
-    getting cut mid-name and the entry collapsed to a sliver like "[Sc". 255
-    holds a full item link while still bounding a runaway argument.
+    Per-argument byte cap. A single item link (|cff...|Hitem:...|h[Name]|h|r)
+    runs past 80 bytes and a shorter cap cuts it mid-name; 255 holds a full item
+    link while still bounding a runaway argument.
 ]]
 local EVENT_LOG_MAX_ARG_LENGTH = 255
 
@@ -247,8 +249,7 @@ end
 --[[
     Stops capturing but KEEPS what was captured. The panel's buttons read Start,
     Stop, Show, so the obvious way to use them is start, reproduce the problem,
-    stop, then read the report -- and discarding the buffer here made every
-    report taken that way come back "(no events captured)".
+    stop, then read the report -- which only works if stopping keeps the buffer.
 
     Nothing leaks by holding it: Start replaces the buffer, and switching
     diagnostics off entirely releases it through ns.DiscardEventLog.
@@ -568,9 +569,28 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	{
-		"GetItemInfo",
+		"C_Item.GetItemInfo",
 		function()
-			return type(GetItemInfo) == "function"
+			return type(C_Item) == "table" and type(C_Item.GetItemInfo) == "function"
+		end,
+	},
+	{
+		"C_Item.GetItemQualityColor",
+		function()
+			return type(C_Item) == "table" and type(C_Item.GetItemQualityColor) == "function"
+		end,
+	},
+	-- Validate Data: item existence, and the instant fields every item row carries.
+	{
+		"C_Item.DoesItemExistByID",
+		function()
+			return type(C_Item) == "table" and type(C_Item.DoesItemExistByID) == "function"
+		end,
+	},
+	{
+		"C_Item.GetItemInfoInstant",
+		function()
+			return type(C_Item) == "table" and type(C_Item.GetItemInfoInstant) == "function"
 		end,
 	},
 	--[[
@@ -688,9 +708,10 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	{
-		"GetTalentTabInfo",
+		"C_SpecializationInfo.GetSpecializationInfo",
 		function()
-			return type(GetTalentTabInfo) == "function"
+			return type(C_SpecializationInfo) == "table"
+				and type(C_SpecializationInfo.GetSpecializationInfo) == "function"
 		end,
 	},
 	{
@@ -709,6 +730,25 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		"GetSpellInfo",
 		function()
 			return type(GetSpellInfo) == "function"
+		end,
+	},
+	-- Validate Data reads each of these through C_Spell when the client has it, the legacy global otherwise.
+	{
+		"C_Spell.GetSpellInfo",
+		function()
+			return type(C_Spell) == "table" and type(C_Spell.GetSpellInfo) == "function"
+		end,
+	},
+	{
+		"C_Spell.GetSpellSubtext",
+		function()
+			return type(C_Spell) == "table" and type(C_Spell.GetSpellSubtext) == "function"
+		end,
+	},
+	{
+		"GetSpellSubtext (legacy)",
+		function()
+			return type(GetSpellSubtext) == "function"
 		end,
 	},
 	{
@@ -779,9 +819,9 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	{
-		"GetItemFamily",
+		"C_Item.GetItemFamily",
 		function()
-			return type(GetItemFamily) == "function"
+			return type(C_Item) == "table" and type(C_Item.GetItemFamily) == "function"
 		end,
 	},
 	{
@@ -869,38 +909,38 @@ function ns.BuildContextReport()
 		"Class: %s // Level: %s // Cached level: %s // Cached map: %s",
 		tostring(classToken),
 		tostring(UnitLevel("player")),
-		tostring(ns.CachedPlayerLevel),
-		tostring(ns.CachedMapID)
+		tostring(ns.cachedPlayerLevel),
+		tostring(ns.cachedMapID)
 	)
 
 	-- The profession ranks the scanner's usability gates read (0 = unlearned).
 	lines[#lines + 1] = string.format(
 		"Skills: First Aid %s // Alchemy %s // Engineering %s",
-		tostring(ns.CurrentFirstAidSkill),
-		tostring(ns.CurrentAlchemySkill),
-		tostring(ns.CurrentEngineeringSkill)
+		tostring(ns.currentFirstAidSkill),
+		tostring(ns.currentAlchemySkill),
+		tostring(ns.currentEngineeringSkill)
 	)
 
 	lines[#lines + 1] = ""
 	lines[#lines + 1] = "-- Best-item selection --"
-	lines[#lines + 1] = string.format("BestFoodID: %s", tostring(ns.BestFoodID))
-	lines[#lines + 1] = string.format("BestPetFoodID: %s", tostring(ns.BestPetFoodID))
-	if ns.ScrollOverrideIDs and #ns.ScrollOverrideIDs > 0 then
-		lines[#lines + 1] = "ScrollOverrideIDs: " .. table.concat(ns.ScrollOverrideIDs, ", ")
+	lines[#lines + 1] = string.format("bestFoodID: %s", tostring(ns.bestFoodID))
+	lines[#lines + 1] = string.format("bestPetFoodID: %s", tostring(ns.bestPetFoodID))
+	if ns.scrollOverrideIDs and #ns.scrollOverrideIDs > 0 then
+		lines[#lines + 1] = "scrollOverrideIDs: " .. table.concat(ns.scrollOverrideIDs, ", ")
 	else
-		lines[#lines + 1] = "ScrollOverrideIDs: (none)"
+		lines[#lines + 1] = "scrollOverrideIDs: (none)"
 	end
-	lines[#lines + 1] = string.format("PetBuffOverrideID: %s", tostring(ns.PetBuffOverrideID))
+	lines[#lines + 1] = string.format("petBuffOverrideID: %s", tostring(ns.petBuffOverrideID))
 
 	--[[
-	    Per-category winners from the last ScanBags pass (ns.BestSelection is
+	    Per-category winners from the last ScanBags pass (ns.bestSelection is
 	    the scanner's live best table). The read-out for "category X didn't
 	    update" reports: it shows exactly what the scanner picked plus the
 	    tiebreak inputs (value/price/count) the comparison ladder ordered on,
-	    and the ranked topIDs for multi-use types — none of which BestFoodID
+	    and the ranked topIDs for multi-use types — none of which bestFoodID
 	    alone can reveal.
 	]]
-	local selection = ns.BestSelection
+	local selection = ns.bestSelection
 	if selection then
 		lines[#lines + 1] = ""
 		lines[#lines + 1] = "-- Best by category (last scan) --"
@@ -943,28 +983,10 @@ function ns.BuildContextReport()
 		)
 	end
 
-	--[[
-	    The Restock List's shift-click capture claims ChatEdit_InsertLink so a
-	    shift-clicked item lands on the list instead of in chat. Another add-on
-	    replacing that global without chaining silently takes the click, and the
-	    only symptom is a shift-click that appears to do nothing, so the state is
-	    reported rather than left to be guessed at.
-	]]
-	lines[#lines + 1] = ""
-	lines[#lines + 1] = "-- Restocker link capture --"
-	if ns.IsRestockLinkCaptureInstalled then
-		lines[#lines + 1] = string.format(
-			"ChatEdit_InsertLink claimed by Connoisseur: %s",
-			ns.IsRestockLinkCaptureInstalled() and "yes" or "NO (another add-on replaced it)"
-		)
-	else
-		lines[#lines + 1] = "ChatEdit_InsertLink claimed by Connoisseur: capture never installed"
-	end
-
 	lines[#lines + 1] = ""
 	lines[#lines + 1] = "-- Display context --"
-	local pw, ph = GetPhysicalScreenSize()
-	lines[#lines + 1] = string.format("PhysicalScreenSize: %s x %s", tostring(pw), tostring(ph))
+	local physicalWidth, physicalHeight = GetPhysicalScreenSize()
+	lines[#lines + 1] = string.format("PhysicalScreenSize: %s x %s", tostring(physicalWidth), tostring(physicalHeight))
 	lines[#lines + 1] = string.format("UIParent scale: %s", tostring(UIParent and UIParent:GetScale()))
 	lines[#lines + 1] = string.format("uiScale CVar: %s", tostring(GetCVar("uiScale")))
 
@@ -988,7 +1010,7 @@ local function DescribeItem(itemID)
 	if not itemID then
 		return "(none)"
 	end
-	local name = GetItemInfo(itemID)
+	local name = C_Item.GetItemInfo(itemID)
 	if name then
 		return string.format("%d (%s)", itemID, name)
 	end
@@ -1031,8 +1053,8 @@ end
 function ns.BuildSelectionReport()
 	local lines = { GetClientHeader(), "" }
 
-	local selection = ns.BestSelection
-	local candidates = ns.DiagnosticCandidates
+	local selection = ns.bestSelection
+	local candidates = ns.diagnosticCandidates
 
 	if not selection then
 		lines[#lines + 1] = "No scan has completed yet. Trigger one by looting an item or changing zone."
@@ -1052,7 +1074,7 @@ function ns.BuildSelectionReport()
 		end
 	end
 
-	lines[#lines + 1] = string.format("AllowBuffFood (live scan preference): %s", tostring(ns.AllowBuffFood))
+	lines[#lines + 1] = string.format("allowBuffFood (live scan preference): %s", tostring(ns.allowBuffFood))
 	if not retained then
 		lines[#lines + 1] = ""
 		lines[#lines + 1] =
@@ -1063,7 +1085,7 @@ function ns.BuildSelectionReport()
 	lines[#lines + 1] = "-- Ranked by the selection ladder --"
 
 	local typeNames = {}
-	for _, definition in ipairs(ns.RegisteredMacroDefinitions or {}) do
+	for _, definition in ipairs(ns.REGISTERED_MACRO_DEFINITIONS or {}) do
 		if definition.itemTypes then
 			typeNames[#typeNames + 1] = definition.typeName
 		end
@@ -1081,7 +1103,7 @@ function ns.BuildSelectionReport()
 	    honest about what it does and does not cover.
 	]]
 	local customNames = {}
-	for _, definition in ipairs(ns.RegisteredCustomMacroDefinitions or {}) do
+	for _, definition in ipairs(ns.REGISTERED_CUSTOM_MACRO_DEFINITIONS or {}) do
 		customNames[#customNames + 1] = definition.typeName
 	end
 	table.sort(customNames)
@@ -1092,7 +1114,7 @@ function ns.BuildSelectionReport()
 		for _, typeName in ipairs(customNames) do
 			lines[#lines + 1] = string.format("%s: resolved by its own builder at macro-update time", typeName)
 		end
-		lines[#lines + 1] = string.format("Feed Pet current pick: %s", DescribeItem(ns.BestPetFoodID))
+		lines[#lines + 1] = string.format("Feed Pet current pick: %s", DescribeItem(ns.bestPetFoodID))
 	end
 
 	return table.concat(lines, "\n")
@@ -1151,7 +1173,7 @@ function ns.BuildReadinessDiagnosticReport()
 	lines[#lines + 1] = ""
 	lines[#lines + 1] = "-- What it would print now --"
 
-	local body = ns.BuildReadinessLines and ns.BuildReadinessLines() or nil
+	local body = ns.BuildReadinessLines(select(2, IsInInstance()) == "arena")
 	if not body then
 		lines[#lines + 1] = "(nothing -- this character has nothing the report would name)"
 	else
@@ -1178,11 +1200,11 @@ end
 function ns.BuildAddOnReport()
 	local lines = { GetClientHeader(), "" }
 	local getInfo = C_AddOns.GetAddOnInfo
-	local getMeta = C_AddOns.GetAddOnMetadata
+	local getMetadata = C_AddOns.GetAddOnMetadata
 	local count = C_AddOns.GetNumAddOns()
 	for index = 1, count do
 		local name, _, _, loadable = getInfo(index)
-		local version = getMeta(index, "Version") or "?"
+		local version = getMetadata(index, "Version") or "?"
 		lines[#lines + 1] = string.format("%s v%s [%s]", name, version, loadable and "loadable" or "disabled")
 	end
 	return table.concat(lines, "\n")
@@ -1199,16 +1221,16 @@ end
 
     itemCache is matched by key at any depth, since under AceDB it moves around
     with the active profile. The restock lists are matched by the exact path
-    their container sits at, because "profiles" also names AceDB's own profile
-    table one level up -- and that one must print in full, since it holds the
-    settings a bug report is about.
+    their container sits at, so no other table that happens to share the key
+    is ever summarized -- AceDB's own profiles table, one level up, must print
+    in full, since it holds the settings a bug report is about.
 ]]
 local SUMMARIZED_BY_KEY = {
 	itemCache = "cached items",
 }
 
 local SUMMARIZED_CHILDREN_BY_PATH = {
-	["global.restocker.profiles"] = "items",
+	["global.restocker.lists"] = "items",
 }
 
 local function CountEntries(value)
@@ -1256,7 +1278,7 @@ function ns.BuildSavedVariablesReport()
 	    (profiles / global / profileKeys). Everything the add-on saves is in
 	    here, the Restock Lists included. DumpTable counts rather than prints the
 	    two tables that run long -- any itemCache it meets, and each restock list
-	    under global.restocker.profiles -- so the report stays readable, and it
+	    under global.restocker.lists -- so the report stays readable, and it
 	    never writes.
 	]]
 	lines[#lines + 1] = "ConnoisseurDB = {"
@@ -1281,6 +1303,569 @@ function ns.BuildLibraryReport()
 		lines[#lines + 1] = string.format("%s (minor %s)", name, tostring(LibStub.minors[name]))
 	end
 	return table.concat(lines, "\n")
+end
+
+--------------------------------------------------------------------------------
+-- Validate Data
+--------------------------------------------------------------------------------
+
+local function Keys(source)
+	local ids = {}
+	for id in pairs(source) do
+		ids[#ids + 1] = id
+	end
+	return ids
+end
+
+local function Values(source)
+	local ids = {}
+	for _, id in pairs(source) do
+		ids[#ids + 1] = id
+	end
+	return ids
+end
+
+-- One field of every row, by index for row arrays and by name for keyed rows.
+local function Column(field)
+	return function(source)
+		local ids = {}
+		for _, row in pairs(source) do
+			ids[#ids + 1] = row[field]
+		end
+		return ids
+	end
+end
+
+-- Named fields of one table, for the single-ID constants.
+local function Named(fields)
+	return function(source)
+		local ids = {}
+		for _, field in ipairs(fields) do
+			ids[#ids + 1] = source[field]
+		end
+		return ids
+	end
+end
+
+local function UpgradeTierItems(chains)
+	local ids = {}
+	for _, chain in ipairs(chains) do
+		for _, tier in ipairs(chain.tiers) do
+			ids[#ids + 1] = tier[2]
+		end
+	end
+	return ids
+end
+
+local function RecipeReagents(recipes)
+	local ids = {}
+	for _, recipe in ipairs(recipes) do
+		for _, reagent in ipairs(recipe[2]) do
+			ids[#ids + 1] = reagent[1]
+		end
+	end
+	return ids
+end
+
+local function ScrollColumn(index)
+	return function(scrollData)
+		local ids = {}
+		for _, scrollType in pairs(scrollData) do
+			for _, row in ipairs(scrollType.items) do
+				ids[#ids + 1] = row[index]
+			end
+		end
+		return ids
+	end
+end
+
+local function ScrollConflictSpells(scrollData)
+	local ids = {}
+	for _, scrollType in pairs(scrollData) do
+		for spellID in pairs(scrollType.conflictSpells) do
+			ids[#ids + 1] = spellID
+		end
+	end
+	return ids
+end
+
+local function ConjureSpellIDs(conjureSpells)
+	local ids = {}
+	for _, spellList in pairs(conjureSpells) do
+		for _, entry in ipairs(spellList) do
+			ids[#ids + 1] = entry[1]
+		end
+	end
+	return ids
+end
+
+--[[
+    ns.CONJURED_ITEM_IDS_BY_SPELL is filled by both Healthstones.lua and
+    Mana-Gems.lua. A row belongs to Healthstones when it conjures a Healthstone
+    and to Mana Gems otherwise, so every row is validated exactly once.
+]]
+local function ConjuresHealthstone(itemIDs)
+	for _, itemID in ipairs(itemIDs) do
+		if ns.RAW_DATA.Healthstone[itemID] then
+			return true
+		end
+	end
+	return false
+end
+
+local function ConjureRows(healthstones, readRow)
+	return function(conjured)
+		local ids = {}
+		for spellID, itemIDs in pairs(conjured) do
+			if ConjuresHealthstone(itemIDs) == healthstones then
+				readRow(ids, spellID, itemIDs)
+			end
+		end
+		return ids
+	end
+end
+
+local function AddConjureSpell(ids, spellID)
+	ids[#ids + 1] = spellID
+end
+
+local function AddConjuredItems(ids, _, itemIDs)
+	for _, itemID in ipairs(itemIDs) do
+		ids[#ids + 1] = itemID
+	end
+end
+
+--[[
+    Every spell and item ID the Data/ files ship, one entry per file. Each table
+    names its source, whether its IDs are items or spells, and idsOf, which
+    returns the IDs to validate. A data file missing from here is one the
+    validator never checks.
+]]
+ns.DIAGNOSTIC_DATA_SOURCES = {
+	{
+		label = "Bandages.lua",
+		tables = {
+			{ name = "ns.RAW_DATA.Bandage", source = ns.RAW_DATA.Bandage, kind = "item", idsOf = Keys },
+		},
+	},
+	{
+		label = "Consumable-Upgrade-Paths.lua",
+		tables = {
+			{
+				name = "ns.CONSUMABLE_UPGRADE_CHAINS",
+				source = ns.CONSUMABLE_UPGRADE_CHAINS,
+				kind = "item",
+				idsOf = UpgradeTierItems,
+			},
+		},
+	},
+	{
+		label = "Elixirs.lua",
+		tables = {
+			{ name = "ns.FLASK_BUFF_IDS", source = ns.FLASK_BUFF_IDS, kind = "spell", idsOf = Keys },
+			{ name = "ns.ELIXIR_BUFF_IDS", source = ns.ELIXIR_BUFF_IDS, kind = "spell", idsOf = Keys },
+		},
+	},
+	{
+		label = "Explosives.lua",
+		tables = {
+			{ name = "ns.RAW_DATA.Explosives", source = ns.RAW_DATA.Explosives, kind = "item", idsOf = Keys },
+			{
+				name = "ns.RAW_DATA.Explosives (required spell)",
+				source = ns.RAW_DATA.Explosives,
+				kind = "spell",
+				idsOf = Column(4),
+			},
+		},
+	},
+	{
+		label = "Food-and-Water.lua",
+		tables = {
+			{ name = "ns.RAW_DATA.FoodAndWater", source = ns.RAW_DATA.FoodAndWater, kind = "item", idsOf = Keys },
+		},
+	},
+	{
+		label = "Healthstones.lua",
+		tables = {
+			{ name = "ns.RAW_DATA.Healthstone", source = ns.RAW_DATA.Healthstone, kind = "item", idsOf = Keys },
+			{
+				name = "ns.CONJURED_ITEM_IDS_BY_SPELL",
+				source = ns.CONJURED_ITEM_IDS_BY_SPELL,
+				kind = "spell",
+				idsOf = ConjureRows(true, AddConjureSpell),
+			},
+			{
+				name = "ns.CONJURED_ITEM_IDS_BY_SPELL",
+				source = ns.CONJURED_ITEM_IDS_BY_SPELL,
+				kind = "item",
+				idsOf = ConjureRows(true, AddConjuredItems),
+			},
+		},
+	},
+	{
+		label = "Mana-Gems.lua",
+		tables = {
+			{ name = "ns.RAW_DATA.ManaGem", source = ns.RAW_DATA.ManaGem, kind = "item", idsOf = Keys },
+			{ name = "ns.RAW_DATA.ManaRune", source = ns.RAW_DATA.ManaRune, kind = "item", idsOf = Keys },
+			{
+				name = "ns.CONJURED_ITEM_IDS_BY_SPELL",
+				source = ns.CONJURED_ITEM_IDS_BY_SPELL,
+				kind = "spell",
+				idsOf = ConjureRows(false, AddConjureSpell),
+			},
+			{
+				name = "ns.CONJURED_ITEM_IDS_BY_SPELL",
+				source = ns.CONJURED_ITEM_IDS_BY_SPELL,
+				kind = "item",
+				idsOf = ConjureRows(false, AddConjuredItems),
+			},
+		},
+	},
+	{
+		label = "Pet-Foods.lua",
+		tables = {
+			{ name = "ns.PET_FOOD_DATA", source = ns.PET_FOOD_DATA, kind = "item", idsOf = Keys },
+		},
+	},
+	{
+		label = "Poison-Recipes.lua",
+		tables = {
+			{ name = "ns.POISON_RECIPES (crafted)", source = ns.POISON_RECIPES, kind = "item", idsOf = Column(1) },
+			{
+				name = "ns.POISON_RECIPES (reagents)",
+				source = ns.POISON_RECIPES,
+				kind = "item",
+				idsOf = RecipeReagents,
+			},
+		},
+	},
+	{
+		label = "Poisons.lua",
+		tables = {
+			{ name = "ns.POISON_DATA", source = ns.POISON_DATA, kind = "item", idsOf = Keys },
+			{ name = "ns.POISON_GROUP_BASE_ITEMS", source = ns.POISON_GROUP_BASE_ITEMS, kind = "item", idsOf = Values },
+		},
+	},
+	{
+		label = "Potions.lua",
+		tables = {
+			{ name = "ns.RAW_DATA.Potions", source = ns.RAW_DATA.Potions, kind = "item", idsOf = Keys },
+		},
+	},
+	{
+		label = "Questionable-Equipment.lua",
+		tables = {
+			{ name = "ns.QUESTIONABLE_EQUIPMENT", source = ns.QUESTIONABLE_EQUIPMENT, kind = "item", idsOf = Keys },
+		},
+	},
+	{
+		label = "Scrolls.lua",
+		tables = {
+			{ name = "ns.SCROLL_DATA items", source = ns.SCROLL_DATA, kind = "item", idsOf = ScrollColumn(1) },
+			{ name = "ns.SCROLL_DATA buffs", source = ns.SCROLL_DATA, kind = "spell", idsOf = ScrollColumn(2) },
+			{
+				name = "ns.SCROLL_DATA conflictSpells",
+				source = ns.SCROLL_DATA,
+				kind = "spell",
+				idsOf = ScrollConflictSpells,
+			},
+		},
+	},
+	{
+		label = "Soulstones.lua",
+		tables = {
+			{ name = "ns.RAW_DATA.Soulstone", source = ns.RAW_DATA.Soulstone, kind = "item", idsOf = Keys },
+			{
+				name = "ns.SOULSTONE_BUFF_SPELL_IDS",
+				source = ns.SOULSTONE_BUFF_SPELL_IDS,
+				kind = "spell",
+				idsOf = Values,
+			},
+		},
+	},
+	{
+		label = "Data.lua",
+		tables = {
+			{ name = "ns.CONJURE_SPELLS", source = ns.CONJURE_SPELLS, kind = "spell", idsOf = ConjureSpellIDs },
+			{ name = "ns.WELL_FED_BUFF_IDS", source = ns.WELL_FED_BUFF_IDS, kind = "spell", idsOf = Keys },
+			{
+				name = "ns.MISSING_SPELL_MESSAGE_IDS",
+				source = ns.MISSING_SPELL_MESSAGE_IDS,
+				kind = "spell",
+				idsOf = Values,
+			},
+			{
+				name = "ns.*_SPELL_ID and ns.*_BUFF_ID",
+				source = ns,
+				kind = "spell",
+				idsOf = Named({
+					"CALL_PET_SPELL_ID",
+					"DISMISS_PET_SPELL_ID",
+					"DRUID_BEAR_FORM_SPELL_ID",
+					"DRUID_CAT_FORM_SPELL_ID",
+					"DRUID_DIRE_BEAR_FORM_SPELL_ID",
+					"FEED_PET_SPELL_ID",
+					"KIBLERS_BUFF_ID",
+					"MEND_PET_SPELL_ID",
+					"POISONS_SPELL_ID",
+					"REVIVE_PET_SPELL_ID",
+					"SHADOWMELD_SPELL_ID",
+					"SPORELING_BUFF_ID",
+					"STEALTH_SPELL_ID",
+				}),
+			},
+			{
+				name = "ns.MACRO_CONFIG defaultID",
+				source = ns.MACRO_CONFIG,
+				kind = "item",
+				idsOf = Column("defaultID"),
+			},
+			{
+				name = "ns.*_ITEM_ID",
+				source = ns,
+				kind = "item",
+				idsOf = Named({ "KIBLERS_BITS_ITEM_ID", "SPORELING_SNACKS_ITEM_ID" }),
+			},
+		},
+	},
+}
+
+local SPELL_COLUMNS = {
+	"STATUS",
+	"Spell ID",
+	"Source",
+	"Name",
+	"Subtext",
+	"Icon",
+	"Cast Time",
+	"Min Range",
+	"Max Range",
+	"IsPlayerSpell",
+	"IsSpellKnown",
+}
+
+-- C_Item.GetItemInfo's seventeen returns, in order, then C_Item.GetItemInfoInstant's fields after the ID it repeats.
+local ITEM_COLUMNS = {
+	"STATUS",
+	"Item ID",
+	"Source",
+	"Name",
+	"Link",
+	"Quality",
+	"Item Level",
+	"Min Level",
+	"Type",
+	"Subtype",
+	"Stack Count",
+	"Equip Location",
+	"Texture",
+	"Sell Price",
+	"Class ID",
+	"Subclass ID",
+	"Bind Type",
+	"Expansion ID",
+	"Set ID",
+	"Crafting Reagent",
+	"Instant Type",
+	"Instant Subtype",
+	"Instant Equip Location",
+	"Instant Icon",
+	"Instant Class ID",
+	"Instant Subclass ID",
+}
+local ITEM_INFO_RETURNS = 17
+
+local VALIDATE_BATCH_SIZE = 100
+local VALIDATE_POLL_SECONDS = 0.2
+
+--[[
+    Polls that resolved nothing new before the stragglers are flagged NOT ON
+    CLIENT. Counting idle polls rather than all of them means a slow load that
+    is still moving is never cut off.
+]]
+local VALIDATE_MAX_IDLE_POLLS = 25
+
+-- Tabs and newlines would split the TSV, and a raw pipe would render as an escape.
+local function Cell(value)
+	if value == nil then
+		return ""
+	end
+	return (tostring(value):gsub("[\t\r\n]", " "):gsub("|", "||"))
+end
+
+local function WithCommas(number)
+	local text = tostring(number)
+	local replaced
+	repeat
+		text, replaced = text:gsub("^(%d+)(%d%d%d)", "%1,%2")
+	until replaced == 0
+	return text
+end
+
+local function CollectValidationRows(entry)
+	local spellRows, itemRows = {}, {}
+	for _, dataTable in ipairs(entry.tables) do
+		local seen, ids = {}, {}
+		for _, id in ipairs(dataTable.idsOf(dataTable.source)) do
+			if not seen[id] then
+				seen[id] = true
+				ids[#ids + 1] = id
+			end
+		end
+		table.sort(ids)
+
+		local rows = (dataTable.kind == "spell") and spellRows or itemRows
+		for _, id in ipairs(ids) do
+			rows[#rows + 1] = { id = id, source = dataTable.name }
+		end
+	end
+	return spellRows, itemRows
+end
+
+local function ReadSpell(spellID)
+	local name, icon, castTime, minRange, maxRange
+	if type(C_Spell) == "table" and C_Spell.GetSpellInfo then
+		local info = C_Spell.GetSpellInfo(spellID)
+		if info then
+			name, icon, castTime, minRange, maxRange =
+				info.name, info.iconID, info.castTime, info.minRange, info.maxRange
+		end
+	else
+		local _
+		name, _, icon, castTime, minRange, maxRange = GetSpellInfo(spellID)
+	end
+
+	local subtext
+	if type(C_Spell) == "table" and C_Spell.GetSpellSubtext then
+		subtext = C_Spell.GetSpellSubtext(spellID)
+	elseif GetSpellSubtext then
+		subtext = GetSpellSubtext(spellID)
+	end
+
+	return name, subtext, icon, castTime, minRange, maxRange
+end
+
+local function ReadItem(row)
+	local info = { C_Item.GetItemInfo(row.id) }
+	if info[1] == nil then
+		return false
+	end
+	row.info = info
+	row.status = "OK"
+	return true
+end
+
+local function BuildValidationReport(spellRows, itemRows)
+	local lines = { GetClientHeader(), "" }
+
+	if #spellRows > 0 then
+		lines[#lines + 1] = table.concat(SPELL_COLUMNS, "\t")
+		for _, row in ipairs(spellRows) do
+			local name, subtext, icon, castTime, minRange, maxRange = ReadSpell(row.id)
+			lines[#lines + 1] = table.concat({
+				name and "OK" or "NOT ON CLIENT",
+				Cell(row.id),
+				Cell(row.source),
+				Cell(name),
+				Cell(subtext),
+				Cell(icon),
+				Cell(castTime),
+				Cell(minRange),
+				Cell(maxRange),
+				Cell(IsPlayerSpell and IsPlayerSpell(row.id)),
+				Cell(IsSpellKnown(row.id)),
+			}, "\t")
+		end
+	end
+
+	if #itemRows > 0 then
+		if #spellRows > 0 then
+			lines[#lines + 1] = ""
+		end
+		lines[#lines + 1] = table.concat(ITEM_COLUMNS, "\t")
+		for _, row in ipairs(itemRows) do
+			local cells = { row.status, Cell(row.id), Cell(row.source) }
+			for index = 1, ITEM_INFO_RETURNS do
+				cells[#cells + 1] = Cell(row.info and row.info[index])
+			end
+			local instant = { C_Item.GetItemInfoInstant(row.id) }
+			for index = 2, 7 do
+				cells[#cells + 1] = Cell(instant[index])
+			end
+			lines[#lines + 1] = table.concat(cells, "\t")
+		end
+	end
+
+	return table.concat(lines, "\n")
+end
+
+--[[
+    Validates one ns.DIAGNOSTIC_DATA_SOURCES entry into ns.diagnostics[field],
+    calling onUpdate after every rewrite so the panel redraws. Spells answer at
+    once; item data loads asynchronously, so items are requested about a hundred
+    per frame and then polled, with a progress line standing in until the
+    finished TSV replaces it. A second press restarts the section, and turning
+    the tools off stops it where it is.
+]]
+function ns.RunDataValidation(index, field, onUpdate)
+	local spellRows, itemRows = CollectValidationRows(ns.DIAGNOSTIC_DATA_SOURCES[index])
+
+	ns.diagnostics.validationRuns = ns.diagnostics.validationRuns or {}
+	local runs = ns.diagnostics.validationRuns
+	local run = {}
+	runs[index] = run
+
+	local canCheckExists = type(C_Item) == "table" and C_Item.DoesItemExistByID ~= nil
+	local canRequestLoad = type(C_Item) == "table" and C_Item.RequestLoadItemDataByID ~= nil
+	local requested, validated, idlePolls = 0, 0, 0
+
+	local function Step()
+		if runs[index] ~= run or not ns.diagnostics.enabled then
+			return
+		end
+
+		if requested < #itemRows then
+			for position = requested + 1, math.min(requested + VALIDATE_BATCH_SIZE, #itemRows) do
+				local row = itemRows[position]
+				if canCheckExists and not C_Item.DoesItemExistByID(row.id) then
+					row.status = "NOT ON CLIENT"
+					validated = validated + 1
+				elseif ReadItem(row) then
+					validated = validated + 1
+				elseif canRequestLoad then
+					C_Item.RequestLoadItemDataByID(row.id)
+				end
+				requested = position
+			end
+		else
+			local resolvedAny = false
+			for _, row in ipairs(itemRows) do
+				if not row.status and ReadItem(row) then
+					validated = validated + 1
+					resolvedAny = true
+				end
+			end
+			idlePolls = resolvedAny and 0 or (idlePolls + 1)
+		end
+
+		if validated == #itemRows or idlePolls >= VALIDATE_MAX_IDLE_POLLS then
+			for _, row in ipairs(itemRows) do
+				row.status = row.status or "NOT ON CLIENT"
+			end
+			runs[index] = nil
+			ns.diagnostics[field] = BuildValidationReport(spellRows, itemRows)
+			onUpdate()
+			return
+		end
+
+		ns.diagnostics[field] = GetClientHeader()
+			.. "\n\n"
+			.. string.format(ns.DiagnosticsStrings.VALIDATE_PROGRESS, WithCommas(validated), WithCommas(#itemRows))
+		onUpdate()
+		C_Timer.After((requested < #itemRows) and 0 or VALIDATE_POLL_SECONDS, Step)
+	end
+
+	Step()
 end
 
 --------------------------------------------------------------------------------

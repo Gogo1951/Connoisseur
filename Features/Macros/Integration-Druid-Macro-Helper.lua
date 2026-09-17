@@ -12,43 +12,53 @@ local _, ns = ...
     during combat, so a mid-combat form swap on an auto-tracking macro
     could return the druid to the wrong form.
 
-    Guard prefixes follow the DMH addon's own examples:
-      HP / HS  → "/dmh start" (stun + gcd + mana) plus a /dmh cd line
-      MP       → "/dmh stun gcd cd pot" (skips the mana check, since the
-                 whole point of a mana pot is that the druid is OOM)
-
     Eligible macro types and guard prefixes both live in Data.lua
-    (ns.DruidMacroHelperTypes, ns.DruidMacroHelperGuards) so the data is shared and not buried
+    (ns.DRUID_MACRO_HELPER_TYPES, ns.DRUID_MACRO_HELPER_GUARDS) so the data is shared and not buried
     here.
 ]]
 
-local function ShouldUseDMHMacro(typeName)
-	if not ns.IsDruid then
+local function ShouldUseDruidMacroHelper(typeName)
+	if not ns.isDruid then
 		return false
 	end
-	if not (ns.DruidMacroHelperTypes and ns.DruidMacroHelperTypes[typeName]) then
+	if not (ns.DRUID_MACRO_HELPER_TYPES and ns.DRUID_MACRO_HELPER_TYPES[typeName]) then
 		return false
 	end
 	local settings = ns.db and ns.db.profile
 	return settings and settings.enableDruidMacroHelper and true or false
 end
 
+--[[
+    Best first. The client names every one of these spells whether or not the
+    druid has learned it, so the return form is picked from what the druid
+    knows each time a body is built.
+]]
+local RETURN_FORM_SPELL_IDS = {
+	bear = { ns.DRUID_DIRE_BEAR_FORM_SPELL_ID, ns.DRUID_BEAR_FORM_SPELL_ID },
+	cat = { ns.DRUID_CAT_FORM_SPELL_ID },
+}
+
+-- The chosen return form as (key, spellID, name), with no spell or name until the druid knows one.
 local function GetDruidReturnForm()
 	local settings = ns.db and ns.db.profile
 	local key = settings and settings.druidReturnForm
 	if key ~= "cat" then
 		key = "bear"
 	end
-	local name = (key == "cat") and ns.DruidCatFormName or ns.DruidBearFormName
-	return key, name
+	for _, spellID in ipairs(RETURN_FORM_SPELL_IDS[key]) do
+		if ns.KnowsAny({ { spellID } }) then
+			return key, spellID, (GetSpellInfo(spellID))
+		end
+	end
+	return key, nil, nil
 end
 
-local function BuildDMHBody(typeName, useIDs, stackIDs, formName)
+local function BuildDruidMacroHelperBody(typeName, useIDs, stackIDs, formName)
 	local lines = {
 		"#showtooltip item:" .. useIDs[1],
-		"/run ConnFire(" .. useIDs[1] .. ")",
+		"/run ConnoisseurFire(" .. useIDs[1] .. ")",
 	}
-	for _, guard in ipairs(ns.DruidMacroHelperGuards[typeName]) do
+	for _, guard in ipairs(ns.DRUID_MACRO_HELPER_GUARDS[typeName]) do
 		lines[#lines + 1] = guard
 	end
 	--[[
@@ -97,26 +107,29 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-    The General builder consults this for every macro type/itemID pair it is
+    ns.UpdateMacros consults this for every macro type/itemID pair it is
     about to write, passing the ranked multi-use id list when one applies
     (best item first; falls back to the single itemID). Returns
     (body, stateID) when the DMH override applies; returns nil to mean
     "use the standard macro body."
 
-    A druid who hasn't learned bear or cat yet (no return form available)
-    also gets nil, so the standard body wins rather than emitting an
-    unusable "/cast !" line.
+    A druid who hasn't learned the chosen return form yet also gets nil, so
+    the standard body wins rather than a "/cast !" line for a form they
+    cannot shift into.
+
+    The state ID carries the form's spell ID, so learning Dire Bear Form
+    rewrites a body that still returns to Bear Form.
 ]]
 
 function ns.BuildDruidMacroOverride(typeName, itemID, rankedIDs, stackIDs)
 	if not itemID then
 		return nil
 	end
-	if not ShouldUseDMHMacro(typeName) then
+	if not ShouldUseDruidMacroHelper(typeName) then
 		return nil
 	end
 
-	local formKey, formName = GetDruidReturnForm()
+	local formKey, formSpellID, formName = GetDruidReturnForm()
 	if not formName then
 		return nil
 	end
@@ -126,8 +139,8 @@ function ns.BuildDruidMacroOverride(typeName, itemID, rankedIDs, stackIDs)
 		useIDs = { itemID }
 	end
 
-	local body = BuildDMHBody(typeName, useIDs, stackIDs, formName)
-	local stateID = "DMH:" .. formKey .. ":" .. table.concat(useIDs, ",")
+	local body = BuildDruidMacroHelperBody(typeName, useIDs, stackIDs, formName)
+	local stateID = "DMH:" .. formKey .. ":" .. formSpellID .. ":" .. table.concat(useIDs, ",")
 	if stackIDs then
 		stateID = stateID .. "+HS:" .. table.concat(stackIDs, ",")
 	end

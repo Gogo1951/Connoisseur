@@ -11,17 +11,18 @@ local L = ns.L
     these rows -- which ladder each resolves to, who is offered it, what a tick
     adds. This file only says what exists.
 
-    `chainKey` names a ladder in ns.FoodUpgradeChains; the feature file resolves
+    `chainKey` names a ladder in ns.CONSUMABLE_UPGRADE_CHAINS; the feature file resolves
     it at load and drops any row whose ladder is missing, which is why the key is
     a plain string here.
 ]]
 
 --[[
     The popup asks for WHOLE STACKS, not raw counts, because stacks are the
-    unit a bag slot thinks in. Every food and water staple on the ladders
-    vendors in stacks of 20, ammo in stacks of 200, and the consumable
-    reagents in stacks of 20, so the stack sizes below are constants of the
-    data, not guesses.
+    unit a bag slot thinks in. A stack is whatever the item itself stacks to,
+    so no row below carries a size: the staples do not share one, and some
+    differ by client. A Symbol of Divinity stacks to 5, a Symbol of Kings to
+    100, and an Ankh to 5 on Classic Era but 10 on TBC.
+    Features/Restocker/Restocker-Starter-List.lua reads the size off the item.
 
     A tick defaults to one stack -- or to defaultStacks, where one is the
     wrong opening offer -- and the dropdown beside it runs to a per-category
@@ -29,10 +30,11 @@ local L = ns.L
     tighter 4 everywhere else, where more stacks than that is just a heavier
     corpse run.
 
-    A STACK SIZE OF 1 turns the same dropdown into a plain count, which is
-    what an item that never stacks needs: Soul Shards take a bag slot each, so
-    the choice is how many slots to give them, and the dropdown says "20"
-    rather than "20 Stacks".
+    countsItems turns the same dropdown into a plain count, which is what an
+    item that never stacks needs: Soul Shards take a bag slot each, so the
+    choice is how many slots to give them, and the dropdown says "20" rather
+    than "20 Stacks". It is declared here rather than read off the item
+    because the dropdown's labels are drawn before a cold item resolves.
 
     A category with an explicit choices list offers those counts INSTEAD of
     every number up to a cap. Soul Shards step in fours from 12 to 40 -- a
@@ -41,18 +43,13 @@ local L = ns.L
     scrolling. maxStacks is the cap for the every-number kind and is what
     choices replaces, so a category sets one or the other, never both.
 
-    A category with fixedAmount instead of a stack size gets no dropdown at
-    all: totems are tools you own one of.
+    A category with fixedAmount gets no dropdown at all: totems are tools
+    you own one of.
 ]]
-local FOOD_STACK_SIZE = 20
 local FOOD_MAX_STACKS = 4
-local AMMO_STACK_SIZE = 200
 local AMMO_MAX_STACKS = 18
-local POISON_STACK_SIZE = 20
 local POISON_MAX_STACKS = 4
-local REAGENT_STACK_SIZE = 20
 local REAGENT_MAX_STACKS = 4
-local SINGLE_STACK_SIZE = 1
 local SOUL_SHARD_CHOICES = { 12, 16, 20, 24, 28, 32, 36, 40 }
 local SOUL_SHARD_DEFAULT = 20
 
@@ -64,7 +61,7 @@ local SOUL_SHARD_DEFAULT = 20
     Canonical diet numbering (Data/Pet-Foods.lua); the English keys are always
     present alongside the localized aliases.
 ]]
-local DIET = ns.PetDietMap
+local PET_DIET_MAP = ns.PET_DIET_MAP
 
 -- Canonical poison-group numbering (Data/Poisons.lua).
 local POISON_GROUP = ns.POISON_GROUPS
@@ -92,10 +89,11 @@ local MANA_CLASSES =
     Options-Starter-List-Popup.lua): dropdown staples first, fixed-amount
     singles after, each run alphabetical by localized label.
 
-    Built defensively: a category whose ladder went missing is dropped here
-    rather than crashing the popup open.
+    A category whose ladder went missing is dropped by
+    Features/Restocker/Restocker-Starter-List.lua rather than crashing the popup
+    open.
 ]]
-ns.StarterListCategories = {
+ns.STARTER_LIST_CATEGORIES = {
 	--[[
 	    Food, everyone. Bread arrives ticked for all; meat ticked for hunters
 	    (their pet eats it too).
@@ -104,8 +102,7 @@ ns.StarterListCategories = {
 		key = "bread",
 		section = "food",
 		label = L["DIET_BREAD"],
-		chainKey = "food:" .. DIET["Bread"],
-		stackSize = FOOD_STACK_SIZE,
+		chainKey = "food:" .. PET_DIET_MAP["Bread"],
 		maxStacks = FOOD_MAX_STACKS,
 		defaultFor = "all",
 	},
@@ -113,40 +110,35 @@ ns.StarterListCategories = {
 		key = "cheese",
 		section = "food",
 		label = L["DIET_CHEESE"],
-		chainKey = "food:" .. DIET["Cheese"],
-		stackSize = FOOD_STACK_SIZE,
+		chainKey = "food:" .. PET_DIET_MAP["Cheese"],
 		maxStacks = FOOD_MAX_STACKS,
 	},
 	{
 		key = "fish",
 		section = "food",
 		label = L["DIET_FISH"],
-		chainKey = "food:" .. DIET["Fish"],
-		stackSize = FOOD_STACK_SIZE,
+		chainKey = "food:" .. PET_DIET_MAP["Fish"],
 		maxStacks = FOOD_MAX_STACKS,
 	},
 	{
 		key = "fruit",
 		section = "food",
 		label = L["DIET_FRUIT"],
-		chainKey = "food:" .. DIET["Fruit"],
-		stackSize = FOOD_STACK_SIZE,
+		chainKey = "food:" .. PET_DIET_MAP["Fruit"],
 		maxStacks = FOOD_MAX_STACKS,
 	},
 	{
 		key = "fungus",
 		section = "food",
 		label = L["DIET_FUNGUS"],
-		chainKey = "food:" .. DIET["Fungus"],
-		stackSize = FOOD_STACK_SIZE,
+		chainKey = "food:" .. PET_DIET_MAP["Fungus"],
 		maxStacks = FOOD_MAX_STACKS,
 	},
 	{
 		key = "meat",
 		section = "food",
 		label = L["DIET_MEAT"],
-		chainKey = "food:" .. DIET["Meat"],
-		stackSize = FOOD_STACK_SIZE,
+		chainKey = "food:" .. PET_DIET_MAP["Meat"],
 		maxStacks = FOOD_MAX_STACKS,
 		defaultFor = { HUNTER = true },
 	},
@@ -157,7 +149,6 @@ ns.StarterListCategories = {
 		section = "water",
 		label = L["LABEL_WATER"],
 		chainKey = "water",
-		stackSize = FOOD_STACK_SIZE,
 		maxStacks = FOOD_MAX_STACKS,
 		defaultFor = MANA_CLASSES,
 	},
@@ -168,7 +159,6 @@ ns.StarterListCategories = {
 		section = "ammo",
 		label = L["STARTER_POPUP_BULLETS"],
 		chainKey = "bullet",
-		stackSize = AMMO_STACK_SIZE,
 		maxStacks = AMMO_MAX_STACKS,
 		classes = AMMO_CLASSES,
 	},
@@ -177,7 +167,6 @@ ns.StarterListCategories = {
 		section = "ammo",
 		label = L["STARTER_POPUP_ARROWS"],
 		chainKey = "arrow",
-		stackSize = AMMO_STACK_SIZE,
 		maxStacks = AMMO_MAX_STACKS,
 		classes = AMMO_CLASSES,
 	},
@@ -195,7 +184,6 @@ ns.StarterListCategories = {
 		section = "poisons",
 		label = L["STARTER_POPUP_POISON_ANESTHETIC"],
 		chainKey = "poison:" .. POISON_GROUP.ANESTHETIC,
-		stackSize = POISON_STACK_SIZE,
 		maxStacks = POISON_MAX_STACKS,
 		classes = { ROGUE = true },
 	},
@@ -204,7 +192,6 @@ ns.StarterListCategories = {
 		section = "poisons",
 		label = L["STARTER_POPUP_POISON_CRIPPLING"],
 		chainKey = "poison:" .. POISON_GROUP.CRIPPLING,
-		stackSize = POISON_STACK_SIZE,
 		maxStacks = POISON_MAX_STACKS,
 		classes = { ROGUE = true },
 	},
@@ -213,7 +200,6 @@ ns.StarterListCategories = {
 		section = "poisons",
 		label = L["STARTER_POPUP_POISON_DEADLY"],
 		chainKey = "poison:" .. POISON_GROUP.DEADLY,
-		stackSize = POISON_STACK_SIZE,
 		maxStacks = POISON_MAX_STACKS,
 		classes = { ROGUE = true },
 	},
@@ -222,7 +208,6 @@ ns.StarterListCategories = {
 		section = "poisons",
 		label = L["STARTER_POPUP_POISON_INSTANT"],
 		chainKey = "poison:" .. POISON_GROUP.INSTANT,
-		stackSize = POISON_STACK_SIZE,
 		maxStacks = POISON_MAX_STACKS,
 		classes = { ROGUE = true },
 	},
@@ -231,7 +216,6 @@ ns.StarterListCategories = {
 		section = "poisons",
 		label = L["STARTER_POPUP_POISON_MIND_NUMBING"],
 		chainKey = "poison:" .. POISON_GROUP.MIND_NUMBING,
-		stackSize = POISON_STACK_SIZE,
 		maxStacks = POISON_MAX_STACKS,
 		classes = { ROGUE = true },
 	},
@@ -240,7 +224,6 @@ ns.StarterListCategories = {
 		section = "poisons",
 		label = L["STARTER_POPUP_POISON_WOUND"],
 		chainKey = "poison:" .. POISON_GROUP.WOUND,
-		stackSize = POISON_STACK_SIZE,
 		maxStacks = POISON_MAX_STACKS,
 		classes = { ROGUE = true },
 	},
@@ -261,7 +244,6 @@ ns.StarterListCategories = {
 		section = "reagents",
 		label = L["STARTER_POPUP_REAGENT_BLINDING_POWDER"],
 		chainKey = "reagent:blinding-powder",
-		stackSize = REAGENT_STACK_SIZE,
 		maxStacks = REAGENT_MAX_STACKS,
 		classes = { ROGUE = true },
 	},
@@ -270,7 +252,6 @@ ns.StarterListCategories = {
 		section = "reagents",
 		label = L["STARTER_POPUP_REAGENT_FLASH_POWDER"],
 		chainKey = "reagent:flash-powder",
-		stackSize = REAGENT_STACK_SIZE,
 		maxStacks = REAGENT_MAX_STACKS,
 		classes = { ROGUE = true },
 	},
@@ -289,7 +270,6 @@ ns.StarterListCategories = {
 		section = "reagents",
 		label = L["STARTER_POPUP_REAGENT_CORPSE_DUST"],
 		chainKey = "reagent:corpse-dust",
-		stackSize = REAGENT_STACK_SIZE,
 		maxStacks = REAGENT_MAX_STACKS,
 		classes = { DEATHKNIGHT = true },
 	},
@@ -299,7 +279,6 @@ ns.StarterListCategories = {
 		section = "reagents",
 		label = L["STARTER_POPUP_REAGENT_SEEDS"],
 		chainKey = "reagent:seeds",
-		stackSize = REAGENT_STACK_SIZE,
 		maxStacks = REAGENT_MAX_STACKS,
 		classes = { DRUID = true },
 	},
@@ -308,7 +287,6 @@ ns.StarterListCategories = {
 		section = "reagents",
 		label = L["STARTER_POPUP_REAGENT_WILDS"],
 		chainKey = "reagent:wilds",
-		stackSize = REAGENT_STACK_SIZE,
 		maxStacks = REAGENT_MAX_STACKS,
 		classes = { DRUID = true },
 	},
@@ -319,7 +297,6 @@ ns.StarterListCategories = {
 		section = "reagents",
 		label = L["STARTER_POPUP_REAGENT_ARCANE_POWDER"],
 		chainKey = "reagent:arcane-powder",
-		stackSize = REAGENT_STACK_SIZE,
 		maxStacks = REAGENT_MAX_STACKS,
 		classes = { MAGE = true },
 	},
@@ -328,7 +305,6 @@ ns.StarterListCategories = {
 		section = "reagents",
 		label = L["STARTER_POPUP_REAGENT_LIGHT_FEATHER"],
 		chainKey = "reagent:light-feather",
-		stackSize = REAGENT_STACK_SIZE,
 		maxStacks = REAGENT_MAX_STACKS,
 		classes = { MAGE = true, PRIEST = true },
 	},
@@ -337,7 +313,6 @@ ns.StarterListCategories = {
 		section = "reagents",
 		label = L["STARTER_POPUP_REAGENT_TELEPORT_RUNES"],
 		chainKey = "reagent:rune-of-teleportation",
-		stackSize = REAGENT_STACK_SIZE,
 		maxStacks = REAGENT_MAX_STACKS,
 		classes = { MAGE = true },
 	},
@@ -346,7 +321,6 @@ ns.StarterListCategories = {
 		section = "reagents",
 		label = L["STARTER_POPUP_REAGENT_PORTAL_RUNES"],
 		chainKey = "reagent:rune-of-portals",
-		stackSize = REAGENT_STACK_SIZE,
 		maxStacks = REAGENT_MAX_STACKS,
 		classes = { MAGE = true },
 	},
@@ -356,7 +330,6 @@ ns.StarterListCategories = {
 		section = "reagents",
 		label = L["STARTER_POPUP_REAGENT_SYMBOL_DIVINITY"],
 		chainKey = "reagent:symbol-of-divinity",
-		stackSize = REAGENT_STACK_SIZE,
 		maxStacks = REAGENT_MAX_STACKS,
 		classes = { PALADIN = true },
 	},
@@ -365,7 +338,6 @@ ns.StarterListCategories = {
 		section = "reagents",
 		label = L["STARTER_POPUP_REAGENT_SYMBOL_KINGS"],
 		chainKey = "reagent:symbol-of-kings",
-		stackSize = REAGENT_STACK_SIZE,
 		maxStacks = REAGENT_MAX_STACKS,
 		classes = { PALADIN = true },
 	},
@@ -375,7 +347,6 @@ ns.StarterListCategories = {
 		section = "reagents",
 		label = L["STARTER_POPUP_REAGENT_CANDLES"],
 		chainKey = "reagent:candles",
-		stackSize = REAGENT_STACK_SIZE,
 		maxStacks = REAGENT_MAX_STACKS,
 		classes = { PRIEST = true },
 	},
@@ -385,7 +356,6 @@ ns.StarterListCategories = {
 		section = "reagents",
 		label = L["STARTER_POPUP_REAGENT_ANKH"],
 		chainKey = "reagent:ankh",
-		stackSize = REAGENT_STACK_SIZE,
 		maxStacks = REAGENT_MAX_STACKS,
 		classes = { SHAMAN = true },
 	},
@@ -394,7 +364,6 @@ ns.StarterListCategories = {
 		section = "reagents",
 		label = L["STARTER_POPUP_REAGENT_FISH_SCALES"],
 		chainKey = "reagent:fish-scales",
-		stackSize = REAGENT_STACK_SIZE,
 		maxStacks = REAGENT_MAX_STACKS,
 		classes = { SHAMAN = true },
 	},
@@ -403,7 +372,6 @@ ns.StarterListCategories = {
 		section = "reagents",
 		label = L["STARTER_POPUP_REAGENT_FISH_OIL"],
 		chainKey = "reagent:fish-oil",
-		stackSize = REAGENT_STACK_SIZE,
 		maxStacks = REAGENT_MAX_STACKS,
 		classes = { SHAMAN = true },
 	},
@@ -443,7 +411,7 @@ ns.StarterListCategories = {
 
 	--[[
 	    Soul Shards never stack, so their dropdown counts bag slots rather than
-	    stacks (stackSize 1), offering the soul-bag sizes above and opening on
+	    stacks (countsItems), offering the soul-bag sizes above and opening on
 	    a middling one.
 	]]
 	{
@@ -451,7 +419,6 @@ ns.StarterListCategories = {
 		section = "reagents",
 		label = L["STARTER_POPUP_REAGENT_FIGURINE"],
 		chainKey = "reagent:demonic-figurine",
-		stackSize = REAGENT_STACK_SIZE,
 		maxStacks = REAGENT_MAX_STACKS,
 		classes = { WARLOCK = true },
 	},
@@ -460,7 +427,6 @@ ns.StarterListCategories = {
 		section = "reagents",
 		label = L["STARTER_POPUP_REAGENT_INFERNAL_STONE"],
 		chainKey = "reagent:infernal-stone",
-		stackSize = REAGENT_STACK_SIZE,
 		maxStacks = REAGENT_MAX_STACKS,
 		classes = { WARLOCK = true },
 	},
@@ -469,7 +435,7 @@ ns.StarterListCategories = {
 		section = "reagents",
 		label = L["STARTER_POPUP_REAGENT_SOUL_SHARDS"],
 		chainKey = "reagent:soul-shard",
-		stackSize = SINGLE_STACK_SIZE,
+		countsItems = true,
 		choices = SOUL_SHARD_CHOICES,
 		defaultStacks = SOUL_SHARD_DEFAULT,
 		classes = { WARLOCK = true },

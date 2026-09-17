@@ -4,7 +4,7 @@ local _, ns = ...
     The player's own bags, read by the merchant restock to refuse a purchase with
     nowhere to put it. The bank orderings below are only ever walked in here.
 ]]
-ns.RESTOCK_PLAYER_BAGS = {}
+ns.restockPlayerBags = {}
 
 local BagDefinition = {}
 BagDefinition.__index = BagDefinition
@@ -69,7 +69,7 @@ function ns.InitRestockBagDefinitions()
 		CreateBankMainBag(),
 	}
 
-	ns.RESTOCK_PLAYER_BAGS = { CreateBackpack(), CreateBag(1), CreateBag(2), CreateBag(3), CreateBag(4) }
+	ns.restockPlayerBags = { CreateBackpack(), CreateBag(1), CreateBag(2), CreateBag(3), CreateBag(4) }
 end
 
 function BagDefinition:NumSlots()
@@ -104,15 +104,10 @@ function BagDefinition:CanAcceptItem(itemInfo)
 	if itemInfo.itemEquipLoc == "INVTYPE_BAG" then
 		return false -- equippable bags can only be stored in regular containers
 	end
-	local itemFamily = GetItemFamily(itemInfo.itemID)
+	local itemFamily = C_Item.GetItemFamily(itemInfo.itemID)
 	return itemFamily ~= nil and itemFamily ~= 0 and bit.band(itemFamily, bagType) ~= 0
 end
 
---[[
-    Attempt to drop the cursor item into this container. May leave the item on the cursor if
-    the container has no usable slot (the caller checks CursorHasItem() and moves on) -- it
-    must NOT clear the cursor itself, or the item would be lost before another bag is tried.
-]]
 --[[
     Drop into the first genuinely-empty slot of this container, naming the slot
     ourselves. Detect empty with GetContainerItemInfo -- it returns nil ONLY when the
@@ -126,8 +121,6 @@ end
     refused and bounced the item back to its source, so the caller stops early, never
     tries the remaining bags, and the re-scan finds the item still missing. Naming the
     slot keeps the item on the cursor on a refusal, which is what makes that test true.
-    See the sibling note on ns.MoveRestockItemFromBank's `overshoot` escape hatch, which
-    exists to paper over exactly this.
 ]]
 function BagDefinition:PutCursorItem()
 	for slot = 1, C_Container.GetContainerNumSlots(self.bagID) do
@@ -154,11 +147,11 @@ end
     move hasn't settled on the server yet -- issuing the next one now is exactly what gets a
     split rejected with "Couldn't split those items".
 
-    `profile` narrows "we care about" to the items on the current list. Only OUR items may
+    `list` narrows "we care about" to the items on the current list. Only OUR items may
     stall a restock: an unrelated locked item, something
     the player is equipping or a pending trade, would otherwise hold it up forever.
 ]]
-function ns.IsRestockItemLocked(profile)
+function ns.IsRestockItemLocked(list)
 	local function anyLocked(bags)
 		for _, bag in ipairs(bags) do
 			for slot = 1, C_Container.GetContainerNumSlots(bag.bagID) do
@@ -166,7 +159,7 @@ function ns.IsRestockItemLocked(profile)
 				if
 					itemInfo
 					and itemInfo.isLocked
-					and (profile == nil or (itemInfo.itemID and profile[itemInfo.itemID] ~= nil))
+					and (list == nil or (itemInfo.itemID and list[itemInfo.itemID] ~= nil))
 				then
 					return true
 				end
@@ -175,13 +168,13 @@ function ns.IsRestockItemLocked(profile)
 		return false
 	end
 
-	return anyLocked(ns.RESTOCK_PLAYER_BAGS) or anyLocked(BANK_BAGS_REVERSED)
+	return anyLocked(ns.restockPlayerBags) or anyLocked(BANK_BAGS_REVERSED)
 end
 
 function ns.GetRestockItemsInBags(predicate)
 	local result = ns.NewRestockInventory()
 
-	for _, bag in ipairs(ns.RESTOCK_PLAYER_BAGS) do
+	for _, bag in ipairs(ns.restockPlayerBags) do
 		for slot = 1, C_Container.GetContainerNumSlots(bag.bagID) do
 			local itemInfo = C_Container.GetContainerItemInfo(bag.bagID, slot)
 
@@ -289,7 +282,7 @@ local function PutItemInPlayerBag(playerInventory, itemInfo, amount)
 	    Drop into a FREE slot first -- reliable. Keep trying bags until it actually lands
 	    (a bag can claim room it won't grant this item), don't give up after the first.
 	]]
-	for _, bag in ipairs(ns.RESTOCK_PLAYER_BAGS) do
+	for _, bag in ipairs(ns.restockPlayerBags) do
 		if bag:CanAcceptItem(itemInfo) then
 			bag:PutCursorItem()
 			if not CursorHasItem() then
@@ -336,21 +329,19 @@ function ns.HasFreeBagSlot(bags)
 	return false
 end
 
--- From bags list, retrieve items which are not locked and match predicate
+-- From bags list, retrieve the items matching predicate, or none while any of them is locked
 local function ScanBagsFor(bags, predicate)
 	local itemCandidates = {}
 
 	for _, bag in ipairs(bags) do
 		for slot = 1, C_Container.GetContainerNumSlots(bag.bagID), 1 do
 			local containerItemInfo = ns.GetRestockContainerItemInfo(bag.bagID, slot)
-			if containerItemInfo then
-				if (containerItemInfo).locked then
-					return {} -- can't do nothing now, something is locked, try in 0.1 sec
+			if containerItemInfo and predicate(containerItemInfo) then
+				if containerItemInfo.locked then
+					return {}
 				end
 
-				if predicate(containerItemInfo) then
-					table.insert(itemCandidates, containerItemInfo)
-				end
+				table.insert(itemCandidates, containerItemInfo)
 			end
 		end
 	end
@@ -478,7 +469,7 @@ function ns.MoveRestockItemToBank(bankInventory, moveItemID, moveAmount)
 	    even when a later bag held a loose stack of exactly the excess that a whole-stack
 	    UseContainerItem -- the reliable, server-side deposit -- could have moved instead.
 	]]
-	local moveCandidates = ScanBagsFor(ns.RESTOCK_PLAYER_BAGS, ContainerItemInfoMatchID(moveItemID))
+	local moveCandidates = ScanBagsFor(ns.restockPlayerBags, ContainerItemInfoMatchID(moveItemID))
 
 	table.sort(moveCandidates, ns.CompareByStackSizeAscending)
 
@@ -490,7 +481,7 @@ end
     answer means; this only reports it.
 ]]
 function ns.GetRestockSpace()
-	return ns.HasFreeBagSlot(ns.RESTOCK_PLAYER_BAGS), ns.HasFreeBagSlot(BANK_BAGS)
+	return ns.HasFreeBagSlot(ns.restockPlayerBags), ns.HasFreeBagSlot(BANK_BAGS)
 end
 
 function ns.GetRestockContainerItemInfo(bagID, slot)

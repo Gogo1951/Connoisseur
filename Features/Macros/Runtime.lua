@@ -12,42 +12,43 @@ local L = ns.L
     which executes in the global environment and cannot see the add-on
     namespace. This is the documented exception to the rule that the only
     globals are SavedVariables, slash commands, and named frames; each name
-    carries the distinctive "Conn" prefix to keep collision risk negligible.
+    carries the distinctive "Connoisseur" prefix to keep collision risk
+    negligible.
 
     They are the runtime half of the macro system: the macro builders emit
-    `/run ConnFire / ConnTip / ConnIf / ConnNoItem` lines, and these functions
-    run when the player presses the macro. This file loads after Announcements
-    (ConnTip / ConnNoItem call ns.PrintMessage) and after Data (reads
-    ns.MessageStrings, ns.MissingSpellMessageIDs, ns.MacroConfig), and before the
-    macro builders that emit lines referencing these globals.
+    `/run ConnoisseurFire / ConnoisseurTip / ConnoisseurTipIf /
+    ConnoisseurNoItem` lines, and these functions run when the player presses
+    the macro. This file loads after Announcements (ConnoisseurTip and
+    ConnoisseurNoItem call ns.PrintMessage) and after Data (reads
+    ns.TIP_MESSAGES, ns.MISSING_SPELL_MESSAGE_IDS, ns.MACRO_CONFIG).
 ]]
 --[[
     Transport between the /run snippet in consumable macros and the
     UI_ERROR_MESSAGE handler in Core. The macro writes lastID and lastTime so a
     zone-restriction error can be correlated back to its triggering item.
 ]]
-ConnoisseurState = ConnoisseurState or {}
+local macroFireState = {}
 
 --[[
-    Records the firing item with `/run ConnFire(itemID)` instead of inlining a
+    Records the firing item with `/run ConnoisseurFire(itemID)` instead of inlining a
     longer snippet — the saved bytes matter when stacking scroll uses against the
     255 macro-body ceiling.
 ]]
-function ConnFire(itemID)
-	ConnoisseurState.lastID = itemID
-	ConnoisseurState.lastTime = GetTime()
+function ConnoisseurFire(itemID)
+	macroFireState.lastID = itemID
+	macroFireState.lastTime = GetTime()
 end
 
 --[[
-    Consumer half of the ConnoisseurState transport: when a consumable macro
-    fires, ConnFire() above stamps lastID/lastTime. If ERR_ITEM_WRONG_ZONE
+    Consumer half of the macroFireState transport: when a consumable macro
+    fires, ConnoisseurFire() above stamps lastID/lastTime. If ERR_ITEM_WRONG_ZONE
     arrives within one second, we know which item to blame and print a bug
     report naming it. Core's dispatcher routes UI_ERROR_MESSAGE here ahead of
     its combat-lockdown guard, since a zone-locked potion is usually pressed
     mid-fight.
 ]]
 function ns.ReportZoneRestriction(message)
-	if not (ConnoisseurState.lastTime and (GetTime() - ConnoisseurState.lastTime) < 1.0) then
+	if not (macroFireState.lastTime and (GetTime() - macroFireState.lastTime) < 1.0) then
 		return
 	end
 	if message ~= ERR_ITEM_WRONG_ZONE then
@@ -61,33 +62,33 @@ function ns.ReportZoneRestriction(message)
 		subzone = zone
 	end
 
-	local itemID = ConnoisseurState.lastID or 0
+	local itemID = macroFireState.lastID or 0
 	local link = "Item #" .. itemID
 	if itemID ~= 0 then
-		local _, itemLink = GetItemInfo(itemID)
+		local _, itemLink = C_Item.GetItemInfo(itemID)
 		if itemLink then
 			link = itemLink
 		end
 	end
 
-	ns.PrintMessage(string.format(L["MSG_BUG_REPORT"], link, itemID, zone, subzone, mapID, ns.DISCORD_URL))
-	ConnoisseurState.lastTime = 0
+	ns.PrintMessage(string.format(L["MESSAGE_BUG_REPORT"], link, itemID, zone, subzone, mapID, ns.DISCORD_URL))
+	macroFireState.lastTime = 0
 end
 
 --[[
-    Resolves a ConnTip key to its display text. Static messages come from
-    ns.MessageStrings; "you don't know <spell>" keys come from
-    ns.MissingSpellMessageIDs and are rendered with the localized spell name via
+    Resolves a ConnoisseurTip key to its display text. Static messages come from
+    ns.TIP_MESSAGES; "you don't know <spell>" keys come from
+    ns.MISSING_SPELL_MESSAGE_IDS and are rendered with the localized spell name via
     GetSpellInfo at print time. A spell that doesn't exist on the current client
-    returns nil here so ConnTip silently skips rather than naming a spell the
+    returns nil here so ConnoisseurTip silently skips rather than naming a spell the
     player will never see.
 ]]
-local function ResolveConnTip(key)
-	if ns.MessageStrings and ns.MessageStrings[key] then
-		return ns.MessageStrings[key]
+local function ResolveTipText(key)
+	if ns.TIP_MESSAGES and ns.TIP_MESSAGES[key] then
+		return ns.TIP_MESSAGES[key]
 	end
-	if ns.MissingSpellMessageIDs and ns.MissingSpellMessageIDs[key] then
-		local name = GetSpellInfo(ns.MissingSpellMessageIDs[key])
+	if ns.MISSING_SPELL_MESSAGE_IDS and ns.MISSING_SPELL_MESSAGE_IDS[key] then
+		local name = GetSpellInfo(ns.MISSING_SPELL_MESSAGE_IDS[key])
 		if not name then
 			return nil
 		end
@@ -96,38 +97,70 @@ local function ResolveConnTip(key)
 	return nil
 end
 
-function ConnTip(key)
-	local text = ResolveConnTip(key)
+function ConnoisseurTip(key)
+	local text = ResolveTipText(key)
 	if text then
 		ns.PrintMessage(text)
 	end
 end
 
 --[[
-    Conditional sibling of ConnTip — fires the tip only when the macro
-    conditional `cond` matches. Used by the Feed Pet macro for level-10/11
+    Conditional sibling of ConnoisseurTip — fires the tip only when the macro
+    conditional `condition` matches. Used by the Feed Pet macro for level-10/11
     hunters who don't know Mend Pet yet, so right-click or in-combat clicks
     print an explanation instead of silently doing nothing useful. We append a
     sentinel " 1" so SecureCmdOptionParse returns "1" on match and nil on miss —
     clean truthy/falsy semantics regardless of how the API treats an empty
     action body.
 ]]
-function ConnIf(cond, key)
-	if SecureCmdOptionParse(cond .. " 1") then
-		ConnTip(key)
+function ConnoisseurTipIf(condition, key)
+	if SecureCmdOptionParse(condition .. " 1") then
+		ConnoisseurTip(key)
 	end
 end
 
 --[[
     Prints the standardized "no suitable <type> found" chat line. Macro bodies
-    call this with the internal type key (`/run ConnNoItem("Food")`). The key
+    call this with the internal type key (`/run ConnoisseurNoItem("Food")`). The key
     stays English inside the macro body (keeps bodies and state keys
     locale-independent) and resolves to the localized LABEL_* string via
-    ns.MacroConfig at print time. Unknown keys fall back to the raw key so a stale
+    ns.MACRO_CONFIG at print time. Unknown keys fall back to the raw key so a stale
     macro body from an older version still prints something sensible.
 ]]
-function ConnNoItem(typeName)
-	local config = ns.MacroConfig and ns.MacroConfig[typeName]
+function ConnoisseurNoItem(typeName)
+	local config = ns.MACRO_CONFIG and ns.MACRO_CONFIG[typeName]
 	local label = config and config.label or typeName
-	ns.PrintMessage(string.format(L["MSG_NO_ITEM"], label))
+	ns.PrintMessage(string.format(L["MESSAGE_NO_ITEM"], label))
+end
+
+-- MIGRATION (remove after 2026-10-18)
+--[[
+    A macro body saved by an older build still calls the short names with the
+    short tip keys until the add-on next rewrites it, so the short names stay
+    callable and translate their keys.
+]]
+local RENAMED_TIP_KEYS = {
+	nofood = "noPetFood",
+	noskills = "noPetSkills",
+	nomend = "noMendPet",
+	nopois = "noHandPoison",
+	ncwater = "noConjureWater",
+	ncfood = "noConjureFood",
+	ncgem = "noConjureManaGem",
+	nctable = "noRitualOfRefreshment",
+	nchs = "noCreateHealthstone",
+	ncss = "noCreateSoulstone",
+	ncsw = "noRitualOfSouls",
+	npois = "noPoisonsSkill",
+}
+
+ConnFire = ConnoisseurFire
+ConnNoItem = ConnoisseurNoItem
+
+function ConnTip(key)
+	ConnoisseurTip(RENAMED_TIP_KEYS[key] or key)
+end
+
+function ConnIf(condition, key)
+	ConnoisseurTipIf(condition, RENAMED_TIP_KEYS[key] or key)
 end
