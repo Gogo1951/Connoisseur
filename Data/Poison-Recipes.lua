@@ -11,8 +11,8 @@ local _, ns = ...
     vendor has to stock every one of them before any is bought.
 
     Blizzard rebalanced most of these counts in TBC, so a row carries the
-    expansion it belongs to and only this client's rows are loaded. A row with no
-    expansion column is the same on both.
+    expansion it belongs to and only this client's rows are loaded (Forever
+    loads Classic's). A row with no expansion column is the same everywhere.
 
     Vials are listed like any other reagent rather than special-cased: a recipe
     needs one, the vendor has to sell it, and the all-or-nothing gate treats it

@@ -500,8 +500,11 @@ function ns.ScanBags()
 	    ns.wellFedState and UNIT_AURA registration would otherwise drift.
 	    ScanBags is the single point every rescan passes through, so reconcile
 	    aura tracking here, before allowBuffFood reads ns.wellFedState below.
+	    The snapshot it takes is handed on to ns.FindScrollOverrides, so a scan
+	    walks the player's auras once. Nothing between here and that call may
+	    take another snapshot: the buffer is shared (see ns.GetPlayerBuffSnapshot).
 	]]
-	ns.UpdateAuraTracking()
+	local buffSnapshot = ns.UpdateAuraTracking()
 
 	local playerLevel = ns.cachedPlayerLevel
 	local currentMap = ns.cachedMapID
@@ -586,7 +589,7 @@ function ns.ScanBags()
 		ns.scrollOverrideIDs = nil
 		ns.petBuffOverrideID = nil
 	else
-		ns.scrollOverrideIDs = ns.FindScrollOverrides(itemCounts)
+		ns.scrollOverrideIDs = ns.FindScrollOverrides(itemCounts, buffSnapshot)
 		ns.petBuffOverrideID = ns.FindPetBuffOverride(itemCounts)
 	end
 
@@ -672,16 +675,13 @@ function ns.ScanBags()
 					    Charge requires Goblin Engineer). Checked live rather
 					    than cached at login because the specialization can be
 					    learned mid-session; SPELLS_CHANGED triggers the rescan.
-					    Same IsSpellKnown + IsPlayerSpell fallback as
+					    Same ns.IsSpellKnown + ns.IsPlayerSpell pair as
 					    GetSmartSpell — profession passives can live on either
 					    surface depending on client.
 					]]
 					if usable and data.requiredSpellID then
-						local known = IsSpellKnown(data.requiredSpellID)
-						if not known and IsPlayerSpell then
-							known = IsPlayerSpell(data.requiredSpellID)
-						end
-						if not known then
+						local spellID = data.requiredSpellID
+						if not (ns.IsSpellKnown(spellID) or ns.IsPlayerSpell(spellID)) then
 							usable = false
 						end
 					end

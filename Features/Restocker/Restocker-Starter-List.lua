@@ -110,8 +110,8 @@ end
 
 --[[
     Whether this character's Restock List holds nothing. The login trigger below
-    trades on it, and so does the pop-up's opening line: the window is reachable
-    from the Restocker's own List Builder button as well now, where the list it
+    trades on it, and so does the pop-up's opening line: the window is also
+    reachable from the Restocker's own List Builder button, where the list it
     opens over is usually not empty at all.
 ]]
 function ns.IsRestockListEmpty()

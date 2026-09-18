@@ -83,6 +83,8 @@ local function ResetWorld()
 		classes = {},
 		-- Aura list per unit: { {name = ..., spellID = ..., expiration = ...}, ... }
 		auras = {},
+		-- The client restricting aura data, as Forever does mid-pull.
+		aurasSecret = false,
 		-- ns.bestSelection stand-in: an id means "carrying one".
 		carrying = {},
 		-- Ranked topIDs per category, for the entries that read past the winner.
@@ -141,15 +143,23 @@ C_UnitAuras = {
 	end,
 }
 
+C_Secrets = {
+	ShouldAurasBeSecret = function()
+		return world.aurasSecret
+	end,
+}
+
 --[[
     Only the soulstone ranks these scenarios name. An id absent from here models
     a rank the client has not got, which is what sends SoulstoneBuffName on to
     the next id in the list.
 ]]
 local SPELL_NAMES = { [20707] = "Soulstone Resurrection" }
-function GetSpellInfo(spellID)
-	return SPELL_NAMES[spellID]
-end
+C_Spell = {
+	GetSpellName = function(spellID)
+		return SPELL_NAMES[spellID]
+	end,
+}
 
 ns.bestSelection = setmetatable({}, {
 	__index = function(_, typeName)
@@ -252,18 +262,18 @@ loadAddonFile("Features/Readiness-Report.lua")
 
 --[[
     The real ns.GetExpiringBuffs, taken from the probes file and grafted on after
-    the stubs above so it wins, and the real ns.GetCurrentSpecLabel, kept aside
-    so the report scenarios still read the stub. Loading the whole probes file
-    over ns would drag in the equipment APIs this harness deliberately does not
-    model.
+    the stubs above so it wins, and the real talent probes, kept aside so the
+    report scenarios still read the stubs. Loading the whole probes file over ns
+    would drag in the equipment APIs this harness deliberately does not model.
 ]]
-local RealGetCurrentSpecLabel
+local RealGetCurrentSpecLabel, RealGetUnspentTalentPoints
 do
 	local probes = { L = ns.L }
 	setmetatable(probes, { __index = ns, __newindex = rawset })
 	loadfile(ROOT .. "/Features/Readiness-Report-Probes.lua")("Consumable-Connoisseur", probes)
 	ns.GetExpiringBuffs = probes.GetExpiringBuffs
 	RealGetCurrentSpecLabel = probes.GetCurrentSpecLabel
+	RealGetUnspentTalentPoints = probes.GetUnspentTalentPoints
 end
 
 --------------------------------------------------------------------------------
@@ -348,6 +358,14 @@ say("2. Master switch off: silent even with everything missing")
 ResetWorld()
 world.classes = WARLOCK_PLAYER
 settings({ readinessReportEnabled = false, readinessSoulstone = true, readinessHealthstone = true })
+ns.ReportReadiness()
+check("no output", #printed, 0)
+
+say("2a. Auras restricted (Forever mid-pull): silent even with everything missing")
+ResetWorld()
+world.classes = WARLOCK_PLAYER
+world.aurasSecret = true
+settings({ readinessSoulstone = true, readinessHealthstone = true })
 ns.ReportReadiness()
 check("no output", #printed, 0)
 
@@ -622,6 +640,28 @@ world.talentTrees = {
 	{ name = "Protection", points = 0 },
 }
 check("no label", RealGetCurrentSpecLabel(), nil)
+
+say("27c. Forever has no GetNumTalentTabs: the spec line drops instead of erroring")
+ResetWorld()
+world.talentTrees = {
+	{ name = "Arms", points = 0 },
+	{ name = "Fury", points = 31 },
+	{ name = "Protection", points = 20 },
+}
+do
+	local getNumTalentTabs = GetNumTalentTabs
+	GetNumTalentTabs = nil
+	check("no talent tabs", RealGetCurrentSpecLabel(), nil)
+	GetNumTalentTabs = getNumTalentTabs
+end
+
+say("27d. Unspent points: counted on Era and TBC, dropped on Forever, which has no UnitCharacterPoints")
+function UnitCharacterPoints()
+	return 3
+end
+check("unspent", RealGetUnspentTalentPoints(), 3)
+UnitCharacterPoints = nil
+check("no character points", RealGetUnspentTalentPoints(), nil)
 
 say("28. Questionable gear rides the Character line")
 ResetWorld()

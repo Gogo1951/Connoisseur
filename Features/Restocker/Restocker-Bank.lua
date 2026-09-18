@@ -154,6 +154,7 @@ local function NewRestockState()
 	state.lastTotals = nil
 	state.suspectSteps = 0
 	state.cursorSteps = 0
+	state.lockedTicks = 0
 	state.overshotItems = {}
 
 	setmetatable(state, RestockState)
@@ -545,9 +546,10 @@ local function RunRestockLogic()
 		state.consolidating = false -- still moving; tidy phase (below) hasn't started
 
 		--[[
-		    Watchdog. We only get here with locks already settled (OnBankRestockUpdate gates on that), so
-		    if the outstanding work did NOT shrink since last step, the last move genuinely didn't
-		    land -- a rejected split, or something we can't place. Retry a few times to absorb
+		    Watchdog. We normally get here with locks already settled (OnBankRestockUpdate gates on
+		    that, until one of ours has stayed locked for MAX_STUCK_STEPS ticks), so if the
+		    outstanding work did NOT shrink since last step, the last move genuinely didn't land --
+		    a rejected split, an item stuck locked, or something we can't place. Retry a few times to absorb
 		    transient races, then give up with a clear message. With it the run neither spins
 		    forever on a move that never lands nor reports success while still short.
 		]]
@@ -686,9 +688,19 @@ local function OnBankRestockUpdate(_frame, elapsed)
 			    item from a move ~140ms ago is what gets rejected with "Couldn't split those
 			    items". The fixed tick interval alone isn't enough on a laggy connection. Only wait
 			    on OUR items -- an unrelated locked slot must not stall the restock forever.
+
+			    One of ours can stay locked too (held on the cursor, or a lock the server never
+			    clears). After MAX_STUCK_STEPS locked ticks the gate stops waiting and resumes, so
+			    ClearCursorForScan can clear our own stray and the watchdog can count the steps
+			    that land nothing and stop with StuckMessage.
 			]]
 			if restockState and ns.IsRestockItemLocked(restockState.currentList) then
-				return
+				restockState.lockedTicks = restockState.lockedTicks + 1
+				if restockState.lockedTicks < MAX_STUCK_STEPS then
+					return
+				end
+			elseif restockState then
+				restockState.lockedTicks = 0
 			end
 			MaintainAndResumeCoroutine()
 		end

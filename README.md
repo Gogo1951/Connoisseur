@@ -2,21 +2,21 @@
 
 Macros that automatically use your best food, buff food, water, potions, healthstones, bandages, and scrolls, plus a Restock List that keeps your bags full and upgrades your consumables as you level. Quality-of-life automation for peak performance.
 
-**TL;DR:** Set it up once and stop thinking about consumables. Connoisseur picks the best items in your bags, while Restocker keeps everything stocked and upgraded as you level. Your bars stay smart, your bags stay ready, and you stay focused on the fight.
+**TL;DR:** Your macros always grab the best consumable in your bags, and your Restock List keeps those bags full as you level. Less inventory babysitting, more time playing.
 
 ![Consumable-Connoisseur](https://github.com/user-attachments/assets/326eb93f-329f-4967-b750-909011a05b01)
 
 ## Features
 
-🧞‍♂️ **Always the Best Item** // Automatically use your best food, water, potions, bandages, healthstones, mana gems, and explosives. Connoisseur adapts to what's in your bags and always picks the best item available.
+🧞‍♂️ **Always the Best Item** // One button per job, and it always uses the best food, water, potion, bandage, healthstone, mana gem, or explosive in your bags.
 
-🛒 **Restocker, Revisited** // Keep your essentials in your bags without making trips to town. Restocker buys what you need, pulls it from the bank, stores surplus, and automatically upgrades your food, water, ammo, poisons, potions, and class reagents as you level, so your restock list always keeps pace with you.
+🛒 **Restocker, Revisited** // Buys, banks, and upgrades your food, water, ammo, poisons, potions, and class reagents as you level, so a trip to town is never a wasted one.
 
-🎯 **Class-Smart Macros** // Mages and Warlocks can conjure food, water, mana gems, healthstones, and soulstones directly from their macros, with ranks matched to your target. Hunters get an all-in-one pet button for feeding, healing, reviving, and dismissing, while Rogues can apply both weapon poisons from a single macro.
+🎯 **Class-Smart Macros** // Mages and Warlocks conjure straight from their macros at ranks matched to their target, Hunters get an all-in-one pet button, and Rogues poison both weapons from one.
 
-✅ **Readiness Report** // Know you're ready before anyone has to ask. When a ready check starts, Connoisseur privately tells you which consumables or other essentials you're missing, so you can fix them before the pull.
+✅ **Readiness Report** // Turn it on, and when a ready check starts you privately learn which consumables or essentials you're missing, before the pull.
 
-🧠 **Smart Automation** // Spend less time managing consumables and more time playing. Connoisseur handles the small but constant jobs that get in the way, from choosing the right consumable to keeping your bags stocked, upgrading your supplies, and handling class-specific chores. Set it up once and stay focused on the fight.
+🦺 **Safety First** // Put any item on the Ignore List, for one character or all of them, and no macro will ever touch it.
 
 ## Setup
 
@@ -128,6 +128,8 @@ Most settings are per character, so your raiding 60 and your level-15 alt keep t
 
 🟢 World of Warcraft Classic (🟡 Season of Discovery) // WoW 1.15.9
 
+🟢 World of Warcraft Forever // WoW 1.60.1
+
 🟢 Burning Crusade Anniversary // WoW 2.5.6
 
 🔴 Mists of Pandaria Classic // WoW 5.5.4
@@ -168,7 +170,7 @@ Please reach out if you would like to be involved!
 
 🟡 Some Overlap // Pupp3h's [Buffwatch Classic](https://www.curseforge.com/wow/addons/buffwatch-classic)
 
-🟡 Some Overlap // lanscetre's [Necrosis](https://www.curseforge.com/wow/addons/necrosis-tbc-classic-bcc)
+🟡 Some Overlap // lanscetre's [Necrosis](https://www.curseforge.com/wow/addons/necrosis-tbc-classic-bcc-for)
 
 🟡 Some Overlap // Venomisto's [Nova Consumes Helper](https://www.curseforge.com/wow/addons/nova-consumes-helper)
 

@@ -51,9 +51,10 @@ L["LIST_SEPARATOR"] = "、"
 --------------------------------------------------------------------------------
 
 --[[
-    Diet names as returned by GetPetFoodTypes(), which is localized. These
-    values MUST match the client's strings exactly (verify in-game with
-    /dump GetPetFoodTypes() while a pet is out). Used to build
+    Diet names as returned by the pet diet reader, which is localized. These
+    values MUST match the client's strings exactly (verify in-game with a pet
+    out: /dump GetPetFoodTypes() on Era and TBC,
+    /dump C_PetInfo.GetPetFoodTypes() on Forever). Used to build
     ns.PET_DIET_MAP in Data/Pet-Foods.lua.
 
     They are ALSO the food checkbox labels in the Starter List pop-up, so they
@@ -79,7 +80,7 @@ L["MESSAGE_BUG_REPORT"] =
 	"看來你發現了一個錯誤！%s (%s) 無法在 %s > %s (%s) 使用。請將此問題回報給我們，以便修正。謝謝！%s"
 L["MESSAGE_NO_ITEM"] = "背包中未找到合適的%s。"
 L["MESSAGE_MACRO_SLOTS_FULL"] =
-	"由於你的巨集欄位已滿，部分 Connoisseur 巨集未能建立。請刪除不再使用的巨集以騰出欄位，或在 選項 > 插件 > Connoisseur 中關閉不需要的 Connoisseur 巨集。"
+	"由於你的巨集欄位已滿，部分 Connoisseur 巨集未能建立。請刪除不再使用的巨集以騰出欄位，或在 選項 > 插件 > Connoisseur > 巨集 中關閉不需要的 Connoisseur 巨集。"
 
 L["CHAT_LOADED"] =
 	"版本 %s。設定（包括停用此訊息的選項）可以在 選項 > 插件 > Connoisseur 中找到。喜歡這個插件嗎？告訴朋友吧！(="
@@ -127,8 +128,8 @@ L["READINESS_QUESTIONABLE_GEAR"] = "裝備了非戰鬥裝備："
     to be reworded independently.
 ]]
 L["READINESS_FLASK"] = "精煉藥劑或 2 種藥劑"
-L["READINESS_WELL_FED"] = "進食充分"
-L["READINESS_PET_WELL_FED"] = "進食充分（寵物）"
+L["READINESS_WELL_FED"] = "吃飽喝足"
+L["READINESS_PET_WELL_FED"] = "吃飽喝足（寵物）"
 L["READINESS_SCROLLS"] = "卷軸"
 L["READINESS_SOULSTONE"] = "靈魂石未啟用"
 L["READINESS_MAIN_HAND"] = "主手"
@@ -157,7 +158,7 @@ L["READINESS_UNSPENT_TALENTS_MANY"] = "%d 個未使用的天賦點"
 -- Printed in chat by macro bodies via /run ConnoisseurTip("key") or ConnoisseurTipIf. See Features/Macros/Runtime.lua.
 
 L["TIP_PET_NO_FOOD"] = "你目前沒有任何對寵物有用的食物。"
-L["TIP_PET_NO_SKILLS"] = "你目前還沒有學會召喚寵物、解散野獸、餵養寵物或復活寵物。"
+L["TIP_PET_NO_SKILLS"] = "你目前還沒有學會召喚寵物、解散寵物、餵養寵物或復活寵物。"
 L["TIP_PET_NO_MEND"] = "你目前還沒有學會治療寵物。"
 L["TIP_NO_HAND_POISON"] = "這把武器所選的毒藥已用完。"
 
@@ -170,7 +171,7 @@ L["TIP_DONT_KNOW_SPELL"] = "你目前還沒有學會%s。"
 
 -- Feature toggles shown in the mini-map tooltip, each with a description line.
 L["FEATURE_BUFF_FOOD"] = "增益食物"
-L["MENU_BUFF_FOOD_DESCRIPTION"] = '缺少"進食充分"增益時，優先使用可提供該增益的食物。'
+L["MENU_BUFF_FOOD_DESCRIPTION"] = '缺少"吃飽喝足"增益時，優先使用可提供該增益的食物。'
 L["FEATURE_SCROLL_BUFFS"] = "卷軸增益"
 L["MENU_SCROLL_BUFFS_DESCRIPTION"] = "當你缺少卷軸增益時，將你的食物巨集轉變為卷軸施放器。"
 
@@ -253,7 +254,7 @@ L["TIP_WARLOCK_MACROS"] = "關於你的治療石和靈魂石巨集……"
 L["TIP_HUNTER_ALL_IN_ONE"] = "餵養寵物是一個全能寵物按鈕！"
 L["TIP_HUNTER_CALL"] = "左鍵點擊可自動召喚、餵養或復活你的寵物。"
 L["TIP_HUNTER_MEND"] = "右鍵點擊，或在戰鬥中點擊，即可施放治療寵物。"
-L["TIP_HUNTER_MODIFIERS"] = "按住 Shift 強制復活，按住 Ctrl 解散野獸。"
+L["TIP_HUNTER_MODIFIERS"] = "按住 Shift 強制復活，按住 Ctrl 解散寵物。"
 
 --[[
     Target downranking is per-macro, not block-wide: it applies only to the
@@ -268,9 +269,9 @@ L["TIP_MAGE_GEM"] =
 	"右鍵點擊你的法力寶石巨集以製造一顆新的寶石。再次右鍵點擊以製造一顆低等級備用寶石。"
 
 L["TIP_WARLOCK_HEALTHSTONE"] =
-	"右鍵點擊你的治療石巨集以製造治療石。再次右鍵點擊以製造一顆低等級備用治療石。"
+	"右鍵點擊你的治療石巨集以施放製造治療石。再次右鍵點擊以製造一顆低等級備用治療石。"
 L["TIP_WARLOCK_DOWNRANK"] = "以等級較低的玩家為目標時，將製造適合其等級的治療石。"
-L["TIP_WARLOCK_SOULSTONE"] = "右鍵點擊你的靈魂石巨集以製造靈魂石。"
+L["TIP_WARLOCK_SOULSTONE"] = "右鍵點擊你的靈魂石巨集以施放製造靈魂石。"
 L["TIP_WARLOCK_SOUL"] = "中鍵點擊你的治療石巨集以施放靈魂儀式。"
 
 L["TIP_ROGUE_OFF_HAND"] = "左鍵點擊塗抹你的副手毒藥。"
@@ -331,7 +332,7 @@ L["MODE_RAID"] = "僅在團隊中"
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
-	"自動取用你最好的食物、增益食物、水、藥水、治療石、繃帶和卷軸的巨集，外加一份補貨清單，讓你的背包始終充足，並隨著你升級自動升級消耗品。便利性自動化，巔峰表現。"
+	"自動取用你最好的食物、增益食物、水、藥水、治療石、繃帶和卷軸的巨集，外加一份補貨清單，讓你的背包始終充足，並隨著你升級自動升級消耗品。為巔峰表現打造的便利性自動化。"
 
 -- Welcome Message
 L["OPTIONS_WELCOME_MESSAGE"] = "啟用歡迎訊息"
@@ -352,7 +353,7 @@ L["OPTIONS_POTIONS_DESCRIPTION"] =
 	"巨集在戰鬥中無法更改（這是暴雪的限制），因此每個藥水和治療石巨集都預先包含你最好的物品以及最多兩個備用物品。在較長的戰鬥中，圖示和提示可能會過時並顯示錯誤的物品，但點擊該巨集將始終使用你背包中實際擁有的最佳物品。"
 L["OPTIONS_COMBINE_HEALTHSTONES"] = "將治療石合併到治療藥水巨集中"
 L["OPTIONS_COMBINE_HEALTHSTONES_DESCRIPTION"] =
-	"將你最好的治療石添加到治療藥水巨集的底部，這樣按一次即可同時使用藥水和治療石。"
+	"將你最好的治療石加入治療藥水巨集的底部，這樣按一次即可同時使用藥水和治療石。"
 
 -- Mana Gems & Runes
 L["OPTIONS_MANA_GEMS_HEADER"] = "法力寶石與符文"
@@ -458,11 +459,11 @@ L["OPTIONS_READINESS_EXPIRING_THRESHOLD_DESCRIPTION"] =
 -- Missing Items
 L["OPTIONS_READINESS_HEALTHSTONE_DESCRIPTION"] =
 	"僅當隊伍中有可以索取的術士，或你自己就是術士時才顯示。"
-L["OPTIONS_READINESS_MANA_GEM_DESCRIPTION"] = "僅當你使用法師時顯示。"
+L["OPTIONS_READINESS_MANA_GEM_DESCRIPTION"] = "僅當你的角色是法師時顯示。"
 L["OPTIONS_READINESS_HEALING_POTION_DESCRIPTION"] =
 	"值得在開怪前備好，因為戰鬥中沒人能遞給你藥水。"
-L["OPTIONS_READINESS_MANA_POTION_DESCRIPTION"] = "僅當你使用需要法力的職業時顯示。"
-L["OPTIONS_READINESS_BANDAGES_DESCRIPTION"] = "在你沒有任何可用繃帶時提醒，急救技能也計算在內。"
+L["OPTIONS_READINESS_MANA_POTION_DESCRIPTION"] = "僅當你的角色是使用法力的職業時顯示。"
+L["OPTIONS_READINESS_BANDAGES_DESCRIPTION"] = "當你身上沒有急救技能允許使用的繃帶時提醒。"
 L["OPTIONS_READINESS_DURABILITY"] = "受損裝備低於"
 L["OPTIONS_READINESS_DURABILITY_DESCRIPTION"] =
 	"連結耐久度低於該值的每件已裝備物品；按單件計算，因此即使只有一把武器損壞也會顯示。"
@@ -488,7 +489,7 @@ L["OPTIONS_READINESS_QUESTIONABLE_GEAR_DESCRIPTION"] =
 ]]
 L["OPTIONS_BUFF_FOOD"] = "優先增益食物"
 L["OPTIONS_BUFF_FOOD_DESCRIPTION"] =
-	'缺少"進食充分"增益時，優先使用可提供該增益的食物，競技場中除外。'
+	'缺少"吃飽喝足"增益時，優先使用可提供該增益的食物，競技場中除外。'
 L["OPTIONS_BUFF_FOOD_DETAIL"] = "專業提示：以自己為目標總會讓食物巨集跳過增益食物和卷軸。"
 
 -- Scroll Buffs. The section header reuses FEATURE_SCROLL_BUFFS.
@@ -543,7 +544,7 @@ L["LOADING_ITEM"] = "正在載入 ID：%d"
 L["OPTIONS_PET_HEADER"] = "寵物食物增益"
 L["OPTIONS_USE_PET_BUFFS"] = "使用寵物食物增益"
 L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] =
-	'當你的寵物缺少"進食充分"增益時，將寵物食物加入你的食物巨集，競技場中除外。'
+	'當你的寵物缺少"吃飽喝足"增益時，將寵物食物加入你的食物巨集，競技場中除外。'
 L["OPTIONS_PET_BUFF_TYPES"] = "在檢查中包含寵物食物類型"
 L["OPTIONS_PET_BUFF_KIBLERS"] = "基布雷爾的零嘴"
 L["OPTIONS_PET_BUFF_SPORELING"] = "小孢子點心"
@@ -552,7 +553,7 @@ L["OPTIONS_PET_BUFF_SPORELING"] = "小孢子點心"
 L["OPTIONS_DRUIDS_HEADER"] = "德魯伊"
 L["OPTIONS_DRUID_MACRO_HELPER"] = "啟用 DruidMacroHelper 整合"
 L["OPTIONS_DRUID_MACRO_HELPER_DESCRIPTION"] =
-	"使用 DruidMacroHelper (/dmh) 為治療藥水、法力藥水和治療石構建變形巨集。"
+	"使用 DruidMacroHelper (/dmh) 為治療藥水、法力藥水和治療石建立變形巨集。"
 --[[
     Return-form dropdown, on the sub-row under the DruidMacroHelper toggle. The
     macro powershifts out of form, uses the consumable, then returns to this
@@ -566,9 +567,9 @@ L["DRUID_FORM_CAT"] = "返回獵豹形態"
 -- Night Elves
 L["OPTIONS_NIGHTELF_HEADER"] = "夜精靈"
 L["OPTIONS_STEALTH_DRINKING"] = "啟用喝水時潛行"
-L["OPTIONS_STEALTH_DRINKING_DESCRIPTION"] = "將影遁添加到你的水巨集中，以便你在喝水時潛行。"
+L["OPTIONS_STEALTH_DRINKING_DESCRIPTION"] = "將影遁加入你的水巨集中，以便你在喝水時潛行。"
 L["OPTIONS_STEALTH_EATING_NIGHTELF_DESCRIPTION"] =
-	"將影遁添加到你的食物巨集中，以便你在進食時潛行。"
+	"將影遁加入你的食物巨集中，以便你在進食時潛行。"
 L["OPTIONS_STEALTH_PICK_ONE"] =
 	"專業提示：只選一個。你可以同時進食和喝水，但潛行後再進食或喝水會解除潛行。"
 
@@ -588,12 +589,11 @@ L["POISON_GROUP_ANESTHETIC"] = "麻醉毒藥"
 L["POISON_GROUP_CRIPPLING"] = "致殘毒藥"
 L["POISON_GROUP_DEADLY"] = "致命毒藥"
 L["POISON_GROUP_INSTANT"] = "速效毒藥"
-L["POISON_GROUP_MIND_NUMBING"] = "麻痹毒藥"
+L["POISON_GROUP_MIND_NUMBING"] = "麻痺毒藥"
 L["POISON_GROUP_WOUND"] = "致傷毒藥"
 -- Shared by the Rogue (Stealth) and Night Elf (Shadowmeld) toggles; a character sees one at most.
 L["OPTIONS_STEALTH_EATING"] = "啟用進食時潛行"
-L["OPTIONS_STEALTH_EATING_ROGUE_DESCRIPTION"] =
-	"將潛行添加到你的食物巨集中，以便你在進食時潛行。"
+L["OPTIONS_STEALTH_EATING_ROGUE_DESCRIPTION"] = "將潛行加入你的食物巨集中，以便你在進食時潛行。"
 
 --[[
     Restocker options panel. The tree label stays "Restocker" in every locale:
@@ -601,10 +601,10 @@ L["OPTIONS_STEALTH_EATING_ROGUE_DESCRIPTION"] =
 ]]
 L["TAB_RESTOCKER"] = "Restocker"
 L["OPTIONS_RESTOCKER_DESCRIPTION"] =
-	"根據每個角色各自的補貨清單保持背包物資充足，自動向商人購買，並在背包與銀行之間搬運物品。輸入 %s 開啟清單。"
-L["OPTIONS_RESTOCKER_OPEN_BANK"] = "在銀行打開"
+	"根據你的補貨清單保持背包物資充足，自動向商人購買，並在背包與銀行之間搬運物品。輸入 %s 開啟清單。"
+L["OPTIONS_RESTOCKER_OPEN_BANK"] = "在銀行開啟"
 L["OPTIONS_RESTOCKER_OPEN_BANK_DESCRIPTION"] = "造訪銀行時開啟 Restocker 視窗。"
-L["OPTIONS_RESTOCKER_OPEN_MERCHANT"] = "在商人處打開"
+L["OPTIONS_RESTOCKER_OPEN_MERCHANT"] = "在商人處開啟"
 L["OPTIONS_RESTOCKER_OPEN_MERCHANT_DESCRIPTION"] = "造訪商人時開啟 Restocker 視窗。"
 L["OPTIONS_RESTOCKER_REMIND"] = "啟用城鎮補貨提醒"
 L["OPTIONS_RESTOCKER_REMIND_DESCRIPTION"] =
@@ -674,7 +674,7 @@ L["OPTIONS_MACROS_DESCRIPTION"] =
 	"Connoisseur 會為每種消耗品各建立一個巨集，並隨著背包變化保持更新，讓你快捷列上的按鈕始終取用你身上最好的物品。請在下方選擇要建立哪些巨集，然後設定每個巨集如何挑選物品。"
 L["OPTIONS_ENABLE_MACROS_HEADER"] = "啟用巨集"
 L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] =
-	"選擇 Connoisseur 要建立並維護哪些巨集。停用一個巨集也會將其移除。"
+	"選擇 Connoisseur 要建立並維護哪些巨集。關閉某個巨集也會將其移除。"
 -- Hover text on each Enable Macros toggle; %s is the consumable's label (LABEL_*).
 L["OPTIONS_MACRO_TOGGLE_DESCRIPTION"] = "建立並維護%s巨集，取消勾選時會將其移除。"
 
@@ -841,7 +841,7 @@ L["STARTER_POPUP_ARROWS"] = "箭矢"
     rank carry the rest -- and LABEL_POISONS ("Poison", singular) belongs to
     the no-item message and the Enable Macros tooltips, and is not reused
     here. The other reagent labels are kept inside about fifteen characters so
-    they hold the popup's reagent-row label cell.
+    they hold the pop-up's reagent-row label cell.
 ]]
 L["STARTER_POPUP_REAGENTS_HEADER"] = "材料與工具"
 L["STARTER_POPUP_POISONS_HEADER"] = "毒藥"
@@ -852,7 +852,7 @@ L["STARTER_POPUP_POISON_ANESTHETIC"] = "麻醉"
 L["STARTER_POPUP_POISON_CRIPPLING"] = "致殘"
 L["STARTER_POPUP_POISON_DEADLY"] = "致命"
 L["STARTER_POPUP_POISON_INSTANT"] = "速效"
-L["STARTER_POPUP_POISON_MIND_NUMBING"] = "麻痹"
+L["STARTER_POPUP_POISON_MIND_NUMBING"] = "麻痺"
 L["STARTER_POPUP_POISON_WOUND"] = "致傷"
 L["STARTER_POPUP_REAGENT_HEARTHSTONE"] = "爐石"
 L["STARTER_POPUP_REAGENT_BLINDING_POWDER"] = "致盲粉"
@@ -905,7 +905,7 @@ L["STARTER_POPUP_DISMISS_DESCRIPTION"] =
 
 -- Restocker window UI.
 L["RESTOCKER_WINDOW_TITLE"] = "Connoisseur Restocker"
-L["RESTOCKER_FILTER_PLACEHOLDER"] = "篩選物品..."
+L["RESTOCKER_FILTER_PLACEHOLDER"] = "篩選物品……"
 L["RESTOCKER_FILTER_CLEAR_TOOLTIP"] = "清除"
 L["RESTOCKER_ADD_BUTTON"] = "新增"
 L["RESTOCKER_LIST_BUILDER_BUTTON"] = "開啟清單助手"
@@ -930,7 +930,7 @@ L["RESTOCKER_COPY_PROFILE"] = "複製"
     they take no terminal punctuation -- matching every other title in the
     window. Don't "restore" the period they read as wanting.
 ]]
-L["RESTOCKER_COPY_PROFILE_TOOLTIP"] = "將此清單複製為一個新清單"
+L["RESTOCKER_COPY_PROFILE_TOOLTIP"] = "將此清單複製為新清單"
 -- %s becomes "<list name> Copy"; numbered if that name is taken.
 L["RESTOCKER_PROFILE_COPY_NAME"] = "%s 副本"
 L["RESTOCKER_DELETE_PROFILE"] = "刪除"

@@ -65,14 +65,14 @@ end
 --------------------------------------------------------------------------------
 
 function ns.UpdateFirstAidSkill()
-	local firstAidSpellName = GetSpellInfo(3273)
+	local firstAidSpellName = C_Spell.GetSpellName(3273)
 	if not firstAidSpellName then
 		ns.currentFirstAidSkill = 0
 		return
 	end
 
-	for i = 1, GetNumSkillLines() do
-		local skillName, isHeader, _, skillRank = GetSkillLineInfo(i)
+	for i = 1, ns.GetNumSkillLines() do
+		local skillName, isHeader, _, skillRank = ns.GetSkillLineInfo(i)
 		if not isHeader and skillName == firstAidSpellName then
 			ns.currentFirstAidSkill = skillRank
 			return
@@ -83,14 +83,14 @@ function ns.UpdateFirstAidSkill()
 end
 
 function ns.UpdateAlchemySkill()
-	local alchemySpellName = GetSpellInfo(2259)
+	local alchemySpellName = C_Spell.GetSpellName(2259)
 	if not alchemySpellName then
 		ns.currentAlchemySkill = 0
 		return
 	end
 
-	for i = 1, GetNumSkillLines() do
-		local skillName, isHeader, _, skillRank = GetSkillLineInfo(i)
+	for i = 1, ns.GetNumSkillLines() do
+		local skillName, isHeader, _, skillRank = ns.GetSkillLineInfo(i)
 		if not isHeader and skillName == alchemySpellName then
 			ns.currentAlchemySkill = skillRank
 			return
@@ -101,14 +101,14 @@ function ns.UpdateAlchemySkill()
 end
 
 function ns.UpdateEngineeringSkill()
-	local engineeringSpellName = GetSpellInfo(4036)
+	local engineeringSpellName = C_Spell.GetSpellName(4036)
 	if not engineeringSpellName then
 		ns.currentEngineeringSkill = 0
 		return
 	end
 
-	for i = 1, GetNumSkillLines() do
-		local skillName, isHeader, _, skillRank = GetSkillLineInfo(i)
+	for i = 1, ns.GetNumSkillLines() do
+		local skillName, isHeader, _, skillRank = ns.GetSkillLineInfo(i)
 		if not isHeader and skillName == engineeringSpellName then
 			ns.currentEngineeringSkill = skillRank
 			return
@@ -136,7 +136,7 @@ function ns.InitCharacterConstants()
 
 	-- Resolve the Shadowmeld spell name once for macro building
 	if ns.isNightElf then
-		ns.shadowmeldSpellName = GetSpellInfo(ns.SHADOWMELD_SPELL_ID)
+		ns.shadowmeldSpellName = C_Spell.GetSpellName(ns.SHADOWMELD_SPELL_ID)
 	end
 
 	--[[
@@ -154,7 +154,7 @@ function ns.InitCharacterConstants()
 
 	-- Resolve the Stealth spell name once for macro building (Stealth Eating)
 	if ns.isRogue then
-		ns.stealthSpellName = GetSpellInfo(ns.STEALTH_SPELL_ID)
+		ns.stealthSpellName = C_Spell.GetSpellName(ns.STEALTH_SPELL_ID)
 	end
 
 	if ns.isHunter then
@@ -167,7 +167,7 @@ function ns.InitCharacterConstants()
 		for _, spellList in pairs(ns.CONJURE_SPELLS) do
 			for _, data in ipairs(spellList) do
 				local spellID = data[1]
-				if GetSpellInfo(spellID) then
+				if C_Spell.GetSpellName(spellID) then
 					ns.spellCache[spellID] = true
 				end
 			end
@@ -247,8 +247,8 @@ end
 
     Per buff we keep the longest-lasting match, and a 0 outranks any timed one.
     BuffCountsAsActive is monotonic in remaining time, so testing the longest
-    match answers "does any match count as active" exactly as the old per-aura
-    loops did. Neither Well Fed nor a scroll buff stacks with itself, so in
+    match answers "does any match count as active" exactly as testing every
+    match would. Neither Well Fed nor a scroll buff stacks with itself, so in
     practice there is only ever one match to choose from.
 
     Scroll entries also keep the largest conflicting class-buff amount seen, so
@@ -261,6 +261,12 @@ end
     value a single shared buffer, not a private copy: a caller must not hold it
     across another call to this function, and one that needs several answers
     takes one snapshot and passes it down (see ns.FindScrollOverrides).
+
+    While the client restricts aura data (Forever, which is Retail's engine),
+    every field read comes back secret and comparing one errors, so the walk is
+    skipped and the previous snapshot is returned untouched. An unchanged
+    snapshot reads as "nothing moved"; a reset one would read as "no buffs"
+    and rebuild the macros around a buff the player still has.
 ]]
 local WELL_FED_ICON_ID = 136000
 local WELL_FED_ICON_ID_2 = 133943
@@ -281,6 +287,10 @@ local function IsLongerExpiration(candidate, current)
 end
 
 function ns.GetPlayerBuffSnapshot()
+	if C_Secrets.ShouldAurasBeSecret() then
+		return snapshot
+	end
+
 	snapshot.wellFedExpiration = nil
 	for _, entry in pairs(snapshot.scrolls) do
 		entry.expiration = nil
@@ -334,16 +344,13 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-    Split out so the aura handler can settle Well Fed and the scroll diff from
-    ONE snapshot pass instead of walking the player's auras twice per event.
+    Takes a snapshot rather than walking the auras, so the aura handler and
+    ns.UpdateAuraTracking settle Well Fed from the same pass they use for
+    scrolls.
 ]]
 local function WellFedFromSnapshot(currentSnapshot)
 	local expiration = currentSnapshot.wellFedExpiration
 	return expiration ~= nil and BuffCountsAsActive(expiration)
-end
-
-function ns.HasWellFedBuff()
-	return WellFedFromSnapshot(ns.GetPlayerBuffSnapshot())
 end
 
 --------------------------------------------------------------------------------
@@ -354,9 +361,7 @@ end
     A scroll buff of any rank counts as covered. A conflict spell (e.g. Fort)
     only counts as covered if its base amount is at least as large as the
     scroll we would use — otherwise the scroll would still improve the stat.
-]]
 
---[[
     callerSnapshot is an optional snapshot from ns.GetPlayerBuffSnapshot.
     Callers asking about more than one scroll type pass one in, so a single
     walk of the player's auras serves the whole set; omitting it takes a
@@ -414,9 +419,10 @@ end
 --[[
     Returns an ordered list of scroll item IDs the player should use, or nil
     if none apply. Order follows ns.SCROLL_CHECK_ORDER, which is the order the
-    scroll-only body fires them in.
+    scroll-only body fires them in. currentSnapshot is the player snapshot the
+    caller already took this pass, when it has one.
 ]]
-function ns.FindScrollOverrides(bagItemCounts)
+function ns.FindScrollOverrides(bagItemCounts, currentSnapshot)
 	local settings = ns.db and ns.db.profile
 	if not settings or not settings.useScrolls then
 		return nil
@@ -433,11 +439,12 @@ function ns.FindScrollOverrides(bagItemCounts)
 	local results
 
 	--[[
-	    One aura walk for the whole set. Letting each ns.HasScrollBuff call take
-	    its own snapshot re-read the player's 40 aura slots once per enabled
-	    scroll type, on a path that re-runs with every bag scan.
+	    One aura walk for the whole set, and none at all when the bag scan
+	    already took one. Letting each ns.HasScrollBuff call take its own
+	    snapshot re-reads the player's 40 aura slots once per enabled scroll
+	    type, on a path that re-runs with every bag scan.
 	]]
-	local currentSnapshot = ns.GetPlayerBuffSnapshot()
+	currentSnapshot = currentSnapshot or ns.GetPlayerBuffSnapshot()
 
 	for _, scrollType in ipairs(ns.SCROLL_CHECK_ORDER) do
 		if scrollTypes[scrollType] then
@@ -493,11 +500,18 @@ end
     absent, 0 when the aura carries no duration. Consumed by
     ns.FindPetBuffOverride (Macros/Tools-Hunters.lua) and by the readiness
     report; the probe lives here because BuffCountsAsActive is private to this
-    file.
+    file. Like the player snapshot, it answers with its last reading while the
+    client restricts aura data.
 ]]
+local lastPetFoodBuffExpiration
+
 function ns.GetPetFoodBuffExpiration()
 	if not UnitExists("pet") then
+		lastPetFoodBuffExpiration = nil
 		return nil
+	end
+	if C_Secrets.ShouldAurasBeSecret() then
+		return lastPetFoodBuffExpiration
 	end
 	local best
 	for i = 1, 40 do
@@ -512,6 +526,7 @@ function ns.GetPetFoodBuffExpiration()
 			end
 		end
 	end
+	lastPetFoodBuffExpiration = best
 	return best
 end
 
@@ -524,6 +539,15 @@ end
 -- Aura Tracking
 --------------------------------------------------------------------------------
 
+local auraEventRegistered
+
+--[[
+    Returns the player snapshot it took, or nil when neither player-side
+    feature is active, so ns.ScanBags can hand it on to ns.FindScrollOverrides
+    instead of walking the auras a second time. UNIT_AURA is only
+    re-registered when the wanted state flips, since every bag scan passes
+    through here.
+]]
 function ns.UpdateAuraTracking()
 	local settings = ns.db.profile
 
@@ -531,13 +555,21 @@ function ns.UpdateAuraTracking()
 	local scrollsActive = settings.useScrolls and ns.IsModeActive(settings.scrollsMode)
 	local petBuffActive = settings.usePetBuffFood and ns.IsModeActive(settings.petBuffFoodMode)
 
+	local currentSnapshot
 	if buffFoodActive or scrollsActive then
-		ns.wellFedState = ns.HasWellFedBuff()
+		currentSnapshot = ns.GetPlayerBuffSnapshot()
+		ns.wellFedState = WellFedFromSnapshot(currentSnapshot)
 	else
 		ns.wellFedState = false
 	end
 
-	ns.SetEventRegistered("UNIT_AURA", buffFoodActive or scrollsActive or petBuffActive, "player", "pet")
+	local wantAuraEvent = (buffFoodActive or scrollsActive or petBuffActive) and true or false
+	if wantAuraEvent ~= auraEventRegistered then
+		auraEventRegistered = wantAuraEvent
+		ns.SetEventRegistered("UNIT_AURA", wantAuraEvent, "player", "pet")
+	end
+
+	return currentSnapshot
 end
 
 --------------------------------------------------------------------------------

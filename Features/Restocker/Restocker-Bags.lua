@@ -9,8 +9,8 @@ ns.restockPlayerBags = {}
 local BagDefinition = {}
 BagDefinition.__index = BagDefinition
 
-local BANK_BAGS = {} -- filled by ns.InitRestockBagDefinitions
-local BANK_BAGS_REVERSED = {} -- filled by ns.InitRestockBagDefinitions
+local BANK_BAGS = {} -- filled by ns.LoadRestockBankBags
+local BANK_BAGS_REVERSED = {} -- filled by ns.LoadRestockBankBags
 
 --------------------------------------------------------------------------------
 -- Bag Definitions
@@ -19,8 +19,8 @@ local BANK_BAGS_REVERSED = {} -- filled by ns.InitRestockBagDefinitions
 --[[
     A container the restocker moves items through. `location` is a label for the debug
     log only -- every container is filled the same way, by naming an empty slot (see
-    BagDefinition:PutCursorItem). No inventory-slot id is kept: the only thing one was
-    ever used for was PutItemInBag, which is the API this file must not go back to.
+    BagDefinition:PutCursorItem). No inventory-slot id is kept: its only use would be
+    PutItemInBag, which this file must never call.
 ]]
 local function NewBagDefinition(location, bagID)
 	local result = {}
@@ -47,7 +47,24 @@ local function CreateBankBag(bag)
 	return NewBagDefinition("bank", bag + NUM_BAG_SLOTS)
 end
 
-function ns.InitRestockBagDefinitions()
+--[[
+    Forever has no BANK_CONTAINER and no bank bags: its character bank is the
+    C_Bank tabs the player has bought, which can change at any visit, so the
+    bank open handler calls this again. Era and TBC rebuild the same fixed
+    layout each time.
+]]
+function ns.LoadRestockBankBags()
+	if C_Bank and C_Bank.FetchPurchasedBankTabIDs then
+		local tabIDs = C_Bank.FetchPurchasedBankTabIDs(Enum.BankType.Character)
+		BANK_BAGS = {}
+		BANK_BAGS_REVERSED = {}
+		for index, bagID in ipairs(tabIDs) do
+			BANK_BAGS[index] = NewBagDefinition("bank", bagID)
+			BANK_BAGS_REVERSED[#tabIDs - index + 1] = BANK_BAGS[index]
+		end
+		return
+	end
+
 	BANK_BAGS = {
 		CreateBankMainBag(),
 		CreateBankBag(1),
@@ -68,6 +85,10 @@ function ns.InitRestockBagDefinitions()
 		CreateBankBag(1),
 		CreateBankMainBag(),
 	}
+end
+
+function ns.InitRestockBagDefinitions()
+	ns.LoadRestockBankBags()
 
 	ns.restockPlayerBags = { CreateBackpack(), CreateBag(1), CreateBag(2), CreateBag(3), CreateBag(4) }
 end
@@ -86,9 +107,9 @@ end
     count alone is not enough: a specialty bag (quiver, soul/herb/enchanting bag) reports free
     slots that a regular item can never occupy.
 
-    This is now a shortcut rather than the safety net it once was. Placement names the slot
-    itself, so a container that refuses the item leaves it on the cursor and the caller simply
-    tries the next one; skipping the bags that were never going to take it just saves the trip.
+    A shortcut, not a safety net: placement names the slot itself, so a container that
+    refuses the item leaves it on the cursor and the caller simply tries the next one;
+    skipping the bags that were never going to take it just saves the trip.
 ]]
 function BagDefinition:CanAcceptItem(itemInfo)
 	local numberOfFreeSlots, bagType = C_Container.GetContainerNumFreeSlots(self.bagID)
@@ -230,10 +251,10 @@ local function PutItemInBank(bankInventory, itemInfo, amount)
 
 	--[[
 	    Drop into a FREE slot first -- that is the reliable move. Only stop once it has ACTUALLY
-	    landed: a container's free-slot COUNT can disagree with its per-slot contents
-	    -- notably the main bank container reports free slots the slot scan can't find -- so a
-	    bag may claim room yet fail to take the item. Keep trying the rest, don't give up after
-	    the first (which stranded the item on the cursor).
+	    landed: a container's free-slot COUNT can disagree with its per-slot contents -- on Era
+	    and TBC the main bank container reports free slots the slot scan can't find -- so a
+	    bag may claim room yet fail to take the item. Keep trying the rest; giving up after the
+	    first strands the item on the cursor.
 	]]
 	for _, bag in ipairs(BANK_BAGS) do
 		if bag:CanAcceptItem(itemInfo) then
@@ -420,8 +441,9 @@ end
 
 function ns.MoveRestockItemFromBank(playerInventory, moveItemID, moveAmount, overshoot)
 	--[[
-	    Bank bags in reverse: the deepest bag is emptied first, so the main bank
-	    container keeps the free slots a later stash-back needs.
+	    Bank bags in reverse: the deepest bag is emptied first. On Era and TBC that
+	    keeps the main bank container's free slots for a later stash-back; on
+	    Forever it simply empties the last tab first.
 	]]
 	for _, bag in ipairs(BANK_BAGS_REVERSED) do
 		-- Build list of move candidates (matched by itemID), smallest stacks first

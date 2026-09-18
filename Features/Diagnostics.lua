@@ -42,6 +42,7 @@ ns.DiagnosticsStrings = {
 	TAB = "Diagnostic Tools",
 	WARNING = "These tools help diagnose problems and are meant for developers. They won't change how the add-on works, but their output includes technical details about your client and installed add-ons. Leave this off unless you're troubleshooting with someone.",
 	ENABLE = "Enable Diagnostic Tools",
+	ENABLE_DESCRIPTION = "Shows the diagnostic reports and the event log below until you log out or turn it off.",
 	EVENT_LOG_TITLE = "Event Log",
 	EVENT_LOG_START = "Start Event Log",
 	EVENT_LOG_STOP = "Stop Event Log",
@@ -441,7 +442,7 @@ end
     Existence and shape checks only: read-only, no side effects, no protected
     calls. One row per WoW API the add-on depends on, scanned from across
     Features/ and Options/. Every API the code guards for existence (e.g.
-    IsPlayerSpell) or reaches through a modern->legacy fallback gets a
+    C_Bank.FetchPurchasedBankTabIDs) or reaches through a modern->legacy fallback gets a
     row of its own — modern and legacy listed separately — so the manifest stays
     one-to-one with the code's guards and the report shows exactly what each
     client provides.
@@ -467,7 +468,7 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	--[[
-	    C_Container is the container surface on both target clients, so both
+	    C_Container is the container surface on all three target clients, so both
 	    readers are probed there and nowhere else. Neither carries a legacy
 	    fallback nor may be given one, so there is no legacy row to pair with
 	    either (see the container shims in Utilities).
@@ -640,34 +641,88 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(GetNumMacros) == "function"
 		end,
 	},
+	--[[
+	    The shims in Utilities that Forever needs: each client should PASS
+	    exactly one side of every pair -- the namespaced reader on Forever, the
+	    legacy global on Era and TBC.
+	]]
 	{
-		"GetPetFoodTypes",
+		"C_PetInfo.GetPetFoodTypes",
+		function()
+			return type(C_PetInfo) == "table" and type(C_PetInfo.GetPetFoodTypes) == "function"
+		end,
+	},
+	{
+		"GetPetFoodTypes (legacy)",
 		function()
 			return type(GetPetFoodTypes) == "function"
 		end,
 	},
 	{
-		"GetNumSkillLines",
+		"C_SkillInfo.GetNumSkillLines",
+		function()
+			return type(C_SkillInfo) == "table" and type(C_SkillInfo.GetNumSkillLines) == "function"
+		end,
+	},
+	{
+		"C_SkillInfo.GetSkillLineInfo",
+		function()
+			return type(C_SkillInfo) == "table" and type(C_SkillInfo.GetSkillLineInfo) == "function"
+		end,
+	},
+	{
+		"GetNumSkillLines (legacy)",
 		function()
 			return type(GetNumSkillLines) == "function"
 		end,
 	},
 	{
-		"GetSkillLineInfo",
+		"GetSkillLineInfo (legacy)",
 		function()
 			return type(GetSkillLineInfo) == "function"
 		end,
 	},
 	{
-		"GetNumQuestLogEntries",
+		"C_QuestLog.GetNumQuestLogEntries",
+		function()
+			return type(C_QuestLog) == "table" and type(C_QuestLog.GetNumQuestLogEntries) == "function"
+		end,
+	},
+	{
+		"C_QuestLog.GetInfo",
+		function()
+			return type(C_QuestLog) == "table" and type(C_QuestLog.GetInfo) == "function"
+		end,
+	},
+	{
+		"GetNumQuestLogEntries (legacy)",
 		function()
 			return type(GetNumQuestLogEntries) == "function"
 		end,
 	},
 	{
-		"GetQuestLogTitle",
+		"GetQuestLogTitle (legacy)",
 		function()
 			return type(GetQuestLogTitle) == "function"
+		end,
+	},
+	{
+		"C_MerchantFrame.GetItemInfo",
+		function()
+			return type(C_MerchantFrame) == "table" and type(C_MerchantFrame.GetItemInfo) == "function"
+		end,
+	},
+	{
+		"GetMerchantItemInfo (legacy)",
+		function()
+			return type(GetMerchantItemInfo) == "function"
+		end,
+	},
+	-- Forever's bank is its purchased tabs; Era and TBC read BANK_CONTAINER and the bank bags instead.
+	{
+		"C_Bank.FetchPurchasedBankTabIDs",
+		function()
+			return type(C_Bank) == "table" and type(C_Bank.FetchPurchasedBankTabIDs) == "function"
 		end,
 	},
 	{
@@ -676,12 +731,27 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(C_UnitAuras) == "table" and type(C_UnitAuras.GetBuffDataByIndex) == "function"
 		end,
 	},
+	{
+		"C_Secrets.ShouldAurasBeSecret",
+		function()
+			return type(C_Secrets) == "table" and type(C_Secrets.ShouldAurasBeSecret) == "function"
+		end,
+	},
+	{
+		"C_Secrets.CanCompareUnitTokens",
+		function()
+			return type(C_Secrets) == "table" and type(C_Secrets.CanCompareUnitTokens) == "function"
+		end,
+	},
 	--[[
 	    The Readiness Report's surface. Every one of these is reached only when
 	    its own switch is on, so a missing one takes a whole line of the report
 	    down and nothing else -- and does it silently, since a client with
 	    scriptErrors off swallows the error. A FAIL here is the fastest
-	    explanation for "I turned that on and the report went quiet".
+	    explanation for "I turned that on and the report went quiet". The
+	    exceptions are GetNumTalentTabs and UnitCharacterPoints, which the
+	    probes check before calling: they FAIL on Forever as expected, and their
+	    lines simply never show there.
 	]]
 	{
 		"GetWeaponEnchantInfo",
@@ -727,9 +797,9 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	{
-		"GetSpellInfo",
+		"C_Spell.GetSpellName",
 		function()
-			return type(GetSpellInfo) == "function"
+			return type(C_Spell) == "table" and type(C_Spell.GetSpellName) == "function"
 		end,
 	},
 	-- Validate Data reads each of these through C_Spell when the client has it, the legacy global otherwise.
@@ -737,6 +807,12 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		"C_Spell.GetSpellInfo",
 		function()
 			return type(C_Spell) == "table" and type(C_Spell.GetSpellInfo) == "function"
+		end,
+	},
+	{
+		"GetSpellInfo (legacy)",
+		function()
+			return type(GetSpellInfo) == "function"
 		end,
 	},
 	{
@@ -752,15 +828,15 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	{
-		"IsSpellKnown",
+		"C_SpellBook.IsSpellInSpellBook",
 		function()
-			return type(IsSpellKnown) == "function"
+			return type(C_SpellBook) == "table" and type(C_SpellBook.IsSpellInSpellBook) == "function"
 		end,
 	},
 	{
-		"IsPlayerSpell",
+		"C_SpellBook.IsSpellKnown",
 		function()
-			return type(IsPlayerSpell) == "function"
+			return type(C_SpellBook) == "table" and type(C_SpellBook.IsSpellKnown) == "function"
 		end,
 	},
 	{
@@ -786,12 +862,6 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		"GetMerchantNumItems",
 		function()
 			return type(GetMerchantNumItems) == "function"
-		end,
-	},
-	{
-		"GetMerchantItemInfo",
-		function()
-			return type(GetMerchantItemInfo) == "function"
 		end,
 	},
 	{
@@ -969,11 +1039,8 @@ function ns.BuildContextReport()
 	lines[#lines + 1] = "-- Spell knowledge --"
 	for _, entry in ipairs(ns.DIAGNOSTIC_SPELLS) do
 		local spellID, label = entry[1], entry[2]
-		local known = IsSpellKnown(spellID)
-		if not known and IsPlayerSpell then
-			known = IsPlayerSpell(spellID)
-		end
-		local name = GetSpellInfo(spellID)
+		local known = ns.IsSpellKnown(spellID) or ns.IsPlayerSpell(spellID)
+		local name = C_Spell.GetSpellName(spellID)
 		lines[#lines + 1] = string.format(
 			"[%s] %s (%d)%s",
 			known and "KNOWN" or "  -  ",
@@ -1190,7 +1257,8 @@ function ns.BuildReadinessDiagnosticReport()
 	end
 
 	local text = table.concat(lines, "\n")
-	return (text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
+	-- Item links (Damaged / Non-Combat Gear) survive the color strip; escaping them makes the paste plain text.
+	return (text:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("|", "||"))
 end
 
 --------------------------------------------------------------------------------
@@ -1772,8 +1840,8 @@ local function BuildValidationReport(spellRows, itemRows)
 				Cell(castTime),
 				Cell(minRange),
 				Cell(maxRange),
-				Cell(IsPlayerSpell and IsPlayerSpell(row.id)),
-				Cell(IsSpellKnown(row.id)),
+				Cell(ns.IsPlayerSpell(row.id)),
+				Cell(ns.IsSpellKnown(row.id)),
 			}, "\t")
 		end
 	end

@@ -51,9 +51,10 @@ L["LIST_SEPARATOR"] = ", "
 --------------------------------------------------------------------------------
 
 --[[
-    Diet names as returned by GetPetFoodTypes(), which is localized. These
-    values MUST match the client's strings exactly (verify in-game with
-    /dump GetPetFoodTypes() while a pet is out). Used to build
+    Diet names as returned by the pet diet reader, which is localized. These
+    values MUST match the client's strings exactly (verify in-game with a pet
+    out: /dump GetPetFoodTypes() on Era and TBC,
+    /dump C_PetInfo.GetPetFoodTypes() on Forever). Used to build
     ns.PET_DIET_MAP in Data/Pet-Foods.lua.
 
     They are ALSO the food checkbox labels in the Starter List pop-up, so they
@@ -79,7 +80,7 @@ L["MESSAGE_BUG_REPORT"] =
 	"Похоже, вы нашли ошибку! Предмет %s (%s) нельзя использовать в локации %s > %s (%s). Пожалуйста, сообщите об этом, чтобы мы могли её исправить. Спасибо! %s"
 L["MESSAGE_NO_ITEM"] = "%s: в ваших сумках нет ничего подходящего."
 L["MESSAGE_MACRO_SLOTS_FULL"] =
-	"Не удалось создать некоторые макросы Connoisseur, так как все ячейки для макросов заняты. Освободите ячейку, удалив макросы, которыми вы больше не пользуетесь, или отключите ненужные макросы Connoisseur в меню Настройки > Модификации > Connoisseur."
+	"Не удалось создать некоторые макросы Connoisseur, так как все ячейки для макросов заняты. Освободите ячейку, удалив макросы, которыми вы больше не пользуетесь, или отключите ненужные макросы Connoisseur в меню Настройки > Модификации > Connoisseur > Макросы."
 
 L["CHAT_LOADED"] =
 	"Версия %s. Настройки (включая возможность отключения этого сообщения) находятся в меню Настройки > Модификации > Connoisseur. Нравится аддон? Расскажите другу! (="
@@ -272,7 +273,7 @@ L["TIP_HUNTER_MODIFIERS"] =
     line names what it actually affects rather than saying "the macro."
 ]]
 L["TIP_MAGE_CONJURE"] =
-	"ПКМ по макросу Еды или Воды, чтобы сотворить пищу или воду."
+	"ПКМ по макросу Еды или Воды, чтобы применить Сотворение пищи или Сотворение воды."
 L["TIP_MAGE_DOWNRANK"] =
 	"Если выбрать целью игрока более низкого уровня, будут сотворены Еда или Вода, подходящие его уровню."
 L["TIP_MAGE_TABLE"] =
@@ -281,11 +282,11 @@ L["TIP_MAGE_GEM"] =
 	"ПКМ по макросу Мана-камня, чтобы сотворить новый камень. Ещё раз ПКМ, чтобы сотворить запасной камень низшего ранга."
 
 L["TIP_WARLOCK_HEALTHSTONE"] =
-	"ПКМ по макросу Камня здоровья, чтобы создать Камень здоровья. Ещё раз ПКМ, чтобы создать запасной камень низшего ранга."
+	"ПКМ по макросу Камня здоровья, чтобы применить Создание камня здоровья. Ещё раз ПКМ, чтобы создать запасной камень низшего ранга."
 L["TIP_WARLOCK_DOWNRANK"] =
 	"Если выбрать целью игрока более низкого уровня, будет создан Камень здоровья, подходящий его уровню."
 L["TIP_WARLOCK_SOULSTONE"] =
-	"ПКМ по макросу Камня души, чтобы создать Камень души."
+	"ПКМ по макросу Камня души, чтобы применить Создание камня души."
 L["TIP_WARLOCK_SOUL"] =
 	"СКМ по макросу Камня здоровья, чтобы применить Ритуал душ."
 
@@ -338,7 +339,7 @@ L["MINIMAP_SHIFT_LEFT"] = "Shift + ЛКМ"
 -- Caption and hover text on the mode sub-row under Buff Food, Scroll Buffs, and Pet Food Buffs; %s is that section's name.
 L["OPTIONS_MODE_CAPTION"] = "Когда использовать"
 L["OPTIONS_MODE_DESCRIPTION"] =
-	'Выбирает, когда в вашем макросе Еды действует настройка "%s": всегда или только когда вы в группе.'
+	'Выбирает, когда ваш макрос Еды предлагает "%s": всегда или только когда вы в группе.'
 L["MODE_ALWAYS"] = "Всегда"
 L["MODE_PARTY"] = "Только в группе или рейде"
 L["MODE_RAID"] = "Только в рейде"
@@ -348,7 +349,7 @@ L["MODE_RAID"] = "Только в рейде"
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
-	"Макросы, которые автоматически используют вашу лучшую еду, еду с эффектом, воду, зелья, камни здоровья, бинты и свитки, а также список пополнения, который держит сумки полными и улучшает ваши расходуемые предметы по мере роста уровня. Автоматизация для удобства, пиковая эффективность."
+	"Макросы, которые автоматически используют вашу лучшую еду, еду с эффектом, воду, зелья, камни здоровья, бинты и свитки, а также список пополнения, который держит сумки полными и улучшает ваши расходуемые предметы по мере роста уровня. Удобная автоматизация для максимальной эффективности."
 
 -- Welcome Message
 L["OPTIONS_WELCOME_MESSAGE"] = "Включить приветственное сообщение"
@@ -365,9 +366,9 @@ L["OPTIONS_MACRO_NAMES_DESCRIPTION"] =
 	"Показывает названия макросов на кнопках панелей команд. По умолчанию Connoisseur скрывает эти названия."
 
 -- Potions & Healthstones
-L["OPTIONS_POTIONS_HEADER"] = "Зелья и Камни здоровья"
+L["OPTIONS_POTIONS_HEADER"] = "Зелья и камни здоровья"
 L["OPTIONS_POTIONS_DESCRIPTION"] =
-	"Макросы не могут изменяться во время боя (это ограничение Blizzard), поэтому каждый макрос Зелья и Камня здоровья создается заранее с вашим лучшим предметом и до двух запасных вариантов. В затяжных боях иконка и подсказка могут устареть и показывать не тот предмет, но клик по макросу всегда будет использовать лучший предмет, который у вас действительно есть в сумках."
+	"Макросы не могут изменяться во время боя (это ограничение Blizzard), поэтому каждый макрос Зелья и Камня здоровья создаётся заранее с вашим лучшим предметом и до двух запасных вариантов. В затяжных боях иконка и подсказка могут устареть и показывать не тот предмет, но клик по макросу всегда будет использовать лучший предмет, который у вас действительно есть в сумках."
 L["OPTIONS_COMBINE_HEALTHSTONES"] =
 	"Объединить Камни здоровья в макрос Лечебного зелья"
 L["OPTIONS_COMBINE_HEALTHSTONES_DESCRIPTION"] =
@@ -480,13 +481,14 @@ L["OPTIONS_READINESS_EXPIRING_THRESHOLD_DESCRIPTION"] =
 -- Missing Items
 L["OPTIONS_READINESS_HEALTHSTONE_DESCRIPTION"] =
 	"Показывается, только когда в группе есть чернокнижник, у которого можно попросить камень, или когда вы сами чернокнижник."
-L["OPTIONS_READINESS_MANA_GEM_DESCRIPTION"] = "Показывается только на маге."
+L["OPTIONS_READINESS_MANA_GEM_DESCRIPTION"] =
+	"Показывается, только если вы играете за мага."
 L["OPTIONS_READINESS_HEALING_POTION_DESCRIPTION"] =
 	"Стоит запастись до начала боя, ведь посреди боя зелье вам никто не передаст."
 L["OPTIONS_READINESS_MANA_POTION_DESCRIPTION"] =
-	"Показывается только на классах, использующих ману."
+	"Показывается, только если вы играете за класс, использующий ману."
 L["OPTIONS_READINESS_BANDAGES_DESCRIPTION"] =
-	"Сообщает, когда у вас нет ни одного пригодного бинта, с учётом навыка первой помощи."
+	"Сообщает, когда у вас нет ни одного бинта, который позволяет использовать ваш навык Первой помощи."
 L["OPTIONS_READINESS_DURABILITY"] = "Повреждённое снаряжение ниже"
 L["OPTIONS_READINESS_DURABILITY_DESCRIPTION"] =
 	"Приводит ссылки на все надетые предметы с прочностью ниже этого значения, считая по каждому предмету отдельно, так что даже одно сломанное оружие будет видно."
@@ -581,7 +583,7 @@ L["OPTIONS_PET_BUFF_SPORELING"] = "Закуска спорлингов"
 L["OPTIONS_DRUIDS_HEADER"] = "Друиды"
 L["OPTIONS_DRUID_MACRO_HELPER"] = "Включить интеграцию DruidMacroHelper"
 L["OPTIONS_DRUID_MACRO_HELPER_DESCRIPTION"] =
-	"Создает макросы смены облика для лечебных зелий, зелий маны и камней здоровья с помощью DruidMacroHelper (/dmh)."
+	"Создаёт макросы смены облика для лечебных зелий, зелий маны и камней здоровья с помощью DruidMacroHelper (/dmh)."
 --[[
     Return-form dropdown, on the sub-row under the DruidMacroHelper toggle. The
     macro powershifts out of form, uses the consumable, then returns to this
@@ -634,7 +636,7 @@ L["OPTIONS_STEALTH_EATING_ROGUE_DESCRIPTION"] =
 ]]
 L["TAB_RESTOCKER"] = "Restocker"
 L["OPTIONS_RESTOCKER_DESCRIPTION"] =
-	"Поддерживает запасы в ваших сумках по списку пополнения, своему для каждого персонажа, автоматически покупая у торговцев и перемещая предметы в банк и из банка. Введите %s, чтобы открыть список."
+	"Поддерживает запасы в ваших сумках по списку пополнения, автоматически покупая у торговцев и перемещая предметы в банк и из банка. Введите %s, чтобы открыть список."
 L["OPTIONS_RESTOCKER_OPEN_BANK"] = "Открывать в банке"
 L["OPTIONS_RESTOCKER_OPEN_BANK_DESCRIPTION"] =
 	"Открывает окно Restocker при посещении банка."
@@ -715,7 +717,7 @@ L["OPTIONS_MACROS_DESCRIPTION"] =
 	"Connoisseur создаёт по одному макросу на каждый расходуемый предмет и обновляет его вслед за содержимым сумок, так что кнопка на панели всегда тянется к лучшему предмету, который у вас есть. Выберите ниже, какие макросы создавать, а затем настройте, как каждый из них выбирает предмет."
 L["OPTIONS_ENABLE_MACROS_HEADER"] = "Включить макросы"
 L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] =
-	"Выбор макросов, которые Connoisseur создает и поддерживает. Отключение макроса также удалит его."
+	"Выберите, какие макросы Connoisseur будет создавать и поддерживать. Отключённый макрос также удаляется."
 -- Hover text on each Enable Macros toggle; %s is the consumable's label (LABEL_*).
 L["OPTIONS_MACRO_TOGGLE_DESCRIPTION"] =
 	'Создаёт и поддерживает макрос "%s", а при снятии флажка удаляет его.'
@@ -847,8 +849,8 @@ L["RESTOCKER_RESTOCKED_PARTIAL_MANY"] =
 L["RESTOCKER_HELP_SHOW"] = "Показывает окно Restocker."
 L["RESTOCKER_HELP_PROFILE_ADD"] = "Добавляет список с этим именем."
 L["RESTOCKER_HELP_PROFILE_DELETE"] = "Удаляет список с этим именем."
-L["RESTOCKER_HELP_PROFILE_RENAME"] = "Переименовывает текущий список в это имя."
-L["RESTOCKER_HELP_PROFILE_COPY"] = "Копирует этот список в текущий список."
+L["RESTOCKER_HELP_PROFILE_RENAME"] = "Даёт текущему списку указанное имя."
+L["RESTOCKER_HELP_PROFILE_COPY"] = "Копирует указанный список в текущий."
 L["RESTOCKER_HELP_PROFILE_USE"] =
 	"Переключает этого персонажа на список с этим именем."
 
@@ -892,7 +894,7 @@ L["STARTER_POPUP_ARROWS"] = "Стрелы"
     rank carry the rest -- and LABEL_POISONS ("Poison", singular) belongs to
     the no-item message and the Enable Macros tooltips, and is not reused
     here. The other reagent labels are kept inside about fifteen characters so
-    they hold the popup's reagent-row label cell.
+    they hold the pop-up's reagent-row label cell.
 ]]
 L["STARTER_POPUP_REAGENTS_HEADER"] = "Реагенты и инструменты"
 L["STARTER_POPUP_POISONS_HEADER"] = "Яды"
@@ -985,7 +987,7 @@ L["RESTOCKER_COPY_PROFILE"] = "Копировать"
     they take no terminal punctuation -- matching every other title in the
     window. Don't "restore" the period they read as wanting.
 ]]
-L["RESTOCKER_COPY_PROFILE_TOOLTIP"] = "Клонирует этот список в новый"
+L["RESTOCKER_COPY_PROFILE_TOOLTIP"] = "Копирует этот список в новый"
 -- %s becomes "<list name> Copy"; numbered if that name is taken.
 L["RESTOCKER_PROFILE_COPY_NAME"] = "%s (копия)"
 L["RESTOCKER_DELETE_PROFILE"] = "Удалить"

@@ -44,13 +44,22 @@ local function ReportsHidden()
 end
 
 --[[
-    Hidden on Classic Era on top of the standard gate, matching the check
-    itself: Era has flasks and elixirs but does not run on them, so the switch
-    would only offer a line that is wrong for most of the characters it fired
-    at. See ns.HasFlaskOrElixirs' caller in Features/Readiness-Report.lua.
+    Hidden on Classic Era and Forever on top of the standard gate, matching the
+    check itself: Era raids have flasks and elixirs but do not run on them, so
+    the switch would only offer a line that is wrong for most of the characters
+    it fired at. See ns.HasFlaskOrElixirs' caller in Features/Readiness-Report.lua.
 ]]
 local function FlaskHidden()
-	return ReportsHidden() or ns.IS_ERA
+	return ReportsHidden() or ns.IS_ERA or ns.IS_FOREVER
+end
+
+--[[
+    Hidden where the client has no classic talent tabs (Forever's talents are
+    Retail's), since ns.GetCurrentSpecLabel can never answer there and the
+    switch would do nothing.
+]]
+local function SpecHidden()
+	return ReportsHidden() or not GetNumTalentTabs
 end
 
 -- Repaint the page so a reset shows in the controls without a reopen.
@@ -273,6 +282,7 @@ local SECTIONS = {
 				key = "readinessSpec",
 				name = "OPTIONS_READINESS_SPEC",
 				description = "OPTIONS_READINESS_SPEC_DESCRIPTION",
+				hidden = SpecHidden,
 			},
 			{
 				key = "readinessPvP",

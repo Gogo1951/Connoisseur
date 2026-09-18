@@ -136,8 +136,8 @@ ns.DATABASE_DEFAULTS = {
 		    Stealth Eating appends the character's stealth ability to the Food
 		    macro -- Stealth for Rogues, Shadowmeld for other Night Elves. One
 		    key serves both; the class/race gate lives in Food.lua's appendBlock.
-		    Per-character, so a Night Elf Druid enabling it no longer switches
-		    it on for the account's Rogues.
+		    Per-character, so a Night Elf Druid enabling it never switches it
+		    on for the account's Rogues.
 		]]
 		enableStealthEating = false,
 		--[[
@@ -283,7 +283,7 @@ ns.DATABASE_DEFAULTS = {
 		},
 		--[[
 		    Minimap button visibility. LibDBIcon reads `hide` from this subtable,
-		    so it stays the single source of truth -- the "Enable Minimap Button"
+		    so it stays the single source of truth -- the "Enable Mini-map Button"
 		    toggle is its inverse (hide = false means shown). LibDBIcon owns the
 		    rest of the subtable (position, etc.); living under `global`, it is
 		    untouched by profile switches and resets.

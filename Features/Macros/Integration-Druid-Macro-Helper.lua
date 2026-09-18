@@ -47,7 +47,7 @@ local function GetDruidReturnForm()
 	end
 	for _, spellID in ipairs(RETURN_FORM_SPELL_IDS[key]) do
 		if ns.KnowsAny({ { spellID } }) then
-			return key, spellID, (GetSpellInfo(spellID))
+			return key, spellID, C_Spell.GetSpellName(spellID)
 		end
 	end
 	return key, nil, nil

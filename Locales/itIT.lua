@@ -51,9 +51,10 @@ L["LIST_SEPARATOR"] = ", "
 --------------------------------------------------------------------------------
 
 --[[
-    Diet names as returned by GetPetFoodTypes(), which is localized. These
-    values MUST match the client's strings exactly (verify in-game with
-    /dump GetPetFoodTypes() while a pet is out). Used to build
+    Diet names as returned by the pet diet reader, which is localized. These
+    values MUST match the client's strings exactly (verify in-game with a pet
+    out: /dump GetPetFoodTypes() on Era and TBC,
+    /dump C_PetInfo.GetPetFoodTypes() on Forever). Used to build
     ns.PET_DIET_MAP in Data/Pet-Foods.lua.
 
     They are ALSO the food checkbox labels in the Starter List pop-up, so they
@@ -79,7 +80,7 @@ L["MESSAGE_BUG_REPORT"] =
 	"Sembra che tu abbia trovato un bug! Non è possibile usare %s (%s) in %s > %s (%s). Segnalacelo, così potremo risolverlo. Grazie! %s"
 L["MESSAGE_NO_ITEM"] = "%s: nessun oggetto adatto trovato nelle tue borse."
 L["MESSAGE_MACRO_SLOTS_FULL"] =
-	"Non è stato possibile creare alcune macro di Connoisseur perché gli slot delle macro sono pieni. Libera uno slot eliminando le macro che non usi più, oppure disattiva le macro di Connoisseur che non ti servono in Opzioni > Add-on > Connoisseur."
+	"Non è stato possibile creare alcune macro di Connoisseur perché gli slot delle macro sono pieni. Libera uno slot eliminando le macro che non usi più, oppure disattiva le macro di Connoisseur che non ti servono in Opzioni > Add-on > Connoisseur > Macro."
 
 L["CHAT_LOADED"] =
 	"Versione %s. Le impostazioni (inclusa l'opzione per disattivare questo messaggio) si trovano in Opzioni > Add-on > Connoisseur. Ti piace l'add-on? Parlane a un amico! (="
@@ -172,7 +173,7 @@ L["TIP_DONT_KNOW_SPELL"] = "Al momento non conosci %s."
 
 -- Feature toggles shown in the mini-map tooltip, each with a description line.
 L["FEATURE_BUFF_FOOD"] = "Cibo con buff"
-L["MENU_BUFF_FOOD_DESCRIPTION"] = 'Dà priorità al cibo che fornisce il buff "Ben Nutrito", quando il buff è assente.'
+L["MENU_BUFF_FOOD_DESCRIPTION"] = 'Dà priorità al cibo che fornisce il buff "Ben Nutrito" quando il buff è assente.'
 L["FEATURE_SCROLL_BUFFS"] = "Buff delle pergamene"
 L["MENU_SCROLL_BUFFS_DESCRIPTION"] =
 	"Trasforma la tua macro Cibo in un applicatore di pergamene quando ti mancano i buff delle pergamene."
@@ -264,17 +265,17 @@ L["TIP_HUNTER_MODIFIERS"] = "Tieni premuto Maiusc per forzare la rianimazione o 
     and both rituals ignore the target (ignoreTarget in the resolvers), so each
     line names what it actually affects rather than saying "the macro."
 ]]
-L["TIP_MAGE_CONJURE"] = "Clic destro sulle tue macro Cibo o Acqua per evocare cibo o acqua."
+L["TIP_MAGE_CONJURE"] = "Clic destro sulle tue macro Cibo o Acqua per lanciare Evoca Cibo o Evoca Acqua."
 L["TIP_MAGE_DOWNRANK"] = "Selezionare un giocatore di livello inferiore evocherà cibo o acqua adatti al suo livello."
 L["TIP_MAGE_TABLE"] = "Clic centrale sulle tue macro Cibo o Acqua per lanciare Rituale del Rinfresco."
 L["TIP_MAGE_GEM"] =
 	"Clic destro sulla tua macro Gemma di Mana per evocarne una nuova. Clic destro di nuovo per evocare una gemma di scorta di grado inferiore."
 
 L["TIP_WARLOCK_HEALTHSTONE"] =
-	"Clic destro sulla tua macro Pietra della Salute per creare una Pietra della Salute. Clic destro di nuovo per crearne una di scorta di grado inferiore."
+	"Clic destro sulla tua macro Pietra della Salute per lanciare Crea Pietra della Salute. Clic destro di nuovo per crearne una di scorta di grado inferiore."
 L["TIP_WARLOCK_DOWNRANK"] =
 	"Selezionare un giocatore di livello inferiore creerà una Pietra della Salute adatta al suo livello."
-L["TIP_WARLOCK_SOULSTONE"] = "Clic destro sulla tua macro Pietra dell'Anima per creare una Pietra dell'Anima."
+L["TIP_WARLOCK_SOULSTONE"] = "Clic destro sulla tua macro Pietra dell'Anima per lanciare Crea Pietra dell'Anima."
 L["TIP_WARLOCK_SOUL"] = "Clic centrale sulla tua macro Pietra della Salute per lanciare Rituale delle Anime."
 
 L["TIP_ROGUE_OFF_HAND"] = "Clic sinistro applica il veleno della mano secondaria."
@@ -336,7 +337,7 @@ L["MODE_RAID"] = "Solo in incursione"
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
-	"Macro che usano automaticamente il tuo miglior cibo, cibo con buff, acqua, pozioni, pietre della salute, bende e pergamene, più una lista di rifornimento che tiene piene le tue borse e migliora i tuoi consumabili man mano che sali di livello. Automazione per il comfort di gioco, massime prestazioni."
+	"Macro che usano automaticamente il tuo miglior cibo, cibo con buff, acqua, pozioni, pietre della salute, bende e pergamene, oltre a una lista di rifornimento che tiene piene le tue borse e migliora i tuoi consumabili man mano che sali di livello. Automazione per il comfort di gioco, per prestazioni al massimo."
 
 -- Welcome Message
 L["OPTIONS_WELCOME_MESSAGE"] = "Attiva il messaggio di benvenuto"
@@ -355,9 +356,9 @@ L["OPTIONS_MACRO_NAMES_DESCRIPTION"] =
 L["OPTIONS_POTIONS_HEADER"] = "Pozioni e Pietre della Salute"
 L["OPTIONS_POTIONS_DESCRIPTION"] =
 	"Le macro non possono cambiare durante il combattimento (questa è una restrizione della Blizzard), quindi ogni macro per Pozioni e Pietre della Salute è pre-costruita con il tuo miglior oggetto più fino a due alternative. Nei combattimenti più lunghi, l'icona e il tooltip possono diventare obsoleti e mostrare l'oggetto sbagliato, ma cliccando sulla macro verrà sempre utilizzato il miglior oggetto che hai effettivamente nelle borse."
-L["OPTIONS_COMBINE_HEALTHSTONES"] = "Combina le Pietre della Salute nella macro della Pozione di Salute"
+L["OPTIONS_COMBINE_HEALTHSTONES"] = "Combina le Pietre della Salute nella macro Pozione di Salute"
 L["OPTIONS_COMBINE_HEALTHSTONES_DESCRIPTION"] =
-	"Aggiunge la tua migliore Pietra della Salute in fondo alla macro della Pozione di Salute, così una singola pressione usa una pozione e una Pietra della Salute."
+	"Aggiunge la tua migliore Pietra della Salute in fondo alla macro Pozione di Salute, così una singola pressione usa una pozione e una Pietra della Salute."
 
 -- Mana Gems & Runes
 L["OPTIONS_MANA_GEMS_HEADER"] = "Gemme di Mana e rune"
@@ -463,12 +464,12 @@ L["OPTIONS_READINESS_EXPIRING_THRESHOLD_DESCRIPTION"] =
 -- Missing Items
 L["OPTIONS_READINESS_HEALTHSTONE_DESCRIPTION"] =
 	"Mostrato solo quando c'è uno Stregone nel gruppo a cui chiederla, o quando lo Stregone sei tu."
-L["OPTIONS_READINESS_MANA_GEM_DESCRIPTION"] = "Mostrato solo quando giochi un Mago."
+L["OPTIONS_READINESS_MANA_GEM_DESCRIPTION"] = "Mostrato solo quando giochi con un Mago."
 L["OPTIONS_READINESS_HEALING_POTION_DESCRIPTION"] =
 	"Conviene farne scorta prima dello scontro, perché nessuno può passarti una pozione in pieno combattimento."
-L["OPTIONS_READINESS_MANA_POTION_DESCRIPTION"] = "Mostrato solo quando giochi una classe che usa mana."
+L["OPTIONS_READINESS_MANA_POTION_DESCRIPTION"] = "Mostrato solo quando giochi con una classe che usa il mana."
 L["OPTIONS_READINESS_BANDAGES_DESCRIPTION"] =
-	"Segnala quando non ne hai nessuna utilizzabile, tenendo conto della tua competenza in Primo Soccorso."
+	"Segnala quando non porti con te nessuna benda che la tua abilità in Primo Soccorso ti permetta di usare."
 L["OPTIONS_READINESS_DURABILITY"] = "Equipaggiamento danneggiato sotto"
 L["OPTIONS_READINESS_DURABILITY_DESCRIPTION"] =
 	"Mostra il collegamento di ogni oggetto equipaggiato con integrità inferiore a questa soglia, calcolata oggetto per oggetto, così compare anche una sola arma rotta."
@@ -614,7 +615,7 @@ L["OPTIONS_STEALTH_EATING_ROGUE_DESCRIPTION"] =
 ]]
 L["TAB_RESTOCKER"] = "Restocker"
 L["OPTIONS_RESTOCKER_DESCRIPTION"] =
-	"Mantiene rifornite le tue borse in base a una lista di rifornimento per personaggio, comprando dai mercanti e spostando automaticamente gli oggetti da e verso la banca. Digita %s per aprire la lista."
+	"Mantiene rifornite le tue borse in base alla tua lista di rifornimento, comprando dai mercanti e spostando automaticamente gli oggetti da e verso la banca. Digita %s per aprire la lista."
 L["OPTIONS_RESTOCKER_OPEN_BANK"] = "Apri in banca"
 L["OPTIONS_RESTOCKER_OPEN_BANK_DESCRIPTION"] = "Apre la finestra di Restocker quando visiti la banca."
 L["OPTIONS_RESTOCKER_OPEN_MERCHANT"] = "Apri dal mercante"
@@ -690,7 +691,7 @@ L["OPTIONS_MACROS_DESCRIPTION"] =
 	"Connoisseur crea una macro per ogni consumabile e la tiene aggiornata mentre le tue borse cambiano, così il pulsante sulla barra punta sempre al miglior oggetto che stai portando. Scegli qui sotto quali macro creare, poi imposta come ciascuna sceglie il suo oggetto."
 L["OPTIONS_ENABLE_MACROS_HEADER"] = "Attiva macro"
 L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] =
-	"Scegli quali macro Connoisseur deve creare e mantenere. Disattivare una macro la rimuoverà anche."
+	"Scegli quali macro Connoisseur crea e mantiene. Disattivarne una la rimuove anche."
 -- Hover text on each Enable Macros toggle; %s is the consumable's label (LABEL_*).
 L["OPTIONS_MACRO_TOGGLE_DESCRIPTION"] = "Crea e mantiene la macro %s e la rimuove quando togli la spunta."
 
@@ -739,7 +740,7 @@ L["RESTOCKER_BAGS_FULL_SKIP_MERCHANT"] = "Le tue borse sono piene. Rifornimento 
 L["RESTOCKER_REAGENTS_SKIPPED"] =
 	"Questo mercante non vende tutti gli ingredienti necessari ai tuoi veleni. Non ne verrà comprato nessuno."
 -- Printed on reaching an inn or a city while the Restock List is short of something.
-L["RESTOCKER_TOWN_REMINDER"] = "Non dimenticare di rifornirti mentre sei in città!"
+L["RESTOCKER_TOWN_REMINDER"] = "Non dimenticare di fare rifornimento mentre sei in città!"
 
 --[[
     Headline for the merchant and bank reminders, which report on the way out
@@ -860,7 +861,7 @@ L["STARTER_POPUP_ARROWS"] = "Frecce"
     rank carry the rest -- and LABEL_POISONS ("Poison", singular) belongs to
     the no-item message and the Enable Macros tooltips, and is not reused
     here. The other reagent labels are kept inside about fifteen characters so
-    they hold the popup's reagent-row label cell.
+    they hold the pop-up's reagent-row label cell.
 ]]
 L["STARTER_POPUP_REAGENTS_HEADER"] = "Reagenti e strumenti"
 L["STARTER_POPUP_POISONS_HEADER"] = "Veleni"
@@ -902,7 +903,7 @@ L["STARTER_POPUP_REAGENT_SOUL_SHARDS"] = "Frammenti d'anima"
     the second for single-tier reagents, which never upgrade.
 ]]
 L["STARTER_POPUP_ITEM_DESCRIPTION"] =
-	"Aggiunge %s alla tua lista di rifornimento, tenendone %d nelle borse e migliorandoli man mano che sali di livello."
+	"Aggiunge %s alla tua lista di rifornimento, mantenendone %d nelle borse e migliorandoli man mano che sali di livello."
 L["STARTER_POPUP_ITEM_DESCRIPTION_STATIC"] = "Aggiunge %s alla tua lista di rifornimento, mantenendone %d nelle borse."
 --[[
     The stacks dropdown beside each staple that takes an amount. The label is
@@ -937,7 +938,7 @@ L["RESTOCKER_ADD_TOOLTIP_BODY"] = "Trascina un oggetto dalle tue borse, oppure d
     Kept to a phrase rather than a sentence: both boxes on that row share a
     fixed width sized to this English hint, and a longer one is cut off.
 ]]
-L["RESTOCKER_ADD_PLACEHOLDER"] = "Trascina qui un oggetto o digita l'ID"
+L["RESTOCKER_ADD_PLACEHOLDER"] = "Trascina qui o digita l'ID"
 L["RESTOCKER_PROFILE_LABEL"] = "Lista"
 L["RESTOCKER_PROFILE_TOOLTIP"] =
 	"Clicca per assegnare a questo personaggio un'altra lista di rifornimento o per iniziarne una nuova."
@@ -950,7 +951,7 @@ L["RESTOCKER_COPY_PROFILE"] = "Copia"
     they take no terminal punctuation -- matching every other title in the
     window. Don't "restore" the period they read as wanting.
 ]]
-L["RESTOCKER_COPY_PROFILE_TOOLTIP"] = "Clona questa lista in una nuova"
+L["RESTOCKER_COPY_PROFILE_TOOLTIP"] = "Copia questa lista in una nuova"
 -- %s becomes "<list name> Copy"; numbered if that name is taken.
 L["RESTOCKER_PROFILE_COPY_NAME"] = "%s Copia"
 L["RESTOCKER_DELETE_PROFILE"] = "Elimina"
@@ -1015,7 +1016,7 @@ L["RESTOCKER_GROUP_ALL"] = "Tutti gli oggetti"
 -- Title slot, like the Copy and Delete tooltips above: no terminal period.
 L["RESTOCKER_REMOVE_TOOLTIP"] = "Rimuovi questo oggetto dalla lista di rifornimento"
 L["RESTOCKER_AMOUNT_TOOLTIP_TITLE"] = "Quantità da mantenere"
-L["RESTOCKER_AMOUNT_TOOLTIP_BODY"] = "Premi Invio quando hai finito."
+L["RESTOCKER_AMOUNT_TOOLTIP_BODY"] = "Premi Invio quando hai finito di modificare."
 L["RESTOCKER_BUY_LABEL"] = "Compra"
 L["RESTOCKER_BUY_TOOLTIP_TITLE"] = "Compra dal mercante"
 L["RESTOCKER_BUY_TOOLTIP_BODY"] =

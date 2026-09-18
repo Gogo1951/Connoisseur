@@ -51,9 +51,10 @@ L["LIST_SEPARATOR"] = ", "
 --------------------------------------------------------------------------------
 
 --[[
-    Diet names as returned by GetPetFoodTypes(), which is localized. These
-    values MUST match the client's strings exactly (verify in-game with
-    /dump GetPetFoodTypes() while a pet is out). Used to build
+    Diet names as returned by the pet diet reader, which is localized. These
+    values MUST match the client's strings exactly (verify in-game with a pet
+    out: /dump GetPetFoodTypes() on Era and TBC,
+    /dump C_PetInfo.GetPetFoodTypes() on Forever). Used to build
     ns.PET_DIET_MAP in Data/Pet-Foods.lua.
 
     They are ALSO the food checkbox labels in the Starter List pop-up, so they
@@ -79,7 +80,7 @@ L["MESSAGE_BUG_REPORT"] =
 	"버그를 발견한 것 같습니다! %s (%s) 아이템은 %s > %s (%s)에서 사용할 수 없습니다. 수정할 수 있도록 제보해 주세요. 감사합니다! %s"
 L["MESSAGE_NO_ITEM"] = "가방에서 적합한 %s 아이템을 찾지 못했습니다."
 L["MESSAGE_MACRO_SLOTS_FULL"] =
-	"매크로 슬롯이 가득 차서 일부 Connoisseur 매크로를 만들지 못했습니다. 더 이상 사용하지 않는 매크로를 삭제해 슬롯을 비우거나, 설정 > 애드온 > Connoisseur에서 필요 없는 Connoisseur 매크로를 끄세요."
+	"매크로 슬롯이 가득 차서 일부 Connoisseur 매크로를 만들지 못했습니다. 더 이상 사용하지 않는 매크로를 삭제해 슬롯을 비우거나, 설정 > 애드온 > Connoisseur > 매크로에서 필요 없는 Connoisseur 매크로를 끄세요."
 
 L["CHAT_LOADED"] =
 	"버전 %s. 설정(이 메시지 비활성화 옵션 포함)은 설정 > 애드온 > Connoisseur에서 찾을 수 있습니다. 애드온이 마음에 드시나요? 친구에게 알려주세요! (="
@@ -158,7 +159,7 @@ L["READINESS_UNSPENT_TALENTS_MANY"] = "미사용 특성 포인트 %d점"
 
 L["TIP_PET_NO_FOOD"] = "현재 소환수에게 줄 수 있는 적절한 먹이가 없습니다."
 L["TIP_PET_NO_SKILLS"] =
-	"현재 야수 부르기, 야수 소환 해제, 먹이주기 또는 야수 되살리기를 배우지 않았습니다."
+	"현재 야수 부르기, 야수 소환 해제, 먹이 주기 또는 야수 되살리기를 배우지 않았습니다."
 L["TIP_PET_NO_MEND"] = "현재 동물 치료를 배우지 않았습니다."
 L["TIP_NO_HAND_POISON"] = "이 무기용으로 선택한 독이 다 떨어졌습니다."
 
@@ -175,7 +176,7 @@ L["MENU_BUFF_FOOD_DESCRIPTION"] =
 	'"포만감" 버프가 없을 때 해당 버프를 주는 음식을 우선 사용합니다.'
 L["FEATURE_SCROLL_BUFFS"] = "두루마리 버프"
 L["MENU_SCROLL_BUFFS_DESCRIPTION"] =
-	"두루마리 버프가 없을 때 음식 매크로를 두루마리 적용기로 전환합니다."
+	"두루마리 버프가 없을 때 음식 매크로가 두루마리를 사용하도록 바꿉니다."
 
 -- Section titles and ignore-list actions in the mini-map tooltip.
 L["MINIMAP_BEST_FOOD"] = "현재 음식"
@@ -339,7 +340,7 @@ L["MODE_RAID"] = "공격대에 있을 때만"
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
-	"최고의 음식, 버프 음식, 물, 물약, 생명석, 붕대, 두루마리를 자동으로 사용하는 매크로에, 가방을 가득 채워 두고 레벨에 맞춰 소모품을 업그레이드해 주는 보충 목록까지. 편의성 자동화, 최고의 성능."
+	"최고의 음식, 버프 음식, 물, 물약, 생명석, 붕대, 두루마리를 자동으로 사용하는 매크로와, 가방을 가득 채워 두고 레벨에 맞춰 소모품을 업그레이드해 주는 보충 목록을 제공합니다. 최고의 성능을 위한 편의성 자동화입니다."
 
 -- Welcome Message
 L["OPTIONS_WELCOME_MESSAGE"] = "환영 메시지 활성화"
@@ -357,7 +358,7 @@ L["OPTIONS_MACRO_NAMES_DESCRIPTION"] =
 -- Potions & Healthstones
 L["OPTIONS_POTIONS_HEADER"] = "물약 및 생명석"
 L["OPTIONS_POTIONS_DESCRIPTION"] =
-	"전투 중에는 매크로를 변경할 수 없으므로(블리자드 제한 사항), 각 물약 및 생명석 매크로는 최고 아이템과 최대 2개의 예비 아이템으로 사전 구성됩니다. 긴 전투에서는 아이콘과 툴팁이 갱신되지 않아 잘못된 아이템을 표시할 수 있지만, 매크로를 클릭하면 항상 가방에 있는 실제 최고 아이템이 사용됩니다."
+	"전투 중에는 매크로를 변경할 수 없으므로(블리자드 제한 사항), 각 물약 및 생명석 매크로는 가장 좋은 아이템과 최대 2개의 예비 아이템으로 미리 구성됩니다. 긴 전투에서는 아이콘과 툴팁이 갱신되지 않아 잘못된 아이템을 표시할 수 있지만, 매크로를 클릭하면 항상 가방에 실제로 있는 가장 좋은 아이템을 사용합니다."
 L["OPTIONS_COMBINE_HEALTHSTONES"] = "생명석을 치유 물약 매크로에 결합"
 L["OPTIONS_COMBINE_HEALTHSTONES_DESCRIPTION"] =
 	"가장 좋은 생명석을 치유 물약 매크로의 하단에 추가하여, 한 번 누르면 물약과 생명석을 모두 사용합니다."
@@ -466,12 +467,13 @@ L["OPTIONS_READINESS_EXPIRING_THRESHOLD_DESCRIPTION"] =
 -- Missing Items
 L["OPTIONS_READINESS_HEALTHSTONE_DESCRIPTION"] =
 	"부탁할 흑마법사가 그룹에 있거나, 자신이 흑마법사일 때만 표시됩니다."
-L["OPTIONS_READINESS_MANA_GEM_DESCRIPTION"] = "마법사일 때만 표시됩니다."
+L["OPTIONS_READINESS_MANA_GEM_DESCRIPTION"] = "마법사로 플레이할 때만 표시됩니다."
 L["OPTIONS_READINESS_HEALING_POTION_DESCRIPTION"] =
 	"전투 중에는 아무도 물약을 건네줄 수 없으므로 전투 전에 채워 둘 만합니다."
-L["OPTIONS_READINESS_MANA_POTION_DESCRIPTION"] = "마나를 사용하는 직업일 때만 표시됩니다."
+L["OPTIONS_READINESS_MANA_POTION_DESCRIPTION"] =
+	"마나를 사용하는 직업으로 플레이할 때만 표시됩니다."
 L["OPTIONS_READINESS_BANDAGES_DESCRIPTION"] =
-	"응급치료 숙련도를 감안해, 사용할 수 있는 붕대가 하나도 없을 때 알려 줍니다."
+	"현재 응급치료 숙련도로 사용할 수 있는 붕대를 하나도 가지고 있지 않으면 알려 줍니다."
 L["OPTIONS_READINESS_DURABILITY"] = "손상된 장비 (내구도 기준)"
 L["OPTIONS_READINESS_DURABILITY_DESCRIPTION"] =
 	"내구도가 이 값보다 낮은 착용 장비를 모두 링크하며, 장비별로 측정하므로 무기 하나만 부서져도 표시됩니다."
@@ -617,7 +619,7 @@ L["OPTIONS_STEALTH_EATING_ROGUE_DESCRIPTION"] =
 ]]
 L["TAB_RESTOCKER"] = "Restocker"
 L["OPTIONS_RESTOCKER_DESCRIPTION"] =
-	"캐릭터별 보충 목록에 따라 가방을 채워 두며, 상인에게서 구매하고 은행과 가방 사이에서 아이템을 옮기는 작업을 자동으로 처리합니다. 목록을 열려면 %s 명령어를 입력하세요."
+	"보충 목록에 따라 가방을 채워 두며, 상인에게서 구매하고 은행과 가방 사이에서 아이템을 옮기는 작업을 자동으로 처리합니다. 목록을 열려면 %s 명령어를 입력하세요."
 L["OPTIONS_RESTOCKER_OPEN_BANK"] = "은행에서 열기"
 L["OPTIONS_RESTOCKER_OPEN_BANK_DESCRIPTION"] = "은행을 방문하면 Restocker 창을 엽니다."
 L["OPTIONS_RESTOCKER_OPEN_MERCHANT"] = "상인에게서 열기"
@@ -693,7 +695,7 @@ L["OPTIONS_MACROS_DESCRIPTION"] =
 	"Connoisseur는 소모품마다 매크로를 하나씩 만들고 가방이 바뀔 때마다 최신 상태로 유지하므로, 바에 놓인 버튼은 항상 지금 가진 최고의 아이템을 집습니다. 아래에서 만들 매크로를 고른 다음, 각 매크로가 아이템을 고르는 방식을 설정하세요."
 L["OPTIONS_ENABLE_MACROS_HEADER"] = "매크로 활성화"
 L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] =
-	"Connoisseur가 생성하고 관리할 매크로를 선택합니다. 매크로를 비활성화하면 해당 매크로도 삭제됩니다."
+	"Connoisseur가 생성하고 관리할 매크로를 선택하세요. 매크로를 끄면 해당 매크로도 삭제됩니다."
 -- Hover text on each Enable Macros toggle; %s is the consumable's label (LABEL_*).
 L["OPTIONS_MACRO_TOGGLE_DESCRIPTION"] =
 	"%s 매크로를 생성하고 관리하며, 체크를 해제하면 삭제합니다."
@@ -744,7 +746,7 @@ L["RESTOCKER_BAGS_FULL_SKIP_MERCHANT"] = "가방이 가득 찼습니다. 상인 
 L["RESTOCKER_REAGENTS_SKIPPED"] =
 	"이 상인은 독에 필요한 재료를 전부 취급하지는 않습니다. 재료 구매를 모두 건너뜁니다."
 -- Printed on reaching an inn or a city while the Restock List is short of something.
-L["RESTOCKER_TOWN_REMINDER"] = "마을에 있는 동안 보충하는 것을 잊지 마세요!"
+L["RESTOCKER_TOWN_REMINDER"] = "마을에 있는 동안 잊지 말고 보충하세요!"
 
 --[[
     Headline for the merchant and bank reminders, which report on the way out
@@ -778,7 +780,7 @@ L["RESTOCKER_STILL_SHORT_MANY"] = "보충 주문 %d건이 남아 있습니다."
     sum rather than the old amount moved across.
 ]]
 L["RESTOCKER_UPGRADED"] = "보충 목록이 업그레이드되었습니다."
-L["RESTOCKER_UPGRADED_ITEM"] = "%sx%d을(를) %sx%d(으)로 업그레이드."
+L["RESTOCKER_UPGRADED_ITEM"] = "%sx%d에서 %sx%d(으)로 업그레이드되었습니다."
 
 --[[
     Verbose follow-up line, one per short item: { have, wanted, item link }.
@@ -865,7 +867,7 @@ L["STARTER_POPUP_ARROWS"] = "화살"
     rank carry the rest -- and LABEL_POISONS ("Poison", singular) belongs to
     the no-item message and the Enable Macros tooltips, and is not reused
     here. The other reagent labels are kept inside about fifteen characters so
-    they hold the popup's reagent-row label cell.
+    they hold the pop-up's reagent-row label cell.
 ]]
 L["STARTER_POPUP_REAGENTS_HEADER"] = "재료 및 도구"
 L["STARTER_POPUP_POISONS_HEADER"] = "독"
@@ -957,7 +959,7 @@ L["RESTOCKER_COPY_PROFILE"] = "복사"
     they take no terminal punctuation -- matching every other title in the
     window. Don't "restore" the period they read as wanting.
 ]]
-L["RESTOCKER_COPY_PROFILE_TOOLTIP"] = "이 목록을 새 목록으로 복제"
+L["RESTOCKER_COPY_PROFILE_TOOLTIP"] = "이 목록을 새 목록으로 복사"
 -- %s becomes "<list name> Copy"; numbered if that name is taken.
 L["RESTOCKER_PROFILE_COPY_NAME"] = "%s 복사본"
 L["RESTOCKER_DELETE_PROFILE"] = "삭제"
@@ -1034,8 +1036,8 @@ L["RESTOCKER_BUY_TOOLTIP_BODY"] = "상인 창이 열려 있을 때 상인에게�
     rather than buying the shortfall, so the tooltip has to say what it buys and
     that only limited stock counts.
 ]]
-L["RESTOCKER_EXTRA_LABEL"] = "추가"
-L["RESTOCKER_EXTRA_TOOLTIP_TITLE"] = "추가 구매"
+L["RESTOCKER_EXTRA_LABEL"] = "여분"
+L["RESTOCKER_EXTRA_TOOLTIP_TITLE"] = "여분 구매"
 L["RESTOCKER_EXTRA_TOOLTIP_STOCK"] =
 	"상인이 가진 이 아이템의 한정 재고, 즉 조금씩 천천히 다시 채워지는 상품을 목표 수량을 넘더라도 모두 구매합니다."
 L["RESTOCKER_DEPOSIT_TOOLTIP_TITLE"] = "은행에 보관"

@@ -58,9 +58,8 @@ local function ItemToString(item)
 	-- buyFromMerchant defaults to true (nil), so only false is "off"
 	parts[#parts + 1] = (item.buyFromMerchant == false) and 0 or 1
 	--[[
-	    Both trailing fields go out every time now. Writing reaction only when set
-	    worked while it was last, but upgrade sits behind it, and an optional field
-	    in the middle would shift the one after it.
+	    Both trailing fields go out every time. Upgrade sits behind reaction, so
+	    writing reaction only when set would shift upgrade into its position.
 	]]
 	parts[#parts + 1] = (item.reaction and item.reaction > 0) and item.reaction or 0
 	-- upgrade defaults to true (nil), so only false is "off"

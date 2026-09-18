@@ -210,7 +210,7 @@ local function VendorStocksAllReagents(craftingPurchaseOrder)
 
 	local stockedCount = 0
 	for i = 1, GetMerchantNumItems() do
-		local itemName, _, _, _, numAvailable = GetMerchantItemInfo(i)
+		local itemName, _, _, _, numAvailable = ns.GetMerchantItemInfo(i)
 		if itemName and needed[itemName] and (numAvailable == -1 or numAvailable > 0) then
 			needed[itemName] = nil -- count each reagent once, however many slots carry it
 			stockedCount = stockedCount + 1
@@ -241,7 +241,7 @@ end
     this vendor did not stock without re-reading those bag counts.
 ]]
 local function PurchaseMerchantItem(i, purchaseOrders)
-	local itemName, _, _, _, merchantAvailable, _, _ = GetMerchantItemInfo(i)
+	local itemName, _, _, _, merchantAvailable = ns.GetMerchantItemInfo(i)
 	local itemLink = GetMerchantItemLink(i)
 
 	local buyItem = purchaseOrders[itemName]
@@ -263,12 +263,12 @@ local function PurchaseMerchantItem(i, purchaseOrders)
 		    HOW MUCH TO ASK FOR
 
 		    BuyMerchantItem will not sell more than one stack per call, which is what
-		    the stackCount loop below is for. Capping against the vendor's stock used
-		    to bypass that loop and pass merchantAvailable through in a single call,
-		    so a limited slot holding more than one stack -- a poison supplier's
-		    reagents, exactly the case this path exists for -- had its call rejected
-		    and still credited the full amount, reporting an order filled that never
-		    arrived. Settling the target first lets one chunked loop serve every case.
+		    the stackCount loop below is for. Every purchase must go through that
+		    loop, capped ones included: a single call for a limited slot holding more
+		    than one stack -- a poison supplier's reagents, exactly the case this path
+		    exists for -- is rejected, yet would still credit the full amount and
+		    report an order filled that never arrived. Settling the target first lets
+		    one chunked loop serve every case.
 
 		    A positive numAvailable is a LIMITED slot: a fixed few units that trickle
 		    back over time. Unlimited stock reports -1 and sold out reports 0, so that

@@ -291,11 +291,7 @@ UpdateTooltip = function(anchor)
 			AddSpacedLines(tooltip, descriptionColor, tips)
 		end
 	elseif playerClass == "ROGUE" and ns.POISONS_SPELL_ID then
-		local knowsPoisons = IsSpellKnown(ns.POISONS_SPELL_ID)
-		if not knowsPoisons and IsPlayerSpell then
-			knowsPoisons = IsPlayerSpell(ns.POISONS_SPELL_ID)
-		end
-		if knowsPoisons then
+		if ns.IsSpellKnown(ns.POISONS_SPELL_ID) or ns.IsPlayerSpell(ns.POISONS_SPELL_ID) then
 			local classColor = GetClassColorEscape("ROGUE")
 			tooltip:AddLine(" ")
 			tooltip:AddLine(classColor .. L["PREFIX_ROGUE"] .. "|r")

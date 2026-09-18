@@ -238,8 +238,8 @@ function ns.OnRestockerEnteringWorld(isInitialLogin, isReloadingUi)
 	    Catch-up for a list that is behind the player's level. A ding is not the
 	    only way that happens -- levels gained with the add-on disabled, a profile
 	    copied off a higher character, a ding that arrived while the list was
-	    mid-load -- and before this ran, a single missed level-up stranded the
-	    entry for good, since nothing else re-checked.
+	    mid-load -- and without this, a single missed level-up would strand the
+	    entry for good, since nothing else re-checks.
 
 	    Safe here: ns.InflateSavedRestockItems has already turned the saved one-line entries back
 	    into tables (it runs at PLAYER_LOGIN, ahead of this event), and the check

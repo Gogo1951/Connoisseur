@@ -22,6 +22,7 @@ local L = ns.L
     ConnoisseurNoItem call ns.PrintMessage) and after Data (reads
     ns.TIP_MESSAGES, ns.MISSING_SPELL_MESSAGE_IDS, ns.MACRO_CONFIG).
 ]]
+
 --[[
     Transport between the /run snippet in consumable macros and the
     UI_ERROR_MESSAGE handler in Core. The macro writes lastID and lastTime so a
@@ -79,7 +80,7 @@ end
     Resolves a ConnoisseurTip key to its display text. Static messages come from
     ns.TIP_MESSAGES; "you don't know <spell>" keys come from
     ns.MISSING_SPELL_MESSAGE_IDS and are rendered with the localized spell name via
-    GetSpellInfo at print time. A spell that doesn't exist on the current client
+    C_Spell.GetSpellName at print time. A spell that doesn't exist on the current client
     returns nil here so ConnoisseurTip silently skips rather than naming a spell the
     player will never see.
 ]]
@@ -88,7 +89,7 @@ local function ResolveTipText(key)
 		return ns.TIP_MESSAGES[key]
 	end
 	if ns.MISSING_SPELL_MESSAGE_IDS and ns.MISSING_SPELL_MESSAGE_IDS[key] then
-		local name = GetSpellInfo(ns.MISSING_SPELL_MESSAGE_IDS[key])
+		local name = C_Spell.GetSpellName(ns.MISSING_SPELL_MESSAGE_IDS[key])
 		if not name then
 			return nil
 		end

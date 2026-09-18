@@ -150,14 +150,17 @@ ns.MODE_VALUES = {
     repaints the panel as answers land. NotifyChange fires only when the cold
     count actually drops, so a repaint always means a row changed; the attempt
     cap means an id the server never answers for (a removed item) stops polling
-    instead of spinning forever. One chain per registry name at a time: the
-    repaint re-enters this function with the still-cold ids, and the pending flag
-    keeps that from stacking a second chain of timers on top of the first.
+    instead of spinning forever. One chain per registry name at a time, polling
+    that registry's pending set: a call while the chain runs (the repaint
+    re-entering with the still-cold ids, or a row added mid-load) merges its ids
+    into the set rather than stacking a second chain, and a genuinely new id
+    restarts the attempt budget so it gets polled as long as the first ones did.
 ]]
 local WARM_RETRY_SECONDS = 0.5
 local WARM_MAX_ATTEMPTS = 10
 
-local warmingPending = {}
+-- registryName -> { ids = { [itemID] = true }, attempts = n }, present while a chain runs.
+local warming = {}
 
 function ns.WarmItemCache(itemIDs, registryName)
 	if not (itemIDs and itemIDs[1] and registryName) then
@@ -170,33 +173,42 @@ function ns.WarmItemCache(itemIDs, registryName)
 		end
 	end
 
-	if warmingPending[registryName] then
+	local chain = warming[registryName]
+	if chain then
+		for _, itemID in ipairs(itemIDs) do
+			if not chain.ids[itemID] then
+				chain.ids[itemID] = true
+				chain.attempts = 0
+			end
+		end
 		return
 	end
-	warmingPending[registryName] = true
 
-	local coldCount = #itemIDs
-	local attempts = 0
+	chain = { ids = {}, attempts = 0 }
+	for _, itemID in ipairs(itemIDs) do
+		chain.ids[itemID] = true
+	end
+	warming[registryName] = chain
 
 	local function Poll()
-		attempts = attempts + 1
+		chain.attempts = chain.attempts + 1
 
-		local stillCold = 0
-		for _, itemID in ipairs(itemIDs) do
-			if not C_Item.GetItemInfo(itemID) then
-				stillCold = stillCold + 1
+		local warmed = false
+		for itemID in pairs(chain.ids) do
+			if C_Item.GetItemInfo(itemID) then
+				chain.ids[itemID] = nil
+				warmed = true
 			end
 		end
 
-		if stillCold < coldCount then
-			coldCount = stillCold
+		if warmed then
 			AceConfigRegistry:NotifyChange(registryName)
 		end
 
-		if stillCold > 0 and attempts < WARM_MAX_ATTEMPTS then
+		if next(chain.ids) ~= nil and chain.attempts < WARM_MAX_ATTEMPTS then
 			C_Timer.After(WARM_RETRY_SECONDS, Poll)
 		else
-			warmingPending[registryName] = nil
+			warming[registryName] = nil
 		end
 	end
 

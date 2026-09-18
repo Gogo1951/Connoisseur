@@ -17,30 +17,20 @@ ns.L = LibStub("AceLocale-3.0"):GetLocale(ns.LOCALE_NAME)
 -- Brand Colors
 --------------------------------------------------------------------------------
 
-local C_TITLE = "FFD100" -- Gold: Titles, Headers, Section Names
-local C_INFO = "00BBFF" -- Blue: Interactions, Toggles, Links, Keybinds, Slash Commands
-local C_BODY = "FFFFFF" -- White: Descriptions, Options Body Text
-local C_HELP = "CCCCCC" -- Silver: Pro Tips, Helper Text
-local C_TEXT = "FFFFFF" -- White: Messages, Values, Spell Names
-local C_ON = "33CC33" -- Green: On
-local C_OFF = "CC3333" -- Red: Off
-local C_SEPARATOR = "AAAAAA" -- Gray: Separators, Dividers
-local C_MUTED = "808080" -- Dark Gray: Meta-data, Version Numbers
-
 --[[
     Raw hex palette. Features/Utilities.lua derives the |cff-prefixed COLORS
     table and the ns.GetColor accessor from this, keeping Data files logic-free.
 ]]
 ns.PALETTE = {
-	TITLE = C_TITLE,
-	INFO = C_INFO,
-	BODY = C_BODY,
-	HELP = C_HELP,
-	TEXT = C_TEXT,
-	ON = C_ON,
-	OFF = C_OFF,
-	SEPARATOR = C_SEPARATOR,
-	MUTED = C_MUTED,
+	TITLE = "FFD100", -- Gold: Titles, Headers, Section Names, Field Titles
+	INFO = "00BBFF", -- Blue: Interactions, Toggles, Links, Keybinds, Slash Commands
+	BODY = "FFFFFF", -- White: Descriptions, Options Body Text
+	HELP = "CCCCCC", -- Silver: Pro Tips, Helper Text
+	TEXT = "FFFFFF", -- White: Messages, Values, Spell Names
+	ON = "33CC33", -- Green: On
+	OFF = "CC3333", -- Red: Off
+	SEPARATOR = "AAAAAA", -- Gray: Separators, Dividers
+	MUTED = "808080", -- Dark Gray: Meta-data, Version Numbers
 }
 
 --------------------------------------------------------------------------------
@@ -219,7 +209,7 @@ ns.MACRO_BODY_MAX_LENGTH = 255
 ns.SHADOWMELD_SPELL_ID = 20580
 
 --[[
-    Rogue Stealth, rank 1. GetSpellInfo resolves the base name "Stealth", which
+    Rogue Stealth, rank 1. C_Spell.GetSpellName resolves the base name "Stealth", which
     a bare /cast fires at the highest rank the rogue knows (Stealth Eating).
 ]]
 ns.STEALTH_SPELL_ID = 1784
@@ -261,10 +251,10 @@ ns.DRUID_MACRO_HELPER_GUARDS = {
     ConnoisseurTip (in Features/Macros/Runtime.lua) consults two tables:
       ns.TIP_MESSAGES        → static message text
       ns.MISSING_SPELL_MESSAGE_IDS → spell IDs that ConnoisseurTip resolves at print time
-                                   via GetSpellInfo, producing "You don't
+                                   via C_Spell.GetSpellName, producing "You don't
                                    currently know <Localized Spell Name>."
     A spell ID that doesn't exist on the current client (e.g. Refreshment
-    Table in Era 1.15) returns nil from GetSpellInfo, so ConnoisseurTip silently
+    Table in Era 1.15) returns nil from C_Spell.GetSpellName, so ConnoisseurTip silently
     skips the print rather than naming a spell the player will never see.
 ]]
 ns.TIP_MESSAGES = {
@@ -384,7 +374,7 @@ ns.MODE_ORDER = { "always", "party", "raid" }
 
     rankIsTBCOnly  The rank column is a TBC-only representation;
                    GetSmartSpell leaves this list's spell names bare
-                   (no "(Rank N)" suffix) only when ns.IS_ERA.
+                   (no "(Rank N)" suffix) only on Era and Forever.
 ]]
 ns.CONJURE_SPELLS = {
 	MageCreateTable = {
@@ -448,8 +438,8 @@ ns.CONJURE_SPELLS = {
 		    RECURRING BUG — this has broken Era three times; read before
 		    touching this table, WarlockCreateSoulstone, or GetSmartSpell.
 		    The warlock stones are represented DIFFERENTLY per flavor:
-		      • Era:  each tier is its own distinctly-named spell, so
-		              GetSpellInfo already returns the fully-qualified name
+		      • Era and Forever:  each tier is its own distinctly-named spell, so
+		              C_Spell.GetSpellName already returns the fully-qualified name
 		              ("Create Healthstone (Minor)"). It must be cast bare —
 		              appending "(Rank N)" yields "Create Healthstone
 		              (Minor)(Rank 1)", a spell that does not exist, and the

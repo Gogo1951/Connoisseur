@@ -26,18 +26,14 @@ local MACRO_CONFIG = ns.MACRO_CONFIG
 
 --[[
     Resolves each pet spell's name only if the player actually knows the spell.
-    GetSpellInfo returns a name even for unlearned spells, so a level-8 hunter
+    C_Spell.GetSpellName returns a name even for unlearned spells, so a level-8 hunter
     without Mend Pet would otherwise get a macro referencing a spell they can't
     cast. Core re-runs this on PLAYER_LEVEL_UP and SPELLS_CHANGED so a
     newly-learned spell (Mend Pet at 12) starts participating without a /reload.
 ]]
 local function ResolveIfKnown(spellID)
-	local known = IsSpellKnown(spellID)
-	if not known and IsPlayerSpell then
-		known = IsPlayerSpell(spellID)
-	end
-	if known then
-		return GetSpellInfo(spellID)
+	if ns.IsSpellKnown(spellID) or ns.IsPlayerSpell(spellID) then
+		return C_Spell.GetSpellName(spellID)
 	end
 	return nil
 end
@@ -69,10 +65,10 @@ local activeQuestIDs = {}
 
 local function BuildActiveQuestSet()
 	wipe(activeQuestIDs)
-	for questIndex = 1, GetNumQuestLogEntries() do
-		local _, _, _, isHeader, _, _, _, questID = GetQuestLogTitle(questIndex)
+	for questIndex = 1, ns.GetNumQuestLogEntries() do
+		local questID = ns.GetQuestLogQuestID(questIndex)
 		-- Include completed-but-not-turned-in quests too: turn-in still consumes the items.
-		if not isHeader and questID then
+		if questID then
 			activeQuestIDs[questID] = true
 		end
 	end
@@ -143,9 +139,9 @@ end
     Every food's own facts (itemLevel, dietID, sellPrice, questIDs) come from
     the stored ns.PET_FOOD_DATA table, and what is in the bags comes from
     ns.scannedItemCounts / ns.scannedItemLinks -- the walk ns.ScanBags just
-    finished in this same update pass. Walking the containers again here cost a
-    second full pass per rebuild on every Hunter with a pet out. No server
-    queries are needed either way.
+    finished in this same update pass. Walking the containers again here would
+    cost a second full pass per rebuild on every Hunter with a pet out. No
+    server queries are needed.
 
     Quest objective foods are skipped whenever the player has that quest in
     their log (including completed-but-not-turned-in), since turn-in consumes
@@ -171,7 +167,7 @@ function ns.ScanPetFood()
 	end
 
 	-- Build a set of diet IDs the current pet accepts
-	local petDiets = { GetPetFoodTypes() }
+	local petDiets = ns.GetPetFoodTypes()
 	if not petDiets or #petDiets == 0 then
 		return
 	end
@@ -458,7 +454,7 @@ end
     a truncated body silently drops the feed. The ceiling is
     ns.MACRO_BODY_MAX_LENGTH (Data/Data.lua), measured in bytes for the reason
     kept there. The Tier B/C cast cascade names up to five pet spells, and
-    GetSpellInfo returns CLIENT-localized names, so a body that fits in enUS
+    C_Spell.GetSpellName returns CLIENT-localized names, so a body that fits in enUS
     (Tier C is ~196 bytes) overflows in multibyte locales: ruRU pet-spell names
     run roughly double the byte cost and push Tier B/C past 300 bytes.
 
@@ -600,7 +596,7 @@ local function UpdateFeedPetMacro(forced)
 	    for any of them — not just Feed Pet — collapses to the print-only
 	    stub (Tier A). The four spells normally arrive together with the
 	    level-10 pet quests, but this also covers a hunter mid-quest-chain
-	    and any transient SPELLS_CHANGED timing where IsSpellKnown hasn't
+	    and any transient SPELLS_CHANGED timing where ns.IsSpellKnown hasn't
 	    caught up; the next SPELLS_CHANGED rebuild promotes the tier. Mend
 	    Pet absence is the common transient state for a level-10/11 hunter
 	    who hasn't trained the level-12 spell yet.
@@ -659,7 +655,7 @@ ns.RegisterMacroType({
 		    ns.bestPetFoodLink are published state with readers that stay live
 		    whether or not the macro is built -- the mini-map tooltip's pet-food
 		    row and two Diagnostics reports. Scanning only when the macro is on
-		    froze all three at whatever the last enabled pass left behind. It
+		    would freeze all three at whatever the last enabled pass left. It
 		    costs nothing extra: the scan reads ns.scannedItemCounts, which
 		    ns.ScanBags refilled earlier in this same update pass.
 		]]

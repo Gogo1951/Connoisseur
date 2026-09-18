@@ -51,9 +51,10 @@ L["LIST_SEPARATOR"] = "、"
 --------------------------------------------------------------------------------
 
 --[[
-    Diet names as returned by GetPetFoodTypes(), which is localized. These
-    values MUST match the client's strings exactly (verify in-game with
-    /dump GetPetFoodTypes() while a pet is out). Used to build
+    Diet names as returned by the pet diet reader, which is localized. These
+    values MUST match the client's strings exactly (verify in-game with a pet
+    out: /dump GetPetFoodTypes() on Era and TBC,
+    /dump C_PetInfo.GetPetFoodTypes() on Forever). Used to build
     ns.PET_DIET_MAP in Data/Pet-Foods.lua.
 
     They are ALSO the food checkbox labels in the Starter List pop-up, so they
@@ -79,7 +80,7 @@ L["MESSAGE_BUG_REPORT"] =
 	"看来你发现了一个错误！%s (%s) 无法在 %s > %s (%s) 使用。请将此问题报告给我们，以便修复。谢谢！%s"
 L["MESSAGE_NO_ITEM"] = "背包中未找到合适的%s。"
 L["MESSAGE_MACRO_SLOTS_FULL"] =
-	"由于你的宏栏位已满，部分 Connoisseur 宏未能创建。请删除不再使用的宏以腾出栏位，或在 选项 > 插件 > Connoisseur 中关闭不需要的 Connoisseur 宏。"
+	"由于你的宏栏位已满，部分 Connoisseur 宏未能创建。请删除不再使用的宏以腾出栏位，或在 选项 > 插件 > Connoisseur > 宏 中关闭不需要的 Connoisseur 宏。"
 
 L["CHAT_LOADED"] =
 	"版本 %s。设置（包括禁用此消息的选项）可以在 选项 > 插件 > Connoisseur 中找到。喜欢这个插件吗？告诉朋友吧！(="
@@ -268,9 +269,9 @@ L["TIP_MAGE_GEM"] =
 	"右键点击你的法力宝石宏以制造一颗新的宝石。再次右键点击以制造一颗低等级备用宝石。"
 
 L["TIP_WARLOCK_HEALTHSTONE"] =
-	"右键点击你的治疗石宏以制造治疗石。再次右键点击以制造一颗低等级备用治疗石。"
+	"右键点击你的治疗石宏以施放制造治疗石。再次右键点击以制造一颗低等级备用治疗石。"
 L["TIP_WARLOCK_DOWNRANK"] = "以等级较低的玩家为目标时，将制造适合其等级的治疗石。"
-L["TIP_WARLOCK_SOULSTONE"] = "右键点击你的灵魂石宏以制造灵魂石。"
+L["TIP_WARLOCK_SOULSTONE"] = "右键点击你的灵魂石宏以施放制造灵魂石。"
 L["TIP_WARLOCK_SOUL"] = "中键点击你的治疗石宏以施放灵魂仪式。"
 
 L["TIP_ROGUE_OFF_HAND"] = "左键点击涂抹你的副手毒药。"
@@ -331,7 +332,7 @@ L["MODE_RAID"] = "仅在团队中"
 --------------------------------------------------------------------------------
 
 L["OPTIONS_DESCRIPTION"] =
-	"自动取用你最好的食物、增益食物、水、药水、治疗石、绷带和卷轴的宏，外加一份补货清单，让你的背包始终充足，并随着你升级自动升级消耗品。便利性自动化，巅峰表现。"
+	"自动取用你最好的食物、增益食物、水、药水、治疗石、绷带和卷轴的宏，外加一份补货清单，让你的背包始终充足，并随着你升级自动升级消耗品。为巅峰表现打造的便利性自动化。"
 
 -- Welcome Message
 L["OPTIONS_WELCOME_MESSAGE"] = "启用欢迎消息"
@@ -457,11 +458,11 @@ L["OPTIONS_READINESS_EXPIRING_THRESHOLD_DESCRIPTION"] =
 -- Missing Items
 L["OPTIONS_READINESS_HEALTHSTONE_DESCRIPTION"] =
 	"仅当队伍中有可以索要的术士，或你自己就是术士时才显示。"
-L["OPTIONS_READINESS_MANA_GEM_DESCRIPTION"] = "仅当你使用法师时显示。"
+L["OPTIONS_READINESS_MANA_GEM_DESCRIPTION"] = "仅当你的角色是法师时显示。"
 L["OPTIONS_READINESS_HEALING_POTION_DESCRIPTION"] =
 	"值得在开怪前备好，因为战斗中没人能递给你药水。"
-L["OPTIONS_READINESS_MANA_POTION_DESCRIPTION"] = "仅当你使用需要法力的职业时显示。"
-L["OPTIONS_READINESS_BANDAGES_DESCRIPTION"] = "在你没有任何可用绷带时提醒，急救技能也计算在内。"
+L["OPTIONS_READINESS_MANA_POTION_DESCRIPTION"] = "仅当你的角色是使用法力的职业时显示。"
+L["OPTIONS_READINESS_BANDAGES_DESCRIPTION"] = "当你身上没有急救技能允许使用的绷带时提醒。"
 L["OPTIONS_READINESS_DURABILITY"] = "受损装备低于"
 L["OPTIONS_READINESS_DURABILITY_DESCRIPTION"] =
 	"链接耐久度低于该值的每件已装备物品；按单件计算，因此即使只有一把武器损坏也会显示。"
@@ -599,7 +600,7 @@ L["OPTIONS_STEALTH_EATING_ROGUE_DESCRIPTION"] = "将潜行添加到你的食物�
 ]]
 L["TAB_RESTOCKER"] = "Restocker"
 L["OPTIONS_RESTOCKER_DESCRIPTION"] =
-	"根据每个角色各自的补货清单保持背包物资充足，自动向商人购买，并在背包与银行之间搬运物品。输入 %s 打开清单。"
+	"根据你的补货清单保持背包物资充足，自动向商人购买，并在背包与银行之间搬运物品。输入 %s 打开清单。"
 L["OPTIONS_RESTOCKER_OPEN_BANK"] = "在银行打开"
 L["OPTIONS_RESTOCKER_OPEN_BANK_DESCRIPTION"] = "访问银行时打开 Restocker 窗口。"
 L["OPTIONS_RESTOCKER_OPEN_MERCHANT"] = "在商人处打开"
@@ -672,7 +673,7 @@ L["OPTIONS_MACROS_DESCRIPTION"] =
 	"Connoisseur 会为每种消耗品各建立一个宏，并随着背包变化保持更新，让你动作条上的按钮始终取用你身上最好的物品。请在下方选择要创建哪些宏，然后设置每个宏如何挑选物品。"
 L["OPTIONS_ENABLE_MACROS_HEADER"] = "启用宏"
 L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] =
-	"选择 Connoisseur 要创建并维护哪些宏。禁用一个宏也会将其移除。"
+	"选择 Connoisseur 要创建并维护哪些宏。关闭某个宏也会将其移除。"
 -- Hover text on each Enable Macros toggle; %s is the consumable's label (LABEL_*).
 L["OPTIONS_MACRO_TOGGLE_DESCRIPTION"] = "创建并维护%s宏，取消勾选时会将其移除。"
 
@@ -839,7 +840,7 @@ L["STARTER_POPUP_ARROWS"] = "箭矢"
     rank carry the rest -- and LABEL_POISONS ("Poison", singular) belongs to
     the no-item message and the Enable Macros tooltips, and is not reused
     here. The other reagent labels are kept inside about fifteen characters so
-    they hold the popup's reagent-row label cell.
+    they hold the pop-up's reagent-row label cell.
 ]]
 L["STARTER_POPUP_REAGENTS_HEADER"] = "材料与工具"
 L["STARTER_POPUP_POISONS_HEADER"] = "毒药"
@@ -903,7 +904,7 @@ L["STARTER_POPUP_DISMISS_DESCRIPTION"] =
 
 -- Restocker window UI.
 L["RESTOCKER_WINDOW_TITLE"] = "Connoisseur Restocker"
-L["RESTOCKER_FILTER_PLACEHOLDER"] = "筛选物品..."
+L["RESTOCKER_FILTER_PLACEHOLDER"] = "筛选物品……"
 L["RESTOCKER_FILTER_CLEAR_TOOLTIP"] = "清除"
 L["RESTOCKER_ADD_BUTTON"] = "添加"
 L["RESTOCKER_LIST_BUILDER_BUTTON"] = "打开清单助手"
@@ -928,7 +929,7 @@ L["RESTOCKER_COPY_PROFILE"] = "复制"
     they take no terminal punctuation -- matching every other title in the
     window. Don't "restore" the period they read as wanting.
 ]]
-L["RESTOCKER_COPY_PROFILE_TOOLTIP"] = "将此清单克隆为一个新清单"
+L["RESTOCKER_COPY_PROFILE_TOOLTIP"] = "将此清单复制为一个新清单"
 -- %s becomes "<list name> Copy"; numbered if that name is taken.
 L["RESTOCKER_PROFILE_COPY_NAME"] = "%s 副本"
 L["RESTOCKER_DELETE_PROFILE"] = "删除"

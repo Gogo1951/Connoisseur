@@ -1,3 +1,5 @@
+local _, ns = ...
+
 --------------------------------------------------------------------------------
 -- Connoisseur Options — Starter List Pop-up
 --------------------------------------------------------------------------------
@@ -16,7 +18,6 @@
     gets the stock Close button, and stays out of the Blizzard settings tree.
     Nothing here is protected.
 ]]
-local _, ns = ...
 local L = ns.L
 local GetColor = ns.GetColor
 local AceConfigDialog = LibStub("AceConfigDialog-3.0")
@@ -404,8 +405,8 @@ function ns.BuildStarterListPopupOptions()
 	if #foodCategories > 0 then
 		--[[
 		    The heading covers the Water row below as well, when the class
-		    gets one; should water ever be hidden for a class again, the
-		    heading falls back to naming only what is there.
+		    gets one; for a class with no Water row it names only what is
+		    there.
 		]]
 		local foodHeaderText = (#SectionCategories("water") > 0) and L["STARTER_POPUP_FOOD_AND_WATER_HEADER"]
 			or L["STARTER_POPUP_FOOD_HEADER"]
