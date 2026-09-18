@@ -434,9 +434,9 @@ end
     A printable, hoverable, shift-clickable link for an item, always.
 
     C_Item.GetItemInfo returns nothing until the client has resolved an item, and on a
-    fresh login that is exactly when the Restocker wants to name things -- so
-    falling back to a bare name meant the reminder printed plain text most of the
-    time. A link built by hand from the id works the moment it is printed: the
+    fresh login that is exactly when the Restocker wants to name things -- so a
+    bare-name fallback would print plain text most of the time. A link built by
+    hand from the id works the moment it is printed: the
     client resolves |Hitem:| on hover, so the tooltip is correct even while the
     cache behind it is still cold.
 

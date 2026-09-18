@@ -205,9 +205,9 @@ local EDIT_BOX_HEIGHT = 18 -- both boxes, shorter than the row so they centre in
     of a sentence, so the add hint is kept to a phrase (see its locale key).
 
     A placeholder is a FontString rather than editbox content, so nothing clips
-    it for you -- that is what put the add hint out over the Add button when it
-    had only a left anchor. Both are anchored on both sides now, so a hint that
-    outgrows its field truncates inside it instead of over its neighbour.
+    it for you: with only a left anchor, the add hint runs out over the Add
+    button. Both are anchored on both sides, so a hint that outgrows its field
+    truncates inside it instead of over its neighbour.
 ]]
 local TEXT_BOX_WIDTH = 260
 local CONTROL_GROUP_GAP = 16 -- between the add pair and the List Builder button

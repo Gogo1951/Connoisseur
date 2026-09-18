@@ -141,11 +141,7 @@ function ns.GetBestPoisonForHand(hand)
 end
 
 local function KnowsPoisons()
-	local known = IsSpellKnown(ns.POISONS_SPELL_ID)
-	if not known and IsPlayerSpell then
-		known = IsPlayerSpell(ns.POISONS_SPELL_ID)
-	end
-	return known
+	return ns.IsSpellKnown(ns.POISONS_SPELL_ID) or ns.IsPlayerSpell(ns.POISONS_SPELL_ID)
 end
 
 --------------------------------------------------------------------------------
@@ -174,7 +170,7 @@ local function BuildPoisonsBody(knows, mainID, offID)
 		return table.concat(lines, "\n")
 	end
 
-	local poisonsName = GetSpellInfo(ns.POISONS_SPELL_ID)
+	local poisonsName = C_Spell.GetSpellName(ns.POISONS_SPELL_ID)
 	if poisonsName then
 		lines[#lines + 1] = "/cast [btn:3] " .. poisonsName
 		lines[#lines + 1] = "/stopmacro [btn:3]"

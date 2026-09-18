@@ -184,6 +184,12 @@ ns.HasFriendlyPlayerTarget = HasFriendlyPlayerTarget
 
     Left nil until the first firing, so the first reading always counts as a
     change rather than being compared against a state nobody has read yet.
+
+    PLAYER_TARGET_CHANGED runs in combat, where the client can restrict unit
+    comparisons (Forever): UnitIsUnit then returns a secret value, and testing
+    it errors. While C_Secrets says the comparison is off, the self reading
+    keeps its last value, so a restricted read counts as unchanged, never as a
+    flip.
 ]]
 local lastTargetFriendly, lastTargetIsSelf, lastTargetLevel
 local lastInGroup, lastInRaid
@@ -191,7 +197,10 @@ local lastInGroup, lastInRaid
 -- Records this firing's target readings and reports whether any of the three moved.
 function ns.TargetSignatureChanged()
 	local isFriendly = HasFriendlyPlayerTarget() and true or false
-	local isSelf = (UnitExists("target") and UnitIsUnit("target", "player")) and true or false
+	local isSelf = lastTargetIsSelf
+	if C_Secrets.CanCompareUnitTokens("target", "player") then
+		isSelf = (UnitExists("target") and UnitIsUnit("target", "player")) and true or false
+	end
 	local level = UnitLevel("target")
 
 	local changed = isFriendly ~= lastTargetFriendly or isSelf ~= lastTargetIsSelf or level ~= lastTargetLevel
@@ -227,14 +236,14 @@ function ns.GetSmartSpell(spellList, ignoreTarget, checkUnique)
 	end
 
 	--[[
-	    RECURRING BUG guard — on Era the warlock stone tiers are
+	    RECURRING BUG guard — on Era and Forever the warlock stone tiers are
 	    distinctly-named spells and must be cast bare; appending "(Rank N)"
 	    builds a spell name that does not exist and the /cast silently
 	    no-ops. Those lists are flagged rankIsTBCOnly in ns.CONJURE_SPELLS —
 	    see the note on WarlockCreateHealthstone in Data/Data.lua. Unflagged
-	    lists (Mage Conjure Water/Food) pin ranks on both flavors.
+	    lists (Mage Conjure Water/Food) pin ranks on every flavor.
 	]]
-	local pinRank = not (ns.IS_ERA and spellList.rankIsTBCOnly)
+	local pinRank = not ((ns.IS_ERA or ns.IS_FOREVER) and spellList.rankIsTBCOnly)
 
 	local levelCap = UnitLevel("player")
 
@@ -248,10 +257,7 @@ function ns.GetSmartSpell(spellList, ignoreTarget, checkUnique)
 	for _, data in ipairs(spellList) do
 		local spellID, requiredLevel, rankNumber = data[1], data[2], data[3]
 
-		local known = IsSpellKnown(spellID)
-		if not known and IsPlayerSpell then
-			known = IsPlayerSpell(spellID)
-		end
+		local known = ns.IsSpellKnown(spellID) or ns.IsPlayerSpell(spellID)
 
 		if known and requiredLevel <= levelCap then
 			local shouldSkip = false
@@ -269,7 +275,7 @@ function ns.GetSmartSpell(spellList, ignoreTarget, checkUnique)
 			end
 
 			if not shouldSkip then
-				local spellName = GetSpellInfo(spellID)
+				local spellName = C_Spell.GetSpellName(spellID)
 				if spellName then
 					if rankNumber and pinRank then
 						return spellName .. "(" .. L["RANK"] .. " " .. rankNumber .. ")", spellID
@@ -291,13 +297,8 @@ function ns.GetSmartSpell(spellList, ignoreTarget, checkUnique)
 	for i = #spellList, 1, -1 do
 		local spellID, rankNumber = spellList[i][1], spellList[i][3]
 
-		local known = IsSpellKnown(spellID)
-		if not known and IsPlayerSpell then
-			known = IsPlayerSpell(spellID)
-		end
-
-		if known then
-			local fallbackName = GetSpellInfo(spellID)
+		if ns.IsSpellKnown(spellID) or ns.IsPlayerSpell(spellID) then
+			local fallbackName = C_Spell.GetSpellName(spellID)
 			if fallbackName then
 				if rankNumber and pinRank then
 					return fallbackName .. "(" .. L["RANK"] .. " " .. rankNumber .. ")", spellID
@@ -719,10 +720,10 @@ end
 
     The frame is load-on-demand, so this can only run once Blizzard_MacroUI has
     loaded. UpdateMacros calls it on EVERY pass rather than only from the
-    frame-is-shown deferral below: hanging the install off that branch armed the
-    hook only when an update happened to land inside the window someone had the
-    frame open, and a short visit that requests no update never armed it at all
-    -- leaving exactly the stale-macro case this hook exists to close.
+    frame-is-shown deferral below: installed from that branch alone, the hook
+    arms only when an update happens to land while the frame is open, and a
+    short visit that requests no update never arms it at all -- leaving exactly
+    the stale-macro case this hook exists to close.
 
     One gap survives by design: a first open-and-close with no macro update in
     between still misses the hook, because the frame does not exist until the
@@ -851,8 +852,8 @@ function ns.UpdateMacros(forced)
 
 			--[[
 			    Definition hook: full-body mode override (Food's scroll-only
-			    mode). Checked before the class override, matching the old
-			    scroll-mode precedence.
+			    mode). Built after the class override but written ahead of it,
+			    so a mode body always wins.
 			]]
 			local modeBody, modeStateID
 			if definition.buildModeOverride then

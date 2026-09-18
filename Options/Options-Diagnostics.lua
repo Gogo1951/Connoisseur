@@ -53,6 +53,7 @@ function ns.BuildDiagnosticsOptions()
 		toggleEnable = {
 			type = "toggle",
 			name = DiagnosticsStrings.ENABLE,
+			desc = DiagnosticsStrings.ENABLE_DESCRIPTION,
 			width = "full",
 			order = 3,
 			get = function()

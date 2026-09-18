@@ -220,6 +220,10 @@ function ns.SwitchRestockList(newListName)
 	if newListName == nil or newListName == "" then
 		return
 	end
+	-- A typed `/crs profile use` name can miss; pointing the character at no list breaks every list read.
+	if ns.restockSettings.lists[newListName] == nil then
+		return
+	end
 	ns.UseRestockList(newListName)
 
 	ns.UpdateRestockListWidgets()

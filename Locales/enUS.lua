@@ -51,9 +51,10 @@ L["LIST_SEPARATOR"] = ", "
 --------------------------------------------------------------------------------
 
 --[[
-    Diet names as returned by GetPetFoodTypes(), which is localized. These
-    values MUST match the client's strings exactly (verify in-game with
-    /dump GetPetFoodTypes() while a pet is out). Used to build
+    Diet names as returned by the pet diet reader, which is localized. These
+    values MUST match the client's strings exactly (verify in-game with a pet
+    out: /dump GetPetFoodTypes() on Era and TBC,
+    /dump C_PetInfo.GetPetFoodTypes() on Forever). Used to build
     ns.PET_DIET_MAP in Data/Pet-Foods.lua.
 
     They are ALSO the food checkbox labels in the Starter List pop-up, so they
@@ -79,7 +80,7 @@ L["MESSAGE_BUG_REPORT"] =
 	"Looks like you found a bug! %s (%s) can't be used in %s > %s (%s). Please report this so we can get it fixed. Thanks! %s"
 L["MESSAGE_NO_ITEM"] = "No suitable %s found in your bags."
 L["MESSAGE_MACRO_SLOTS_FULL"] =
-	"Some Connoisseur macros couldn't be created because your macro slots are full. Free up a slot by deleting macros you no longer use, or turn off any Connoisseur macros you don't need under Options > AddOns > Connoisseur."
+	"Some Connoisseur macros couldn't be created because your macro slots are full. Free up a slot by deleting macros you no longer use, or turn off any Connoisseur macros you don't need under Options > AddOns > Connoisseur > Macros."
 
 L["CHAT_LOADED"] =
 	"Version %s. Settings (including the option to disable this message) can be found under Options > AddOns > Connoisseur. Enjoying the add-on? Tell a friend about it! (="
@@ -261,16 +262,16 @@ L["TIP_HUNTER_MODIFIERS"] = "Hold Shift to force Revive, or Ctrl to Dismiss."
     and both rituals ignore the target (ignoreTarget in the resolvers), so each
     line names what it actually affects rather than saying "the macro."
 ]]
-L["TIP_MAGE_CONJURE"] = "Right-Click on your Food or Water macros to Conjure Food or Water."
+L["TIP_MAGE_CONJURE"] = "Right-Click on your Food or Water macros to cast Conjure Food or Conjure Water."
 L["TIP_MAGE_DOWNRANK"] = "Targeting a lower-level player will conjure Food or Water appropriate for their level."
 L["TIP_MAGE_TABLE"] = "Middle-Click on your Food or Water macros to cast Ritual of Refreshment."
 L["TIP_MAGE_GEM"] =
 	"Right-Click on your Mana Gem macro to conjure a new gem. Right-Click again to conjure a lower-rank backup."
 
 L["TIP_WARLOCK_HEALTHSTONE"] =
-	"Right-Click on your Healthstone macro to Create a Healthstone. Right-Click again to create a lower-rank backup."
+	"Right-Click on your Healthstone macro to cast Create Healthstone. Right-Click again to create a lower-rank backup."
 L["TIP_WARLOCK_DOWNRANK"] = "Targeting a lower-level player will create a Healthstone appropriate for their level."
-L["TIP_WARLOCK_SOULSTONE"] = "Right-Click on your Soulstone macro to Create a Soulstone."
+L["TIP_WARLOCK_SOULSTONE"] = "Right-Click on your Soulstone macro to cast Create Soulstone."
 L["TIP_WARLOCK_SOUL"] = "Middle-Click on your Healthstone macro to cast Ritual of Souls."
 
 L["TIP_ROGUE_OFF_HAND"] = "Left-Click applies your Off Hand poison."
@@ -456,11 +457,11 @@ L["OPTIONS_READINESS_EXPIRING_THRESHOLD_DESCRIPTION"] =
 -- Missing Items
 L["OPTIONS_READINESS_HEALTHSTONE_DESCRIPTION"] =
 	"Only shown when there's a Warlock in your group to ask, or when you're the Warlock."
-L["OPTIONS_READINESS_MANA_GEM_DESCRIPTION"] = "Only shown when you're on a Mage."
+L["OPTIONS_READINESS_MANA_GEM_DESCRIPTION"] = "Only shown when you're playing a Mage."
 L["OPTIONS_READINESS_HEALING_POTION_DESCRIPTION"] =
 	"Worth stocking before a pull, since nobody can hand you a potion mid-fight."
-L["OPTIONS_READINESS_MANA_POTION_DESCRIPTION"] = "Only shown when you're on a class that uses mana."
-L["OPTIONS_READINESS_BANDAGES_DESCRIPTION"] = "Reports whenever you have none you can use, First Aid skill included."
+L["OPTIONS_READINESS_MANA_POTION_DESCRIPTION"] = "Only shown when you're playing a class that uses mana."
+L["OPTIONS_READINESS_BANDAGES_DESCRIPTION"] = "Reports when you carry no bandage your First Aid skill lets you use."
 L["OPTIONS_READINESS_DURABILITY"] = "Damaged Gear Below"
 L["OPTIONS_READINESS_DURABILITY_DESCRIPTION"] =
 	"Links every equipped item under this much durability, measured per item so one broken weapon still shows."
@@ -600,7 +601,7 @@ L["OPTIONS_STEALTH_EATING_ROGUE_DESCRIPTION"] = "Appends Stealth to your Food ma
 ]]
 L["TAB_RESTOCKER"] = "Restocker"
 L["OPTIONS_RESTOCKER_DESCRIPTION"] =
-	"Keeps your bags stocked from a per-character Restock List, buying from merchants and moving items to and from the bank automatically. Type %s to open the list."
+	"Keeps your bags stocked from your Restock List, buying from merchants and moving items to and from the bank automatically. Type %s to open the list."
 L["OPTIONS_RESTOCKER_OPEN_BANK"] = "Open at Bank"
 L["OPTIONS_RESTOCKER_OPEN_BANK_DESCRIPTION"] = "Opens the Restocker window when you visit the bank."
 L["OPTIONS_RESTOCKER_OPEN_MERCHANT"] = "Open at Merchant"
@@ -674,7 +675,7 @@ L["OPTIONS_MACROS_DESCRIPTION"] =
 	"Connoisseur builds one macro per consumable and keeps it current as your bags change, so the button on your bar always reaches for the best item you're carrying. Choose which macros to create below, then set how each one picks its item."
 L["OPTIONS_ENABLE_MACROS_HEADER"] = "Enable Macros"
 L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] =
-	"Toggle which macros Connoisseur creates and maintains. Disabling a macro will also remove it."
+	"Choose which macros Connoisseur creates and maintains. Turning one off also removes it."
 -- Hover text on each Enable Macros toggle; %s is the consumable's label (LABEL_*).
 L["OPTIONS_MACRO_TOGGLE_DESCRIPTION"] = "Creates and maintains the %s macro, and removes it when unchecked."
 
@@ -721,7 +722,7 @@ L["RESTOCKER_BAGS_FULL_SKIP_MERCHANT"] = "Your bags are full. Skipping merchant 
 ]]
 L["RESTOCKER_REAGENTS_SKIPPED"] = "This merchant doesn't stock every ingredient your poisons need. Skipping them all."
 -- Printed on reaching an inn or a city while the Restock List is short of something.
-L["RESTOCKER_TOWN_REMINDER"] = "Don't forget to restock while you are in town!"
+L["RESTOCKER_TOWN_REMINDER"] = "Don't forget to restock while you're in town!"
 
 --[[
     Headline for the merchant and bank reminders, which report on the way out
@@ -840,7 +841,7 @@ L["STARTER_POPUP_ARROWS"] = "Arrows"
     rank carry the rest -- and LABEL_POISONS ("Poison", singular) belongs to
     the no-item message and the Enable Macros tooltips, and is not reused
     here. The other reagent labels are kept inside about fifteen characters so
-    they hold the popup's reagent-row label cell.
+    they hold the pop-up's reagent-row label cell.
 ]]
 L["STARTER_POPUP_REAGENTS_HEADER"] = "Reagents & Tools"
 L["STARTER_POPUP_POISONS_HEADER"] = "Poisons"
@@ -928,7 +929,7 @@ L["RESTOCKER_COPY_PROFILE"] = "Copy"
     they take no terminal punctuation -- matching every other title in the
     window. Don't "restore" the period they read as wanting.
 ]]
-L["RESTOCKER_COPY_PROFILE_TOOLTIP"] = "Clone this list into a new one"
+L["RESTOCKER_COPY_PROFILE_TOOLTIP"] = "Copy this list into a new one"
 -- %s becomes "<list name> Copy"; numbered if that name is taken.
 L["RESTOCKER_PROFILE_COPY_NAME"] = "%s Copy"
 L["RESTOCKER_DELETE_PROFILE"] = "Delete"

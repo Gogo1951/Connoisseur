@@ -78,8 +78,9 @@ local function NotRogue()
 end
 
 --[[
-    Night Elf Rogues see the Rogues section instead -- it already carries
-    Stealth Eating, and Shadowmeld drinking is folded into the Rogue macro.
+    Night Elf Rogues see the Rogues section instead, which carries Stealth
+    Eating. They get no Shadowmeld drinking: the Water macro skips its
+    Shadowmeld line for Rogues.
 ]]
 local function NotNightElf()
 	return not ns.isNightElf or ns.isRogue
@@ -227,10 +228,10 @@ end
     themselves for characters they do not apply to. The Ignore List has its
     own panel (Options-Ignore-List.lua).
 
-    Order values keep the spaced blocks these sections used on the General page
-    so a section can be reordered or extended without renumbering its
-    neighbors. What stayed behind on General is add-on-level behavior that does
-    not touch a macro: the welcome message, the mini-map button, and /Commands.
+    Order values are spaced blocks so a section can be reordered or extended
+    without renumbering its neighbors. The General page keeps the add-on-level
+    behavior that does not touch a macro: the welcome message, the mini-map
+    button, and /Commands.
 
     Registered as this builder function rather than a built table (see
     Options/Options.lua), so AceConfig re-invokes it on every open and every

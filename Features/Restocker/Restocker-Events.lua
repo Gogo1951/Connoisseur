@@ -135,6 +135,8 @@ function ns.OnRestockerMerchantClose()
 end
 
 function ns.OnRestockerBankOpen()
+	ns.LoadRestockBankBags()
+
 	local settings = ns.restockSettings
 
 	if IsShiftKeyDown() or settings.lists[settings.currentList] == nil then

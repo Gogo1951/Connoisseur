@@ -120,10 +120,9 @@ end
 
 --[[
     One row for the whole footer, so every control in it centres on the same line
-    by construction. Before this each one inherited its vertical position from the
-    neighbour to its left, all the way back to the Profile label -- so anything
-    anchored to the WINDOW instead landed at the window's middle and disappeared
-    behind the list.
+    by construction. Anchor footer controls to this row, never to the WINDOW: a
+    control anchored to the window lands at its middle and disappears behind the
+    list.
 ]]
 local function CreateFooterRow(addonFrame)
 	local row = CreateFrame("Frame", nil, addonFrame)
@@ -182,8 +181,10 @@ local function CreateListSelector(addonFrame)
 	selector:SetCursorPosition(0)
 end
 
--- Show the active list in the selector. Called whenever a list is added,
--- renamed, copied, deleted or switched.
+--[[
+    Show the active list in the selector. Called whenever a list is added,
+    renamed, copied, deleted or switched.
+]]
 function ns.RefreshRestockListDropdown()
 	local selector = ns.restockWindow and ns.restockWindow.listSelector
 	if selector then

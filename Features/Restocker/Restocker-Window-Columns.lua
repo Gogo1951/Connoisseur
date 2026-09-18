@@ -176,8 +176,8 @@ local COLUMN_MIN_WIDTH = 24
     A starting width, replaced the first time the font resolves. Amount is
     measured like every other column -- against its own caption AND against a
     four-digit count, since the edit box under it has to hold what the caption
-    names. It was the one hardcoded width left in a file that measures
-    everything else, and at 40px the heading read "Am...".
+    names. A fixed width truncates the heading (at 40px it reads "Am..."), so
+    this one is measured too.
 ]]
 ns.restockAmountWidth = 58
 local AMOUNT_DIGITS_SAMPLE = "8888"

@@ -70,7 +70,7 @@ local function InitializeSavedVariables()
 		ns.db = LibStub("AceDB-3.0"):New("ConnoisseurDB", ns.DATABASE_DEFAULTS)
 
 		--[[
-		    Switching, copying, or resetting a profile now swaps the settings
+		    Switching, copying, or resetting a profile swaps the settings
 		    themselves as well as the Ignore List, so the macro bodies and aura
 		    tracking must rebuild. Which macros exist does NOT change --
 		    enabledMacros is account-wide, like the macros themselves. The
@@ -330,7 +330,7 @@ frame:SetScript("OnEvent", function(_, event, ...)
 	    level-up forces a full rebuild of every macro. Refresh the cached level
 	    and hunter spell names here, above the combat lockdown guard, because a
 	    ding from a killing blow fires PLAYER_LEVEL_UP in combat, and the
-	    event's own level / GetSpellInfo are safe combat reads. Wiping the
+	    event's own level / C_Spell.GetSpellName are safe combat reads. Wiping the
 	    macro state forces every macro to rewrite; the write itself still
 	    defers to the post-combat tick via the throttled update.
 
@@ -365,7 +365,9 @@ frame:SetScript("OnEvent", function(_, event, ...)
 	    READY_CHECK is handled ahead of the lockdown guard for the same reason
 	    as the events above: a ready check routinely fires with the raid
 	    already pulling, and the report only reads auras and the last scan's
-	    results before printing, so it touches nothing protected.
+	    results before printing, so it touches nothing protected. Where the
+	    client restricts aura data mid-fight (Forever), ns.ReportReadiness
+	    stays silent rather than read a secret value.
 	]]
 	if event == "READY_CHECK" then
 		ns.ReportReadiness()
@@ -377,7 +379,9 @@ frame:SetScript("OnEvent", function(_, event, ...)
 	    Behind it, a change made mid-fight would leave the remembered signature at
 	    its pre-fight reading, so changing back after combat would read as no
 	    change and leave the macros built for the fight. Both only read unit
-	    state, and ns.RequestUpdate leaves the rebuild pending until combat drops.
+	    state, the target comparison only while C_Secrets allows it (Forever
+	    can restrict it mid-fight), and ns.RequestUpdate leaves the rebuild
+	    pending until combat drops.
 	    Request only on a real change; see Target and Group Tracking in
 	    Features/Macros/Engine.lua.
 	]]
@@ -455,6 +459,10 @@ frame:SetScript("OnEvent", function(_, event, ...)
 		ns.HandleUnitAura(...)
 	elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
 		local _, _, spellID = ...
+		-- A secret spellID (Forever, while casts are restricted) errors as a table key.
+		if issecretvalue and issecretvalue(spellID) then
+			return
+		end
 		if ns.spellCache and ns.spellCache[spellID] then
 			ns.RequestUpdate()
 		end

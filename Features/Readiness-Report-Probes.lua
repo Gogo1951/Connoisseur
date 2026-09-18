@@ -234,9 +234,14 @@ end
     order the talent frame draws them in.
 
     Returns nil before the talent data is available, which is normal early in a
-    login -- the caller drops the line rather than printing a half-answer.
+    login -- the caller drops the line rather than printing a half-answer. Always
+    nil on Forever, whose Retail-style talents have no GetNumTalentTabs.
 ]]
 function ns.GetCurrentSpecLabel()
+	if not GetNumTalentTabs then
+		return nil
+	end
+
 	local tabs = GetNumTalentTabs()
 	if not tabs or tabs == 0 then
 		return nil
@@ -260,8 +265,15 @@ function ns.GetCurrentSpecLabel()
 	return string.format(ns.L["READINESS_SPEC_FORMAT"], best, table.concat(spread, "/"))
 end
 
--- Talent points the character has not spent, or nil when there are none to spend.
+--[[
+    Talent points the character has not spent, or nil when there are none to
+    spend. Forever has no UnitCharacterPoints, so the line never shows there.
+]]
 function ns.GetUnspentTalentPoints()
+	if not UnitCharacterPoints then
+		return nil
+	end
+
 	local unspent = UnitCharacterPoints("player") or 0
 	if unspent <= 0 then
 		return nil

@@ -129,7 +129,7 @@ local function SoulstoneBuffName()
 	if soulstoneBuffName == nil then
 		soulstoneBuffName = false
 		for _, spellID in ipairs(ns.SOULSTONE_BUFF_SPELL_IDS) do
-			local name = GetSpellInfo(spellID)
+			local name = C_Spell.GetSpellName(spellID)
 			if name then
 				soulstoneBuffName = name
 				break
@@ -191,12 +191,13 @@ local function BuildMissingBuffs(settings, reports)
 	local missing = {}
 
 	--[[
-	    TBC and later only, which is a maintainer decision rather than a data
-	    one: Era has flasks and elixirs, but they are not what an Era raid runs
-	    on, so the line would be wrong for most of the people it fired at. The
-	    option hides itself on Era to match (Options/Options-Readiness-Report.lua).
+	    TBC only, which is a maintainer decision rather than a data one: Era
+	    and Forever have flasks and elixirs, but they are not what an Era raid
+	    runs on, so the line would be wrong for most of the people it fired at.
+	    The option hides itself on Era and Forever to match
+	    (Options/Options-Readiness-Report.lua).
 	]]
-	if reports.readinessFlask and not ns.IS_ERA and not ns.HasFlaskOrElixirs() then
+	if reports.readinessFlask and not (ns.IS_ERA or ns.IS_FOREVER) and not ns.HasFlaskOrElixirs() then
 		missing[#missing + 1] = L["READINESS_FLASK"]
 	end
 
@@ -486,10 +487,17 @@ end
     a group, so the event never arrives solo and such a test could never be false
     here. Every group-dependent entry already gates on the relevant class being
     present.
+
+    While the client restricts aura data (Forever, typically a ready check
+    fired mid-pull), every aura field comes back secret and comparing one
+    errors, so the report stays silent and the next ready check reports.
 ]]
 function ns.ReportReadiness()
 	local reports = ns.db and ns.db.global
 	if not (reports and reports.readinessReportEnabled) then
+		return
+	end
+	if C_Secrets.ShouldAurasBeSecret() then
 		return
 	end
 

@@ -5,9 +5,9 @@ local _, ns = ...
 --------------------------------------------------------------------------------
 
 --[[
-    Blizzard recently began showing the macro-name text on action buttons again.
-    Many players who never asked for it assume this add-on turned it on, so we
-    default to hiding it and expose an "Enable Macro Names on Buttons" toggle.
+    The client shows macro-name text on action buttons. Many players who never
+    asked for it assume this add-on turned it on, so we default to hiding it and
+    expose an "Enable Macro Names on Buttons" toggle.
 
     The name is a font string per button; setting its alpha to 0 hides it and
     survives the SetText calls that fire when an action changes, so a single
@@ -15,10 +15,8 @@ local _, ns = ...
     therefore re-run on every PLAYER_ENTERING_WORLD (see Features/Core.lua) so a
     /reload or relog re-hides the freshly created font strings.
 
-    The first five prefixes are the bars that carry macro names on the target
-    clients; the three MultiBar6-8 names resolve to nothing there and are
-    forward-prep. Nil-guarded, which absorbs those three as well as a bar add-on
-    that removes a font string.
+    Every prefix below is a bar all three target clients define. The lookup is
+    nil-guarded only for a bar add-on that removes a font string.
 ]]
 local ACTION_BAR_PREFIXES = {
 	"ActionButton",
@@ -26,9 +24,9 @@ local ACTION_BAR_PREFIXES = {
 	"MultiBarRightButton",
 	"MultiBarBottomLeftButton",
 	"MultiBarBottomRightButton",
+	"MultiBar5Button",
 	"MultiBar6Button",
 	"MultiBar7Button",
-	"MultiBar8Button",
 }
 
 function ns.ApplyMacroNameVisibility()
