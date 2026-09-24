@@ -2,7 +2,7 @@
 std = "lua51"
 max_line_length = false -- StyLua owns formatting
 ignore = { "212/self", "611", "612", "613", "614", "621" } -- implicit self (house ns: methods) + whitespace — StyLua owns the latter
-exclude_files = { "Includes/" } -- vendored, never linted
+exclude_files = { "Includes/", ".claude/" } -- vendored or session-local, never linted
 read_globals = {
 	-- WoW API surface Connoisseur calls
 	"BACKPACK_CONTAINER",
@@ -18,12 +18,14 @@ read_globals = {
 	"C_MerchantFrame",
 	"C_PetInfo",
 	"C_QuestLog",
+	"C_Seasons",
 	"C_Secrets",
 	"C_SkillInfo",
 	"C_SpecializationInfo",
 	"C_Spell",
 	"C_SpellBook",
 	"C_Timer",
+	"C_TooltipInfo",
 	"C_UnitAuras",
 	"ClearCursor",
 	"CopyTable",
@@ -43,14 +45,13 @@ read_globals = {
 	"GetCVar",
 	"GetInventoryItemDurability",
 	"GetInventoryItemLink",
-	"GetItemCount",
-	"GetItemIcon",
 	"GetLocale",
 	"GetMacroBody",
 	"GetMacroIndexByName",
 	"GetMerchantItemInfo",
 	"GetMerchantItemLink",
 	"GetMerchantNumItems",
+	"GetMoney",
 	"GetNetStats",
 	"GetNumGroupMembers",
 	"GetNumMacros",
@@ -62,8 +63,6 @@ read_globals = {
 	"GetQuestLogTitle",
 	"GetRealmName",
 	"GetSkillLineInfo",
-	"GetSpellInfo",
-	"GetSpellSubtext",
 	"GetSubZoneText",
 	"GetTime",
 	"GetWeaponEnchantInfo",
@@ -83,7 +82,7 @@ read_globals = {
 	"NUM_BAG_SLOTS",
 	"PlaySound",
 	"PlaySoundFile",
-	"RAID_CLASS_COLORS",
+	"RETRIEVING_ITEM_INFO",
 	"SecureCmdOptionParse",
 	"SetCVar",
 	"Settings",
@@ -110,10 +109,6 @@ read_globals = {
 	"UnitRace",
 	"UnitReaction",
 	"wipe",
-	"WOW_PROJECT_BURNING_CRUSADE_CLASSIC",
-	"WOW_PROJECT_CLASSIC",
-	"WOW_PROJECT_ID",
-	"WOW_PROJECT_MAINLINE",
 	"YES",
 }
 globals = {
@@ -127,6 +122,7 @@ globals = {
 	"ConnoisseurNoItem",
 	"SLASH_CONNOISSEUR1",
 	"SLASH_CONNOISSEURRESTOCKER1",
+	"SlashCmdList",
 	-- MIGRATION (remove after 2026-10-18): the short macro globals an older build's saved macro bodies still call
 	"ConnFire",
 	"ConnTip",
