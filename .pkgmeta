@@ -34,4 +34,3 @@ ignore:
   - LICENSE
   - Features/Restocker/Tests
   - Features/Tests
-  - To-Do.md
