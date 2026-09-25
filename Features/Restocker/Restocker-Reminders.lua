@@ -1,14 +1,5 @@
-local ADDON_NAME, ns = ...
+local _, ns = ...
 local L = ns.L
-
---[[
-    Every restock reminder is either a headline on its own or a headline plus one
-    line per item you are short of. Stored as a mode rather than a boolean so the
-    option reads as a choice ("Simple" or "Verbose") instead of an unlabelled
-    switch, and so a third level could be added without another setting.
-]]
-ns.REMINDER_SIMPLE = "simple"
-ns.REMINDER_VERBOSE = "verbose"
 
 --[[
     Print a reminder: the headline, then in verbose mode a line per short item.
@@ -41,12 +32,6 @@ function ns.RestockShortfallHeadline(count)
 	end
 	return string.format(L["RESTOCKER_STILL_SHORT_MANY"], count)
 end
-
---[[
-    Alert played when you reach an inn or city with something left to restock.
-    Built from ADDON_NAME so renaming the add-on folder cannot break the path.
-]]
-ns.RESTOCK_ALERT_SOUND = "Interface\\AddOns\\" .. ADDON_NAME .. "\\Includes\\Sounds\\Low-Battery.ogg"
 
 --------------------------------------------------------------------------------
 -- Entering Town
@@ -109,9 +94,10 @@ local lastReminderAt = nil
 
     A login settles slower than a zone change and waits longer still -- past the
     loading-screen flurry, past the add-on's own post-login work, and well past
-    the item queries behind a name-keyed list entry. The shortfall is read at the
-    END of that pause, not the start, so a bag that finishes filling in the
-    meantime is counted and a list that is no longer short says nothing.
+    the item queries that fill in each list entry's name and link. The shortfall
+    is read at the END of that pause, not the start, so a bag that finishes
+    filling in the meantime is counted and a list that is no longer short says
+    nothing.
 ]]
 local ARRIVAL_SETTLE_DELAY = 2
 local LOGIN_SETTLE_DELAY = 5
@@ -165,7 +151,7 @@ local function CheckResting()
 	if not settings then
 		return
 	end
-	if not (settings.restockReminderChat or settings.restockReminderSound) then
+	if not settings.restockReminderChat then
 		return
 	end
 
@@ -183,11 +169,9 @@ local function CheckResting()
 	--[[
 	    Unlike the closing-window reminders, this one keeps its own headline: it
 	    is a nudge on arrival rather than a report on the way out. The sound is
-	    independent of the chat line, so it still fires when the print is off.
+	    the reminder's sub-option and plays only with it.
 	]]
-	if settings.restockReminderChat then
-		ns.PrintRestockShortfall(L["RESTOCKER_TOWN_REMINDER"], settings.restockReminderMode, groceries)
-	end
+	ns.PrintRestockShortfall(L["RESTOCKER_TOWN_REMINDER"], settings.restockReminderMode, groceries)
 
 	if settings.restockReminderSound then
 		PlaySoundFile(ns.RESTOCK_ALERT_SOUND, "Master")
@@ -236,7 +220,7 @@ function ns.OnRestockerEnteringWorld(isInitialLogin, isReloadingUi)
 
 	--[[
 	    Catch-up for a list that is behind the player's level. A ding is not the
-	    only way that happens -- levels gained with the add-on disabled, a profile
+	    only way that happens -- levels gained with the add-on disabled, a list
 	    copied off a higher character, a ding that arrived while the list was
 	    mid-load -- and without this, a single missed level-up would strand the
 	    entry for good, since nothing else re-checks.

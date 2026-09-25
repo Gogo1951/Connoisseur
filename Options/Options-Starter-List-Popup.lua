@@ -1,15 +1,17 @@
 local _, ns = ...
 
 --------------------------------------------------------------------------------
--- Connoisseur Options — Starter List Pop-up
+-- Starter List Pop-up
 --------------------------------------------------------------------------------
 
 --[[
     The window that opens after login when a level-6+ character has nothing on
     their Restock List, offering the staples -- foods, water, class reagents,
     ammo -- as one-tick suggestions, a few of them pre-ticked for the class.
-    The trigger, the categories, the defaults, and what every tick does live
-    in Features/Restocker/Restocker-Starter-List.lua; this file only draws them.
+    The categories are rows in Data/Data.lua (ns.STARTER_LIST_CATEGORIES); the
+    trigger, the defaults and what every tick does live in
+    Features/Restocker/Restocker-Starter-List.lua. This file draws them, and
+    clears the Restock window's New flags when it closes.
 
     This is an AceConfigDialog standalone window rather than a hand-built
     frame, the same arrangement as GogoLoot's master-looter pop-up: registered
@@ -35,13 +37,14 @@ local Spacer = ns.OptionsSpacer
     Coarse constants on purpose; they only need to land close enough that
     nothing scrolls and nothing gapes.
 
-    The cap is for the fullest builds (a level-60 rogue's reagents run to
-    four rows), which scroll a little rather than swallow the screen -- and
-    the row widths below stay inside the scrollbar-narrowed content width,
-    so the capped case reflows nothing. The don't-show-again checkbox adds
-    no height: it rides the frame's own footer line, beside Close.
+    The cap is for the fullest builds (a level-60 rogue's, with a Poisons
+    section above two rows of reagents), which scroll a little rather than
+    swallow the screen -- and the row widths below stay inside the
+    scrollbar-narrowed content width, so the capped case reflows nothing.
+    The don't-show-again checkbox adds no height: it rides the frame's own
+    footer line, beside Close.
 ]]
-local POPUP_WIDTH = 580
+local POPUP_WIDTH = 640
 local POPUP_BASE_HEIGHT = 250
 local POPUP_MAX_HEIGHT = 640
 local SECTION_CHROME_HEIGHT = 54 -- header + its line break + the trailing spacer
@@ -56,18 +59,19 @@ local POISONS_NOTE_HEIGHT = 45 -- the two-line ingredients note plus its spacer
     is AceConfig's 170px width step.
 
     The staple pair is sized snug to one-word labels with a dropdown that
-    must hold "18 Stacks"; the reagent pair spends more on the label --
-    "Demonic Figurine" is the yardstick -- and less on a dropdown that never
-    shows past "4 Stacks" (the counting ones, Soul Shards, stop at a bare
-    "40", narrower still). Both dropdowns fit because the AceGUI dropdown
+    must hold "18 Stacks"; the reagent pair, which the poisons share, spends
+    more on the label -- those rows show the client's own item names, and
+    "Rune of Teleportation" is the yardstick -- and less on a dropdown that
+    never shows past "4 Stacks" (the counting ones, Soul Shards, stop at a
+    bare "40", narrower still). Both dropdowns fit because the AceGUI dropdown
     renders its text in the small highlight font. A reagent with a fixed
     amount draws no dropdown; its checkbox spans the whole pair, so the
-    columns keep their rhythm. A locale that overruns a label wraps that row
-    onto another line.
+    columns keep their rhythm. A locale whose item name overruns a label
+    wraps that row onto another line.
 ]]
 local STAPLE_TOGGLE_WIDTH = 0.5
 local STAPLE_STACKS_WIDTH = 0.65
-local REAGENT_TOGGLE_WIDTH = 0.75
+local REAGENT_TOGGLE_WIDTH = 0.9
 local REAGENT_STACKS_WIDTH = 0.6
 local COLUMN_GUTTER_WIDTH = 0.2
 
@@ -133,12 +137,12 @@ local function StackOptions(category)
 end
 
 --[[
-    The tooltip text for a staple whose item the client has not resolved yet:
-    the stack size and count its real text needs come off that item, so the
-    panels' own loading placeholder stands in until ns.WarmItemCache repaints.
+    Stands in for text built from an item the client has not resolved yet --
+    a row's name, or the stack size and count a tooltip needs -- as the
+    panels' own loading placeholder, until ns.WarmItemCache repaints.
 ]]
-local function LoadingText(category)
-	return GetColor("MUTED") .. string.format(L["LOADING_ITEM"], ns.GetStarterCategoryItemID(category)) .. "|r"
+local function LoadingText(itemID)
+	return GetColor("MUTED") .. string.format(L["LOADING_ITEM"], itemID) .. "|r"
 end
 
 --[[
@@ -150,9 +154,11 @@ end
 local function StapleToggle(category, order, width)
 	return {
 		type = "toggle",
-		name = category.label,
+		name = function()
+			return ns.GetStarterCategoryName(category) or LoadingText(ns.GetStarterCategoryNameItemID(category))
+		end,
 		desc = function()
-			return ns.DescribeStarterCategory(category) or LoadingText(category)
+			return ns.DescribeStarterCategory(category) or LoadingText(ns.GetStarterCategoryItemID(category))
 		end,
 		order = order,
 		width = width,
@@ -182,7 +188,7 @@ local function StapleStacks(category, order, width)
 			end
 			local stackSize = ns.GetStarterCategoryStackSize(category)
 			if not stackSize then
-				return LoadingText(category)
+				return LoadingText(ns.GetStarterCategoryItemID(category))
 			end
 			return string.format(L["STARTER_POPUP_STACKS_DESCRIPTION"], stackSize)
 		end,
@@ -268,7 +274,7 @@ end
     One section's categories in display order, holding only the ones this
     class is offered right now -- Restocker-Starter-List.lua's class and availability
     rules keep another class's reagents, a not-yet-trained spell's reagent,
-    and another expansion's items out of the window.
+    and items this client's folder does not carry out of the window.
 ]]
 local function SectionCategories(section)
 	local categories = {}
@@ -285,17 +291,31 @@ local function SectionCategories(section)
 	--[[
 	    Display order is computed, never authored: the staples with a stacks
 	    dropdown lead, the fixed-amount singles follow, and each run sorts
-	    alphabetically by its localized label -- so the dropdown column stays
+	    alphabetically by the name it shows -- so the dropdown column stays
 	    a solid block instead of gap-toothing around the single items, and
-	    every locale reads A to Z without re-authoring the spec.
+	    every locale reads A to Z without re-authoring the spec. A row whose
+	    name is still loading sorts after the named ones, by item ID, and
+	    takes its place when the window repaints with the name. The names are
+	    read once, before sorting, so the order cannot shift mid-sort.
 	]]
+	local names = {}
+	for _, category in ipairs(categories) do
+		names[category] = ns.GetStarterCategoryName(category) or false
+	end
 	table.sort(categories, function(a, b)
 		local aFixed = a.fixedAmount ~= nil
 		local bFixed = b.fixedAmount ~= nil
 		if aFixed ~= bFixed then
 			return bFixed
 		end
-		return (a.label or "") < (b.label or "")
+		local aName, bName = names[a], names[b]
+		if aName and bName then
+			return aName < bName
+		end
+		if aName or bName then
+			return aName ~= false
+		end
+		return ns.GetStarterCategoryNameItemID(a) < ns.GetStarterCategoryNameItemID(b)
 	end)
 	return categories
 end
@@ -331,21 +351,29 @@ local function PopupHeight()
 end
 
 --[[
-    Every offered staple whose item the client has not resolved yet, handed
-    to ns.WarmItemCache so the window repaints as the answers land. Called on
-    every build, like the other item panels. It is the only warming the
-    window gets from either way in (the login trigger and the List Builder
-    button), and a resolved item is simply not cold.
+    Every item an offered staple needs that the client has not resolved yet --
+    the one a tick adds, for its stack size, and the one the row is named for
+    -- handed to ns.WarmItemCache so the window repaints as the answers land.
+    Called on every build, like the other item panels. It is the only warming
+    the window gets from either way in (the login trigger and the List
+    Builder button), and a resolved item is simply not cold.
 ]]
 local function WarmOfferedItems()
-	local coldItemIDs = {}
+	local coldItemIDs, seen = {}, {}
+	local function Cold(itemID)
+		if not seen[itemID] then
+			seen[itemID] = true
+			coldItemIDs[#coldItemIDs + 1] = itemID
+		end
+	end
 	for _, category in ipairs(ns.GetStarterCategories()) do
-		if
-			ns.IsStarterCategoryForClass(category)
-			and ns.IsStarterCategoryAvailable(category)
-			and not ns.GetStarterCategoryStackSize(category)
-		then
-			coldItemIDs[#coldItemIDs + 1] = ns.GetStarterCategoryItemID(category)
+		if ns.IsStarterCategoryForClass(category) and ns.IsStarterCategoryAvailable(category) then
+			if not ns.GetStarterCategoryStackSize(category) then
+				Cold(ns.GetStarterCategoryItemID(category))
+			end
+			if not ns.GetStarterCategoryName(category) then
+				Cold(ns.GetStarterCategoryNameItemID(category))
+			end
 		end
 	end
 	ns.WarmItemCache(coldItemIDs, ns.OPTIONS_REGISTRY.StarterListPopup)
@@ -467,8 +495,8 @@ function ns.BuildStarterListPopupOptions()
 
 	--[[
 	    Class reagents and tools -- a rogue's powders and picks, a druid's
-	    seeds, a priest's candles. The wider label cell is what fits "Demonic
-	    Figurine" and "Mind-numbing"; see the width block up top.
+	    seeds, a priest's candles. The wider label cell is what fits the longer
+	    item names ("Rune of Teleportation"); see the width block up top.
 	]]
 	local reagentCategories = SectionCategories("reagents")
 	if #reagentCategories > 0 then

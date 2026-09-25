@@ -12,17 +12,21 @@ local L = ns.L
     "New" is a note about THIS list, THIS sitting -- so it clears the moment
     either becomes untrue: when the Restocker window closes (Restocker-Window.lua's
     OnHide), when the Starter List popup closes (its host's OnHide in
-    Options-Starter-List-Popup.lua), and on every profile event -- create,
+    Options-Starter-List-Popup.lua), and on every list event -- create,
     switch, clone, copy, delete -- via ns.UseRestockList plus the two direct sites
     in ns.DeleteRestockList and ns.CopyIntoCurrentRestockList that never pass through it.
 
     Deliberately a plain field on ns rather than anything under settings: this is
-    view state for one sitting and must never reach SavedVariables.
+    view state for one sitting and must never reach SavedVariables. A selected
+    New category goes with the items, or the window would show an empty list.
 ]]
 ns.restockNewItems = {}
 
 function ns.ClearRestockNewItems()
 	wipe(ns.restockNewItems)
+	if ns.restockSelectedGroup == L["RESTOCKER_GROUP_NEW"] then
+		ns.ClearRestockGroupSelection()
+	end
 end
 
 --------------------------------------------------------------------------------
@@ -124,6 +128,12 @@ function ns.AddRestockItem(text)
 		text = tonumber(text)
 	end
 
+	-- A typed ID with no item behind it is never answered, so parking it below would hold the event all session.
+	if type(text) == "number" and not C_Item.DoesItemExistByID(text) then
+		ns.PrintMessage(string.format(L["RESTOCKER_UNKNOWN_ITEM"], text))
+		return
+	end
+
 	local itemInfo = ns.GetItemData(text)
 	if itemInfo == nil then
 		--[[
@@ -149,7 +159,7 @@ function ns.AddRestockItem(text)
 
 	local itemID = (itemInfo).itemID
 
-	-- Profiles are keyed by itemID, so a duplicate is a simple lookup
+	-- Lists are keyed by itemID, so a duplicate is a simple lookup
 	if currentList[itemID] ~= nil then
 		return
 	end

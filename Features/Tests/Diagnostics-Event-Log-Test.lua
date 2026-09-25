@@ -1,24 +1,27 @@
 -- luacheck: allow defined, ignore 121 122 131 143
--- Headless test for the Diagnostics event-log filter (no WoW client needed).
---
--- Run it with:   lua Features/Tests/Diagnostics-Event-Log-Test.lua        (from the add-on root)
---
--- Like Readiness-Report-Test, this does NOT model the logic: it loads the REAL
--- Features/Diagnostics.lua and drives ns.LogEvent, ns.LogEventNow and
--- ns.BuildEventLogReport behind the thinnest stubs that will hold them up.
---
--- WHAT IS PINNED HERE. A bounded log that fills with noise evicts the entries a
--- bug report needs, so uncorrelated UI_ERROR_MESSAGE traffic folds into one
--- counted row. The filter must never swallow what the add-on acts on, and a
--- firing it cannot classify is signal, so it logs verbatim. UNIT_AURA is only
--- counted at capture, and its handler writes the firings that mattered.
+--[[
+    Headless test for the Diagnostics event-log filter (no WoW client needed).
+
+    Run it with:   lua Features/Tests/Diagnostics-Event-Log-Test.lua        (from the add-on root)
+
+    Like Readiness-Report-Test, this does NOT model the logic: it loads the REAL
+    Features/Diagnostics.lua and drives ns.LogEvent, ns.LogEventNow and
+    ns.BuildEventLogReport behind the thinnest stubs that will hold them up.
+
+    WHAT IS PINNED HERE. A bounded log that fills with noise evicts the entries a
+    bug report needs, so uncorrelated UI_ERROR_MESSAGE traffic folds into one
+    counted row. The filter must never swallow what the add-on acts on, and a
+    firing it cannot classify is signal, so it logs verbatim. UNIT_AURA is only
+    counted at capture, and its handler writes the firings that mattered.
+]]
 
 local ROOT = arg[1] or "."
 
 --[[
-    Locale keys resolve to their own name. RAW_DATA is the one Data/ table the
-    Validate Data manifest indexes into at load; every other table it names may
-    be nil here.
+    Locale keys resolve to their own name. The Validate Data manifest names the
+    Data/ tables rather than holding them, so the test loads none of them;
+    ns.DIAGNOSTIC_SPELLS reads MISSING_SPELL_MESSAGE_IDS at load, so that one
+    is stubbed empty.
 ]]
 local ns = {
 	L = setmetatable({}, {
@@ -27,7 +30,9 @@ local ns = {
 		end,
 	}),
 	Version = "Test",
-	RAW_DATA = {},
+	FLAVOR = "Vanilla",
+	DATA_FOLDER = "Vanilla",
+	MISSING_SPELL_MESSAGE_IDS = {},
 }
 
 --------------------------------------------------------------------------------
@@ -38,7 +43,6 @@ ERR_ITEM_WRONG_ZONE = "You can't use that item in this zone."
 SPELL_FAILED_TARGETS_DEAD = "Your target is dead."
 ERR_INV_FULL = "Inventory is full."
 ERR_BANK_FULL = "Your bank is full."
-WOW_PROJECT_ID = 2
 
 function GetTime()
 	return 1000
@@ -48,6 +52,16 @@ function GetBuildInfo()
 end
 function GetLocale()
 	return "enUS"
+end
+
+-- A stand-in for a Forever secret value: any attempt to turn it into text throws.
+local SECRET = setmetatable({}, {
+	__tostring = function()
+		error("attempt to use a secret value")
+	end,
+})
+function ns.IsSecretValue(value)
+	return value == SECRET
 end
 
 local realPrint = io.write
@@ -129,6 +143,13 @@ ns.LogEventNow("UNIT_AURA", "player")
 report = ns.BuildEventLogReport()
 check("one log line", #logLines(report), 1)
 check("full line", logLines(report)[1], "1000.000 UNIT_AURA(player)")
+
+say("5. A secret argument is written as <secret>, never turned into text")
+ns.StartEventLog()
+ns.LogEvent("UNIT_SPELLCAST_SUCCEEDED", "player", SECRET, SECRET)
+report = ns.BuildEventLogReport()
+check("one log line", #logLines(report), 1)
+check("full line", logLines(report)[1], "1000.000 UNIT_SPELLCAST_SUCCEEDED(player, <secret>, <secret>)")
 
 say("")
 if failures == 0 then

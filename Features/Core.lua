@@ -141,26 +141,42 @@ local function InitializeSavedVariables()
 	]]
 	ns.RepairBlindingPowderRows()
 
+	-- MIGRATION (remove after 2026-09-29)
 	--[[
-	    Retired keys, cleared explicitly so they do not sit in saved files
-	    forever. debugMessages was the Restocker's own persisted debug switch;
-	    that trace is now gated on the runtime-only diagnostics flag instead, so
-	    nothing can leave it on across sessions -- the adoption above leaves it
-	    behind rather than carrying it, so this only has to catch files that
-	    already took a copy. adoptedLegacyData was the stamp an earlier,
-	    since-retired copy step wrote.
+	    Retired keys, cleared explicitly so they do not sit in saved files.
+	    debugMessages was the Restocker's own persisted debug switch; that trace
+	    is now gated on the runtime-only diagnostics flag instead, so nothing can
+	    leave it on across sessions -- the adoption above leaves it behind rather
+	    than carrying it, so this only has to catch files that already took a
+	    copy. adoptedLegacyData was the stamp an earlier, since-retired copy step
+	    wrote.
+
+	    The report keys are the Ready Check report's own switches, retired when
+	    it became the Readiness Report (its sections were re-cut rather than
+	    renamed, so nothing maps onto a new key), and readinessReport, the
+	    Readiness Report's first master switch, retired when the report became
+	    opt-in. That one is cleared rather than reused: AceDB strips a value equal
+	    to its default at logout, but a value the player set stays in the saved
+	    file after its key leaves the defaults, so a reused name would read back
+	    a choice made under its old meaning.
 	]]
 	ns.db.global.restocker.debugMessages = nil
 	ns.db.global.restocker.adoptedLegacyData = nil
-
-	--[[
-	    Retired report keys, cleared so no saved file can keep answering with
-	    them: the old Ready Check switches, whose sections were re-cut rather
-	    than renamed, and readinessReport, the Readiness Report's first master
-	    switch, retired when the report became opt-in. The list and the reason
-	    each one is on it live in Data/Default-Settings.lua.
-	]]
-	for _, key in ipairs(ns.RETIRED_READY_CHECK_KEYS) do
+	local RETIRED_READY_CHECK_KEYS = {
+		"readyCheckReport",
+		"readyCheckHealthstone",
+		"readyCheckHealthPotion",
+		"readyCheckManaPotion",
+		"readyCheckScrolls",
+		"readyCheckWellFed",
+		"readyCheckPetFood",
+		"readyCheckBuffTimes",
+		"readyCheckSoulstone",
+		"readyCheckManaGem",
+		"readyCheckBandage",
+		"readinessReport",
+	}
+	for _, key in ipairs(RETIRED_READY_CHECK_KEYS) do
 		ns.db.global[key] = nil
 	end
 
@@ -308,6 +324,24 @@ frame:SetScript("OnEvent", function(_, event, ...)
 	end
 
 	--[[
+	    Options item lists waiting on this answer repaint now: after the
+	    Restocker handler above, which forgets the item's remembered miss before
+	    anything asks about it again.
+	]]
+	if event == "GET_ITEM_INFO_RECEIVED" then
+		ns.OnOptionsItemInfoReceived(...)
+		--[[
+		    Only a consumable's answer can change a macro: ns.CacheItemData, which
+		    covers the consumable tables alone, is the one macro input that reads
+		    item info. Any other answer rebuilds nothing.
+		]]
+		local itemID = ...
+		if not ns.HasRawData(itemID) then
+			return
+		end
+	end
+
+	--[[
 	    UI_ERROR_MESSAGE is also handled ahead of the lockdown guard: both
 	    of its consumers must work mid-combat and neither touches protected
 	    functions. The wrong-zone report mostly fires when a zone-locked
@@ -319,9 +353,20 @@ frame:SetScript("OnEvent", function(_, event, ...)
 	if event == "UI_ERROR_MESSAGE" then
 		local _, message = ...
 
-		ns.HandleHunterPetError(message)
+		ns.OnHunterUiErrorMessage(message)
 
-		ns.ReportZoneRestriction(message)
+		ns.OnMacroUiErrorMessage(message)
+		return
+	end
+
+	--[[
+	    UNIT_PET is handled ahead of the guard as well: a pet revived or called
+	    mid-fight must clear the dead-pet flag then, not when combat ends, and the
+	    handler only flips that flag and calls RequestUpdate, which defers the
+	    rebuild itself.
+	]]
+	if event == "UNIT_PET" then
+		ns.OnUnitPet(...)
 		return
 	end
 
@@ -357,7 +402,7 @@ frame:SetScript("OnEvent", function(_, event, ...)
 	    rewrites SavedVariables, so it touches nothing protected.
 	]]
 	if event == "PLAYER_LOGOUT" then
-		ns.PruneIgnoreList()
+		ns.OnIgnoreListPlayerLogout()
 		return
 	end
 
@@ -366,11 +411,11 @@ frame:SetScript("OnEvent", function(_, event, ...)
 	    as the events above: a ready check routinely fires with the raid
 	    already pulling, and the report only reads auras and the last scan's
 	    results before printing, so it touches nothing protected. Where the
-	    client restricts aura data mid-fight (Forever), ns.ReportReadiness
+	    client restricts aura data mid-fight (Forever), ns.OnReadyCheck
 	    stays silent rather than read a secret value.
 	]]
 	if event == "READY_CHECK" then
-		ns.ReportReadiness()
+		ns.OnReadyCheck()
 		return
 	end
 
@@ -383,7 +428,7 @@ frame:SetScript("OnEvent", function(_, event, ...)
 	    can restrict it mid-fight), and ns.RequestUpdate leaves the rebuild
 	    pending until combat drops.
 	    Request only on a real change; see Target and Group Tracking in
-	    Features/Macros/Engine.lua.
+	    Features/Macros/Signatures.lua.
 	]]
 	if event == "PLAYER_TARGET_CHANGED" then
 		if ns.TargetSignatureChanged() then
@@ -456,18 +501,16 @@ frame:SetScript("OnEvent", function(_, event, ...)
 		ns.UpdateEngineeringSkill()
 		ns.RequestUpdate()
 	elseif event == "UNIT_AURA" then
-		ns.HandleUnitAura(...)
+		ns.OnUnitAura(...)
 	elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
 		local _, _, spellID = ...
 		-- A secret spellID (Forever, while casts are restricted) errors as a table key.
-		if issecretvalue and issecretvalue(spellID) then
+		if ns.IsSecretValue(spellID) then
 			return
 		end
 		if ns.spellCache and ns.spellCache[spellID] then
 			ns.RequestUpdate()
 		end
-	elseif event == "UNIT_PET" then
-		ns.HandlePetChanged(...)
 	end
 end)
 

@@ -6,11 +6,12 @@ local _, ns = ...
 
 --[[
     The craftable items the Restock List buys reagents for, keyed by the crafted
-    item's LOCALIZED name. That key is not a convenience: it is what the merchant's
-    own item names arrive as, and what BuildCraftingPurchaseOrder matches list rows
-    against, so a recipe is only usable once the client has named it.
+    item's LOCALIZED name. That key is not a convenience: BuildCraftingPurchaseOrder
+    matches list rows against it, so a recipe is only usable once the client has
+    named it. Merchants never list the crafted item; the orders it produces are
+    for its reagents, under their own names.
 
-    Recipe rows live in Data/Poison-Recipes.lua.
+    Recipe rows live in Data/{Game}/Poison-Recipes-{Game}.lua.
 ]]
 local buyIngredients = {}
 
@@ -63,9 +64,7 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-    Turn the data rows into the runtime shape. Rows flagged for another client are
-    skipped here rather than filtered downstream, so nothing past this point has to
-    know a recipe can be flavor-specific.
+    Turn the data rows into the runtime shape.
 
     Called at login and again at every merchant. The guard is on buyIngredients
     rather than on a "did we run" flag on purpose: a login where the client had
@@ -78,15 +77,12 @@ function ns.SetupCraftingRecipes()
 		return
 	end
 
-	for _, row in ipairs(ns.POISON_RECIPES or {}) do
-		local expansion = row[3]
-		if expansion == nil or expansion == ns.CURRENT_EXPANSION then
-			local reagents = {}
-			for _, reagent in ipairs(row[2]) do
-				reagents[#reagents + 1] = { itemID = reagent[1], count = reagent[2] }
-			end
-			AddRecipe({ itemID = row[1], reagents = reagents })
+	for _, row in ipairs(ns.POISON_RECIPES) do
+		local reagents = {}
+		for _, reagent in ipairs(row[2]) do
+			reagents[#reagents + 1] = { itemID = reagent[1], count = reagent[2] }
 		end
+		AddRecipe({ itemID = row[1], reagents = reagents })
 	end
 end
 
@@ -101,15 +97,16 @@ function ns.BuildCraftingPurchaseOrder()
 	local list = settings.lists[settings.currentList]
 
 	for _, item in pairs(list) do
-		local recipe = buyIngredients[item.itemName]
-		if recipe ~= nil then
+		-- A row's Buy toggle governs every purchase it makes, its ingredients included (nil means on).
+		local recipe = item.buyFromMerchant ~= false and buyIngredients[item.itemName]
+		if recipe then
 			--[[
 			    Bags only, matching BuildPurchaseOrder and BuildGroceryList. Bank stock
 			    deliberately does not count: you are standing at a vendor, and the
 			    tradeskill can only consume what is in your bags, so poisons sitting in
 			    the bank must not cancel reagents for crafts you still have to make.
 
-			    Counting it was self-defeating as well. That bank pile is one this addon
+			    Counting it was self-defeating as well. That bank pile is one this add-on
 			    creates -- Restocker-Bank.lua stashes everything above `amount` -- so a full run
 			    would bank the excess and then refuse to buy reagents for it. It also
 			    made the same vendor visit buy different amounts depending on whether
@@ -135,7 +132,7 @@ function ns.BuildCraftingPurchaseOrder()
 
 	--[[
 	    Reagents already in the bags come off the order. The floor matters because
-	    these numbers do not stay in this table: Restock() folds them into
+	    these numbers do not stay in this table: ns.RestockFromMerchant folds them into
 	    purchaseOrders alongside the merchant restock amounts, keyed by the same
 	    localized name. A surplus of vials left a negative here, and a negative
 	    added to a vial line the player actually asked for would quietly shrink it.

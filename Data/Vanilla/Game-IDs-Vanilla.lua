@@ -1,0 +1,75 @@
+local _, ns = ...
+
+if ns.IS_DISCOVERY then
+	return
+end
+
+--[[
+    Source: carried over from the pre-split shared data files, which every
+    client loaded alike.
+]]
+
+--------------------------------------------------------------------------------
+-- Stealth Abilities
+--------------------------------------------------------------------------------
+
+ns.SHADOWMELD_SPELL_ID = 20580
+
+--[[
+    Rogue Stealth, rank 1. C_Spell.GetSpellName resolves the base name "Stealth", which
+    a bare /cast fires at the highest rank the rogue knows (Stealth Eating).
+]]
+ns.STEALTH_SPELL_ID = 1784
+
+--------------------------------------------------------------------------------
+-- Druid Forms
+--------------------------------------------------------------------------------
+
+ns.DRUID_DIRE_BEAR_FORM_SPELL_ID = 9634
+ns.DRUID_BEAR_FORM_SPELL_ID = 5487
+ns.DRUID_CAT_FORM_SPELL_ID = 768
+
+--------------------------------------------------------------------------------
+-- Rogue Poisons Skill
+--------------------------------------------------------------------------------
+
+--[[
+    "Poisons" (spell 2842) — the rogue poison-crafting skill; the same ID on
+    Era and TBC. Knowing it gates the Poisons macro (a rogue without it can't
+    apply poisons at all) and provides the middle-click crafting branch.
+]]
+ns.POISONS_SPELL_ID = 2842
+
+--------------------------------------------------------------------------------
+-- Hunter Pet Spells
+--------------------------------------------------------------------------------
+
+ns.CALL_PET_SPELL_ID = 883
+ns.DISMISS_PET_SPELL_ID = 2641
+ns.FEED_PET_SPELL_ID = 6991
+ns.MEND_PET_SPELL_ID = 136
+ns.REVIVE_PET_SPELL_ID = 982
+
+--------------------------------------------------------------------------------
+-- Pet Buff Food
+--------------------------------------------------------------------------------
+
+--[[
+    Hunter and Warlock pet buff foods. The pet-buff override offers the highest
+    rank the bags hold, settingKey names each food's petBuffTypes toggle, and
+    requiredLevel is the level a player needs before the food is offered.
+]]
+-- [itemID] = { buffSpellID, rank, settingKey, requiredLevel }, -- Item Name
+ns.PET_BUFF_FOODS = {}
+
+--------------------------------------------------------------------------------
+-- Professions
+--------------------------------------------------------------------------------
+
+-- The profession spells whose localized names identify their skill lines.
+ns.FIRST_AID_SPELL_ID = 3273
+ns.ALCHEMY_SPELL_ID = 2259
+ns.ENGINEERING_SPELL_ID = 4036
+
+-- The Engineering specialization Diagnostics checks the player for.
+ns.GOBLIN_ENGINEER_SPELL_ID = 20222

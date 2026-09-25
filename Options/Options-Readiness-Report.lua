@@ -6,7 +6,6 @@ local AceConfigRegistry = LibStub("AceConfigRegistry-3.0")
 local Header = ns.OptionsHeader
 local Desc = ns.OptionsDesc
 local Spacer = ns.OptionsSpacer
-local SubRow, SubLabel = ns.OptionsSubRow, ns.OptionsSubLabel
 
 --------------------------------------------------------------------------------
 -- Readiness Report Panel
@@ -50,7 +49,12 @@ end
     it fired at. See ns.HasFlaskOrElixirs' caller in Features/Readiness-Report.lua.
 ]]
 local function FlaskHidden()
-	return ReportsHidden() or ns.IS_ERA or ns.IS_FOREVER
+	return ReportsHidden() or ns.EXPANSION < 2
+end
+
+-- Hidden where this flavor's folder has no pet buff food, since ns.ShouldTrackPetFood can never pass there.
+local function PetWellFedHidden()
+	return ReportsHidden() or next(ns.PET_BUFF_FOODS) == nil
 end
 
 --[[
@@ -59,7 +63,7 @@ end
     switch would do nothing.
 ]]
 local function SpecHidden()
-	return ReportsHidden() or not GetNumTalentTabs
+	return ReportsHidden() or ns.GetNumTalentTabs() == nil
 end
 
 -- Repaint the page so a reset shows in the controls without a reopen.
@@ -74,12 +78,10 @@ end
 --[[
     Every Readiness Report setting back to what a fresh install ships with.
 
-    A control of its own, which the Style Guide's Reset rule otherwise forbids
-    (see the Connoisseur entry in References/Exceptions.md). The reason it has
-    to exist: these settings are account-wide, and under the Per-Character model
-    nothing can reach that scope -- ns.db:ResetProfile() clears the profile and
-    the profile alone -- so without this button the page has no path back to its
-    defaults at all.
+    A control of its own, because these settings are account-wide, and under
+    the Per-Character model nothing else reaches that scope --
+    ns.db:ResetProfile() clears the profile and the profile alone -- so without
+    this button the page has no path back to its defaults at all.
 
     The keys are derived from ns.DATABASE_DEFAULTS rather than listed again
     here, so the button can never drift from the declared defaults and a
@@ -130,8 +132,9 @@ local function ExpiringValues()
 			-- Its own key: no plural template renders the one-minute entry grammatically.
 			values[seconds] = L["OPTIONS_READINESS_EXPIRING_MINUTES_ONE"]
 		else
-			-- Trim a whole number's ".0" without rounding the half-minute entry away.
-			local label = (minutes % 1 == 0) and tostring(math.floor(minutes)) or tostring(minutes)
+			-- Trim a whole number's ".0" without rounding the half-minute entry away; that entry takes the locale's decimal mark.
+			local label = (minutes % 1 == 0) and tostring(math.floor(minutes))
+				or (tostring(minutes):gsub("%.", L["DECIMAL_SEPARATOR"]))
 			values[seconds] = string.format(L["OPTIONS_READINESS_EXPIRING_MINUTES"], label)
 		end
 	end
@@ -149,27 +152,23 @@ local function DurabilityValues()
 end
 
 --[[
-    A row's optional dropdown: which key it writes, its caption and hover text,
-    the choices, their order, and what to read when the key is unset. `fallback`
-    matches the default in Data/Default-Settings.lua -- the two have to agree,
-    or the dropdown opens on a value the report is not using.
+    A row's optional dropdown: which key it writes, its hover text, the choices
+    and their order. It has no caption: it sits on its switch's line, and the
+    switch's label reads straight into it ("Damaged Gear Below 20%"). The key's
+    default comes from Data/Default-Settings.lua.
 ]]
 local EXPIRING_THRESHOLD = {
 	key = "readinessExpiringThreshold",
-	caption = "OPTIONS_READINESS_EXPIRING_CAPTION",
 	description = "OPTIONS_READINESS_EXPIRING_THRESHOLD_DESCRIPTION",
 	values = ExpiringValues,
 	sorting = EXPIRING_SECONDS,
-	fallback = 150,
 }
 
 local DURABILITY_THRESHOLD = {
 	key = "readinessDurabilityThreshold",
-	caption = "OPTIONS_READINESS_DURABILITY_CAPTION",
 	description = "OPTIONS_READINESS_DURABILITY_THRESHOLD_DESCRIPTION",
 	values = DurabilityValues,
 	sorting = DURABILITY_PERCENTS,
-	fallback = 20,
 }
 
 --------------------------------------------------------------------------------
@@ -208,6 +207,7 @@ local SECTIONS = {
 				key = "readinessPetWellFed",
 				name = "READINESS_PET_WELL_FED",
 				description = "OPTIONS_READINESS_PET_WELL_FED_DESCRIPTION",
+				hidden = PetWellFedHidden,
 			},
 			{
 				key = "readinessScrolls",
@@ -303,18 +303,16 @@ local SECTIONS = {
 --------------------------------------------------------------------------------
 
 --[[
-    A threshold's sub-row cells, sized to their contents with room to spare
-    rather than to the row budget; see ns.OptionsSubRow.
-]]
-local THRESHOLD_CAPTION_WIDTH = 1.0
-local THRESHOLD_DROPDOWN_WIDTH = 0.8
-
---[[
     Opens a section: a break, its header, then a break under it -- the house
-    rhythm every other panel's sections open with. Returns the next order.
+    rhythm every other panel's sections open with. Every row already ends with
+    its own break, so only the first section, which follows the Reset button,
+    adds the break above its header. Returns the next order.
 ]]
-local function AddSection(args, section, order)
-	args["space" .. section.key .. "Top"] = { type = "description", name = " ", order = order, hidden = ReportsHidden }
+local function AddSection(args, section, order, isFirst)
+	if isFirst then
+		args["space" .. section.key .. "Top"] =
+			{ type = "description", name = " ", order = order, hidden = ReportsHidden }
+	end
 	args["header" .. section.key] = Header(L[section.title], order + 1, ReportsHidden)
 	args["space" .. section.key .. "Under"] =
 		{ type = "description", name = " ", order = order + 2, hidden = ReportsHidden }
@@ -322,9 +320,9 @@ local function AddSection(args, section, order)
 end
 
 --[[
-    One category row: the switch, the sub-row holding its threshold dropdown
-    where it has one, and the break under it. What the row reports is the
-    switch's hover text.
+    One category row: the switch, its threshold dropdown on the same line where
+    it has one, and the break under it. What the row reports is the switch's
+    hover text.
 
     Every part carries the row's own `hidden`, so a row that is not offered
     (Flask on Era) takes its break with it rather than leaving a gap where a
@@ -341,7 +339,7 @@ local function AddReportRow(args, row, order)
 		name = L[row.name],
 		desc = description,
 		order = order,
-		width = "full",
+		width = threshold and ns.OPTIONS_LABEL_WIDTH or "full",
 		hidden = hidden,
 		get = function()
 			return ns.db and ns.db.global[key]
@@ -353,32 +351,24 @@ local function AddReportRow(args, row, order)
 	order = order + 1
 
 	if threshold then
-		local function ThresholdHidden()
-			return hidden() or not (ns.db and ns.db.global[key])
-		end
-
-		args["value" .. key] = SubRow(order, ThresholdHidden, {
-			{
-				type = "description",
-				name = SubLabel(L[threshold.caption]),
-				fontSize = "medium",
-				width = THRESHOLD_CAPTION_WIDTH,
-			},
-			{
-				type = "select",
-				name = "",
-				desc = L[threshold.description],
-				width = THRESHOLD_DROPDOWN_WIDTH,
-				values = threshold.values,
-				sorting = threshold.sorting,
-				get = function()
-					return (ns.db and ns.db.global[threshold.key]) or threshold.fallback
-				end,
-				set = function(_, value)
-					ns.db.global[threshold.key] = value
-				end,
-			},
-		})
+		args["value" .. key] = {
+			type = "select",
+			name = "",
+			desc = L[threshold.description],
+			order = order,
+			width = ns.OPTIONS_CONTROL_WIDTH,
+			hidden = function()
+				return hidden() or not (ns.db and ns.db.global[key])
+			end,
+			values = threshold.values,
+			sorting = threshold.sorting,
+			get = function()
+				return ns.db.global[threshold.key]
+			end,
+			set = function(_, value)
+				ns.db.global[threshold.key] = value
+			end,
+		}
 		order = order + 1
 	end
 
@@ -406,7 +396,7 @@ function ns.BuildReadinessReportOptions()
 	args.toggleReadiness = {
 		type = "toggle",
 		name = L["OPTIONS_READINESS_ENABLE"],
-		desc = L["OPTIONS_READINESS_DESCRIPTION"],
+		desc = L["OPTIONS_READINESS_ENABLE_DESCRIPTION"],
 		order = order,
 		width = "full",
 		get = function()
@@ -438,8 +428,8 @@ function ns.BuildReadinessReportOptions()
 	}
 	order = order + 1
 
-	for _, section in ipairs(SECTIONS) do
-		order = AddSection(args, section, order)
+	for index, section in ipairs(SECTIONS) do
+		order = AddSection(args, section, order, index == 1)
 		for _, row in ipairs(section.rows) do
 			order = AddReportRow(args, row, order)
 		end

@@ -1,38 +1,45 @@
 -- luacheck: allow defined, ignore 121 122 131 143
--- Headless test for the crafting-reagent purchase order (no WoW API needed).
---
--- Run it with:   lua Tests/Restocker-Reagent-Buy-Test.lua
---
--- It models the SAME two steps the live addon uses:
---   * Restocker-Crafting-Reagents.lua BuildCraftingPurchaseOrder -- how many reagents the shortfall needs
---   * Restocker-Merchant.lua PurchaseMerchantItem       -- how many of those a vendor slot delivers
---
--- The reported bug lives in the first: 40 Instant Poison VI wanted, 18 sitting in the
--- BANK, and the order came out at 22 crafts (22 Crystal Vial, 88 Dust of Deterioration)
--- because the shortfall counted bank stock -- which a tradeskill at a vendor cannot reach.
--- The half-target gate in the same block was worse: it bought NOTHING, silently, whenever
--- anything was banked and the shortfall was under half the target.
---
--- The second is independent and hits the same reagents: BuyMerchantItem will not sell more
--- than one stack per call, and the limited-stock branch passed the vendor's whole count in
--- a single call, so a poison supplier holding several stacks sold nothing while the addon
--- reported the order filled.
+--[[
+    Headless test for the crafting-reagent purchase order (no WoW API needed).
 
--- Classic Instant Poison VI: 4x Dust of Deterioration + 1x Crystal Vial (Data/Poison-Recipes.lua).
+    Run it with:   lua Tests/Restocker-Reagent-Buy-Test.lua
+
+    It models the SAME two steps the live add-on uses:
+      * Restocker-Crafting-Reagents.lua BuildCraftingPurchaseOrder -- how many reagents the shortfall needs
+      * Restocker-Merchant.lua PurchaseMerchantItem       -- how many of those a vendor slot delivers
+
+    The reported bug lives in the first: 40 Instant Poison VI wanted, 18 sitting in the
+    BANK, and the order came out at 22 crafts (22 Crystal Vial, 88 Dust of Deterioration)
+    because the shortfall counted bank stock -- which a tradeskill at a vendor cannot reach.
+    The half-target gate in the same block was worse: it bought NOTHING, silently, whenever
+    anything was banked and the shortfall was under half the target.
+
+    The second is independent and hits the same reagents: BuyMerchantItem will not sell more
+    than one stack per call, and the limited-stock branch passed the vendor's whole count in
+    a single call, so a poison supplier holding several stacks sold nothing while the add-on
+    reported the order filled.
+]]
+
+-- Classic Instant Poison VI: 4x Dust of Deterioration + 1x Crystal Vial (Data/Vanilla/Poison-Recipes-Vanilla.lua).
 local RECIPE = { { name = "Dust of Deterioration", count = 4 }, { name = "Crystal Vial", count = 1 } }
 
 local pass = 0
 
 --[[
   CraftingPurchaseOrder, as shipped after the fix: bags only, no threshold, reagents
-  already held come off the order and never go negative.
+  already held come off the order and never go negative, and a row with Buy off
+  orders nothing.
 ]]
----@param wanted number Profile amount for the crafted item
+---@param wanted number List amount for the crafted item
 ---@param inBags number Crafted items in BAGS
 ---@param _inBank number Crafted items in the BANK (must not affect the result)
 ---@param reagentsInBags table<string, number>
-local function craftingPurchaseOrder(wanted, inBags, _inBank, reagentsInBags)
+---@param buyFromMerchant boolean|nil The row's Buy toggle (nil means on)
+local function craftingPurchaseOrder(wanted, inBags, _inBank, reagentsInBags, buyFromMerchant)
 	local order = {}
+	if buyFromMerchant == false then
+		return order
+	end
 	local missing = wanted - inBags -- _inBank is deliberately unused
 	if missing > 0 then
 		for _, ing in ipairs(RECIPE) do
@@ -61,14 +68,18 @@ local function orderScenario(label, wanted, inBags, inBank, reagentsInBags, want
 end
 
 print("CRAFTING PURCHASE ORDER")
--- THE REPORTED BUG. 40 wanted, none in bags, 18 banked. The old code counted the bank,
--- got a shortfall of 22, and bought 88 dust / 22 vial -- enough to craft 22, not 40.
+--[[
+    THE REPORTED BUG. 40 wanted, none in bags, 18 banked. The old code counted the bank,
+    got a shortfall of 22, and bought 88 dust / 22 vial -- enough to craft 22, not 40.
+]]
 orderScenario("40 wanted, 0 bags, 18 bank (the report)", 40, 0, 18, nil, 160, 40)
 -- Same shortfall, same answer, wherever the bank sits. Bank stock is simply not an input.
 orderScenario("40 wanted, 0 bags, 0 bank", 40, 0, 0, nil, 160, 40)
 orderScenario("40 wanted, 0 bags, 500 bank", 40, 0, 500, nil, 160, 40)
--- THE SILENT-ZERO CLIFF. Old rule: anything banked raised the floor to half the target,
--- so 19 short of 40 bought nothing at all. Any shortfall is worth buying for now.
+--[[
+    THE SILENT-ZERO CLIFF. Old rule: anything banked raised the floor to half the target,
+    so 19 short of 40 bought nothing at all. Any shortfall is worth buying for now.
+]]
 orderScenario("40 wanted, 21 bags, 21 bank (under old floor)", 40, 21, 21, nil, 76, 19)
 -- Bags DO count -- this is the case that always worked, and must keep working.
 orderScenario("40 wanted, 18 bags, 0 bank", 40, 18, 0, nil, 88, 22)
@@ -77,46 +88,74 @@ orderScenario("40 wanted, 40 bags", 40, 40, 0, nil, 0, 0)
 orderScenario("40 wanted, 55 bags (over target)", 40, 55, 0, nil, 0, 0)
 -- Reagents already held come off the order.
 orderScenario("40 wanted, 0 bags, 60 dust held", 40, 0, 0, { ["Dust of Deterioration"] = 60 }, 100, 40)
--- A reagent SURPLUS floors at zero. It must never go negative: Restock() folds these
--- numbers into purchaseOrders under the same localized name as a merchant restock line,
--- where a negative would quietly shrink an order the player actually asked for.
+--[[
+    A reagent SURPLUS floors at zero. It must never go negative: Restock() folds these
+    numbers into purchaseOrders under the same localized name as a merchant restock line,
+    where a negative would quietly shrink an order the player actually asked for.
+]]
 orderScenario("40 wanted, 400 dust held (surplus)", 40, 0, 0, { ["Dust of Deterioration"] = 400 }, 0, 40)
+-- A row with Buy off orders no reagents: its Buy toggle governs every purchase it makes.
+do
+	local order = craftingPurchaseOrder(40, 0, 0, nil, false)
+	assert(next(order) == nil, "40 wanted, Buy off: want no reagent order")
+	print(("  ok  %-46s -> %3d dust, %3d vial"):format("40 wanted, Buy off", 0, 0))
+	pass = pass + 1
+end
 
 --[[
-  PurchaseMerchantItem, as shipped after the fix: cap to the vendor's stock first, then
-  walk the whole order in stackCount chunks. Returns units actually ordered and whether
-  that covered the request.
+  PurchaseMerchantItem, as shipped after the fix: cap what the order still owes to the
+  vendor's stock, then walk it in stackCount chunks, sending a chunk only while the run's
+  budget covers it and adding what was sent to the order. Returns the units and the calls;
+  the fill test runs once per order, after every slot. budget models the run's own: money,
+  unitPrice, and claim(chunk) standing in for ns.ClaimBagSpace. Left out, it is unlimited.
 ]]
----@param amount number Units on the purchase order
+---@param order table { amount, remaining, bought }
 ---@param merchantAvailable number Vendor stock; -1 is unlimited, 0 is sold out
 ---@param stackCount number Item stack size
-local function purchaseMerchantItem(amount, merchantAvailable, stackCount)
+---@param budget table|nil { money, unitPrice, claim }
+local function purchaseMerchantItem(order, merchantAvailable, stackCount, budget)
+	budget = budget or { money = math.huge, unitPrice = 0 }
 	local calls = {}
 	local unitsOrdered = 0
 	if stackCount < 1 then
 		stackCount = 1
 	end
 
-	local wanted = amount
+	local wanted = order.remaining
 	if merchantAvailable > 0 and wanted > merchantAvailable then
 		wanted = merchantAvailable
 	end
 
-	for n = wanted, 1, -stackCount do
-		local chunk = (n > stackCount) and stackCount or n
-		calls[#calls + 1] = chunk
-		unitsOrdered = unitsOrdered + chunk
+	if merchantAvailable ~= 0 then
+		for n = wanted, 1, -stackCount do
+			local chunk = (n > stackCount) and stackCount or n
+			local cost = math.ceil(budget.unitPrice * chunk)
+			if cost > budget.money or (budget.claim and not budget.claim(chunk)) then
+				break
+			end
+			budget.money = budget.money - cost
+			calls[#calls + 1] = chunk
+			unitsOrdered = unitsOrdered + chunk
+		end
 	end
 
-	if merchantAvailable == 0 then
-		unitsOrdered = 0
-	end
+	order.remaining = math.max(0, order.remaining - unitsOrdered)
+	order.bought = order.bought + unitsOrdered
+	return unitsOrdered, calls
+end
 
-	return unitsOrdered, unitsOrdered > 0 and unitsOrdered >= amount, calls
+local function newOrder(amount)
+	return { amount = amount, remaining = amount, bought = 0 }
+end
+
+local function orderFilled(order)
+	return order.bought > 0 and order.bought >= order.amount
 end
 
 local function buyScenario(label, amount, avail, stack, wantUnits, wantFilled)
-	local units, filled, calls = purchaseMerchantItem(amount, avail, stack)
+	local order = newOrder(amount)
+	local units, calls = purchaseMerchantItem(order, avail, stack)
+	local filled = orderFilled(order)
 	assert(units == wantUnits, ("%s: units want %d got %d"):format(label, wantUnits, units))
 	assert(filled == wantFilled, ("%s: filled want %s got %s"):format(label, tostring(wantFilled), tostring(filled)))
 	-- The invariant the old limited-stock branch broke: no single call may exceed a stack.
@@ -129,9 +168,11 @@ local function buyScenario(label, amount, avail, stack, wantUnits, wantFilled)
 end
 
 print("\nMERCHANT PURCHASE")
--- THE STACK BUG. A poison supplier stocking 40 dust against an order of 160 used to make
--- ONE call for 40 -- four stacks in a single buy, which the server refuses -- and still
--- credited 40 units and claimed the order filled.
+--[[
+    THE STACK BUG. A poison supplier stocking 40 dust against an order of 160 used to make
+    ONE call for 40 -- four stacks in a single buy, which the server refuses -- and still
+    credited 40 units and claimed the order filled.
+]]
 buyScenario("160 dust, vendor has 40, stacks of 10", 160, 40, 10, 40, false)
 -- Unlimited stock (-1) is the common case and is unchanged.
 buyScenario("160 dust, unlimited, stacks of 10", 160, -1, 10, 160, true)
@@ -147,13 +188,65 @@ buyScenario("7 dust, unlimited, uncached stack of 1", 7, -1, 1, 7, true)
 buyScenario("0 dust, unlimited", 0, -1, 10, 0, false)
 
 --[[
+    THE FALSE FILL. Every chunk used to count as bought the moment it was sent, so a run the
+    purse or the bags could not cover still reported its orders filled. A chunk the budget
+    cannot cover is now never sent, and the order reads partly filled.
+]]
+do
+	local order = newOrder(40)
+	local units, calls = purchaseMerchantItem(order, -1, 10, { money = 25, unitPrice = 1 })
+	assert(units == 20 and #calls == 2, ("money for 25: want 20 units in 2 calls, got %d in %d"):format(units, #calls))
+	assert(not orderFilled(order), "money for 25: the order must not read filled")
+	print(
+		("  ok  %-46s -> %3d units in %d calls, filled=false"):format(
+			"40 dust, money for 25, stacks of 10",
+			units,
+			#calls
+		)
+	)
+	pass = pass + 1
+end
+do
+	local order = newOrder(40)
+	local slotsLeft = 2
+	local claim = function()
+		if slotsLeft < 1 then
+			return false
+		end
+		slotsLeft = slotsLeft - 1
+		return true
+	end
+	local units, calls = purchaseMerchantItem(order, -1, 10, { money = math.huge, unitPrice = 0, claim = claim })
+	assert(
+		units == 20 and #calls == 2,
+		("two free slots: want 20 units in 2 calls, got %d in %d"):format(units, #calls)
+	)
+	assert(not orderFilled(order), "two free slots: the order must not read filled")
+	print(
+		("  ok  %-46s -> %3d units in %d calls, filled=false"):format("40 dust, room for 2 stacks of 10", units, #calls)
+	)
+	pass = pass + 1
+end
+
+-- A poison supplier listing dust in two slots: the second buys only what the first left owed.
+do
+	local order = newOrder(160)
+	local first = purchaseMerchantItem(order, 40, 10)
+	local second = purchaseMerchantItem(order, -1, 10)
+	assert(first == 40 and second == 120, ("two slots: want 40 + 120 got %d + %d"):format(first, second))
+	assert(orderFilled(order), "two slots: the order is filled once, across both slots")
+	print(("  ok  %-46s -> %3d + %3d units, filled once"):format("160 dust, limited 40 then unlimited", first, second))
+	pass = pass + 1
+end
+
+--[[
   END TO END: the reported case, all the way to units in the bag. 40 wanted, 18 banked,
   nothing held, an unlimited poison supplier. The order must cover 40 crafts, not 22.
 ]]
 print("\nEND TO END")
 local order = craftingPurchaseOrder(40, 0, 18, nil)
-local dustUnits = purchaseMerchantItem(order["Dust of Deterioration"], -1, 10)
-local vialUnits = purchaseMerchantItem(order["Crystal Vial"], -1, 5)
+local dustUnits = purchaseMerchantItem(newOrder(order["Dust of Deterioration"]), -1, 10)
+local vialUnits = purchaseMerchantItem(newOrder(order["Crystal Vial"]), -1, 5)
 local craftable = math.min(math.floor(dustUnits / 4), math.floor(vialUnits / 1))
 assert(craftable == 40, ("end to end: craftable want 40 got %d"):format(craftable))
 print(("  ok  bought %d dust + %d vial -> %d crafts (was 22)"):format(dustUnits, vialUnits, craftable))

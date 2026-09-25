@@ -47,12 +47,13 @@ local restockItemList = {}
     UIDropDownMenu. Blizzard's version drives shared global frames that its own
     secure code also uses, so an add-on running through them leaves taint behind;
     AceGUI's pullout owns its frames outright. It also raises itself to TOOLTIP
-    strata, which is what keeps it in front of a FULLSCREEN-strata window.
+    strata, which keeps it in front of the window.
 
     A hand-created pullout closes only when we close it. The widget installs no
     OnHide script, and SetHideOnLeave writes a flag AceGUI-3.0 never reads, so
-    every close path is one of ours: opening another menu, picking a standing,
-    the window hiding, and ns.UpdateRestockList.
+    every close path is one of ours: opening another menu, clicking the open
+    menu's own cell again, picking a standing, the window hiding, and
+    ns.UpdateRestockList.
 
     Update is the load-bearing one. Rows come from a pool, so any redraw can put a
     different item under an open menu -- and the menu has to be gone before that
@@ -63,6 +64,7 @@ local restockItemList = {}
     row drifted underneath.
 ]]
 local openReputationPullout = nil
+local openReputationCell = nil
 
 local function CloseReputationMenu()
 	if not openReputationPullout then
@@ -70,6 +72,7 @@ local function CloseReputationMenu()
 	end
 	local pullout = openReputationPullout
 	openReputationPullout = nil
+	openReputationCell = nil
 	pullout:Close()
 	AceGUI:Release(pullout)
 end
@@ -77,6 +80,11 @@ end
 ns.CloseReputationMenu = CloseReputationMenu
 
 local function OpenReputationMenu(cell, row)
+	-- A click on the open menu's own cell closes it rather than reopening it.
+	if openReputationPullout and openReputationCell == cell then
+		CloseReputationMenu()
+		return
+	end
 	CloseReputationMenu()
 
 	local openedForItem = cell.item
@@ -86,6 +94,7 @@ local function OpenReputationMenu(cell, row)
 
 	local pullout = AceGUI:Create("Dropdown-Pullout")
 	openReputationPullout = pullout
+	openReputationCell = cell
 
 	local title = AceGUI:Create("Dropdown-Item-Header")
 	title:SetText(L["RESTOCKER_REPUTATION_MENU_TITLE"])
@@ -109,6 +118,7 @@ local function OpenReputationMenu(cell, row)
 
 	pullout:SetCallback("OnClose", function()
 		openReputationPullout = nil
+		openReputationCell = nil
 	end)
 	pullout:Open("TOPLEFT", cell, "BOTTOMLEFT", 0, 0)
 end
@@ -164,7 +174,7 @@ local function OnDeleteButtonClick(self)
 	local item = self.item
 
 	if item and item.itemID then
-		-- Profiles are keyed by itemID, so removal is a direct delete
+		-- Lists are keyed by itemID, so removal is a direct delete
 		list[item.itemID] = nil
 		ns.UpdateRestockList()
 	end
@@ -173,9 +183,9 @@ end
 --[[
     The group-loot pass mark is the game's own "get rid of this" icon, and the
     same texture Connoisseur's and MagicEraser's option-panel item lists use for
-    their remove column -- so removal looks the same everywhere. It replaces a
-    UIPanelCloseButton, whose red X reads as "close the window" on a row and
-    whose 30px frame was mostly transparent padding.
+    their remove column -- so removal looks the same everywhere. Never a
+    UIPanelCloseButton: its red X reads as "close the window" on a row, and its
+    30px frame is mostly transparent padding.
 
     The highlight is the normal texture blended additively rather than a separate
     file, which glows on hover without depending on a second art path.
@@ -209,8 +219,7 @@ local DASH_HEIGHT = 2
 
 --[[
     Reading and writing one item flag per column, so a cell needs no knowledge of
-    which one it is beyond its key. These replaced five near-identical button
-    constructors that differed only in the field they touched.
+    which one it is beyond its key.
 
     The nil defaults are load-bearing and differ per flag: buyFromMerchant and
     upgrade default ON when unset, buyExtra defaults OFF. A plain `not` on the
@@ -450,12 +459,15 @@ function ns.UpdateRestockListRow(row, item)
 	end
 
 	--[[
-	    Column widths can resolve after a row was built, so re-read them here rather
-	    than only at creation. Guarded on a serial, which makes this six SetWidth
-	    calls once and a single comparison thereafter.
+	    Column widths can resolve after a row was built (see
+	    ns.RefreshRestockColumnHeader), so re-read them here rather than only at
+	    creation -- the amount box's too, since the row's cells chain off its left
+	    edge. Guarded on a serial, which makes this seven SetWidth calls once and
+	    a single comparison thereafter.
 	]]
 	if row.columnSerial ~= ns.restockColumnWidthSerial then
 		row.columnSerial = ns.restockColumnWidthSerial
+		row.amountBox:SetWidth(ns.restockAmountWidth)
 		ApplyColumnWidths(row.cells)
 	end
 
@@ -513,7 +525,7 @@ function ns.UpdateRestockList()
 	local settings = ns.restockSettings
 	local currentList = settings.lists[settings.currentList]
 
-	-- Gather items (profile is keyed by itemID, so walk it with pairs)
+	-- Gather items (the list is keyed by itemID, so walk it with pairs)
 	wipe(restockItemList)
 	for _, item in pairs(currentList) do
 		table.insert(restockItemList, item)

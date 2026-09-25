@@ -9,12 +9,13 @@ local _, ns = ...
     One-time upgrade shim. Delete on the first code pass after that date, all
     five pieces together:
       1. this section
-      2. ConnoisseurRestockerDB in Consumable-Connoisseur.toc's ## SavedVariables
+      2. ConnoisseurRestockerDB in ## SavedVariables in all three flavor TOCs
+         (Consumable-Connoisseur_Vanilla.toc, _TBC.toc and _Camelot.toc)
       3. the ns.AdoptStandaloneRestockerDB() call in Features/Core.lua
       4. ConnoisseurRestockerDB in .luacheckrc's globals
       5. the adoption scenarios in
          Features/Restocker/Tests/Restocker-Saved-Migration-Test.lua
-    The file itself and its TOC line stay for the key rename below.
+    The file itself and its TOC lines stay for the key rename below.
 ]]
 
 --[[
@@ -53,7 +54,7 @@ local _, ns = ...
     forever.
 
     profiles and profileKeys come across as they are. The item lines inside a
-    profile need no conversion, since the one-line format did not change, and the
+    list need no conversion, since the one-line format did not change, and the
     character keys behind profileKeys and starterListDismissed did not change
     either, so each character comes back to the list it was already using. The
     old key names are kept here on purpose: ns.RenameRestockerSavedKeys below
@@ -138,7 +139,8 @@ end
     sections: delete on the first code pass after that date, all seven pieces
     together:
       1. this file
-      2. its line in Consumable-Connoisseur.toc
+      2. its line in all three flavor TOCs (Consumable-Connoisseur_Vanilla.toc,
+         _TBC.toc and _Camelot.toc)
       3. the ns.RenameRestockerSavedKeys() call in Features/Core.lua
       4. the ns.RepairBlindingPowderRows() call in Features/Core.lua
       5. the ns.NameBlindingPowderRows() line in Features/Restocker/Restocker-List.lua
@@ -258,7 +260,7 @@ end
     repaired in the same login, and before ns.InitializeRestocker unpacks it.
 ]]
 function ns.RepairBlindingPowderRows()
-	if not ns.IS_ERA then
+	if ns.FLAVOR ~= "Vanilla" then
 		return
 	end
 
@@ -302,7 +304,7 @@ end
     what asks the client, for a row nothing else asked about.
 ]]
 function ns.NameBlindingPowderRows()
-	if not ns.IS_ERA then
+	if ns.FLAVOR ~= "Vanilla" then
 		return false
 	end
 

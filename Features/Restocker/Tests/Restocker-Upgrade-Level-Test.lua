@@ -1,39 +1,36 @@
 -- luacheck: allow defined, ignore 121 122 131 143
--- Headless test for the Restock List consumable upgrader (no WoW client needed).
---
--- Run it with:   lua Tests/Restocker-Upgrade-Level-Test.lua        (from Features/Restocker/)
---
--- Unlike the other tests in this folder, this one does NOT model the algorithm: it
--- loads the REAL Data/Consumable-Upgrade-Paths.lua and Restocker-Upgrade.lua and drives
--- ns.UpgradeRestockList directly, behind the thinnest stubs that will hold them up
--- (an item cache, a chat sink, and UnitLevel). A model would have re-implemented the
--- very line the bug below lived on.
---
--- THE BUG THIS PINS DOWN. PLAYER_LEVEL_UP carries the new level as its first
--- argument, and UnitLevel("player") still reads the OLD level while that event is
--- being handled -- the unit field updates a moment later. The upgrader used to
--- ignore the payload and ask UnitLevel, so a ding to 45 was planned against 44, found
--- no strictly later tier, and left the list on its level-35 water. Nothing re-checked
--- afterwards, so that miss was permanent: relogging never fixed it. Scenario 1 is
--- that exact sequence, and scenarios 2-3 are the two halves of the fix -- the level
--- handed through from the event, and the login catch-up that repairs a list which
--- fell behind for any other reason.
+--[[
+    Headless test for the Restock List consumable upgrader (no WoW client needed).
+
+    Run it with:   lua Tests/Restocker-Upgrade-Level-Test.lua        (from Features/Restocker/)
+
+    Unlike the other tests in this folder, this one does NOT model the algorithm: it
+    loads the REAL Data/Vanilla/Consumable-Upgrade-Paths-Vanilla.lua and Restocker-Upgrade.lua and drives
+    ns.UpgradeRestockList directly, behind the thinnest stubs that will hold them up
+    (an item cache, a chat sink, and UnitLevel). A model would have re-implemented the
+    very line the bug below lived on.
+
+    THE BUG THIS PINS DOWN. PLAYER_LEVEL_UP carries the new level as its first
+    argument, and UnitLevel("player") still reads the OLD level while that event is
+    being handled -- the unit field updates a moment later. The upgrader used to
+    ignore the payload and ask UnitLevel, so a ding to 45 was planned against 44, found
+    no strictly later tier, and left the list on its level-35 water. Nothing re-checked
+    afterwards, so that miss was permanent: relogging never fixed it. Scenario 1 is
+    that exact sequence, and scenarios 2-3 are the two halves of the fix -- the level
+    handed through from the event, and the login catch-up that repairs a list which
+    fell behind for any other reason.
+]]
 
 local ROOT = arg[1] or "../.."
 
---[[
-    CURRENT_EXPANSION is resolved from the flavor flags in Features/Utilities.lua,
-    which is far too heavy to load here (LibStub, the palette, WoW globals). The
-    stub declares it beside the flags it is derived from instead, so the two
-    cannot disagree about which client this run is pretending to be.
-]]
-local ns = { IS_ERA = true, IS_TBC = false, L = {} }
-ns.CURRENT_EXPANSION = 0 -- ns.EXPANSION_CLASSIC, matching IS_ERA above
+local ns = { L = {} }
 ns.L["RESTOCKER_UPGRADED"] = "Your Restock List has been upgraded."
 ns.L["RESTOCKER_UPGRADED_ITEM"] = "%sx%d upgrade to %sx%d."
 
--- Only the ladder rungs these scenarios touch. Anything absent from `cached` models an
--- item the client has not resolved yet, which is what the deferral path is for.
+--[[
+    Only the ladder rungs these scenarios touch. Anything absent from `cached` models an
+    item the client has not resolved yet, which is what the deferral path is for.
+]]
 local names = {
 	[1645] = "Moonberry Juice",
 	[8766] = "Morning Glory Dew",
@@ -57,8 +54,10 @@ function ns.UpdateRestockList()
 	updates = updates + 1
 end
 
--- Restocker-Upgrade.lua asks Core to listen for item lookups whenever it defers a tier
--- move; offline there is no Core, and the deferral itself is what is tested.
+--[[
+    Restocker-Upgrade.lua asks Core to listen for item lookups whenever it defers a tier
+    move; offline there is no Core, and the deferral itself is what is tested.
+]]
 function ns.SyncRestockItemInfoSubscription() end
 
 -- The session item memo moved to Features/Item-Cache.lua and hangs off ns.
@@ -76,19 +75,21 @@ end
 local settings = { currentList = "Test", lists = { Test = {} } }
 ns.restockSettings = settings
 
--- What the client reports AFTER the level has settled. Held one behind the ding in the
--- scenarios that reproduce the bug.
+--[[
+    What the client reports AFTER the level has settled. Held one behind the ding in the
+    scenarios that reproduce the bug.
+]]
 local playerLevel = 1
 function UnitLevel(_)
 	return playerLevel
 end
 
 local function loadAddonFile(path)
-	-- Addon files are chunks taking (addonName, ns) as varargs, the way WoW loads them.
+	-- Add-on files are chunks taking (addonName, ns) as varargs, the way WoW loads them.
 	return assert(loadfile(ROOT .. "/" .. path))("Consumable-Connoisseur", ns)
 end
 
-loadAddonFile("Data/Consumable-Upgrade-Paths.lua")
+loadAddonFile("Data/Vanilla/Consumable-Upgrade-Paths-Vanilla.lua")
 loadAddonFile("Features/Restocker/Restocker-Upgrade.lua")
 
 --------------------------------------------------------------------------------
@@ -198,6 +199,25 @@ playerLevel = 70
 ns.UpgradeRestockList()
 check("Morning Glory Dew", list[8766] ~= nil, true)
 check("not Filtered Draenic Water", list[28399] == nil, true)
+
+print("10. Row order carries no meaning: a reversed Wrath ladder still picks by rank")
+local wrath = { L = {} }
+assert(loadfile(ROOT .. "/Data/Wrath/Consumable-Upgrade-Paths-Wrath.lua"))("Consumable-Connoisseur", wrath)
+local wrathWater
+for _, chain in ipairs(wrath.CONSUMABLE_UPGRADE_CHAINS) do
+	local reversed = {}
+	for index = #chain.tiers, 1, -1 do
+		reversed[#reversed + 1] = chain.tiers[index]
+	end
+	chain.tiers = reversed
+	if chain.kind == "water" then
+		wrathWater = chain
+	end
+end
+assert(loadfile(ROOT .. "/Features/Restocker/Restocker-Upgrade.lua"))("Consumable-Connoisseur", wrath)
+check("level 65 takes the Wrath water over TBC's", wrath.BestChainItemID(wrathWater, 65), 35954)
+check("level 60 takes Filtered Draenic Water", wrath.BestChainItemID(wrathWater, 60), 28399)
+check("level 75 takes Honeymint Tea", wrath.BestChainItemID(wrathWater, 75), 33445)
 
 print("")
 if failures == 0 then

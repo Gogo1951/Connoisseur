@@ -1,5 +1,6 @@
 local _, ns = ...
 local L = ns.L
+local GetColor = ns.GetColor
 local AceGUI = LibStub("AceGUI-3.0")
 
 --------------------------------------------------------------------------------
@@ -9,11 +10,12 @@ local AceGUI = LibStub("AceGUI-3.0")
 --[[
     List: [selector] [Copy] [Delete]  [box.....................] [Rename]
 
-    No width here is a literal: a list named after a character
-    ("Gogopaladin-Mankrik") overruns any fixed one. The dropdown is sized to hold
-    a full Name-Realm, Copy and Delete size themselves to their captions through
-    the same ns.FitRestockButton the list rows use, and the Rename box takes whatever
-    width is left -- so it, not the truncation, absorbs a wider window.
+    A list named after a character ("Gogopaladin-Mankrik") overruns a tight
+    width, so the selector is fixed wide enough for a full Name-Realm
+    (LIST_SELECTOR_WIDTH), Copy and Delete size themselves to their captions
+    through ns.FitRestockButton (Restocker-Window-Columns.lua), and the Rename
+    box takes whatever width is left -- so it, not the truncation, absorbs a
+    wider window.
 
     The list selector is an InputBoxTemplate field like Rename beside it, not an
     AceGUI Dropdown. Every other control in this window is a Blizzard template, so
@@ -59,7 +61,7 @@ end
 ns.CloseRestockListPullout = CloseListPullout
 
 --[[
-    The menu: every saved list, then a rule, then New Profile.
+    The menu: every saved list, then a rule, then New List.
 
     Rebuilt on every open rather than cached, so a rename or a delete needs
     nothing kept in sync -- the next open reads the lists as they now are.
@@ -89,7 +91,10 @@ local function OpenListPullout(anchor)
 		entry:SetCallback("OnValueChanged", function()
 			-- A toggle item does not close its own pullout, unlike an execute item.
 			CloseListPullout()
-			ns.SwitchRestockList(name)
+			-- The list already in use only closes the menu: a switch would clear New and rerun the restock.
+			if name ~= ns.restockSettings.currentList then
+				ns.SwitchRestockList(name)
+			end
 		end)
 		listPullout:AddItem(entry)
 	end
@@ -103,7 +108,7 @@ local function OpenListPullout(anchor)
 	listPullout:AddItem(AceGUI:Create("Dropdown-Item-Separator"))
 
 	--[[
-	    New Profile is an Execute, not a Toggle: it performs an action rather than
+	    New List is an Execute, not a Toggle: it performs an action rather than
 	    selecting a value, so it draws no tick beside it and closes the menu itself.
 	]]
 	local newList = AceGUI:Create("Dropdown-Item-Execute")
@@ -116,6 +121,15 @@ local function OpenListPullout(anchor)
 	listPulloutOpen = true
 	listPullout:SetWidth(anchor:GetWidth())
 	listPullout:Open("TOPLEFT", anchor, "BOTTOMLEFT", 0, 0)
+end
+
+-- The selector and its arrow open the menu, and close it again when it is already open.
+local function ToggleListPullout(anchor)
+	if listPulloutOpen then
+		CloseListPullout()
+		return
+	end
+	OpenListPullout(anchor)
 end
 
 --[[
@@ -156,7 +170,7 @@ local function CreateListSelector(addonFrame)
 		self:ClearFocus()
 	end)
 	selector:SetScript("OnMouseDown", function(self)
-		OpenListPullout(self)
+		ToggleListPullout(self)
 	end)
 
 	--[[
@@ -172,7 +186,7 @@ local function CreateListSelector(addonFrame)
 	arrow:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Down")
 	arrow:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight", "ADD")
 	arrow:SetScript("OnClick", function()
-		OpenListPullout(selector)
+		ToggleListPullout(selector)
 	end)
 
 	addonFrame.listSelector = selector
@@ -258,16 +272,17 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-    Confirmation for the footer Delete button. text_arg1 is the profile name,
+    Confirmation for the footer Delete button. text_arg1 is the list name,
     gold-wrapped at show time; StaticPopup_Show's fourth argument carries that same
     name through as the dialog's data, and OnAccept deletes THAT name rather than
     re-reading currentList.
 
-    Load-bearing: the dialog does not lock the window behind it, so a profile
-    switched in the dropdown while the confirm is open would otherwise redirect the
+    Load-bearing: the dialog does not lock the window behind it, so a list
+    switched in the selector while the confirm is open would otherwise redirect the
     delete onto a list the player was never asked about -- and a Restock List has no
-    undo. Deleting falls back to another profile (or the character's own empty list)
-    via ns.DeleteRestockList, which also ignores a nil or already-deleted name.
+    undo. Deleting the current list always starts a fresh class-named list, never
+    another existing one (ns.DeleteRestockList, which also ignores a nil or
+    already-deleted name).
 ]]
 -- luacheck: globals StaticPopupDialogs
 StaticPopupDialogs["CONNOISSEUR_RESTOCKER_DELETE_LIST"] = {
@@ -308,7 +323,7 @@ local function CreateListButtons(addonFrame)
 		end
 		StaticPopup_Show(
 			"CONNOISSEUR_RESTOCKER_DELETE_LIST",
-			ns.GetColor("TITLE") .. settings.currentList .. "|r",
+			GetColor("TITLE") .. settings.currentList .. "|r",
 			nil,
 			settings.currentList
 		)
@@ -325,9 +340,9 @@ end
 
 --[[
     The whole footer in one call, so Restocker-Window.lua assembles the window
-    from parts rather than from this row's three separate pieces. Order matters:
-    the buttons anchor off the dropdown's measured label, and the rename box
-    anchors off the Delete button.
+    from parts rather than from this row's four separate pieces. Order matters:
+    Copy anchors to the list selector's edge, and the rename box anchors off the
+    Delete button.
 ]]
 function ns.CreateRestockWindowFooter(addonFrame)
 	CreateFooterRow(addonFrame)

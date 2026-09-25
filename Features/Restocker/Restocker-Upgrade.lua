@@ -7,7 +7,7 @@ local L = ns.L
 
 --[[
     Keeps staple consumables on the Restock List current with the player's
-    level, walking the ladders in Data/Consumable-Upgrade-Paths.lua.
+    level, walking the ladders in Data/{Game}/Consumable-Upgrade-Paths-{Game}.lua.
 
     Only ever forward. An item ABOVE the player's level is left alone -- someone
     who stocked Morning Glory Dew at 30 meant to, and gets moved on only once
@@ -15,43 +15,42 @@ local L = ns.L
     matching my level".
 ]]
 
--- The client's expansion, as the ladder's flag (Features/Utilities.lua).
-local CURRENT_EXPANSION = ns.CURRENT_EXPANSION
+--[[
+    A tier's third field is its rank, and the higher rank is the better tier;
+    row order carries no meaning. Each chain is sorted by rank once here, so
+    every other walker of chain.tiers sees them lowest to highest.
+]]
+local function ByRank(a, b)
+	return a[3] < b[3]
+end
 
--- [itemID] = { chain = <chain>, tier = <index into chain.tiers> }
-local upgradeIndex = {}
-for _, chain in ipairs(ns.CONSUMABLE_UPGRADE_CHAINS or {}) do
-	for tierIndex, tier in ipairs(chain.tiers) do
-		upgradeIndex[tier[2]] = { chain = chain, tier = tierIndex }
+-- [itemID] = { chain = <chain>, rank = <the tier's rank> }
+local UPGRADE_INDEX = {}
+for _, chain in ipairs(ns.CONSUMABLE_UPGRADE_CHAINS) do
+	table.sort(chain.tiers, ByRank)
+	for _, tier in ipairs(chain.tiers) do
+		UPGRADE_INDEX[tier[2]] = { chain = chain, rank = tier[3] }
 	end
 end
 
 --[[
     Is this item on a ladder at all? Everything else shows a disabled Upgrade
-    button -- most of a real Restock List is potions, bandages and reagents.
+    button.
 ]]
 function ns.CanUpgradeRestockItem(itemID)
-	return itemID ~= nil and upgradeIndex[itemID] ~= nil
+	return itemID ~= nil and UPGRADE_INDEX[itemID] ~= nil
 end
 
 --[[
-    The furthest tier this character can reach right now.
-
-    Walks the whole chain and keeps the LAST acceptable tier rather than
-    returning the first miss: tiers are ordered by level then expansion, so where
-    two share a level (65 in every food chain) this lands on the one matching the
-    client -- TBC stops at the Outland item, Wrath carries on to the Northrend one.
-
-    A tier's optional fourth field is the LAST expansion it exists in --
-    Blinding Powder left the game after Classic, so its tier reads
-    { 34, 5530, CLASSIC, CLASSIC } and a TBC client refuses it here the same
-    way an Era client refuses a TBC tier.
+    The best tier this character can reach right now: the highest-ranked tier at
+    or below the level. Rank, not level, settles tiers that share a level (the
+    Wrath folder's level-65 food and water), so the Northrend item wins there.
 ]]
 local function BestTier(chain, level)
 	local best
-	for tierIndex, tier in ipairs(chain.tiers) do
-		if tier[1] <= level and tier[3] <= CURRENT_EXPANSION and (tier[4] == nil or CURRENT_EXPANSION <= tier[4]) then
-			best = tierIndex
+	for _, tier in ipairs(chain.tiers) do
+		if tier[1] <= level and (best == nil or tier[3] > best[3]) then
+			best = tier
 		end
 	end
 	return best
@@ -64,17 +63,14 @@ end
     would otherwise move it to.
 ]]
 function ns.BestChainItemID(chain, level)
-	local tierIndex = BestTier(chain, level)
-	if tierIndex == nil then
-		return nil
-	end
-	return chain.tiers[tierIndex][2]
+	local tier = BestTier(chain, level)
+	return tier and tier[2]
 end
 
 --[[
     Move one list entry onto a later tier, keeping everything the player set on
     it -- amount, the three toggles, required reputation, and the Upgrade flag
-    itself. Profiles are keyed by itemID, so this is a delete plus an insert.
+    itself. Lists are keyed by itemID, so this is a delete plus an insert.
 
     When the target tier is ALREADY on the list the two entries merge: the
     amounts add up and the old row goes. Anything else would either drop what
@@ -91,7 +87,6 @@ local function MoveToTier(list, fromID, toID)
 		item.itemID = toID
 		item.itemName = info and info.itemName or ""
 		item.itemType = (info and info.itemType) or item.itemType
-		item.itemLink = nil
 		list[toID] = item
 	end
 
@@ -111,11 +106,10 @@ local pendingUpgrade = false
 
     PLAYER_LEVEL_UP passes its new level straight through, because
     UnitLevel("player") still reads the OLD level while that event is being
-    handled -- the unit field updates a moment later. Reading it there cost a
-    whole level: the ding to 45 planned against 44, found no strictly later
-    tier, and left the list on its level-35 water permanently, since nothing
-    re-checked afterwards. Callers that run clear of the ding -- the deferred
-    retry, the login catch-up -- pass nothing and read the level themselves.
+    handled -- the unit field updates a moment later -- and planning against
+    it would miss any tier that opens at the new level. Callers that run clear
+    of the ding -- the deferred retry, the login catch-up -- pass nothing and
+    read the level themselves.
 ]]
 function ns.UpgradeRestockList(newLevel)
 	local settings = ns.restockSettings
@@ -135,11 +129,11 @@ function ns.UpgradeRestockList(newLevel)
 	for itemID, item in pairs(list) do
 		-- nil means on, matching how buyFromMerchant reads its default
 		if item.upgrade ~= false then
-			local entry = upgradeIndex[itemID]
+			local entry = UPGRADE_INDEX[itemID]
 			if entry then
 				local best = BestTier(entry.chain, level)
-				if best and best > entry.tier then
-					local targetID = entry.chain.tiers[best][2]
+				if best and best[3] > entry.rank then
+					local targetID = best[2]
 					if ns.GetItemData(targetID) then
 						planned[#planned + 1] = { from = itemID, to = targetID }
 					else

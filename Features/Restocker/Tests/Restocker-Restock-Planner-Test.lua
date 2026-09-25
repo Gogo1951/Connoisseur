@@ -1,32 +1,34 @@
 -- luacheck: allow defined, ignore 121 122 131 143
--- Headless test for the bank restock planner (no WoW API needed).
---
--- Run it with:   lua Tests/Restocker-Restock-Planner-Test.lua
---
--- It models the SAME algorithm the live addon uses (Restocker-Bank.lua + Restocker-Bags.lua):
---   * re-scan the CURRENT bag/bank contents every step and re-derive the outstanding work
---     (RunRestockLogic -> RestockState:Rescan / RemainingWork)
---   * issue at most one move per step, then re-scan
---   * whole-stack moves auto-merge into existing partial stacks, overflow to a free slot
---   * a partial need is split off and best-fit merged; an "uncached" item skips the merge
---   * NOTHING is deducted from a running tally -- a move that gets rejected or can't be
---     placed simply leaves the item still short next scan, and is retried
---   * a WATCHDOG stops the run if MAX_STUCK_STEPS pass with no reduction in outstanding
---     work (a rejected split, or no room), reporting what's left -- instead of looping
---     forever (the old recompute-every-step spam) or claiming success while short (the old
---     optimistic-deduct bug)
---   * if an exact bank->bag split keeps being bounced ("Couldn't split those items"), fall
---     back to pulling the WHOLE stack -- overshoot the target, then stash the excess back.
---     Whole-stack moves always land, so the target is reached instead of stopping short
---   * overshoot excess is stashed back even for items that don't normally stash to bank --
---     the addon created that excess, so it returns it (bag ends exactly on target)
---   * a scan where an item's bag+bank TOTAL dropped is never acted on: the item is mid-move
---     between containers (and nothing is locked in that window). Acting on the under-count
---     is what pulled duplicate stacks and printed "Finished" with a pull still in the air
---
--- The rejection/watchdog scenarios below are the ones the shipped code previously got
--- wrong: an occasional failed move was counted as done, leaving "37 of 40" and a cheerful
--- "Finished restocking".
+--[[
+    Headless test for the bank restock planner (no WoW API needed).
+
+    Run it with:   lua Tests/Restocker-Restock-Planner-Test.lua
+
+    It models the SAME algorithm the live add-on uses (Restocker-Bank.lua + Restocker-Bags.lua):
+      * re-scan the CURRENT bag/bank contents every step and re-derive the outstanding work
+        (RunRestockLogic -> RestockState:Rescan / RemainingWork)
+      * issue at most one move per step, then re-scan
+      * whole-stack moves auto-merge into existing partial stacks, overflow to a free slot
+      * a partial need is split off and best-fit merged; an "uncached" item skips the merge
+      * NOTHING is deducted from a running tally -- a move that gets rejected or can't be
+        placed simply leaves the item still short next scan, and is retried
+      * a WATCHDOG stops the run if MAX_STUCK_STEPS pass with no reduction in outstanding
+        work (a rejected split, or no room), reporting what's left -- instead of looping
+        forever (the old recompute-every-step spam) or claiming success while short (the old
+        optimistic-deduct bug)
+      * if an exact bank->bag split keeps being bounced ("Couldn't split those items"), fall
+        back to pulling the WHOLE stack -- overshoot the target, then stash the excess back.
+        Whole-stack moves always land, so the target is reached instead of stopping short
+      * overshoot excess is stashed back even for items that don't normally stash to bank --
+        the add-on created that excess, so it returns it (bag ends exactly on target)
+      * a scan where an item's bag+bank TOTAL dropped is never acted on: the item is mid-move
+        between containers (and nothing is locked in that window). Acting on the under-count
+        is what pulled duplicate stacks and printed "Finished" with a pull still in the air
+
+    The rejection/watchdog scenarios below are the ones the shipped code previously got
+    wrong: an occasional failed move was counted as done, leaving "37 of 40" and a cheerful
+    "Finished restocking".
+]]
 
 local STACK = 20
 local WATCHDOG_LIMIT = 5 -- mirrors MAX_STUCK_STEPS in Restocker-Bank.lua
@@ -60,11 +62,13 @@ local function smallestIndex(c)
 	return bi
 end
 
--- Add `count` to a container, merging into existing partial stacks first (fullest first),
--- then into new slots while free slots remain. `merge` false (uncached item) skips the
--- partial-stack merge. Returns how many actually landed -- the caller removes ONLY that
--- much from the source, so an item that can't be placed stays put (mirrors the live code
--- returning a split item to its slot rather than losing it).
+--[[
+    Add `count` to a container, merging into existing partial stacks first (fullest first),
+    then into new slots while free slots remain. `merge` false (uncached item) skips the
+    partial-stack merge. Returns how many actually landed -- the caller removes ONLY that
+    much from the source, so an item that can't be placed stays put (mirrors the live code
+    returning a split item to its slot rather than losing it).
+]]
 local function addToContainer(c, count, merge)
 	local landed = 0
 	if merge then
@@ -92,9 +96,11 @@ local function addToContainer(c, count, merge)
 	return landed
 end
 
--- Outstanding work we can actually act on: shortfalls the bank can supply + excess to stash.
--- stashOn is the stash flag OR "this run overshot the item" -- overshoot excess is trimmed
--- back even when the item does not normally stash to bank.
+--[[
+    Outstanding work we can actually act on: shortfalls the bank can supply + excess to stash.
+    stashOn is the stash flag OR "this run overshot the item" -- overshoot excess is trimmed
+    back even when the item does not normally stash to bank.
+]]
 local function remainingWork(bag, bank, target, fromBank, stashOn)
 	local haveBag, haveBank = total(bag), total(bank)
 	local work = 0
@@ -107,32 +113,39 @@ local function remainingWork(bag, bank, target, fromBank, stashOn)
 	return work
 end
 
--- Why the watchdog gave up, matching RestockState:StuckMessage (bag/bank full preferred,
--- else a plain "stuck" -- a move that keeps being rejected though there's room).
-local function stuckStatus(bag, bank)
-	local bagFree, bankFree = bag.free > 0, bank.free > 0
-	if not bagFree and not bankFree then
+--[[
+    Why the watchdog gave up, matching RestockState:StuckMessage: a full bag or bank is
+    blamed only for a direction with a stuck row (a withdrawal needs bag room, a deposit
+    needs bank room), else a plain "stuck" -- a move that keeps being rejected.
+]]
+local function stuckStatus(bag, bank, target, fromBank, stashOn)
+	local haveBag, haveBank = total(bag), total(bank)
+	local bagBlocked = fromBank and haveBag < target and haveBank > 0 and bag.free == 0
+	local bankBlocked = stashOn and haveBag > target and bank.free == 0
+	if bagBlocked and bankBlocked then
 		return "both full"
 	end
-	if not bagFree then
-		return "bag full"
-	end
-	if not bankFree then
+	if bankBlocked then
 		return "bank full"
+	end
+	if bagBlocked then
+		return "bag full"
 	end
 	return "stuck"
 end
 
--- Run a restock to `target`, returning the final bag/bank and a status string.
--- opts: { fromBank=bool, stash=bool, uncached=bool, failFirst=N, failAll=bool,
---         failBankSplits=bool, landDelay=N }
---   failFirst=N        -> the first N move attempts are rejected (transient race), then succeed
---   failAll=true       -> every move attempt is rejected (permanently stuck)
---   failBankSplits=true -> every EXACT bank->bag split bounces (the flaky server op), but
---                          whole-stack moves land -- the case the overshoot fallback covers
---   landDelay=N        -> bank->bag pulls land N steps late: meanwhile the moved amount is
---                         in NEITHER container and nothing is locked -- the blind window
---                         where an unguarded scan under-counts and finished mid-flight
+--[[
+    Run a restock to `target`, returning the final bag/bank and a status string.
+    opts: { fromBank=bool, stash=bool, uncached=bool, failFirst=N, failAll=bool,
+            failBankSplits=bool, landDelay=N }
+      failFirst=N        -> the first N move attempts are rejected (transient race), then succeed
+      failAll=true       -> every move attempt is rejected (permanently stuck)
+      failBankSplits=true -> every EXACT bank->bag split bounces (the flaky server op), but
+                             whole-stack moves land -- the case the overshoot fallback covers
+      landDelay=N        -> bank->bag pulls land N steps late: meanwhile the moved amount is
+                            in NEITHER container and nothing is locked -- the blind window
+                            where an unguarded scan under-counts and finished mid-flight
+]]
 local function runRestock(label, bag, bank, target, opts)
 	compact(bag)
 	compact(bank)
@@ -158,10 +171,12 @@ local function runRestock(label, bag, bank, target, opts)
 			end
 		end
 
-		-- In-flight gate, mirrors RunRestockLogic: the bag+bank total can only DROP while a
-		-- move is in transit, and nothing is locked in that window -- the scan under-counts
-		-- and must not be acted on (acting on it is what printed "Finished" with a pull still
-		-- in the air). Wait for the total to recover; accept after a few steps if it stays down.
+		--[[
+		    In-flight gate, mirrors RunRestockLogic: the bag+bank total can only DROP while a
+		    move is in transit, and nothing is locked in that window -- the scan under-counts
+		    and must not be acted on (acting on it is what printed "Finished" with a pull still
+		    in the air). Wait for the total to recover; accept after a few steps if it stays down.
+		]]
 		local totalNow = total(bag) + total(bank)
 		if lastTotal ~= nil and totalNow < lastTotal and suspects < 3 then
 			suspects = suspects + 1
@@ -178,8 +193,10 @@ local function runRestock(label, bag, bank, target, opts)
 				return bag, bank, "done", steps
 			end
 
-			-- Watchdog: locks are settled by the time we re-scan (BankUpdateFn gates on that), so
-			-- no reduction means the last move did not land. Retry a few times, then give up.
+			--[[
+			    Watchdog: locks are settled by the time we re-scan (BankUpdateFn gates on that), so
+			    no reduction means the last move did not land. Retry a few times, then give up.
+			]]
 			if remaining < lastRemaining then
 				stuck = 0
 			else
@@ -188,7 +205,7 @@ local function runRestock(label, bag, bank, target, opts)
 					table.sort(bag.stacks, function(a, b)
 						return a > b
 					end)
-					return bag, bank, stuckStatus(bag, bank), steps
+					return bag, bank, stuckStatus(bag, bank, target, opts.fromBank, stashOn), steps
 				end
 			end
 			lastRemaining = remaining
@@ -212,9 +229,11 @@ local function runRestock(label, bag, bank, target, opts)
 					local si = smallestIndex(bank)
 					local moveAmt = math.min(bank.stacks[si], want)
 					local isSplit = moveAmt < bank.stacks[si]
-					-- Mirrors ns.MoveRestockItemFromBank's overshoot fallback: a no-progress step means
-					-- the exact split is being bounced, so pull the whole stack instead -- that
-					-- always lands. The excess is remembered (overshot) and trimmed back above.
+					--[[
+					    Mirrors ns.MoveRestockItemFromBank's overshoot fallback: a no-progress step means
+					    the exact split is being bounced, so pull the whole stack instead -- that
+					    always lands. The excess is remembered (overshot) and trimmed back above.
+					]]
 					if isSplit and stuck > 0 then
 						moveAmt = bank.stacks[si]
 						isSplit = false
@@ -299,6 +318,18 @@ scenario(
 	end
 )
 
+-- 4a. A withdrawal that stalls while the bank happens to be full: the bank is not to blame
+scenario(
+	"withdraw stuck, bank full",
+	{ stacks = { 5 }, free = 5 },
+	{ stacks = { 20 }, free = 0 },
+	17,
+	{ fromBank = true, failAll = true },
+	function(_, _, status)
+		assert(status == "stuck", "want stuck, got " .. status)
+	end
+)
+
 -- 5. Uncached item: still reaches target, just without best-fit merging
 scenario(
 	"uncached item",
@@ -323,9 +354,11 @@ scenario(
 	end
 )
 
--- 7. Transient rejection: the first 2 split attempts are refused ("Couldn't split those
---    items"), then they go through. The old optimistic-deduct code counted the refused
---    moves as done and finished short; the watchdog-driven retry reaches the target.
+--[[
+    7. Transient rejection: the first 2 split attempts are refused ("Couldn't split those
+       items"), then they go through. The old optimistic-deduct code counted the refused
+       moves as done and finished short; the watchdog-driven retry reaches the target.
+]]
 scenario(
 	"transient rejection",
 	{ stacks = {}, free = 10 },
@@ -338,8 +371,10 @@ scenario(
 	end
 )
 
--- 8. Permanent rejection: every move is refused though there's plenty of room. Must NOT
---    loop forever and must NOT report success -- it gives up as "stuck", still short.
+--[[
+    8. Permanent rejection: every move is refused though there's plenty of room. Must NOT
+       loop forever and must NOT report success -- it gives up as "stuck", still short.
+]]
 scenario(
 	"permanent rejection",
 	{ stacks = {}, free = 10 },
@@ -352,8 +387,10 @@ scenario(
 	end
 )
 
--- 9. Partial bank: the bank simply doesn't have enough. Pull all it has and finish
---    honestly at 26/40 -- this is a clean "done", not a stuck/error.
+--[[
+    9. Partial bank: the bank simply doesn't have enough. Pull all it has and finish
+       honestly at 26/40 -- this is a clean "done", not a stuck/error.
+]]
 scenario(
 	"partial bank supply",
 	{ stacks = {}, free = 10 },
@@ -366,10 +403,12 @@ scenario(
 	end
 )
 
--- 10. Flaky last-unit split, stash flag OFF: the exact split of the final 2 bounces every
---     time (the "8 need 10" log). The fallback pulls the whole stack, going over target --
---     and because the OVERSHOOT created that excess, it is stashed back even though the
---     item does not normally stash to bank. Ends exactly on target.
+--[[
+    10. Flaky last-unit split, stash flag OFF: the exact split of the final 2 bounces every
+        time (the "8 need 10" log). The fallback pulls the whole stack, going over target --
+        and because the OVERSHOOT created that excess, it is stashed back even though the
+        item does not normally stash to bank. Ends exactly on target.
+]]
 scenario(
 	"flaky split overshoots",
 	{ stacks = { 5, 2, 1 }, free = 10 },
@@ -382,9 +421,11 @@ scenario(
 	end
 )
 
--- 11. Flaky split WITH stash-back: overshoot pulls the whole stack, then the stash pass
---     returns the excess, landing exactly on target. (Bag->bank splits still work here --
---     it's the bank->bag split that's the flaky op.)
+--[[
+    11. Flaky split WITH stash-back: overshoot pulls the whole stack, then the stash pass
+        returns the excess, landing exactly on target. (Bag->bank splits still work here --
+        it's the bank->bag split that's the flaky op.)
+]]
 scenario(
 	"flaky split + stash back",
 	{ stacks = { 5, 2, 1 }, free = 10 },
@@ -397,12 +438,14 @@ scenario(
 	end
 )
 
--- 12. In-flight blind spot: the overshoot pull takes 2 steps to land, and it was the
---     bank's LAST stack. Meanwhile the item is in NEITHER container and nothing is locked:
---     an unguarded scan reads 9/10 with an empty bank -- zero actionable work -- and prints
---     "Finished restocking" with the stack still in the air, skipping the stash-back (the
---     "Finished right after Overshoot" log). The in-flight gate must wait out the dip and
---     end exactly on target with the excess back in the bank.
+--[[
+    12. In-flight blind spot: the overshoot pull takes 2 steps to land, and it was the
+        bank's LAST stack. Meanwhile the item is in NEITHER container and nothing is locked:
+        an unguarded scan reads 9/10 with an empty bank -- zero actionable work -- and prints
+        "Finished restocking" with the stack still in the air, skipping the stash-back (the
+        "Finished right after Overshoot" log). The in-flight gate must wait out the dip and
+        end exactly on target with the excess back in the bank.
+]]
 scenario(
 	"in-flight pull, no early finish",
 	{ stacks = { 9 }, free = 10 },
@@ -416,10 +459,14 @@ scenario(
 	end
 )
 
--- ---------------------------------------------------------------------------------------
--- Consolidation (tidy phase) -- mirrors bankModule.ConsolidateOne: repeatedly take the
--- SMALLEST stack and pour it entirely into another stack that has room for ALL of it (a
--- "full absorb", no splitting). Each merge removes one stack; stop when no pair fully fits.
+--[[
+    ---------------------------------------------------------------------------------------
+    Consolidation (tidy phase) -- mirrors ConsolidateOne in Restocker-Bank.lua, one item's
+    stacks at a time: take the SMALLEST partial stack and pour it whole into the largest
+    partial that has room for ALL of it; when none has, split just enough off it to top the
+    largest partial up to full. Every step leaves one partial stack fewer, and it stops once
+    at most one is left.
+]]
 local function consolidate(stacks, maxStack)
 	local steps = 0
 	while true do
@@ -428,18 +475,30 @@ local function consolidate(stacks, maxStack)
 		table.sort(stacks, function(a, b)
 			return a < b
 		end) -- smallest first
+		local partials = {}
+		for index, count in ipairs(stacks) do
+			if count < maxStack then
+				partials[#partials + 1] = index
+			end
+		end
+		if #partials < 2 then
+			break
+		end
+		local source = partials[1]
 		local merged = false
-		local source = stacks[1]
-		for i = 2, #stacks do
-			if source + stacks[i] <= maxStack then
-				stacks[i] = stacks[i] + source
-				table.remove(stacks, 1)
+		for i = #partials, 2, -1 do
+			local destination = partials[i]
+			if stacks[source] + stacks[destination] <= maxStack then
+				stacks[destination] = stacks[destination] + stacks[source]
+				table.remove(stacks, source)
 				merged = true
 				break
 			end
 		end
 		if not merged then
-			break
+			local destination = partials[#partials]
+			stacks[source] = stacks[source] - (maxStack - stacks[destination])
+			stacks[destination] = maxStack
 		end
 	end
 	table.sort(stacks, function(a, b)
@@ -465,9 +524,11 @@ consolidateScenario("10+9+1", { 10, 9, 1 }, 20, { 20 })
 consolidateScenario("5+5+5+5", { 5, 5, 5, 5 }, 20, { 20 })
 -- Already tidy: nothing to do.
 consolidateScenario("single full", { 20 }, 20, { 20 })
--- Can't fully absorb either into the other without splitting -> left alone (already fewest
--- stacks a non-splitting merge can reach).
-consolidateScenario("11+11", { 11, 11 }, 20, { 11, 11 })
-consolidateScenario("11+11+11", { 11, 11, 11 }, 20, { 11, 11, 11 })
+--[[
+    No whole stack fits into another, so the largest partial is topped up by a split: the
+    stack count holds, and every stack but one ends full.
+]]
+consolidateScenario("11+11", { 11, 11 }, 20, { 20, 2 })
+consolidateScenario("11+11+11", { 11, 11, 11 }, 20, { 20, 13 })
 
 print(("\nALL %d RESTOCK PLANNER SCENARIOS PASSED"):format(pass))

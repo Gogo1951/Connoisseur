@@ -6,10 +6,10 @@ local L = ns.L
 --------------------------------------------------------------------------------
 
 --[[
-    The player's named shopping lists, and the compact form they are saved in.
-    These are not AceDB profiles: each is a list of items, each character
-    remembers which one it uses, and the stock Reset Profile control never
-    reaches them.
+    The player's named shopping lists; the compact form they are saved in lives
+    in Restocker-Saved-Format.lua. These are not AceDB profiles: each is a list
+    of items, each character remembers which one it uses, and the stock Reset
+    Profile control never reaches them.
 ]]
 
 --------------------------------------------------------------------------------
@@ -22,7 +22,8 @@ function ns.AddRestockList(newListName)
 	--[[
 	    Never overwrite an existing list: an unguarded add replaced it with an empty
 	    one and the items were unrecoverable. Same refusal ns.RenameCurrentRestockList makes.
-	    ns.CreateRestockList and ns.CloneCurrentRestockList pick a free name before calling in.
+	    ns.CreateRestockList picks a free name before calling in; ns.CloneCurrentRestockList
+	    picks one too and writes its copy itself.
 	]]
 	if settings.lists[newListName] ~= nil then
 		ns.PrintMessage(string.format(L["RESTOCKER_PROFILE_EXISTS"], newListName))
@@ -54,9 +55,11 @@ end
     other character's curated list, and quietly attaching a new character to it
     would let that character's Starter List picks and level-up upgrades write
     into it uninvited. The new list takes a numbered variant instead
-    ("Warrior (2)"), and merging the two stays the player's own call, through
-    Copy. Characters that already have a listsByCharacter entry never come through
-    here, so nobody's existing setup is renamed or moved.
+    ("Warrior (2)"), and whether to reuse the other list stays the player's own
+    call (Copy replaces the current list with a copy of it; nothing merges).
+    Login calls this only for a character with no listsByCharacter entry, so
+    nobody's existing setup is renamed or moved. Deleting the current list and
+    the New List entry call it too, each for a fresh list of its own.
 ]]
 local function FreeClassListName(settings)
 	local className = UnitClass("player")
@@ -87,15 +90,14 @@ function ns.DeleteRestockList(listName)
 
 	if currentListName == listName then
 		settings.lists[currentListName] = nil
-		local firstKey = next(settings.lists)
-		if firstKey then
-			ns.UseRestockList(firstKey)
-		else
-			-- Nothing left: start a fresh class-named list (no name can collide here).
-			local fallback = FreeClassListName(settings)
-			settings.lists[fallback] = {}
-			ns.UseRestockList(fallback)
-		end
+		--[[
+		    Never onto a list that already exists: it is some other character's, and joining
+		    it would let this character's level-up upgrades rewrite it. A fresh class-named
+		    list instead, as at a first login.
+		]]
+		local fallback = FreeClassListName(settings)
+		settings.lists[fallback] = {}
+		ns.UseRestockList(fallback)
 	else
 		settings.lists[listName] = nil
 	end
@@ -110,7 +112,7 @@ end
 -- List Widgets
 --------------------------------------------------------------------------------
 
--- Sync the profile dropdown text and the rename box with the active profile.
+-- Sync the list selector's text and the rename box with the active list.
 function ns.UpdateRestockListWidgets()
 	local settings = ns.restockSettings
 	if not ns.restockWindow then
@@ -132,7 +134,7 @@ function ns.RenameCurrentRestockList(newName)
 	local settings = ns.restockSettings
 	local currentListName = settings.currentList
 
-	-- Trim; ignore empty names and no-ops, and never clobber an existing profile.
+	-- Trim; ignore empty names and no-ops, and never clobber an existing list.
 	newName = (newName or ""):gsub("^%s+", ""):gsub("%s+$", "")
 	if newName == "" or newName == currentListName then
 		ns.UpdateRestockListWidgets()
@@ -272,7 +274,7 @@ function ns.GetCharacterKey()
 end
 
 --[[
-    Switch the active profile AND remember the choice for THIS character, so each
+    Switch the active list AND remember the choice for THIS character, so each
     character returns to its own list next login. Use this instead of writing
     settings.currentList directly.
 ]]
@@ -281,7 +283,7 @@ function ns.UseRestockList(name)
 		return
 	end
 	--[[
-	    Any profile event stales the "New" group, and every one of them --
+	    Any list event stales the "New" group, and every one of them --
 	    create, switch, clone, delete-with-fallback, login init -- passes
 	    through here. (A rename lands here too and clears; a note about "what
 	    I just added" does not outrank keeping this the single choke point.)

@@ -63,76 +63,21 @@ function ns.OptionsRowLabel(text, order, width)
 end
 
 --------------------------------------------------------------------------------
--- Sub-Option Rows
---------------------------------------------------------------------------------
-
---[[
-    A sub-option is a control that only means anything while the toggle above it
-    is on, and it is marked two ways at once.
-
-    The row leads with a blank indent cell, which moves the checkbox itself.
-    Padding the label instead would indent only the caption -- AceConfig pins a
-    checkbox at the left edge of its own widget -- leaving the box lined up with
-    its parent's and the words drifting away from it.
-
-    ns.OptionsSubLabel then colors the caption HELP silver against the parent's
-    white, so the row reads as subordinate rather than merely shifted.
-
-    The whole row is wrapped in an inline group with no name, which AceConfig
-    renders as a bare SimpleGroup -- no border, no title, no padding -- at
-    "fill" width. That wrapper is load-bearing, not decoration. Laid out flat,
-    the indent and its control are just two more widgets in the panel's flow,
-    kept together only by their widths happening to fill the line; the pair
-    after them then packs onto whatever space is left and its indent stops
-    indenting anything. A fill widget always gets a line to itself, so one group
-    per sub-option pins one row per sub-option no matter what the pane is doing.
-
-    Inside the group the controls need slack rather than an exact fit: a row
-    summing to the full pane width sits on the wrap boundary, where a pass that
-    measures a control before its width is applied tips the control onto its own
-    line and strands the indent above it.
-
-    Hiding belongs on the group, never on the controls inside it -- hiding only
-    the control would leave its indent cell behind as a blank line.
-]]
-function ns.OptionsSubRow(order, hidden, controls)
-	local args = {
-		indent = {
-			type = "description",
-			name = " ",
-			width = ns.OPTIONS_SUB_INDENT_WIDTH,
-			order = 1,
-		},
-	}
-
-	for index, control in ipairs(controls) do
-		control.order = index + 1
-		args["control" .. index] = control
-	end
-
-	return {
-		type = "group",
-		name = "",
-		inline = true,
-		order = order,
-		hidden = hidden,
-		args = args,
-	}
-end
-
-function ns.OptionsSubLabel(text)
-	return GetColor("HELP") .. text .. "|r"
-end
-
---------------------------------------------------------------------------------
 -- Shared Values
 --------------------------------------------------------------------------------
 
--- Group-restriction mode labels shared by the Buff Food, Scroll, and Pet panels.
+--[[
+    When-to-use mode labels, by group or by level, shared by every mode
+    dropdown: Buff Food, Scroll Buffs, Pet Food Buffs, and Use Conjured Food &
+    Water First.
+]]
 ns.MODE_VALUES = {
 	always = L["MODE_ALWAYS"],
+	solo = L["MODE_SOLO"],
 	party = L["MODE_PARTY"],
 	raid = L["MODE_RAID"],
+	leveling = L["MODE_LEVELING"],
+	maxlevel = L["MODE_MAX_LEVEL"],
 }
 
 --------------------------------------------------------------------------------
@@ -146,73 +91,67 @@ ns.MODE_VALUES = {
     that lists items renders those rows as L["LOADING_ITEM"] and hands the cold
     ids here.
 
-    RequestLoadItemDataByID asks the server for each one, then a bounded poll
-    repaints the panel as answers land. NotifyChange fires only when the cold
-    count actually drops, so a repaint always means a row changed; the attempt
-    cap means an id the server never answers for (a removed item) stops polling
-    instead of spinning forever. One chain per registry name at a time, polling
-    that registry's pending set: a call while the chain runs (the repaint
-    re-entering with the still-cold ids, or a row added mid-load) merges its ids
-    into the set rather than stacking a second chain, and a genuinely new id
-    restarts the attempt budget so it gets polled as long as the first ones did.
+    Each id is requested from the server, and the panel's registry name holds a
+    GET_ITEM_INFO_RECEIVED waiter (ns.RequestItemInfoEvents) while any id it
+    handed in is still outstanding. Core passes every answer to
+    ns.OnOptionsItemInfoReceived below, which repaints the panels waiting on
+    that id and releases a panel's waiter once nothing it asked about is left.
+    A repaint that re-enters with still-cold ids, or a row added mid-load, just
+    adds to the panel's pending set. An id the client has no item for, or one
+    whose answer already failed, is never requested: its answer never comes, so
+    a wait on it would hold the event for the rest of the session.
 ]]
-local WARM_RETRY_SECONDS = 0.5
-local WARM_MAX_ATTEMPTS = 10
 
--- registryName -> { ids = { [itemID] = true }, attempts = n }, present while a chain runs.
+-- registryName -> { [itemID] = true }, the ids each panel still waits on.
 local warming = {}
+
+-- [itemID] = true for every id whose answer came back failed this session.
+local failedItemIDs = {}
+
+local function WaiterKey(registryName)
+	return "options:" .. registryName
+end
 
 function ns.WarmItemCache(itemIDs, registryName)
 	if not (itemIDs and itemIDs[1] and registryName) then
 		return
 	end
 
+	local pending = warming[registryName] or {}
+	local requested = false
 	for _, itemID in ipairs(itemIDs) do
-		if C_Item and C_Item.RequestLoadItemDataByID then
+		if not failedItemIDs[itemID] and C_Item.DoesItemExistByID(itemID) then
+			pending[itemID] = true
 			C_Item.RequestLoadItemDataByID(itemID)
+			requested = true
 		end
 	end
-
-	local chain = warming[registryName]
-	if chain then
-		for _, itemID in ipairs(itemIDs) do
-			if not chain.ids[itemID] then
-				chain.ids[itemID] = true
-				chain.attempts = 0
-			end
-		end
-		return
+	if requested then
+		warming[registryName] = pending
+		ns.RequestItemInfoEvents(WaiterKey(registryName))
 	end
+end
 
-	chain = { ids = {}, attempts = 0 }
-	for _, itemID in ipairs(itemIDs) do
-		chain.ids[itemID] = true
+--[[
+    One GET_ITEM_INFO_RECEIVED answer, handed on by Core after the Restocker
+    handler has forgotten the item's remembered miss. A failed answer settles
+    the wait too, and is remembered so the repaint that follows does not ask
+    again: its row keeps its loading text.
+]]
+function ns.OnOptionsItemInfoReceived(itemID, success)
+	if success ~= true then
+		failedItemIDs[itemID] = true
 	end
-	warming[registryName] = chain
-
-	local function Poll()
-		chain.attempts = chain.attempts + 1
-
-		local warmed = false
-		for itemID in pairs(chain.ids) do
-			if C_Item.GetItemInfo(itemID) then
-				chain.ids[itemID] = nil
-				warmed = true
-			end
-		end
-
-		if warmed then
+	for registryName, pending in pairs(warming) do
+		if pending[itemID] then
+			pending[itemID] = nil
 			AceConfigRegistry:NotifyChange(registryName)
-		end
-
-		if next(chain.ids) ~= nil and chain.attempts < WARM_MAX_ATTEMPTS then
-			C_Timer.After(WARM_RETRY_SECONDS, Poll)
-		else
-			warming[registryName] = nil
+			if next(pending) == nil then
+				warming[registryName] = nil
+				ns.ReleaseItemInfoEvents(WaiterKey(registryName))
+			end
 		end
 	end
-
-	C_Timer.After(WARM_RETRY_SECONDS, Poll)
 end
 
 --------------------------------------------------------------------------------
@@ -304,6 +243,9 @@ end
       labels: { addName, addHelp, addInvalid, removeDesc, empty }
       rowWidth: optional total row budget, default ns.OPTIONS_ROW_WIDTH
       startOrder: optional first order, so a panel can seat its own head above
+      actionColumn: optional per-row control, { type, width, name, desc } plus
+        func(itemID) for an "execute" (the Ignore List's Global button), or
+        values, sorting, get(itemID) and set(itemID, value) for a "select"
 
     Restore Defaults is deliberately absent: it belongs to lists that ship
     defaults, and a list the player built from nothing has none to restore. A
@@ -328,22 +270,26 @@ function ns.BuildItemListOptions(spec)
 	local args = {}
 	local order = spec.startOrder or 1
 
-	args.addItemLabel = ns.OptionsRowLabel(labels.addName, order)
+	-- The add row spends the list's own row budget, so it ends where the item rows below it end.
+	local addLabelWidth = ns.OPTIONS_LABEL_WIDTH * (rowWidth / ns.OPTIONS_ROW_WIDTH)
+	args.addItemLabel = ns.OptionsRowLabel(labels.addName, order, addLabelWidth)
 	order = order + 1
 
 	--[[
 	    get returns empty so the box clears itself on the repaint that follows
-	    each add. validate rejects anything ParseItemInput cannot read, which is
-	    what keeps a typo out of the list rather than into it as a dead row.
+	    each add. validate rejects anything ParseItemInput cannot read and any id
+	    this client has no item for, which is what keeps a typo out of the list
+	    rather than into it as a dead row.
 	]]
 	args.addItemInput = {
 		type = "input",
 		name = "",
 		desc = labels.addHelp,
-		width = ns.OPTIONS_CONTROL_WIDTH,
+		width = rowWidth - addLabelWidth,
 		order = order,
 		validate = function(_, value)
-			return ns.ParseItemInput(value) and true or labels.addInvalid
+			local itemID = ns.ParseItemInput(value)
+			return (itemID and C_Item.DoesItemExistByID(itemID)) and true or labels.addInvalid
 		end,
 		get = function()
 			return ""
@@ -439,6 +385,7 @@ function ns.BuildItemListOptions(spec)
 					end,
 					set = function(_, value)
 						actionColumn.set(capturedID, value)
+						AceConfigRegistry:NotifyChange(spec.notifyKey)
 					end,
 				}
 			end

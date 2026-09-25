@@ -11,9 +11,11 @@ ns.RegisterMacroType({
 	    Selection: any drink competes, including the water half of a
 	    foodwater hybrid (which also feeds Food), by raw mana value. The
 	    buff-food gate matches Food's — a buff drink only competes while
-	    ns.allowBuffFood is on. Unlike Food, ties prefer the DEDICATED
-	    drink (preferHybrid = false): the hybrid is better saved for the
-	    Food slot, and Water never stores a link (nothing reads one).
+	    ns.allowBuffFood is on — and so does conjured-first: while
+	    ns.allowConjuredFirst holds, a conjured drink beats anything but a
+	    buff drink. Unlike Food, ties prefer the DEDICATED drink
+	    (preferHybrid = false): the hybrid is better saved for the Food
+	    slot, and Water never stores a link (nothing reads one).
 	]]
 	itemTypes = { water = true, foodwater = true },
 	accepts = function(data)
@@ -23,6 +25,7 @@ ns.RegisterMacroType({
 		return data.manaValue
 	end,
 	allowBuffFood = true,
+	allowConjuredFirst = true,
 	preferHybrid = false,
 	--[[
 	    Mage conjure: shared Water/Food resolution (Refreshment Table on

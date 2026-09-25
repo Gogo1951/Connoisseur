@@ -44,15 +44,15 @@ function ns.ResolveMageWaterOrFoodConjure(rightList, rightMissKey)
 	    Middle-click: Ritual of Refreshment is a level-70 ability (Rank 2
 	    at 80 in Wrath). The table serves the whole raid, so ignoreTarget
 	    keeps a low-level friendly target from downranking it, and the
-	    unpinned /cast always fires the highest rank known. If the mage
-	    hasn't learned it yet AND the spell exists on this client, the
-	    middle-click prints "you don't know Ritual of Refreshment." On
-	    clients where the spell isn't implemented (Era 1.15), the tip
-	    resolves to nil at print time and silently does nothing.
+	    unpinned /cast always fires the highest rank known. A mage who
+	    hasn't learned it yet gets the "you don't know Ritual of
+	    Refreshment" tip on middle-click. A flavor whose folder has no
+	    Ritual of Refreshment rows writes no middle-click at all, so there
+	    middle-click does what left-click does.
 	]]
 	if ns.KnowsAny(ns.CONJURE_SPELLS.MageCreateTable) then
 		info.middleName, info.middleID = ns.GetSmartSpell(ns.CONJURE_SPELLS.MageCreateTable, true)
-	else
+	elseif #ns.CONJURE_SPELLS.MageCreateTable > 0 then
 		info.middleMiss = "noRitualOfRefreshment"
 	end
 

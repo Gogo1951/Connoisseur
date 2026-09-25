@@ -35,16 +35,10 @@ L["MACRO_WATER"] = "- Agua"
 -- Common
 --------------------------------------------------------------------------------
 
---[[
-    Spliced into /cast lines as "Spell(Rank N)" when a macro pins a spell rank,
-    so it must be the client's own rank word, never a nicer synonym -- a locale
-    that changes it breaks every rank-pinned macro for players in that client.
-]]
-
-L["RANK"] = "Rango"
-
 -- Joins the items of a printed list: a Readiness Report clause, or the Restocker's "Couldn't move" list.
 L["LIST_SEPARATOR"] = ", "
+-- The decimal mark in a number the code prints, such as the Readiness Report's 2.5-minute choice.
+L["DECIMAL_SEPARATOR"] = "."
 
 --------------------------------------------------------------------------------
 -- Pet Diets
@@ -55,7 +49,7 @@ L["LIST_SEPARATOR"] = ", "
     values MUST match the client's strings exactly (verify in-game with a pet
     out: /dump GetPetFoodTypes() on Era and TBC,
     /dump C_PetInfo.GetPetFoodTypes() on Forever). Used to build
-    ns.PET_DIET_MAP in Data/Pet-Foods.lua.
+    ns.PET_DIET_MAP in Data/Data.lua.
 
     They are ALSO the food checkbox labels in the Starter List pop-up, so they
     read as ordinary labels while carrying that hard constraint. Translate them
@@ -80,10 +74,10 @@ L["MESSAGE_BUG_REPORT"] =
 	"¡Parece que has encontrado un error! %s (%s) no se puede usar en %s > %s (%s). Por favor, avísanos para que podamos corregirlo. ¡Gracias! %s"
 L["MESSAGE_NO_ITEM"] = "No hay ningún objeto adecuado de tipo %s en tus bolsas."
 L["MESSAGE_MACRO_SLOTS_FULL"] =
-	"No se pudieron crear algunas macros de Connoisseur porque tus espacios para macros están llenos. Libera un espacio borrando macros que ya no uses, o desactiva las macros de Connoisseur que no necesites en Opciones > Accesorios > Connoisseur > Macros."
+	"No se pudieron crear algunas macros de Connoisseur porque tus espacios para macros están llenos. Libera un espacio borrando macros que ya no uses, o desactiva las macros de Connoisseur que no necesites en Opciones > AddOns > Connoisseur > Macros."
 
 L["CHAT_LOADED"] =
-	"Versión %s. Los ajustes (incluida la opción de desactivar este mensaje) se encuentran en Opciones > Accesorios > Connoisseur. ¿Te gusta el accesorio? ¡Cuéntaselo a un amigo! (="
+	"Versión %s. Los ajustes (incluida la opción de desactivar este mensaje) se encuentran en Opciones > AddOns > Connoisseur. ¿Te gusta el accesorio? ¡Cuéntaselo a un amigo! (="
 
 L["CHAT_OPTIONS_IN_COMBAT"] = "Como medida de seguridad, la interfaz de opciones no se puede abrir durante el combate."
 
@@ -170,7 +164,7 @@ L["TIP_DONT_KNOW_SPELL"] = "Actualmente no conoces %s."
 -- Minimap Tooltip
 --------------------------------------------------------------------------------
 
--- Feature toggles shown in the mini-map tooltip, each with a description line.
+-- Feature toggles shown in the mini-map tooltip, each with a description line. Both names also fill OPTIONS_MODE_DESCRIPTION's %s.
 L["FEATURE_BUFF_FOOD"] = "Comida con beneficio"
 L["MENU_BUFF_FOOD_DESCRIPTION"] = 'Prioriza la comida que otorga el beneficio "Bien alimentado" cuando te falta.'
 L["FEATURE_SCROLL_BUFFS"] = "Beneficios de pergaminos"
@@ -265,10 +259,10 @@ L["TIP_HUNTER_MODIFIERS"] = "Mantén Mayús para forzar Revivir, o Ctrl para Ret
     line names what it actually affects rather than saying "the macro."
 ]]
 L["TIP_MAGE_CONJURE"] = "Clic derecho en tus macros de Comida o Agua para lanzar Crear comida o Crear agua."
-L["TIP_MAGE_DOWNRANK"] = "Seleccionar a un jugador de menor nivel conjurará Comida o Agua apropiada para su nivel."
+L["TIP_MAGE_DOWNRANK"] = "Seleccionar a un jugador de menor nivel creará comida o agua apropiada para su nivel."
 L["TIP_MAGE_TABLE"] = "Clic central en tus macros de Comida o Agua para lanzar Ritual de refrigerio."
 L["TIP_MAGE_GEM"] =
-	"Clic derecho en tu macro de Gema de maná para conjurar una nueva gema. Vuelve a hacer clic derecho para conjurar una gema de rango inferior como respaldo."
+	"Clic derecho en tu macro de Gema de maná para crear una nueva gema. Vuelve a hacer clic derecho para crear una gema de rango inferior como respaldo."
 
 L["TIP_WARLOCK_HEALTHSTONE"] =
 	"Clic derecho en tu macro de Piedra de salud para lanzar Crear piedra de salud. Vuelve a hacer clic derecho para crear otra de rango inferior como respaldo."
@@ -287,10 +281,9 @@ L["TIP_ROGUE_WINDOW"] = "Clic central abre la ventana de Venenos."
 --------------------------------------------------------------------------------
 
 --[[
-    One label per macro type, dropped as-is into other strings: MESSAGE_NO_ITEM
-    ("No suitable %s found...") from ConnoisseurNoItem and the mini-map tooltip,
-    and OPTIONS_MACRO_TOGGLE_DESCRIPTION. LABEL_WATER is also the List Builder's
-    Water checkbox.
+    One label per macro type, dropped as-is into MESSAGE_NO_ITEM ("No suitable
+    %s found...") from ConnoisseurNoItem and the mini-map tooltip. LABEL_WATER
+    is also the List Builder's Water checkbox.
 ]]
 
 L["LABEL_BANDAGE"] = "Venda"
@@ -323,12 +316,23 @@ L["MINIMAP_SHIFT_LEFT"] = "Mayús + Clic izquierdo"
 -- Mode Values
 --------------------------------------------------------------------------------
 
--- Caption and hover text on the mode sub-row under Buff Food, Scroll Buffs, and Pet Food Buffs; %s is that section's name.
-L["OPTIONS_MODE_CAPTION"] = "Cuándo usar"
-L["OPTIONS_MODE_DESCRIPTION"] = 'Elige cuándo tu macro de Comida ofrece "%s": siempre, o solo cuando estás en grupo.'
+--[[
+    The one when-to-use list, offered by every mode dropdown: Prioritize Buff
+    Food, Enable Scroll Buffs, Use Pet Food Buffs, and Use Conjured Food &
+    Water First. %s in OPTIONS_MODE_DESCRIPTION is the feature's name,
+    FEATURE_BUFF_FOOD, FEATURE_SCROLL_BUFFS or OPTIONS_PET_HEADER; the
+    conjured dropdown has hover text of its own. The dropdowns have no
+    caption, so each value carries its own "when". Leveling means below the
+    client's max level.
+]]
+L["OPTIONS_MODE_DESCRIPTION"] =
+	'Elige cuándo tu macro de Comida ofrece "%s": siempre, o únicamente en solitario, en grupo o banda, en banda, mientras subes de nivel o al nivel máximo.'
 L["MODE_ALWAYS"] = "Siempre"
-L["MODE_PARTY"] = "Solo en grupo o banda"
-L["MODE_RAID"] = "Solo en banda"
+L["MODE_SOLO"] = "En solitario"
+L["MODE_PARTY"] = "En grupo o banda"
+L["MODE_RAID"] = "En banda"
+L["MODE_LEVELING"] = "Subiendo de nivel"
+L["MODE_MAX_LEVEL"] = "Al nivel máximo"
 
 --------------------------------------------------------------------------------
 -- Options Panel
@@ -345,10 +349,93 @@ L["OPTIONS_WELCOME_MESSAGE_DESCRIPTION"] = "Muestra un mensaje de bienvenida en 
 L["OPTIONS_MINIMAP_BUTTON"] = "Activar botón del minimapa"
 L["OPTIONS_MINIMAP_BUTTON_DESCRIPTION"] = "Muestra el botón del minimapa."
 
+--[[
+    /Commands. Both halves of each line are locale keys: the literal, which
+    stays identical in every locale since a slash command has nothing to
+    translate, and its description.
+]]
+L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
+L["OPTIONS_COMMAND"] = "/foodie"
+L["OPTIONS_COMMAND_DESCRIPTION"] = "Abre la interfaz de opciones de este accesorio."
+L["RESTOCKER_COMMAND"] = "/crs"
+L["RESTOCKER_COMMAND_DESCRIPTION"] = "Abre la ventana de Restocker para gestionar tu lista de reabastecimiento."
+
+--[[
+    Feedback & Support. The four service names are brand names and stay English
+    in every locale; OPTIONS_VERSION translates, with %s the version number.
+]]
+L["OPTIONS_COMMUNITY_HEADER"] = "Comentarios y soporte"
+L["DISCORD"] = "Discord"
+L["GITHUB"] = "GitHub"
+L["CURSEFORGE"] = "CurseForge"
+L["WAGO"] = "Wago"
+L["OPTIONS_VERSION"] = "Versión %s"
+
+--[[
+    Macros panel. TAB_MACROS is the panel's label in the settings tree and the
+    title on the page; OPTIONS_MACROS_DESCRIPTION is the intro beneath it, which
+    orients the player to the page's two halves -- which macros exist, then how
+    each one behaves. The Enable Macros header below titles the first section,
+    after the page's one headerless toggle, Macro Names on Buttons.
+]]
+L["TAB_MACROS"] = "Macros"
+L["OPTIONS_MACROS_DESCRIPTION"] =
+	"Connoisseur crea una macro por consumible y la mantiene al día conforme cambian tus bolsas, de modo que el botón de tu barra siempre busca el mejor objeto que llevas encima. Elige abajo qué macros crear y luego ajusta cómo elige su objeto cada una."
+
 -- Macro Names on Buttons
 L["OPTIONS_MACRO_NAMES"] = "Activar nombres de macro en los botones"
 L["OPTIONS_MACRO_NAMES_DESCRIPTION"] =
 	"Muestra el nombre de la macro en los botones de tu barra de acción, un texto que Connoisseur oculta por defecto."
+
+-- Enable Macros
+L["OPTIONS_ENABLE_MACROS_HEADER"] = "Activar macros"
+L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] =
+	"Elige qué macros crea y mantiene Connoisseur. Al desactivar una, también se elimina."
+--[[
+    Hover text on each Enable Macros toggle, whose own label names the macro.
+    It says "this macro" because a LABEL_* is not every macro's name: Feed Pet's
+    label is Pet Food.
+]]
+L["OPTIONS_MACRO_TOGGLE_DESCRIPTION"] = "Crea y mantiene esta macro, y la elimina al desmarcar la casilla."
+
+--[[
+    Food & Water: Prioritize Buff Food, Enable Scroll Buffs, and Use Conjured
+    Food & Water First, in page order. One description serves all three, so
+    each option's hover text says what it does.
+]]
+L["OPTIONS_FOOD_WATER_HEADER"] = "Comida y agua"
+L["OPTIONS_FOOD_WATER_DESCRIPTION"] =
+	"Tus macros de Comida y Agua usan la mejor comida y bebida de tus bolsas. Estas opciones pueden poner primero la comida con beneficio, los pergaminos o la comida y el agua mágicas."
+
+--[[
+    Buff Food, the first option under Food & Water. Its hover text is a key of
+    its own because it carries the arena exception, which the mini-map
+    tooltip's MENU_BUFF_FOOD_DESCRIPTION has no room for.
+]]
+L["OPTIONS_BUFF_FOOD"] = "Priorizar comida con beneficio"
+L["OPTIONS_BUFF_FOOD_DESCRIPTION"] =
+	'Prioriza la comida que otorga el beneficio "Bien alimentado" cuando te falta, excepto en las Arenas.'
+
+-- Scroll Buffs, the second option under Food & Water.
+L["OPTIONS_USE_SCROLLS"] = "Activar beneficios de pergaminos"
+L["OPTIONS_USE_SCROLLS_DESCRIPTION"] =
+	"Tu macro de Comida aplica los pergaminos que faltan con la primera pulsación y come con la siguiente; omite los pergaminos si seleccionas a un jugador amistoso o estás en una Arena."
+L["OPTIONS_SCROLL_TYPES"] = "Incluir tipos de pergaminos en la comprobación"
+L["OPTIONS_SCROLL_AGILITY"] = "Agilidad"
+L["OPTIONS_SCROLL_INTELLECT"] = "Intelecto"
+L["OPTIONS_SCROLL_PROTECTION"] = "Protección"
+L["OPTIONS_SCROLL_SPIRIT"] = "Espíritu"
+L["OPTIONS_SCROLL_STAMINA"] = "Aguante"
+L["OPTIONS_SCROLL_STRENGTH"] = "Fuerza"
+-- Hover text on each scroll type and pet food type; %s is the scroll type's label or the pet food's item name.
+L["OPTIONS_BUFF_TYPE_DESCRIPTION"] = "Incluye %s al comprobar los beneficios que faltan."
+
+-- Use Conjured Food & Water First, the third option under Food & Water.
+L["OPTIONS_CONJURED_FIRST"] = "Usar primero la comida y el agua mágicas"
+L["OPTIONS_CONJURED_FIRST_DESCRIPTION"] =
+	'Tus macros de Comida y Agua usan la comida y el agua mágicas antes que cualquier otra cosa, aunque algo de tus bolsas restaure más, ya que no cuestan nada y desaparecen poco después de cerrar sesión. La comida con beneficio sigue yendo primero mientras "Priorizar comida con beneficio" esté activado.'
+L["OPTIONS_CONJURED_FIRST_MODE_DESCRIPTION"] =
+	"Elige cuándo la comida y el agua mágicas van primero: siempre, o únicamente en solitario, en grupo o banda, en banda, mientras subes de nivel o al nivel máximo."
 
 -- Potions & Healthstones
 L["OPTIONS_POTIONS_HEADER"] = "Pociones y Piedras de salud"
@@ -361,164 +448,85 @@ L["OPTIONS_COMBINE_HEALTHSTONES_DESCRIPTION"] =
 -- Mana Gems & Runes
 L["OPTIONS_MANA_GEMS_HEADER"] = "Gemas de maná y runas"
 L["OPTIONS_MANA_GEMS_DESCRIPTION"] =
-	"Las Runas demoníacas y las Runas oscuras comparten tiempo de reutilización con las Gemas de maná, pero cuestan salud al usarlas, así que la macro de Gema de maná las deja fuera a menos que las añadas."
-L["OPTIONS_INCLUDE_MANA_RUNES"] = "Añadir Runas demoníacas y oscuras a la macro de Gema de maná"
+	"Las Runas demoníacas, las Runas oscuras y algunos otros objetos de maná comparten tiempo de reutilización con las Gemas de maná. Las runas cuestan salud al usarlas, así que la macro de Gema de maná los deja fuera a todos a menos que los añadas."
+L["OPTIONS_INCLUDE_MANA_RUNES"] = "Añadir runas y otros objetos de maná a la macro de Gema de maná"
 L["OPTIONS_INCLUDE_MANA_RUNES_DESCRIPTION"] =
-	"Clasifica tus Runas demoníacas y oscuras junto a tus Gemas de maná, para que la macro de Gema de maná use una runa cuando sea tu mejor opción o cuando te quedes sin gemas."
+	"Clasifica tus Runas demoníacas y oscuras, y cualquier otro objeto de maná que comparta tiempo de reutilización con las Gemas de maná, junto a tus gemas, para que la macro de Gema de maná use uno de ellos cuando sea tu mejor opción o cuando te quedes sin gemas."
 
 -- Buff Re-Application
 L["OPTIONS_REAPPLY_HEADER"] = "Renovación de beneficios"
+L["OPTIONS_REAPPLY_SECTION_DESCRIPTION"] =
+	"Las macros no pueden cambiar durante el combate, así que si un beneficio expira en pleno combate, seguirás sin él hasta que el combate termine."
 L["OPTIONS_REAPPLY"] = "Renovar beneficios a punto de expirar"
 L["OPTIONS_REAPPLY_DESCRIPTION"] =
 	"Considera expirados Comida con beneficio, Beneficios de pergaminos y Beneficios de comida de mascota cuando les quede menos tiempo que tu umbral, para que tus macros ofrezcan uno nuevo antes del combate."
 --[[
-    Threshold dropdown, on the sub-row under the Re-Apply toggle. The values
-    carry the "when" themselves, so the caption only names the setting.
+    Threshold dropdown, beside the Re-Apply toggle. It has no caption, so the
+    values carry the "when" themselves.
 ]]
-L["OPTIONS_REAPPLY_THRESHOLD_CAPTION"] = "Umbral"
 L["OPTIONS_REAPPLY_THRESHOLD_DESCRIPTION"] =
 	"Define cuánto puede acercarse un beneficio a expirar antes de que tus macros ofrezcan uno nuevo."
 L["REAPPLY_THRESHOLD_ONE"] = "Cuando quede < 1 minuto"
 L["REAPPLY_THRESHOLD_MANY"] = "Cuando queden < %d minutos"
 
--- Readiness Report
-L["TAB_READINESS_REPORT"] = "Informe de preparación"
-L["OPTIONS_READINESS_ENABLE"] = "Activar el informe de preparación al comprobar quiénes están listos"
---[[
-    Says what the report does AND that it stays quiet, because the quiet is the
-    feature: a player who turns this on and sees nothing for three pulls has to
-    know that is the report working rather than the report broken.
-]]
-L["OPTIONS_READINESS_DESCRIPTION"] =
-	"Cuando empieza una comprobación de quiénes están listos, muestra una lista privada de lo que aún falta por arreglar, y no dice nada en absoluto si estás preparado."
-
---[[
-    The reset button under the master toggle. It needs a control of its own
-    because these settings are account-wide: the stock Reset Profile reaches
-    only the character's own profile, so nothing else on any panel can return
-    them to their defaults.
-
-    The confirm names the one consequence a player would not otherwise predict.
-    Off is what the report ships as, so resetting switches it back off, and a
-    page that emptied itself with no warning would read as a bug.
-]]
-L["OPTIONS_READINESS_RESET"] = "Restablecer ajustes del informe de preparación"
-L["OPTIONS_READINESS_RESET_DESCRIPTION"] =
-	"Restablece a sus valores por defecto todos los interruptores y ambos umbrales de esta página, sin tocar las demás páginas."
-L["OPTIONS_READINESS_RESET_CONFIRM"] =
-	"¿Restablecer todos los ajustes del informe de preparación a sus valores por defecto? Esto también vuelve a desactivar el propio informe."
-
---[[
-    The three sections, each a real header over the switches it covers. They
-    name what the line is called in chat, so the panel and the report read as
-    the same feature.
-]]
-L["OPTIONS_READINESS_BUFFS_HEADER"] = "Beneficios que faltan"
-L["OPTIONS_READINESS_ITEMS_HEADER"] = "Objetos que faltan"
-L["OPTIONS_READINESS_CHARACTER_HEADER"] = "Personaje"
-
--- Missing Buffs
-L["OPTIONS_READINESS_FLASK_DESCRIPTION"] =
-	"Cuenta como cubierto un frasco, o un elixir de batalla y un elixir guardián."
-L["OPTIONS_READINESS_WELL_FED_DESCRIPTION"] = "Requiere activar Comida con beneficio en Macros."
-L["OPTIONS_READINESS_PET_WELL_FED_DESCRIPTION"] =
-	"Solo para cazadores, y requiere activar Beneficios de comida de mascota en Macros."
-L["OPTIONS_READINESS_SCROLLS"] = "Beneficios de pergaminos"
-L["OPTIONS_READINESS_SCROLLS_DESCRIPTION"] =
-	"Requiere activar Beneficios de pergaminos en Macros, y solo comprueba los tipos de pergamino seleccionados allí."
---[[
-    The one entry that asks about the GROUP rather than the player's own bags,
-    which the helper text has to say outright: a raid carrying seven unused
-    stones is not covered, and one deployed stone covers it.
-]]
-L["OPTIONS_READINESS_SOULSTONE_DESCRIPTION"] =
-	"Solo para brujos: comprueba que haya una Piedra de alma activa en alguien de tu grupo, no que haya una guardada en una bolsa."
-L["OPTIONS_READINESS_MAIN_HAND"] = "Beneficio de arma (mano derecha)"
---[[
-    Says the Shaman exemption outright, because a main-hand line that goes quiet
-    the moment a Shaman joins reads as a broken switch otherwise.
-]]
-L["OPTIONS_READINESS_MAIN_HAND_DESCRIPTION"] =
-	"Cuenta cualquier encantamiento temporal de arma, y guarda silencio cuando hay un chamán en tu grupo."
-L["OPTIONS_READINESS_OFF_HAND"] = "Beneficio de arma (mano izquierda)"
-L["OPTIONS_READINESS_OFF_HAND_DESCRIPTION"] =
-	"Cuenta cualquier encantamiento temporal de arma: una piedra, un aceite, un veneno o un beneficio de arma de chamán."
---[[
-    Names the OTHER threshold so the two cannot be mistaken for each other: the
-    Macros panel has one that decides when a macro treats a buff as spent, and
-    this one only decides when the report mentions it.
-]]
-L["OPTIONS_READINESS_EXPIRING"] = "Beneficios que expiran en menos de"
-L["OPTIONS_READINESS_EXPIRING_DESCRIPTION"] =
-	"Nombra todos los beneficios que tienes a punto de expirar, no solo los que aplica Connoisseur, y es independiente de Renovación de beneficios en Macros."
--- %s is a whole or half number of minutes.
-L["OPTIONS_READINESS_EXPIRING_MINUTES"] = "%s minutos"
--- The one-minute entry alone; one plural template cannot render it grammatically.
-L["OPTIONS_READINESS_EXPIRING_MINUTES_ONE"] = "1 minuto"
-L["OPTIONS_READINESS_EXPIRING_CAPTION"] = "Tiempo restante"
-L["OPTIONS_READINESS_EXPIRING_THRESHOLD_DESCRIPTION"] =
-	"Define cuánto debe acercarse un beneficio a expirar para que el informe lo nombre."
-
--- Missing Items
-L["OPTIONS_READINESS_HEALTHSTONE_DESCRIPTION"] =
-	"Solo se muestra cuando hay un brujo en tu grupo al que pedirla, o cuando el brujo eres tú."
-L["OPTIONS_READINESS_MANA_GEM_DESCRIPTION"] = "Solo se muestra cuando juegas con un mago."
-L["OPTIONS_READINESS_HEALING_POTION_DESCRIPTION"] =
-	"Conviene llevar pociones antes de empezar un combate, ya que nadie puede darte una en plena pelea."
-L["OPTIONS_READINESS_MANA_POTION_DESCRIPTION"] = "Solo se muestra cuando juegas con una clase que usa maná."
-L["OPTIONS_READINESS_BANDAGES_DESCRIPTION"] =
-	"Avisa cuando no llevas ninguna venda que tu habilidad de Primeros auxilios te permita usar."
-L["OPTIONS_READINESS_DURABILITY"] = "Equipo dañado por debajo de"
-L["OPTIONS_READINESS_DURABILITY_DESCRIPTION"] =
-	"Enlaza cada objeto equipado por debajo de esta durabilidad, medida por objeto para que un arma rota siga apareciendo."
--- %d is a durability percentage.
-L["OPTIONS_READINESS_DURABILITY_PERCENT"] = "%d%%"
-L["OPTIONS_READINESS_DURABILITY_CAPTION"] = "Durabilidad"
-L["OPTIONS_READINESS_DURABILITY_THRESHOLD_DESCRIPTION"] =
-	"Define cuánto debe bajar la durabilidad de un objeto para que el informe lo enlace."
-
--- Character
-L["OPTIONS_READINESS_SPEC"] = "Especialización actual"
-L["OPTIONS_READINESS_SPEC_DESCRIPTION"] = "Muestra tu reparto de talentos y los puntos que no hayas gastado."
-L["OPTIONS_READINESS_PVP"] = "Marca JcJ activada"
-L["OPTIONS_READINESS_PVP_DESCRIPTION"] = "Avisa cuando tu marca JcJ está activa."
-L["OPTIONS_READINESS_QUESTIONABLE_GEAR"] = "Equipo no apto para combate"
-L["OPTIONS_READINESS_QUESTIONABLE_GEAR_DESCRIPTION"] =
-	"Enlaza los objetos equipados que no tienen cabida en un combate, como una Fusta o una caña de pescar."
-
---[[
-    Buff Food. The section header reuses FEATURE_BUFF_FOOD. The options
-    description is a key of its own because it carries the arena exception,
-    which the mini-map tooltip's MENU_BUFF_FOOD_DESCRIPTION has no room for.
-]]
-L["OPTIONS_BUFF_FOOD"] = "Priorizar comida con beneficio"
-L["OPTIONS_BUFF_FOOD_DESCRIPTION"] =
-	'Prioriza la comida que otorga el beneficio "Bien alimentado" cuando te falta, excepto en las Arenas.'
-L["OPTIONS_BUFF_FOOD_DETAIL"] =
-	"Consejo experto: Seleccionarte a ti mismo siempre hace que la macro de Comida omita la comida con beneficio y los pergaminos."
-
--- Scroll Buffs. The section header reuses FEATURE_SCROLL_BUFFS.
-L["OPTIONS_USE_SCROLLS"] = "Incluir beneficios de pergaminos"
-L["OPTIONS_USE_SCROLLS_DESCRIPTION"] =
-	"Tu macro de Comida aplica los pergaminos que faltan con la primera pulsación y come con la siguiente; omite los pergaminos si seleccionas a un jugador amistoso o estás en una Arena."
-L["OPTIONS_SCROLL_TYPES"] = "Incluir tipos de pergaminos en la comprobación"
-L["OPTIONS_SCROLL_AGILITY"] = "Agilidad"
-L["OPTIONS_SCROLL_INTELLECT"] = "Intelecto"
-L["OPTIONS_SCROLL_PROTECTION"] = "Protección"
-L["OPTIONS_SCROLL_SPIRIT"] = "Espíritu"
-L["OPTIONS_SCROLL_STAMINA"] = "Aguante"
-L["OPTIONS_SCROLL_STRENGTH"] = "Fuerza"
--- Hover text on each scroll type and pet food type; %s is that type's own label.
-L["OPTIONS_BUFF_TYPE_DESCRIPTION"] = "Incluye %s al comprobar los beneficios que faltan."
+-- Pet Food Buffs
+L["OPTIONS_PET_HEADER"] = "Beneficios de comida de mascota"
+L["OPTIONS_PET_SECTION_DESCRIPTION"] = 'Algunas comidas dan a tu mascota su propio beneficio "Bien alimentado".'
+L["OPTIONS_USE_PET_BUFFS"] = "Usar beneficios de comida de mascota"
+L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] =
+	'Añade comida de mascota a tu macro de Comida cuando a tu mascota le falta el beneficio "Bien alimentado", excepto en las Arenas.'
+-- The pet food toggles under this heading carry the client's own item names, so they have no keys here.
+L["OPTIONS_PET_BUFF_TYPES"] = "Incluir tipos de comida de mascota en la comprobación"
 
 -- Explosives
 L["OPTIONS_EXPLOSIVES_HEADER"] = "Explosivos"
 L["OPTIONS_EXPLOSIVES_DESCRIPTION"] =
-	"La opción @player omite la retícula de selección y detona el explosivo justo a tus pies. Ideal cuando tu objetivo está a distancia cuerpo a cuerpo."
+	"La opción @player omite la retícula de selección y detona el explosivo justo a tus pies. Ideal cuando tu objetivo está a distancia cuerpo a cuerpo. Tu otro clic lanza el explosivo como siempre."
 L["OPTIONS_EXPLOSIVES_CLICK_LAYOUT"] = "Asignación de clics"
 L["OPTIONS_EXPLOSIVES_CLICK_LAYOUT_DESCRIPTION"] = "Elige qué clic lanza el explosivo y cuál lo detona a tus pies."
-L["EXPLOSIVES_MODE_ATPLAYER"] = "Clic izquierdo @player, clic derecho Lanzar"
-L["EXPLOSIVES_MODE_TOSS"] = "Clic izquierdo Lanzar, clic derecho @player"
+-- Each layout names its Left-Click alone: Right-Click always does the other, and the short value fits the standard dropdown.
+L["EXPLOSIVES_MODE_ATPLAYER"] = "Clic izquierdo @player"
+L["EXPLOSIVES_MODE_TOSS"] = "Clic izquierdo Lanzar"
+
+-- Druids
+L["OPTIONS_DRUIDS_HEADER"] = "Druidas"
+L["OPTIONS_DRUID_MACRO_HELPER"] = "Activar integración con DruidMacroHelper"
+L["OPTIONS_DRUID_MACRO_HELPER_DESCRIPTION"] =
+	"Crea macros de cambio de forma para pociones de salud, pociones de maná y piedras de salud usando DruidMacroHelper (/dmh)."
+--[[
+    Return-form dropdown, beside the DruidMacroHelper toggle. The macro
+    powershifts out of form, uses the consumable, then returns to this one, so
+    the values name that return, which is why the dropdown needs no caption.
+]]
+L["OPTIONS_DRUID_RETURN_FORM_DESCRIPTION"] =
+	"Elige la forma a la que te devuelven tus macros de cambio de forma después de usar el objeto."
+L["DRUID_FORM_BEAR"] = "Volver a Oso"
+L["DRUID_FORM_CAT"] = "Volver a Gato"
+
+-- Rogues
+L["OPTIONS_ROGUES_HEADER"] = "Pícaros"
+L["OPTIONS_POISONS_DESCRIPTION"] =
+	"Mantiene la macro de Venenos cargada con el mejor rango utilizable de cada tipo de veneno: clic izquierdo aplica a tu mano izquierda, clic derecho a tu mano derecha, y los venenos existentes se reemplazan automáticamente."
+L["OPTIONS_POISON_MAIN_HAND"] = "Tipo de veneno de mano derecha"
+L["OPTIONS_POISON_OFF_HAND"] = "Tipo de veneno de mano izquierda"
+L["OPTIONS_POISON_MAIN_HAND_DESCRIPTION"] =
+	"Elige el veneno que tu macro de Venenos aplica a tu mano derecha con clic derecho."
+L["OPTIONS_POISON_OFF_HAND_DESCRIPTION"] =
+	"Elige el veneno que tu macro de Venenos aplica a tu mano izquierda con clic izquierdo."
+-- Shared by the Rogue (Stealth) and Night Elf (Shadowmeld) toggles; a character sees one at most.
+L["OPTIONS_STEALTH_EATING"] = "Activar sigilo al comer"
+L["OPTIONS_STEALTH_EATING_ROGUE_DESCRIPTION"] =
+	"Añade Sigilo a tu macro de Comida para entrar en sigilo mientras comes."
+
+-- Night Elves
+L["OPTIONS_NIGHTELF_HEADER"] = "Elfos de la noche"
+L["OPTIONS_STEALTH_DRINKING"] = "Activar sigilo al beber"
+L["OPTIONS_STEALTH_DRINKING_DESCRIPTION"] =
+	"Añade Fusión de las Sombras a tu macro de Agua para entrar en sigilo mientras bebes."
+L["OPTIONS_STEALTH_EATING_NIGHTELF_DESCRIPTION"] =
+	"Añade Fusión de las Sombras a tu macro de Comida para entrar en sigilo mientras comes."
+L["OPTIONS_STEALTH_PICK_ONE"] =
+	"Consejo experto: Elige uno. Puedes comer y beber a la vez, pero comer o beber después de entrar en sigilo lo romperá."
 
 --[[
     Ignore List panel (Options-Ignore-List.lua). One tree scope per list: the
@@ -526,9 +534,9 @@ L["EXPLOSIVES_MODE_TOSS"] = "Clic izquierdo Lanzar, clic derecho @player"
     character with something ignored. The rows are items, so the copy here is
     the panel description, the scope and promote labels, the add box, Remove,
     the empty-list line, and LOADING_ITEM, the placeholder shown while the
-    client is still resolving an item's name (the mini-map tooltip and the List
-    Builder use it too). The mini-map tooltip's section keeps its own
-    MINIMAP_IGNORE_LIST and MENU_CLEAR_IGNORE keys.
+    client is still resolving an item's name (the mini-map tooltip, the Macros
+    panel, and the List Builder use it too). The mini-map tooltip's section
+    keeps its own MINIMAP_IGNORE_LIST and MENU_CLEAR_IGNORE keys.
 ]]
 L["TAB_IGNORE_LIST"] = "Lista de ignorados"
 L["OPTIONS_IGNORE_LIST_DESCRIPTION"] =
@@ -544,66 +552,6 @@ L["OPTIONS_IGNORE_REMOVE"] = "Quitar"
 L["OPTIONS_IGNORE_EMPTY"] = "Esta lista está vacía."
 -- %d is the item ID, shown while the client is still resolving the item.
 L["LOADING_ITEM"] = "Cargando ID: %d"
-
--- Pet Food Buffs
-L["OPTIONS_PET_HEADER"] = "Beneficios de comida de mascota"
-L["OPTIONS_USE_PET_BUFFS"] = "Usar beneficios de comida de mascota"
-L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] =
-	'Añade comida de mascota a tu macro de Comida cuando a tu mascota le falta el beneficio "Bien alimentado", excepto en las Arenas.'
-L["OPTIONS_PET_BUFF_TYPES"] = "Incluir tipos de comida de mascota en la comprobación"
-L["OPTIONS_PET_BUFF_KIBLERS"] = "Tapitas de Kibler"
-L["OPTIONS_PET_BUFF_SPORELING"] = "Tentempiés de esporino"
-
--- Druids
-L["OPTIONS_DRUIDS_HEADER"] = "Druidas"
-L["OPTIONS_DRUID_MACRO_HELPER"] = "Activar integración con DruidMacroHelper"
-L["OPTIONS_DRUID_MACRO_HELPER_DESCRIPTION"] =
-	"Crea macros de cambio de forma para pociones de salud, pociones de maná y piedras de salud usando DruidMacroHelper (/dmh)."
---[[
-    Return-form dropdown, on the sub-row under the DruidMacroHelper toggle. The
-    macro powershifts out of form, uses the consumable, then returns to this
-    one, so the values name that return.
-]]
-L["OPTIONS_DRUID_RETURN_FORM_CAPTION"] = "Forma de retorno"
-L["OPTIONS_DRUID_RETURN_FORM_DESCRIPTION"] =
-	"Elige la forma a la que te devuelven tus macros de cambio de forma después de usar el objeto."
-L["DRUID_FORM_BEAR"] = "Volver a Oso"
-L["DRUID_FORM_CAT"] = "Volver a Gato"
-
--- Night Elves
-L["OPTIONS_NIGHTELF_HEADER"] = "Elfos de la noche"
-L["OPTIONS_STEALTH_DRINKING"] = "Activar sigilo al beber"
-L["OPTIONS_STEALTH_DRINKING_DESCRIPTION"] =
-	"Añade Fusión de las Sombras a tu macro de Agua para entrar en sigilo mientras bebes."
-L["OPTIONS_STEALTH_EATING_NIGHTELF_DESCRIPTION"] =
-	"Añade Fusión de las Sombras a tu macro de Comida para entrar en sigilo mientras comes."
-L["OPTIONS_STEALTH_PICK_ONE"] =
-	"Consejo experto: Elige uno. Puedes comer y beber a la vez, pero comer o beber después de entrar en sigilo lo romperá."
-
--- Rogues
-L["OPTIONS_ROGUES_HEADER"] = "Pícaros"
-L["OPTIONS_POISONS_DESCRIPTION"] =
-	"Mantiene la macro de Venenos cargada con el mejor rango utilizable de cada tipo de veneno: clic izquierdo aplica a tu mano izquierda, clic derecho a tu mano derecha, y los venenos existentes se reemplazan automáticamente."
-L["OPTIONS_POISON_MAIN_HAND"] = "Tipo de veneno de mano derecha"
-L["OPTIONS_POISON_OFF_HAND"] = "Tipo de veneno de mano izquierda"
-L["OPTIONS_POISON_MAIN_HAND_DESCRIPTION"] =
-	"Elige el veneno que tu macro de Venenos aplica a tu mano derecha con clic derecho."
-L["OPTIONS_POISON_OFF_HAND_DESCRIPTION"] =
-	"Elige el veneno que tu macro de Venenos aplica a tu mano izquierda con clic izquierdo."
---[[
-    Poison group names for the poison dropdowns, shown only until the client has
-    cached the group's base item and can name it itself.
-]]
-L["POISON_GROUP_ANESTHETIC"] = "Veneno anestésico"
-L["POISON_GROUP_CRIPPLING"] = "Veneno entorpecedor"
-L["POISON_GROUP_DEADLY"] = "Veneno mortal"
-L["POISON_GROUP_INSTANT"] = "Veneno instantáneo"
-L["POISON_GROUP_MIND_NUMBING"] = "Veneno de aturdimiento mental"
-L["POISON_GROUP_WOUND"] = "Veneno hiriente"
--- Shared by the Rogue (Stealth) and Night Elf (Shadowmeld) toggles; a character sees one at most.
-L["OPTIONS_STEALTH_EATING"] = "Activar sigilo al comer"
-L["OPTIONS_STEALTH_EATING_ROGUE_DESCRIPTION"] =
-	"Añade Sigilo a tu macro de Comida para entrar en sigilo mientras comes."
 
 --[[
     Restocker options panel. The tree label stays "Restocker" in every locale:
@@ -628,7 +576,7 @@ L["OPTIONS_RESTOCKER_BANK_REMIND_DESCRIPTION"] =
 
 --[[
     The Starter List Builder pop-up. This toggle and the pop-up's own "Don't
-    show this again" box are the same per-character choice read from opposite
+    Show This Again" box are the same per-character choice read from opposite
     ends, which is why one ships on and the other off: a settings row reads
     naturally as "enable", a dismissal reads naturally as "stop".
 ]]
@@ -640,10 +588,9 @@ L["OPTIONS_RESTOCKER_STARTER_LIST_DESCRIPTION"] =
     How much each reminder says. Simple is the headline alone; Verbose adds a
     line per item, showing how many you have against how many you want.
 
-    One word each, deliberately: the sub-row dropdown holding them is only wide
-    enough to clear its arrow.
+    One word each, deliberately: they sit in the dropdown beside each reminder,
+    which has no caption, and read there as how much it says.
 ]]
-L["OPTIONS_RESTOCKER_REMIND_MODE_CAPTION"] = "Detalle"
 L["OPTIONS_RESTOCKER_REMIND_MODE_DESCRIPTION"] =
 	"Elige si el recordatorio es una sola línea o añade una línea por cada objeto que te falta."
 L["OPTIONS_RESTOCKER_MODE_SIMPLE"] = "Simple"
@@ -664,43 +611,113 @@ L["OPTIONS_RESTOCKER_PRAISE_HEADER"] = "Agradecimientos"
 L["OPTIONS_RESTOCKER_PRAISE"] =
 	"Siempre me ha encantado Restocker, y agradezco la oportunidad de que siga vivo dentro de Connoisseur. Muchísimas gracias a ChiliFajita, que escribió el Auto Restocker original, y a kvakvs y guardycmw, que lo mantuvieron con vida a lo largo de Classic y Mists of Pandaria."
 
+-- Readiness Report
+L["TAB_READINESS_REPORT"] = "Informe de preparación"
+L["OPTIONS_READINESS_ENABLE"] = "Activar el informe de preparación al comprobar quiénes están listos"
+L["OPTIONS_READINESS_ENABLE_DESCRIPTION"] =
+	"Activa el informe de preparación para todos los personajes de esta cuenta."
 --[[
-    /Commands. Both halves of each line are locale keys: the literal, which
-    stays identical in every locale since a slash command has nothing to
-    translate, and its description.
+    Says what the report does AND that it stays quiet, because the quiet is the
+    feature: a player who turns this on and sees nothing for three pulls has to
+    know that is the report working rather than the report broken.
 ]]
-L["OPTIONS_COMMANDS_HEADER"] = "/Commands"
-L["OPTIONS_COMMAND"] = "/foodie"
-L["OPTIONS_COMMAND_DESCRIPTION"] = "Abre la interfaz de opciones de este accesorio."
-L["RESTOCKER_COMMAND"] = "/crs"
-L["RESTOCKER_COMMAND_DESCRIPTION"] = "Abre la ventana de Restocker para gestionar tu lista de reabastecimiento."
+L["OPTIONS_READINESS_DESCRIPTION"] =
+	"Cuando empieza una comprobación de quiénes están listos, muestra una lista privada de lo que aún falta por arreglar, y no dice nada en absoluto si estás preparado."
 
 --[[
-    Macros panel. TAB_MACROS is the panel's label in the settings tree and the
-    title on the page; OPTIONS_MACROS_DESCRIPTION is the intro beneath it, which
-    orients the player to the page's two halves -- which macros exist, then how
-    each one behaves. The Enable Macros header below titles the first section,
-    after the page's one headerless toggle, Macro Names on Buttons.
+    The reset button under the master toggle. It needs a control of its own
+    because these settings are account-wide: the stock Reset Profile reaches
+    only the character's own profile, so nothing else on any panel can return
+    them to their defaults.
+
+    The confirm names the one consequence a player would not otherwise predict.
+    Off is what the report ships as, so resetting switches it back off, and a
+    page that emptied itself with no warning would read as a bug.
 ]]
-L["TAB_MACROS"] = "Macros"
-L["OPTIONS_MACROS_DESCRIPTION"] =
-	"Connoisseur crea una macro por consumible y la mantiene al día conforme cambian tus bolsas, de modo que el botón de tu barra siempre busca el mejor objeto que llevas encima. Elige abajo qué macros crear y luego ajusta cómo elige su objeto cada una."
-L["OPTIONS_ENABLE_MACROS_HEADER"] = "Activar macros"
-L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] =
-	"Elige qué macros crea y mantiene Connoisseur. Al desactivar una, también se elimina."
--- Hover text on each Enable Macros toggle; %s is the consumable's label (LABEL_*).
-L["OPTIONS_MACRO_TOGGLE_DESCRIPTION"] = "Crea y mantiene la macro de %s, y la elimina al desmarcar la casilla."
+L["OPTIONS_READINESS_RESET"] = "Restablecer ajustes del informe de preparación"
+L["OPTIONS_READINESS_RESET_DESCRIPTION"] =
+	"Restablece a sus valores por defecto todas las casillas y ambos umbrales de esta página, sin tocar las demás páginas."
+L["OPTIONS_READINESS_RESET_CONFIRM"] =
+	"¿Restablecer todos los ajustes del informe de preparación a sus valores por defecto? Esto también vuelve a desactivar el propio informe."
 
 --[[
-    Feedback & Support. The four service names are brand names and stay English
-    in every locale; VERSION_LABEL translates.
+    The three sections, each a real header over the switches it covers. They
+    name what the line is called in chat, so the panel and the report read as
+    the same feature.
 ]]
-L["OPTIONS_COMMUNITY_HEADER"] = "Comentarios y soporte"
-L["DISCORD"] = "Discord"
-L["GITHUB"] = "GitHub"
-L["CURSEFORGE"] = "CurseForge"
-L["WAGO"] = "Wago"
-L["VERSION_LABEL"] = "Versión"
+L["OPTIONS_READINESS_BUFFS_HEADER"] = "Beneficios que faltan"
+L["OPTIONS_READINESS_ITEMS_HEADER"] = "Objetos que faltan"
+L["OPTIONS_READINESS_CHARACTER_HEADER"] = "Personaje"
+
+-- Missing Buffs
+L["OPTIONS_READINESS_FLASK_DESCRIPTION"] =
+	"Avisa si te falta un frasco. Un frasco, o un elixir de batalla y un elixir guardián, cuenta como cubierto."
+L["OPTIONS_READINESS_WELL_FED_DESCRIPTION"] =
+	'Avisa si te falta el beneficio "Bien alimentado". Requiere activar Comida con beneficio en Macros.'
+L["OPTIONS_READINESS_PET_WELL_FED_DESCRIPTION"] =
+	'Avisa si a tu mascota le falta el beneficio "Bien alimentado". Requiere activar Beneficios de comida de mascota en Macros, y tener una mascota invocada.'
+L["OPTIONS_READINESS_SCROLLS"] = "Beneficios de pergaminos"
+L["OPTIONS_READINESS_SCROLLS_DESCRIPTION"] =
+	"Avisa si te faltan beneficios de pergaminos. Requiere activar Beneficios de pergaminos en Macros, y solo comprueba los tipos de pergamino seleccionados allí."
+--[[
+    The one entry that asks about the GROUP rather than the player's own bags,
+    which the helper text has to say outright: a raid carrying seven unused
+    stones is not covered, and one deployed stone covers it.
+]]
+L["OPTIONS_READINESS_SOULSTONE_DESCRIPTION"] =
+	"Avisa cuando nadie de tu grupo tiene una Piedra de alma activa; una guardada en una bolsa no cuenta. Solo se muestra a los brujos que pueden crearla."
+L["OPTIONS_READINESS_MAIN_HAND"] = "Beneficio de arma (mano derecha)"
+--[[
+    Says the Shaman exemption outright, because a main-hand line that goes quiet
+    the moment a Shaman joins reads as a broken switch otherwise.
+]]
+L["OPTIONS_READINESS_MAIN_HAND_DESCRIPTION"] =
+	"Avisa si el arma de tu mano derecha no tiene un encantamiento temporal. Cuenta cualquier encantamiento, y guarda silencio cuando hay un chamán en tu grupo."
+L["OPTIONS_READINESS_OFF_HAND"] = "Beneficio de arma (mano izquierda)"
+L["OPTIONS_READINESS_OFF_HAND_DESCRIPTION"] =
+	"Avisa si el arma de tu mano izquierda no tiene un encantamiento temporal. Cuenta cualquier encantamiento: una piedra, un aceite, un veneno o un beneficio de arma de chamán."
+--[[
+    Names the OTHER threshold so the two cannot be mistaken for each other: the
+    Macros panel has one that decides when a macro treats a buff as spent, and
+    this one only decides when the report mentions it.
+]]
+L["OPTIONS_READINESS_EXPIRING"] = "Beneficios que expiran en menos de"
+L["OPTIONS_READINESS_EXPIRING_DESCRIPTION"] =
+	"Nombra todos los beneficios que tienes a punto de expirar, no solo los que aplica Connoisseur, y es independiente de Renovación de beneficios en Macros."
+-- %s is a whole or half number of minutes.
+L["OPTIONS_READINESS_EXPIRING_MINUTES"] = "%s minutos"
+-- The one-minute entry alone; one plural template cannot render it grammatically.
+L["OPTIONS_READINESS_EXPIRING_MINUTES_ONE"] = "1 minuto"
+L["OPTIONS_READINESS_EXPIRING_THRESHOLD_DESCRIPTION"] =
+	"Define cuánto debe acercarse un beneficio a expirar para que el informe lo nombre."
+
+-- Missing Items
+L["OPTIONS_READINESS_HEALTHSTONE_DESCRIPTION"] =
+	"Avisa cuando no llevas ninguna Piedra de salud. Solo se muestra cuando hay un brujo en tu grupo al que pedirla, o cuando el brujo eres tú."
+L["OPTIONS_READINESS_MANA_GEM_DESCRIPTION"] =
+	"Avisa cuando no llevas ninguna Gema de maná. Solo se muestra a los magos que pueden crearla."
+L["OPTIONS_READINESS_HEALING_POTION_DESCRIPTION"] =
+	"Avisa cuando no llevas ninguna poción de sanación, ya que nadie puede darte una en plena pelea."
+L["OPTIONS_READINESS_MANA_POTION_DESCRIPTION"] =
+	"Avisa cuando no llevas ninguna poción de maná. Solo se muestra cuando juegas con una clase que usa maná."
+L["OPTIONS_READINESS_BANDAGES_DESCRIPTION"] =
+	"Avisa cuando no llevas ninguna venda que tu habilidad de Primeros auxilios te permita usar."
+L["OPTIONS_READINESS_DURABILITY"] = "Equipo dañado por debajo de"
+L["OPTIONS_READINESS_DURABILITY_DESCRIPTION"] =
+	"Enlaza cada objeto equipado por debajo de esta durabilidad, medida por objeto para que un arma rota siga apareciendo."
+-- %d is a durability percentage.
+L["OPTIONS_READINESS_DURABILITY_PERCENT"] = "%d%%"
+L["OPTIONS_READINESS_DURABILITY_THRESHOLD_DESCRIPTION"] =
+	"Define cuánto debe bajar la durabilidad de un objeto para que el informe lo enlace."
+
+-- Character
+L["OPTIONS_READINESS_SPEC"] = "Especialización actual"
+L["OPTIONS_READINESS_SPEC_DESCRIPTION"] = "Muestra tu reparto de talentos y los puntos que no hayas gastado."
+L["OPTIONS_READINESS_PVP"] = "Marca JcJ activada"
+L["OPTIONS_READINESS_PVP_DESCRIPTION"] = "Avisa cuando tu marca JcJ está activa."
+L["OPTIONS_READINESS_QUESTIONABLE_GEAR"] = "Equipo no apto para combate"
+L["OPTIONS_READINESS_QUESTIONABLE_GEAR_DESCRIPTION"] =
+	"Enlaza los objetos equipados que no tienen cabida en un combate, como una Fusta o una caña de pescar."
 
 --------------------------------------------------------------------------------
 -- Restocker Window & Chat
@@ -708,6 +725,8 @@ L["VERSION_LABEL"] = "Versión"
 
 -- Chat messages printed by the Restocker feature (Features/Restocker/).
 L["RESTOCKER_PROFILE_EXISTS"] = 'Ya existe una lista llamada "%s".'
+-- %d is the item ID the player typed.
+L["RESTOCKER_UNKNOWN_ITEM"] = "No existe ningún objeto con el ID %d."
 L["RESTOCKER_BANK_NOT_OPEN"] = "El banco no está abierto."
 --[[
     %s is the /crs slash command, colored at the call site. Only the bank flow
@@ -727,7 +746,6 @@ L["RESTOCKER_STOPPED_COULD_NOT_MOVE"] = "Reabastecimiento detenido. No se pudo m
 L["RESTOCKER_STUCK_ITEM_FORMAT"] = "%dx %s"
 L["RESTOCKER_STUCK_ITEM_EXTRA_FORMAT"] = "%dx %s (sobrante)"
 L["RESTOCKER_STOPPED_ERROR"] = "Reabastecimiento detenido por un error: %s"
-L["RESTOCKER_BAGS_FULL_SKIP_MERCHANT"] = "Tus bolsas están llenas. Se omite el reabastecimiento en el mercader."
 --[[
     Printed during a merchant restock when the crafting-reagent buyer stands
     down: this merchant stocks some of the reagents the Restock List needs but
@@ -789,9 +807,9 @@ L["RESTOCKER_REMINDER_ITEM"] = "%d/%d %s"
     order filled; six of a requested twenty is not one at all, and belongs to
     the partial line below.
 
-    The claim has to be earned, which is why the merchant restock's
-    PurchaseMerchantItem reports whether it ordered the full amount instead of
-    the caller inferring it from a unit count. What the vendor did not stock is
+    The claim has to be earned: PurchaseMerchantItem returns nothing, and the
+    caller decides filled or partly filled once per order, after the last slot,
+    from the units that order bought. What the vendor did not stock is
     deliberately not mentioned here: the mini-map's Restocker Report owns the
     outstanding state, this line owns the event, and neither repeats the other.
 ]]
@@ -809,13 +827,17 @@ L["RESTOCKER_RESTOCKED_MANY"] = "%d pedidos de reabastecimiento completados."
 ]]
 L["RESTOCKER_RESTOCKED_PARTIAL_ONE"] = "1 pedido de reabastecimiento completado en parte."
 L["RESTOCKER_RESTOCKED_PARTIAL_MANY"] = "%d pedidos de reabastecimiento completados en parte."
+-- Printed after the counts above when the bags ran out of room before every order was bought.
+L["RESTOCKER_BAGS_FULL_PARTIAL"] = "Tus bolsas se llenaron antes de poder comprarlo todo."
 
 -- /crs help lines. The command literals stay in code; these are the descriptions.
 L["RESTOCKER_HELP_SHOW"] = "Muestra la ventana de Restocker."
+-- Stands for the list name the player types after a /crs profile subcommand.
+L["RESTOCKER_HELP_NAME_PLACEHOLDER"] = "[nombre]"
 L["RESTOCKER_HELP_PROFILE_ADD"] = "Añade una lista con ese nombre."
 L["RESTOCKER_HELP_PROFILE_DELETE"] = "Elimina la lista con ese nombre."
 L["RESTOCKER_HELP_PROFILE_RENAME"] = "Renombra la lista actual a ese nombre."
-L["RESTOCKER_HELP_PROFILE_COPY"] = "Copia esa lista en la lista actual."
+L["RESTOCKER_HELP_PROFILE_COPY"] = "Reemplaza la lista actual por una copia de la lista con ese nombre."
 L["RESTOCKER_HELP_PROFILE_USE"] = "Hace que este personaje use la lista con ese nombre."
 
 --[[
@@ -853,48 +875,14 @@ L["STARTER_POPUP_ARROWS"] = "Flechas"
     The Reagents & Tools section: the Hearthstone, plus each class's tools and
     spell reagents. Rogues additionally get a Poisons section of their own,
     whose note under the header reuses PREFIX_ROGUE (rogue-colored at the call
-    site) to say the ingredients take care of themselves. The poison labels
-    are short forms on purpose -- the section heading plus the tooltip's exact
-    rank carry the rest -- and LABEL_POISONS ("Poison", singular) belongs to
-    the no-item message and the Enable Macros tooltips, and is not reused
-    here. The other reagent labels are kept inside about fifteen characters so
-    they hold the pop-up's reagent-row label cell.
+    site) to say the ingredients take care of themselves. Both sections name
+    their rows with the client's own item names, so neither has row labels here.
 ]]
 L["STARTER_POPUP_REAGENTS_HEADER"] = "Componentes y herramientas"
 L["STARTER_POPUP_POISONS_HEADER"] = "Venenos"
 -- %s is the rogue-colored PREFIX_ROGUE; the spaced colon is deliberate.
 L["STARTER_POPUP_POISONS_NOTE"] =
 	"%s : Añade el veneno terminado a tu lista y Connoisseur comprará los ingredientes automáticamente en cualquier mercader que los venda todos."
-L["STARTER_POPUP_POISON_ANESTHETIC"] = "Anestésico"
-L["STARTER_POPUP_POISON_CRIPPLING"] = "Entorpecedor"
-L["STARTER_POPUP_POISON_DEADLY"] = "Mortal"
-L["STARTER_POPUP_POISON_INSTANT"] = "Instantáneo"
-L["STARTER_POPUP_POISON_MIND_NUMBING"] = "Aturdimiento"
-L["STARTER_POPUP_POISON_WOUND"] = "Hiriente"
-L["STARTER_POPUP_REAGENT_HEARTHSTONE"] = "Piedra de hogar"
-L["STARTER_POPUP_REAGENT_BLINDING_POWDER"] = "Part. cegadoras"
-L["STARTER_POPUP_REAGENT_FLASH_POWDER"] = "Pólvora cegadora"
-L["STARTER_POPUP_REAGENT_THIEVES_TOOLS"] = "Herram. de ladrón"
-L["STARTER_POPUP_REAGENT_CORPSE_DUST"] = "Polvo de cadáver"
-L["STARTER_POPUP_REAGENT_WILDS"] = "Plantas salvajes"
-L["STARTER_POPUP_REAGENT_SEEDS"] = "Semillas"
-L["STARTER_POPUP_REAGENT_ARCANE_POWDER"] = "Part. arcanas"
-L["STARTER_POPUP_REAGENT_LIGHT_FEATHER"] = "Pluma ligera"
-L["STARTER_POPUP_REAGENT_TELEPORT_RUNES"] = "Runas de teletr."
-L["STARTER_POPUP_REAGENT_PORTAL_RUNES"] = "Runas de portal"
-L["STARTER_POPUP_REAGENT_SYMBOL_DIVINITY"] = "Símbolo divino"
-L["STARTER_POPUP_REAGENT_SYMBOL_KINGS"] = "Símbolo de reyes"
-L["STARTER_POPUP_REAGENT_CANDLES"] = "Velas"
-L["STARTER_POPUP_REAGENT_ANKH"] = "Ankh"
-L["STARTER_POPUP_REAGENT_FISH_SCALES"] = "Escamas de pez"
-L["STARTER_POPUP_REAGENT_FISH_OIL"] = "Aceite de pescado"
-L["STARTER_POPUP_REAGENT_EARTH_TOTEM"] = "Tótem de tierra"
-L["STARTER_POPUP_REAGENT_FIRE_TOTEM"] = "Tótem de fuego"
-L["STARTER_POPUP_REAGENT_WATER_TOTEM"] = "Tótem de agua"
-L["STARTER_POPUP_REAGENT_AIR_TOTEM"] = "Tótem de aire"
-L["STARTER_POPUP_REAGENT_FIGURINE"] = "Figurilla"
-L["STARTER_POPUP_REAGENT_INFERNAL_STONE"] = "Piedra infernal"
-L["STARTER_POPUP_REAGENT_SOUL_SHARDS"] = "Fragm. de alma"
 --[[
     Checkbox tooltips: { item link, amount }. The first is for ladder items;
     the second for single-tier reagents, which never upgrade.
@@ -918,7 +906,7 @@ L["STARTER_POPUP_COUNT_DESCRIPTION"] =
 	"Cuántos mantener abastecidos, cada uno en su propio espacio de la bolsa, ya que no se apilan."
 L["STARTER_POPUP_DISMISS"] = "No volver a mostrar esto en este personaje"
 L["STARTER_POPUP_DISMISS_DESCRIPTION"] =
-	"De lo contrario, estas sugerencias vuelven a aparecer en cualquier inicio de sesión que encuentre vacía tu lista de reabastecimiento."
+	"Evita que estas sugerencias vuelvan a aparecer al iniciar sesión con tu lista de reabastecimiento vacía."
 
 -- Restocker window UI.
 L["RESTOCKER_WINDOW_TITLE"] = "Connoisseur Restocker"
@@ -945,14 +933,14 @@ L["RESTOCKER_COPY_PROFILE"] = "Copiar"
 --[[
     The three single-argument tooltips below (Copy, Delete, and the row's
     Remove) render in ns.SetupRestockerTooltip's TITLE slot, not its body, so
-    they take no terminal punctuation -- matching every other title in the
-    window. Don't "restore" the period they read as wanting.
+    they take title case and no terminal punctuation -- matching every other
+    title in the window. Don't "restore" the period they read as wanting.
 ]]
-L["RESTOCKER_COPY_PROFILE_TOOLTIP"] = "Copia esta lista en una nueva"
+L["RESTOCKER_COPY_PROFILE_TOOLTIP"] = "Copiar esta lista en una nueva"
 -- %s becomes "<list name> Copy"; numbered if that name is taken.
-L["RESTOCKER_PROFILE_COPY_NAME"] = "%s Copia"
+L["RESTOCKER_PROFILE_COPY_NAME"] = "%s - copia"
 L["RESTOCKER_DELETE_PROFILE"] = "Eliminar"
-L["RESTOCKER_DELETE_PROFILE_TOOLTIP"] = "Elimina esta lista"
+L["RESTOCKER_DELETE_PROFILE_TOOLTIP"] = "Eliminar esta lista"
 L["RESTOCKER_RENAME_TOOLTIP"] = "Renombra esta lista para todos los personajes que la usan."
 -- %s is the list name, colored at the call site. |n are line breaks.
 L["RESTOCKER_DELETE_PROFILE_CONFIRM"] = "¿Seguro que quieres eliminar esta lista?|n|n%s|n|nEsto no se puede deshacer."
@@ -961,8 +949,8 @@ L["RESTOCKER_DELETE_PROFILE_CONFIRM"] = "¿Seguro que quieres eliminar esta list
     row's checkbox, so it has to read for a single item and for the whole
     column at once -- which is why it names categories rather than "this item".
 
-    The categories are exactly the ladder kinds in
-    Data/Consumable-Upgrade-Paths.lua: food, water, arrow and bullet, poison,
+    The categories are exactly the ladder kinds in each flavor folder's
+    Consumable-Upgrade-Paths-{Game}.lua: food, water, arrow and bullet, poison,
     healing and mana potion, and the class reagents. Naming anything else here
     promises an upgrade that never arrives, since the toggle is disabled on any
     item that is not on a ladder -- which on a real list is most of them.
@@ -1009,8 +997,8 @@ L["RESTOCKER_GROUP_NEW"] = "Nuevos"
     to read as "everything" rather than as another type.
 ]]
 L["RESTOCKER_GROUP_ALL"] = "Todos los objetos"
--- Title slot, like the Copy and Delete tooltips above: no terminal period.
-L["RESTOCKER_REMOVE_TOOLTIP"] = "Quita este objeto de la lista de reabastecimiento"
+-- Title slot, like the Copy and Delete tooltips above: title case, no terminal period.
+L["RESTOCKER_REMOVE_TOOLTIP"] = "Quitar este objeto de la lista de reabastecimiento"
 L["RESTOCKER_AMOUNT_TOOLTIP_TITLE"] = "Cantidad a mantener"
 L["RESTOCKER_AMOUNT_TOOLTIP_BODY"] = "Pulsa Intro cuando termines de editar."
 L["RESTOCKER_BUY_LABEL"] = "Comprar"
@@ -1036,7 +1024,7 @@ L["RESTOCKER_DEPOSIT_TOOLTIP_TITLE"] = "Guardar en el banco"
 ]]
 L["RESTOCKER_DEPOSIT_TOOLTIP_BODY"] =
 	"Guarda en el banco los objetos sobrantes cuando el banco está abierto, o todos ellos si pones 0 en la columna Cantidad."
-L["RESTOCKER_WITHDRAW_TOOLTIP_TITLE"] = "Reabastecer desde el banco"
+L["RESTOCKER_WITHDRAW_TOOLTIP_TITLE"] = "Sacar del banco"
 L["RESTOCKER_WITHDRAW_TOOLTIP_BODY"] = "Saca del banco los objetos necesarios cuando el banco está abierto."
 
 -- Required-reputation control (per-item vendor gate).

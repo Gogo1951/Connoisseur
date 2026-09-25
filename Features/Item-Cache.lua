@@ -1,28 +1,11 @@
 local _, ns = ...
+local GetColor = ns.GetColor
 
 --[[
     Item-Cache -- derives and caches per-item consumable data in
     ns.db.profile.itemCache (the stateful item-metadata layer) and answers
     whether an item is a known consumable.
 ]]
-
---------------------------------------------------------------------------------
--- Raw Data Safety Init
---------------------------------------------------------------------------------
-
---[[
-    Defensive in case a Data/*.lua file fails to load. Scanner modules read
-    ns.RAW_DATA tables and must never index nil.
-]]
-ns.RAW_DATA = ns.RAW_DATA or {}
-ns.RAW_DATA.Bandage = ns.RAW_DATA.Bandage or {}
-ns.RAW_DATA.FoodAndWater = ns.RAW_DATA.FoodAndWater or {}
-ns.RAW_DATA.Healthstone = ns.RAW_DATA.Healthstone or {}
-ns.RAW_DATA.Soulstone = ns.RAW_DATA.Soulstone or {}
-ns.RAW_DATA.ManaGem = ns.RAW_DATA.ManaGem or {}
-ns.RAW_DATA.ManaRune = ns.RAW_DATA.ManaRune or {}
-ns.RAW_DATA.Potions = ns.RAW_DATA.Potions or {}
-ns.RAW_DATA.Explosives = ns.RAW_DATA.Explosives or {}
 
 --------------------------------------------------------------------------------
 -- Item Cache
@@ -53,46 +36,41 @@ function ns.IsKnownConsumable(itemID)
 	end
 	--[[
 	    Pet foods are consumables the Feed Pet macro selects from, even though
-	    no RAW_DATA table carries the pet-only ones.
+	    no consumable table carries the pet-only ones.
 	]]
-	if ns.PET_FOOD_DATA and ns.PET_FOOD_DATA[itemID] then
+	if ns.PET_FOOD_DATA[itemID] then
 		return true
 	end
-	if ns.POISON_DATA and ns.POISON_DATA[itemID] then
+	if ns.POISON_DATA[itemID] then
 		return true
 	end
 	--[[
-	    Kibler's Bits and Sporeling Snacks are in no RAW_DATA or pet food table:
-	    they are the pet buff foods ns.FindPetBuffOverride offers through the Food
-	    macro.
+	    The pet buff foods are in no consumable or pet food table:
+	    ns.FindPetBuffOverride offers them through the Food macro.
 	]]
-	if itemID == ns.KIBLERS_BITS_ITEM_ID or itemID == ns.SPORELING_SNACKS_ITEM_ID then
+	if ns.PET_BUFF_FOODS[itemID] then
 		return true
 	end
 	return ns.HasRawData(itemID)
 end
 
--- Whether any RAW_DATA table carries the item: the test that decides what ns.CacheItemData caches.
+-- Whether any consumable table carries the item: the test that decides what ns.CacheItemData caches.
 function ns.HasRawData(itemID)
-	return ns.RAW_DATA.FoodAndWater[itemID] ~= nil
-		or ns.RAW_DATA.Potions[itemID] ~= nil
-		or ns.RAW_DATA.Healthstone[itemID] ~= nil
-		or ns.RAW_DATA.Soulstone[itemID] ~= nil
-		or ns.RAW_DATA.Bandage[itemID] ~= nil
-		or ns.RAW_DATA.ManaGem[itemID] ~= nil
-		or ns.RAW_DATA.ManaRune[itemID] ~= nil
-		or ns.RAW_DATA.Explosives[itemID] ~= nil
+	return ns.FOOD_AND_WATER[itemID] ~= nil
+		or ns.POTIONS[itemID] ~= nil
+		or ns.HEALTHSTONES[itemID] ~= nil
+		or ns.SOULSTONES[itemID] ~= nil
+		or ns.BANDAGES[itemID] ~= nil
+		or ns.MANA_GEMS[itemID] ~= nil
+		or ns.MANA_RUNES[itemID] ~= nil
+		or ns.EXPLOSIVES[itemID] ~= nil
 end
 
 --------------------------------------------------------------------------------
 -- Cold Item Retry
 --------------------------------------------------------------------------------
 
---[[
-    Budget for the cold-item retry below, sized to cover a slow login. Matches
-    the cap ns.WarmItemCache spends on the same problem in
-    Options/Options-Utilities.lua.
-]]
+-- Budget for the cold-item retry below, sized to cover a slow login.
 local DATA_RETRY_MAX_ATTEMPTS = 10
 local dataRetryAttempts = 0
 
@@ -127,9 +105,10 @@ function ns.UnregisterDataRetry()
 end
 
 --[[
-    GET_ITEM_INFO_RECEIVED has more than one waiter -- the bag scan above, and
-    the Restock List, which defers an add, an upgrade or a Starter List tick on
-    the same cold-cache miss. The client answers this event once per item it
+    GET_ITEM_INFO_RECEIVED has more than one waiter -- the bag scan above; the
+    Restock List, which defers an add, an upgrade or a Starter List tick on the
+    same cold-cache miss; and each options panel showing items that have not
+    loaded yet (ns.WarmItemCache). The client answers this event once per item it
     resolves, which during a login is a flood, so it is registered only while
     somebody is actually waiting.
 
@@ -178,9 +157,9 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-    Looks up an item in the RAW_DATA tables, derives a canonical shape
+    Looks up an item in the consumable tables, derives a canonical shape
     (type, health/mana values, requirements, zones), and caches it under
-    ns.db.profile.itemCache. An item no RAW_DATA table carries returns "IGNORE"
+    ns.db.profile.itemCache. An item no consumable table carries returns "IGNORE"
     without calling C_Item.GetItemInfo or writing to the cache, so the cache holds
     consumables only and a cold non-consumable never arms a rescan.
 ]]
@@ -199,14 +178,14 @@ function ns.CacheItemData(itemID)
 		return nil
 	end
 
-	local rawFoodAndWater = ns.RAW_DATA.FoodAndWater[itemID]
-	local rawPotion = ns.RAW_DATA.Potions[itemID]
-	local rawHealthstone = ns.RAW_DATA.Healthstone[itemID]
-	local rawSoulstone = ns.RAW_DATA.Soulstone[itemID]
-	local rawBandage = ns.RAW_DATA.Bandage[itemID]
-	local rawManaGem = ns.RAW_DATA.ManaGem[itemID]
-	local rawManaRune = ns.RAW_DATA.ManaRune[itemID]
-	local rawExplosive = ns.RAW_DATA.Explosives[itemID]
+	local rawFoodAndWater = ns.FOOD_AND_WATER[itemID]
+	local rawPotion = ns.POTIONS[itemID]
+	local rawHealthstone = ns.HEALTHSTONES[itemID]
+	local rawSoulstone = ns.SOULSTONES[itemID]
+	local rawBandage = ns.BANDAGES[itemID]
+	local rawManaGem = ns.MANA_GEMS[itemID]
+	local rawManaRune = ns.MANA_RUNES[itemID]
+	local rawExplosive = ns.EXPLOSIVES[itemID]
 
 	local data = {
 		itemID = itemID,
@@ -306,7 +285,7 @@ function ns.CacheItemData(itemID)
 		data.healthValue = rawHealthstone[1]
 		--[[
 		    Required level for the bag-scan usable gate comes from the curated
-		    Data/Healthstones.lua column (static over API), falling back to
+		    ns.HEALTHSTONES column (static over API), falling back to
 		    C_Item.GetItemInfo's minLevel. (Conjure downranking uses a separate table.)
 		]]
 		data.requiredLevel = rawHealthstone[2] or data.requiredLevel
@@ -349,7 +328,7 @@ end
 --[[
     A plain memo over C_Item.GetItemInfo, and the link builder that rides on it. Distinct
     from the consumable cache above and deliberately kept beside it: that one is
-    persisted, enriched from ns.RAW_DATA, and only ever holds consumables, while
+    persisted, enriched from the consumable tables, and only ever holds consumables, while
     this one is thrown away at logout and answers for any item at all. Reach for
     the consumable cache when a consumable's own facts are wanted, and for this
     when a name, an icon or a link is.
@@ -452,7 +431,7 @@ function ns.GetItemHyperlink(itemID, fallbackName)
 
 	if itemID then
 		local label = (fallbackName and fallbackName ~= "") and fallbackName or ("item:" .. itemID)
-		return "|cffffffff|Hitem:" .. itemID .. "|h[" .. label .. "]|h|r"
+		return GetColor("TEXT") .. "|Hitem:" .. itemID .. "|h[" .. label .. "]|h|r"
 	end
 
 	return fallbackName or "?"

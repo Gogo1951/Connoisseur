@@ -9,7 +9,6 @@ local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 --------------------------------------------------------------------------------
 
 local REGISTRY = ns.OPTIONS_REGISTRY
-local mainCategoryID
 
 --[[
     Registration is deferred to ns.RegisterOptionsPanels, called once from
@@ -29,12 +28,13 @@ end
 
 function ns.RegisterOptionsPanels()
 	AceConfig:RegisterOptionsTable(REGISTRY.General, ns.BuildGeneralOptions)
-	mainCategoryID = select(2, AceConfigDialog:AddToBlizOptions(REGISTRY.General, L["ADDON_TITLE"]))
+	local mainPanel, mainCategoryID = AceConfigDialog:AddToBlizOptions(REGISTRY.General, L["ADDON_TITLE"])
+	ns.optionsFrames = { main = mainPanel, categoryID = mainCategoryID }
 
 	--[[
-	    Macros panel (Options-Macros.lua) -- the Enable Macros section, given
-	    its own page. Its tree label is TAB_MACROS rather than the section's
-	    "Enable Macros" header, which the page still shows.
+	    Macros panel (Options-Macros.lua) -- every macro setting, the Enable
+	    Macros toggles first. Its tree label is TAB_MACROS rather than that
+	    section's "Enable Macros" header.
 	]]
 	RegisterChild(REGISTRY.Macros, ns.BuildMacrosOptions, L["TAB_MACROS"])
 
@@ -110,8 +110,11 @@ function ns.OpenOptionsPanel()
 		return
 	end
 
-	if Settings and Settings.OpenToCategory and mainCategoryID then
-		Settings.OpenToCategory(mainCategoryID)
+	if not ns.optionsFrames then
+		return
+	end
+	if Settings and Settings.OpenToCategory and ns.optionsFrames.categoryID then
+		Settings.OpenToCategory(ns.optionsFrames.categoryID)
 		return
 	end
 	AceConfigDialog:Open(REGISTRY.General)
@@ -122,7 +125,6 @@ end
 --------------------------------------------------------------------------------
 
 SLASH_CONNOISSEUR1 = "/foodie"
--- luacheck: globals SlashCmdList
 SlashCmdList["CONNOISSEUR"] = function()
 	ns.OpenOptionsPanel()
 end

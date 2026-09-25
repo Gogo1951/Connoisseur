@@ -32,27 +32,27 @@ local L = ns.L
     by kind. Potions are deliberately absent -- past the first tiers they are
     Alchemy goods no vendor restock can rely on.
 ]]
-local chainsByKey = {}
-for _, chain in ipairs(ns.CONSUMABLE_UPGRADE_CHAINS or {}) do
+local CHAINS_BY_KEY = {}
+for _, chain in ipairs(ns.CONSUMABLE_UPGRADE_CHAINS) do
 	if chain.kind == "food" then
-		chainsByKey["food:" .. chain.diet] = chain
+		CHAINS_BY_KEY["food:" .. chain.diet] = chain
 	elseif chain.kind == "poison" then
-		chainsByKey["poison:" .. chain.group] = chain
+		CHAINS_BY_KEY["poison:" .. chain.group] = chain
 	elseif chain.kind == "reagent" then
-		chainsByKey["reagent:" .. chain.reagent] = chain
+		CHAINS_BY_KEY["reagent:" .. chain.reagent] = chain
 	else
-		chainsByKey[chain.kind] = chain
+		CHAINS_BY_KEY[chain.kind] = chain
 	end
 end
 
 --[[
-    Resolve every data row (Data/Starter-List-Categories.lua) to the ladder its
-    chainKey names. A row whose ladder went missing is dropped here rather than
-    crashing the popup open.
+    Resolve every data row (ns.STARTER_LIST_CATEGORIES, in Data/Data.lua) to the ladder its
+    chainKey names. A row whose ladder this client's folder does not carry is dropped here
+    rather than crashing the popup open.
 ]]
 local STARTER_CATEGORIES = {}
 for _, row in ipairs(ns.STARTER_LIST_CATEGORIES) do
-	local chain = chainsByKey[row.chainKey]
+	local chain = CHAINS_BY_KEY[row.chainKey]
 	if chain then
 		row.chain = chain
 		row.chainKey = nil
@@ -76,27 +76,13 @@ end
 --[[
     A category is offerable only when its ladder yields an item right now:
     this hides reagents whose spell the character has not trained toward yet
-    (their ladders open at the spell's level), and whole chains from another
-    expansion -- Anesthetic on an Era client, and Blinding Powder anywhere
-    PAST Classic, via the tier's removed-after field. Food, water and ammo
+    (their ladders open at the spell's level), and the chains this client's
+    folder holds empty -- Anesthetic on an Era client, and Blinding Powder
+    anywhere past Classic. Food, water and ammo
     all open at level 1, so it never hides them.
 ]]
 function ns.IsStarterCategoryAvailable(category)
 	return ns.BestChainItemID(category.chain, UnitLevel("player") or 1) ~= nil
-end
-
---[[
-    Whether the class sees this section at all -- true when any of the
-    section's categories is for this class. Level and expansion availability
-    are the popup builder's per-category concern, not this gate's.
-]]
-function ns.IsStarterSectionVisible(section)
-	for _, category in ipairs(STARTER_CATEGORIES) do
-		if category.section == section and ns.IsStarterCategoryForClass(category) then
-			return true
-		end
-	end
-	return false
 end
 
 --------------------------------------------------------------------------------
@@ -205,8 +191,9 @@ function ns.AddStarterCategory(category)
 	}
 
 	--[[
-	    Into the window's "New" group, so the first /crs after this popup opens
-	    on the rows it created with their controls ready.
+	    Into the window's "New" group, so the rows this popup creates show
+	    together with their controls ready. Closing the List Builder clears the
+	    group, so they sit in New only while it is open.
 	]]
 	ns.restockNewItems[itemID] = true
 
@@ -316,9 +303,34 @@ function ns.GetStarterCategoryItemID(category)
 end
 
 --[[
+    The item a row is named for: the one above for most rows, and for a
+    namesFirstTier row (the poison types) its ladder's first item, whose name
+    is the type's own ("Instant Poison").
+]]
+function ns.GetStarterCategoryNameItemID(category)
+	if category.namesFirstTier then
+		return category.chain.tiers[1][2]
+	end
+	return ns.GetStarterCategoryItemID(category)
+end
+
+--[[
+    What the row's checkbox says: its label where the data gives one (a kind of
+    item, like Bread), otherwise the client's own name for the item it is named
+    for, so the row needs no translation. Nil while that item is still cold; the
+    pop-up shows loading text until ns.WarmItemCache repaints it.
+]]
+function ns.GetStarterCategoryName(category)
+	if category.label then
+		return category.label
+	end
+	return (C_Item.GetItemInfo(ns.GetStarterCategoryNameItemID(category)))
+end
+
+--[[
     One stack of that item, as the item itself reports it, or nil until the
-    client has resolved the item. Read from C_Item.GetItemInfo directly, the same call
-    ns.WarmItemCache polls to decide when the pop-up repaints.
+    client has resolved the item. Read from C_Item.GetItemInfo directly; the pop-up
+    repaints when ns.WarmItemCache hears the item's answer.
 ]]
 function ns.GetStarterCategoryStackSize(category)
 	local itemID = ns.GetStarterCategoryItemID(category)

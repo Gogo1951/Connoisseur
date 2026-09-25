@@ -80,13 +80,22 @@ end
     food the Feed Pet macro picks.
 ]]
 local petFoodQuestIDs
-local lastPetFoodQuestSignature
+
+--[[
+    The pet-food quests active at the last call and at this one, [questID] =
+    true, and the last call's count. Two tables swapped on every call, so the
+    comparison allocates nothing on QUEST_LOG_UPDATE's many firings. The last
+    set starts nil, so the first call counts as a change.
+]]
+local lastActiveFoodQuests, lastActiveFoodQuestCount
+local currentActiveFoodQuests = {}
 
 --[[
     Whether the active quests that matter to pet food changed since the last
     call, so the dispatcher can skip the rebuild for QUEST_LOG_UPDATE's many
-    firings that change nothing. The signature starts nil, so the first call
-    counts as a change.
+    firings that change nothing. ns.ScanPetFood calls it too, discarding the
+    answer, whenever it reads the quest log, so the signature always matches
+    the quests the last food pick was made from.
 ]]
 function ns.PetFoodQuestsChanged()
 	if not petFoodQuestIDs then
@@ -99,17 +108,27 @@ function ns.PetFoodQuestsChanged()
 	end
 
 	BuildActiveQuestSet()
-	local activeFoodQuests = {}
+	wipe(currentActiveFoodQuests)
+	local count = 0
 	for questID in pairs(activeQuestIDs) do
 		if petFoodQuestIDs[questID] then
-			activeFoodQuests[#activeFoodQuests + 1] = questID
+			currentActiveFoodQuests[questID] = true
+			count = count + 1
 		end
 	end
-	table.sort(activeFoodQuests)
 
-	local signature = table.concat(activeFoodQuests, ",")
-	local changed = signature ~= lastPetFoodQuestSignature
-	lastPetFoodQuestSignature = signature
+	local changed = lastActiveFoodQuests == nil or count ~= lastActiveFoodQuestCount
+	if not changed then
+		for questID in pairs(currentActiveFoodQuests) do
+			if not lastActiveFoodQuests[questID] then
+				changed = true
+				break
+			end
+		end
+	end
+
+	lastActiveFoodQuests, currentActiveFoodQuests = currentActiveFoodQuests, lastActiveFoodQuests or {}
+	lastActiveFoodQuestCount = count
 	return changed
 end
 
@@ -152,10 +171,6 @@ function ns.ScanPetFood()
 	ns.bestPetFoodID = nil
 	ns.bestPetFoodLink = nil
 
-	if not ns.PET_FOOD_DATA or not ns.PET_DIET_MAP then
-		return
-	end
-
 	-- Must have a living pet out
 	if not UnitExists("pet") or UnitIsDead("pet") or UnitIsGhost("pet") then
 		return
@@ -190,8 +205,14 @@ function ns.ScanPetFood()
 		return
 	end
 
-	-- Snapshot the player's active quests once per scan
-	BuildActiveQuestSet()
+	--[[
+	    Snapshot the player's active quests once per scan, through
+	    ns.PetFoodQuestsChanged so the scan also records the signature the
+	    QUEST_LOG_UPDATE diff compares against. The dispatcher skips that diff in
+	    combat, so a quest change made mid-fight and undone after it would
+	    otherwise read as no change against a pre-fight signature.
+	]]
+	ns.PetFoodQuestsChanged()
 
 	-- Both halves of the Ignore List hide an item from every macro's selection.
 	local characterIgnoreList = ns.GetIgnoreList() or {}
@@ -320,17 +341,32 @@ end
 ns.petBuffOverrideID = nil
 
 --[[
+    ns.PET_BUFF_FOODS best-first (highest rank), sorted once from the flavor
+    folder's Game-IDs file, which loads before this file, since row order there
+    carries no meaning.
+]]
+local PET_BUFF_FOODS_BY_RANK = {}
+for itemID, row in pairs(ns.PET_BUFF_FOODS) do
+	PET_BUFF_FOODS_BY_RANK[#PET_BUFF_FOODS_BY_RANK + 1] =
+		{ itemID = itemID, rank = row[2], settingKey = row[3], requiredLevel = row[4] }
+end
+table.sort(PET_BUFF_FOODS_BY_RANK, function(a, b)
+	return a.rank > b.rank
+end)
+
+--[[
     Returns the item ID of the pet food buff that should be used, or nil.
     Called by ScanBags with its per-scan bag item counts. The aura probe it
-    consults, ns.HasPetFoodBuff, stays in Scanner-Character.lua: it shares
+    consults, ns.HasPetFoodBuff, stays in Scanner-Auras.lua: it shares
     that file's private early-reapply helper (BuffCountsAsActive) with the
     Well Fed and scroll probes.
 ]]
 function ns.FindPetBuffOverride(bagItemCounts)
 	--[[
-	    Feature toggle, group restriction, level, and a live pet all live in
-	    ns.ShouldTrackPetFood (Scanner-Character.lua) so the readiness report
-	    applies exactly the same gate.
+	    A pet buff food on this flavor, the feature toggle, group restriction,
+	    level, and a live pet all live in ns.ShouldTrackPetFood
+	    (Scanner-Auras.lua) so the readiness report applies exactly the same
+	    gate.
 	]]
 	if not ns.ShouldTrackPetFood() then
 		return nil
@@ -346,22 +382,18 @@ function ns.FindPetBuffOverride(bagItemCounts)
 	    The pet-buff override path never passes the scanner's ignore filter
 	    (it reads the raw bag counts), so it honors the Ignore List itself.
 	]]
-	if
-		petTypes.KiblersBits
-		and bagItemCounts[ns.KIBLERS_BITS_ITEM_ID]
-		and bagItemCounts[ns.KIBLERS_BITS_ITEM_ID] > 0
-		and not ns.IsIgnored(ns.KIBLERS_BITS_ITEM_ID)
-	then
-		return ns.KIBLERS_BITS_ITEM_ID
-	end
-
-	if
-		petTypes.SporelingSnacks
-		and bagItemCounts[ns.SPORELING_SNACKS_ITEM_ID]
-		and bagItemCounts[ns.SPORELING_SNACKS_ITEM_ID] > 0
-		and not ns.IsIgnored(ns.SPORELING_SNACKS_ITEM_ID)
-	then
-		return ns.SPORELING_SNACKS_ITEM_ID
+	local playerLevel = ns.cachedPlayerLevel or 1
+	for _, food in ipairs(PET_BUFF_FOODS_BY_RANK) do
+		local itemID = food.itemID
+		if
+			petTypes[food.settingKey]
+			and playerLevel >= food.requiredLevel
+			and bagItemCounts[itemID]
+			and bagItemCounts[itemID] > 0
+			and not ns.IsIgnored(itemID)
+		then
+			return itemID
+		end
 	end
 
 	return nil
@@ -373,17 +405,20 @@ end
 
 --[[
     Detect a dead-but-dismissed pet. When Call Pet fails because the pet is
-    dead, the client fires SPELL_FAILED_TARGETS_DEAD; we catch it and flip the
-    flag so the macro rebuilds with Revive Pet on the next cycle. If the error
-    ID changes in a future build, update this check. Core's dispatcher routes
-    UI_ERROR_MESSAGE here ahead of its combat-lockdown guard, so this still
-    fires mid-fight.
+    dead, the client shows the SPELL_FAILED_TARGETS_DEAD text; we match that
+    text and flip the flag so the macro rebuilds with Revive Pet on the next
+    cycle. A spell aimed at a dead target shows the same text, so the error is
+    ignored while the target is dead. Core's dispatcher routes UI_ERROR_MESSAGE
+    here ahead of its combat-lockdown guard, so this still fires mid-fight.
 ]]
-function ns.HandleHunterPetError(message)
+function ns.OnHunterUiErrorMessage(message)
 	if not ns.isHunter then
 		return
 	end
 	if UnitExists("pet") or not message then
+		return
+	end
+	if UnitExists("target") and UnitIsDead("target") then
 		return
 	end
 	local deadMessage = SPELL_FAILED_TARGETS_DEAD
@@ -403,7 +438,7 @@ end
     stops offering Revive, then rebuild. The flag reset is Hunter-specific;
     the rebuild runs for every class the dispatcher forwards.
 ]]
-function ns.HandlePetChanged(unit)
+function ns.OnUnitPet(unit)
 	if unit ~= "player" then
 		return
 	end
@@ -517,14 +552,21 @@ local function ComposeFeedPetBody(tier, itemID, includeDismiss, includeRevive)
 
 	--[[
 	    Halt before /use when /cast dispatched to a non-Feed-Pet branch. Each
-	    guard token is present only while its branch is: [mod] covers the
-	    ctrl/shift shortcuts, [@pet,dead] the dead-pet auto-revive, and
-	    [btn:2]/[combat] the Mend branch (Tier C). Token order mirrors the
-	    original full-body set so an untrimmed body is byte-for-byte unchanged.
+	    guard token is present only while its branch is: [mod] covers both the
+	    ctrl and shift shortcuts, and once a trim drops one, only the survivor's
+	    modifier is named, so the dropped one's click falls through to Feed Pet
+	    and its food; [@pet,dead] the dead-pet auto-revive, and [btn:2]/[combat]
+	    the Mend branch (Tier C). The token order stays fixed: reordering it would
+	    change every written body's text, and so rewrite every Feed Pet macro, for
+	    no change in behavior.
 	]]
 	local stopTokens = {}
-	if includeDismiss or includeRevive then
+	if includeDismiss and includeRevive then
 		stopTokens[#stopTokens + 1] = "[mod]"
+	elseif includeRevive then
+		stopTokens[#stopTokens + 1] = "[mod:shift]"
+	elseif includeDismiss then
+		stopTokens[#stopTokens + 1] = "[mod:ctrl]"
 	end
 	if mendName then
 		stopTokens[#stopTokens + 1] = "[btn:2]"
@@ -563,7 +605,7 @@ local function BuildFeedPetBody(tier, itemID)
 	    Full body first, then drop the Dismiss shortcut, then the Revive
 	    shortcut, stopping as soon as the body fits (see the note above
 	    ComposeFeedPetBody). #body is the byte length, matching the
-	    macro-length trims in Engine.lua and Integration-Druid-Macro-Helper.lua.
+	    macro-length trims in Body-Builder.lua and Integration-Druid-Macro-Helper.lua.
 	]]
 	local body = ComposeFeedPetBody(tier, itemID, true, true)
 	if #body > ns.MACRO_BODY_MAX_LENGTH then

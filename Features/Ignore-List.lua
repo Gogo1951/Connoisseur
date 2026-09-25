@@ -70,20 +70,20 @@ end
     to ask for one, and a mini-map click while the panel is already on screen is
     the one edit path with nothing that does. NotifyChange costs nothing while
     nothing is displaying the table.
+
+    Right-Click only ever adds: in combat or with the Macro UI open the rebuild
+    waits, so the tooltip still offers the same food, and a second click must not
+    take it back off the list.
 ]]
-function ns.ToggleIgnore(itemID)
+function ns.IgnoreItem(itemID)
 	if not itemID then
 		return
 	end
 	local ignoreList = ns.GetIgnoreList()
-	if not ignoreList then
+	if not ignoreList or ignoreList[itemID] then
 		return
 	end
-	if ignoreList[itemID] then
-		ignoreList[itemID] = nil
-	else
-		ignoreList[itemID] = true
-	end
+	ignoreList[itemID] = true
 	RefreshMacros()
 	AceConfigRegistry:NotifyChange(ns.OPTIONS_REGISTRY.IgnoreList)
 end
@@ -216,24 +216,29 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-    On logout, drop ignore-list entries no longer recognized by any macro's
-    item data (e.g. the data changed between versions) so neither list can
-    accumulate stale item IDs. Routed from Core's PLAYER_LOGOUT handler. Only
-    the current character's list and the account-wide list are pruned; other
-    characters' lists are pruned when they log out, against their own data.
+    On logout, drop entries that can no longer hide anything, so neither list
+    accumulates stale item IDs. Routed from Core's PLAYER_LOGOUT handler.
+
+    The current character's list keeps only items this client's macro data
+    recognizes (e.g. the data changed between versions); other characters'
+    lists are pruned when they log out, against their own data. The
+    account-wide list is shared by characters that load different data
+    folders -- Classic Era and Season of Discovery share one saved-variables
+    file -- so it drops only items this client does not know at all: pruning
+    it against one folder's data would erase the other folder's entries.
 ]]
-local function PruneOneList(ignoreList)
+local function PruneOneList(ignoreList, isKept)
 	if not ignoreList then
 		return
 	end
 	for itemID in pairs(ignoreList) do
-		if not ns.IsKnownConsumable(itemID) then
+		if not isKept(itemID) then
 			ignoreList[itemID] = nil
 		end
 	end
 end
 
-function ns.PruneIgnoreList()
-	PruneOneList(ns.GetIgnoreList())
-	PruneOneList(ns.GetGlobalIgnoreList())
+function ns.OnIgnoreListPlayerLogout()
+	PruneOneList(ns.GetIgnoreList(), ns.IsKnownConsumable)
+	PruneOneList(ns.GetGlobalIgnoreList(), C_Item.DoesItemExistByID)
 end
