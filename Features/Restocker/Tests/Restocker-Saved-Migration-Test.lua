@@ -1,42 +1,44 @@
 -- luacheck: allow defined, ignore 121 122 131 143
 -- MIGRATION (remove after 2026-10-18)
--- Headless test for the Restocker's saved-variable bridges (no WoW client needed).
---
--- Run it with:   lua Tests/Restocker-Saved-Migration-Test.lua        (from Features/Restocker/)
---
--- Like Restocker-Upgrade-Level-Test, this does NOT model the logic: it loads
--- the REAL Restocker-Saved-Migration.lua and logs in the way Features/Core.lua
--- does, ns.AdoptStandaloneRestockerDB, ns.RenameRestockerSavedKeys and then
--- ns.RepairBlindingPowderRows, against saved tables shaped like the ones older
--- releases wrote.
---
--- WHAT IS PINNED HERE. The saved keys were renamed (profiles to lists, profileKeys
--- to listsByCharacter, currentProfile to currentList, framePos to framePosition
--- with its xOfs and yOfs as xOffset and yOffset). No list, no character's list
--- assignment and no window position value may be lost, whether the old names were
--- already in ConnoisseurDB or arrived in the same login from an adopted
--- ConnoisseurRestockerDB. A new name that already holds data is never overwritten,
--- and a second login changes nothing.
---
--- The Blinding Powder ladder saved Infantry Gauntlets (6510) for Blinding Powder
--- (5530). On an Era client every such row becomes Blinding Powder with its amount
--- and flags intact, and what login unpacks from it (through the REAL
--- Restocker-Saved-Format.lua) never carries the gauntlets' name, which the
--- merchant buys by. A row unpacked before the client has loaded Blinding Powder
--- is named when the client answers, in the same session (through the REAL item
--- memo and item-info handler). A list that already holds Blinding Powder keeps
--- its own row, and off Era a 6510 row is left alone.
---
--- This file retires with the rename bridge and the Blinding Powder repair, which
--- share a date. Scenarios 3 and 5 go earlier, with the adoption (remove after
--- 2026-09-29).
+--[[
+    Headless test for the Restocker's saved-variable bridges (no WoW client needed).
+
+    Run it with:   lua Tests/Restocker-Saved-Migration-Test.lua        (from Features/Restocker/)
+
+    Like Restocker-Upgrade-Level-Test, this does NOT model the logic: it loads
+    the REAL Restocker-Saved-Migration.lua and logs in the way Features/Core.lua
+    does, ns.AdoptStandaloneRestockerDB, ns.RenameRestockerSavedKeys and then
+    ns.RepairBlindingPowderRows, against saved tables shaped like the ones older
+    releases wrote.
+
+    WHAT IS PINNED HERE. The saved keys were renamed (profiles to lists, profileKeys
+    to listsByCharacter, currentProfile to currentList, framePos to framePosition
+    with its xOfs and yOfs as xOffset and yOffset). No list, no character's list
+    assignment and no window position value may be lost, whether the old names were
+    already in ConnoisseurDB or arrived in the same login from an adopted
+    ConnoisseurRestockerDB. A new name that already holds data is never overwritten,
+    and a second login changes nothing.
+
+    The Blinding Powder ladder saved Infantry Gauntlets (6510) for Blinding Powder
+    (5530). On an Era client every such row becomes Blinding Powder with its amount
+    and flags intact, and what login unpacks from it (through the REAL
+    Restocker-Saved-Format.lua) never carries the gauntlets' name, which the
+    merchant buys by. A row unpacked before the client has loaded Blinding Powder
+    is named when the client answers, in the same session (through the REAL item
+    memo and item-info handler). A list that already holds Blinding Powder keeps
+    its own row, and off Era a 6510 row is left alone.
+
+    This file retires with the rename bridge and the Blinding Powder repair, which
+    share a date. Scenarios 3 and 5 go earlier, with the adoption (remove after
+    2026-09-29).
+]]
 
 local ROOT = arg[1] or "../.."
 
-local ns = { db = { global = {} }, IS_ERA = true }
+local ns = { db = { global = {} }, FLAVOR = "Vanilla" }
 
 local function loadAddonFile(path)
-	-- Addon files are chunks taking (addonName, ns) as varargs, the way WoW loads them.
+	-- Add-on files are chunks taking (addonName, ns) as varargs, the way WoW loads them.
 	return assert(loadfile(ROOT .. "/" .. path))("Consumable-Connoisseur", ns)
 end
 
@@ -104,6 +106,7 @@ end
 ---One login, in Core's order: the adoption, the rename, then the Blinding Powder repair.
 local function login(settings, standalone)
 	ns.db.global.restocker = settings
+	-- MIGRATION (remove after 2026-09-29): the adoption, these two lines and the standalone parameter (the other logins pass nil for it)
 	ConnoisseurRestockerDB = standalone
 	ns.AdoptStandaloneRestockerDB()
 	ns.RenameRestockerSavedKeys()
@@ -205,6 +208,7 @@ local before = dump(settings)
 login(settings, nil)
 check("same saved shape", dump(settings), before)
 
+-- MIGRATION (remove after 2026-09-29): this adoption scenario
 print("3. Legacy ConnoisseurRestockerDB adopted and renamed in the same login")
 local standalone = withOldKeys({
 	starterListDismissed = { ["Frostbolt - Whitemane"] = true },
@@ -246,6 +250,7 @@ check("old assignments kept, not lost", dump(settings.profileKeys), dump(oldAssi
 check("old current list kept", settings.currentProfile, "Mage")
 check("old position kept, not lost", dump(settings.framePos), dump(oldPosition()))
 
+-- MIGRATION (remove after 2026-09-29): this adoption scenario
 print("5. A legacy table never lands beside lists already saved under the new name")
 settings = currentDefaults()
 settings.lists = { Main = { [8079] = "Consumable, Conjured Crystal Water, 60, 0, 1, 1, 0, 1, 0" } }
@@ -350,13 +355,13 @@ check("renamed and repaired", (settings.lists.Rogue or {})[5530], "40, 1, 0, 0, 
 check("no gauntlets row", (settings.lists.Rogue or {})[6510], nil)
 
 print("13. Off Era, a 6510 row is one the player added, and it stays")
-ns.IS_ERA = false
+ns.FLAVOR = "TBC"
 settings = currentDefaults()
 settings.lists = { Main = { [6510] = GAUNTLETS_LINE } }
 login(settings, nil)
 check("gauntlets row kept", settings.lists.Main[6510], GAUNTLETS_LINE)
 check("no Blinding Powder row added", settings.lists.Main[5530], nil)
-ns.IS_ERA = true
+ns.FLAVOR = "Vanilla"
 
 --[[
     Scenarios 14 to 16 log in for real on a fresh namespace. The REAL item memo
@@ -387,7 +392,7 @@ local function loginOnClient(lists, loadedItemIDs)
 		client.loaded[itemID] = true
 	end
 
-	local session = { db = { global = { restocker = { lists = lists } } }, IS_ERA = true }
+	local session = { db = { global = { restocker = { lists = lists } } }, FLAVOR = "Vanilla" }
 	for _, path in ipairs({
 		"Features/Item-Cache.lua",
 		"Features/Restocker/Restocker-Saved-Format.lua",

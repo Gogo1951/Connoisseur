@@ -34,6 +34,26 @@ ns.PALETTE = {
 }
 
 --------------------------------------------------------------------------------
+-- Restock Window Colors
+--------------------------------------------------------------------------------
+
+--[[
+    The Restock window's own UI states, which no brand color names. Raw hex like
+    ns.PALETTE; the window's files convert them with ns.HexToRGB.
+]]
+ns.RESTOCKER_WINDOW_COLORS = {
+	DASH_OFF = "7A7A7A", -- Gray: Settings That Are Off
+	DASH_NOT_APPLICABLE = "474747", -- Dark Gray: Settings That Cannot Apply
+	BANK_LABEL = "39D5FF", -- Sky Blue: The Bank Band's Name
+	BANK_CAPTION = "8BC7D8", -- Soft Blue: Column Headings Under Bank
+	MERCHANT_LABEL = "FF4FA3", -- Pink: The Merchant Band's Name
+	MERCHANT_CAPTION = "D38EAF", -- Soft Pink: Column Headings Under Merchant
+	REPUTATION_SET = "D99959", -- Amber: A Required Reputation
+	ROW_LABEL = "C7BDAD", -- Warm Gray: Unselected Types in the Category Pane
+	ROW_COUNT = "858075", -- Dim Warm Gray: Their Counts, a Step Quieter
+}
+
+--------------------------------------------------------------------------------
 -- Class Colors
 --------------------------------------------------------------------------------
 
@@ -98,6 +118,12 @@ ns.QUESTION_MARK_ICON = 134400
     ns.OPTIONS_ROW_WIDTH, so every row ends where every other row ends. A row
     whose control needs more room passes its own width to ns.OptionsRowLabel and
     gives the control the remainder.
+
+    A toggle with a dropdown that tunes it is the same row, the toggle standing
+    in for the label: it takes ns.OPTIONS_LABEL_WIDTH and the dropdown
+    ns.OPTIONS_CONTROL_WIDTH, on every panel. The dropdown carries no caption,
+    so its values must read on their own beside the toggle ("When in a Raid",
+    "20%"), and like every sub-option it hides until the toggle is on.
 ]]
 ns.OPTIONS_ROW_WIDTH = 3.4
 ns.OPTIONS_LABEL_WIDTH = 2.1
@@ -153,17 +179,17 @@ ns.IGNORE_SCOPE_GLOBAL = "**global**"
 
 -- label: localized display name plugged into MESSAGE_NO_ITEM by ConnoisseurNoItem.
 ns.MACRO_CONFIG = {
-	["Bandage"] = { macro = ns.L["MACRO_BANDAGE"], defaultID = 1251, label = ns.L["LABEL_BANDAGE"] },
-	["Explosive"] = { macro = ns.L["MACRO_EXPLOSIVES"], defaultID = 4358, label = ns.L["LABEL_EXPLOSIVE"] },
-	["Food"] = { macro = ns.L["MACRO_FOOD"], defaultID = 5349, label = ns.L["LABEL_FOOD"] },
-	["Health Potion"] = { macro = ns.L["MACRO_HEALTH_POTION"], defaultID = 118, label = ns.L["LABEL_HEALTH_POTION"] },
-	["Healthstone"] = { macro = ns.L["MACRO_HEALTHSTONE"], defaultID = 5512, label = ns.L["LABEL_HEALTHSTONE"] },
-	["Mana Gem"] = { macro = ns.L["MACRO_MANA_GEM"], defaultID = 5514, label = ns.L["LABEL_MANA_GEM"] },
-	["Mana Potion"] = { macro = ns.L["MACRO_MANA_POTION"], defaultID = 2455, label = ns.L["LABEL_MANA_POTION"] },
-	["Soulstone"] = { macro = ns.L["MACRO_SOULSTONE"], defaultID = 5232, label = ns.L["LABEL_SOULSTONE"] },
-	["Water"] = { macro = ns.L["MACRO_WATER"], defaultID = 5350, label = ns.L["LABEL_WATER"] },
-	["Feed Pet"] = { macro = ns.L["MACRO_FEED_PET"], defaultID = 117, label = ns.L["LABEL_PET_FOOD"] },
-	["Poisons"] = { macro = ns.L["MACRO_POISONS"], defaultID = 6947, label = ns.L["LABEL_POISONS"] },
+	["Bandage"] = { macro = ns.L["MACRO_BANDAGE"], label = ns.L["LABEL_BANDAGE"] },
+	["Explosive"] = { macro = ns.L["MACRO_EXPLOSIVES"], label = ns.L["LABEL_EXPLOSIVE"] },
+	["Food"] = { macro = ns.L["MACRO_FOOD"], label = ns.L["LABEL_FOOD"] },
+	["Health Potion"] = { macro = ns.L["MACRO_HEALTH_POTION"], label = ns.L["LABEL_HEALTH_POTION"] },
+	["Healthstone"] = { macro = ns.L["MACRO_HEALTHSTONE"], label = ns.L["LABEL_HEALTHSTONE"] },
+	["Mana Gem"] = { macro = ns.L["MACRO_MANA_GEM"], label = ns.L["LABEL_MANA_GEM"] },
+	["Mana Potion"] = { macro = ns.L["MACRO_MANA_POTION"], label = ns.L["LABEL_MANA_POTION"] },
+	["Soulstone"] = { macro = ns.L["MACRO_SOULSTONE"], label = ns.L["LABEL_SOULSTONE"] },
+	["Water"] = { macro = ns.L["MACRO_WATER"], label = ns.L["LABEL_WATER"] },
+	["Feed Pet"] = { macro = ns.L["MACRO_FEED_PET"], label = ns.L["LABEL_PET_FOOD"] },
+	["Poisons"] = { macro = ns.L["MACRO_POISONS"], label = ns.L["LABEL_POISONS"] },
 }
 
 --[[
@@ -187,7 +213,7 @@ ns.MULTI_USE_MACRO_TYPES = {
     player. At 0 nothing is reserved, so macro creation pauses only when the
     General macro book is completely full. When it pauses, a once-per-session
     chat message fires and creation resumes automatically once a slot frees
-    up. See ns.TryCreateMacro in Macros/Engine.lua.
+    up. See ns.TryCreateMacro in Macros/Writer.lua.
 ]]
 ns.MACRO_SLOT_CUSHION = 0
 
@@ -197,30 +223,14 @@ ns.MACRO_SLOT_CUSHION = 0
     SetMaxBytes, so the two may not agree. Every guard therefore measures #body
     in BYTES, which is never smaller than a character count and so holds under
     either reading -- never convert one to a character count. The three trims
-    that read this are in Macros/Engine.lua, Macros/Tools-Hunters.lua and
+    that read this are in Macros/Body-Builder.lua, Macros/Tools-Hunters.lua and
     Macros/Integration-Druid-Macro-Helper.lua; ruRU is the overflow canary.
 ]]
 ns.MACRO_BODY_MAX_LENGTH = 255
 
 --------------------------------------------------------------------------------
--- Stealth Abilities
+-- DruidMacroHelper Integration
 --------------------------------------------------------------------------------
-
-ns.SHADOWMELD_SPELL_ID = 20580
-
---[[
-    Rogue Stealth, rank 1. C_Spell.GetSpellName resolves the base name "Stealth", which
-    a bare /cast fires at the highest rank the rogue knows (Stealth Eating).
-]]
-ns.STEALTH_SPELL_ID = 1784
-
---------------------------------------------------------------------------------
--- Druid Forms (DruidMacroHelper integration)
---------------------------------------------------------------------------------
-
-ns.DRUID_DIRE_BEAR_FORM_SPELL_ID = 9634
-ns.DRUID_BEAR_FORM_SPELL_ID = 5487
-ns.DRUID_CAT_FORM_SPELL_ID = 768
 
 -- Which macro types are eligible for DMH wrapping when the druid toggle is on.
 ns.DRUID_MACRO_HELPER_TYPES = {
@@ -231,7 +241,7 @@ ns.DRUID_MACRO_HELPER_TYPES = {
 
 --[[
     The /dmh guard prefix lines prepended to each DMH-wrapped macro body.
-    Copied from the DruidMacroHelper addon's own example macros:
+    Copied from the DruidMacroHelper add-on's own example macros:
       HP / HS  → "/dmh start" (stun + GCD + mana) plus a "/dmh cd <token>" line
       MP       → "/dmh stun gcd cd pot" (skips the mana check, since the
                  whole point of a mana pot is that the druid is OOM)
@@ -250,12 +260,13 @@ ns.DRUID_MACRO_HELPER_GUARDS = {
     Canned chat messages the macro bodies can fire via `/run ConnoisseurTip("key")`.
     ConnoisseurTip (in Features/Macros/Runtime.lua) consults two tables:
       ns.TIP_MESSAGES        → static message text
-      ns.MISSING_SPELL_MESSAGE_IDS → spell IDs that ConnoisseurTip resolves at print time
+      ns.MISSING_SPELL_MESSAGE_IDS → spell IDs (the flavor folder's Conjure-Spells file) that
+                                   ConnoisseurTip resolves at print time
                                    via C_Spell.GetSpellName, producing "You don't
                                    currently know <Localized Spell Name>."
-    A spell ID that doesn't exist on the current client (e.g. Refreshment
-    Table in Era 1.15) returns nil from C_Spell.GetSpellName, so ConnoisseurTip silently
-    skips the print rather than naming a spell the player will never see.
+    A key the flavor folder leaves out, or a spell ID the current client
+    doesn't know, resolves to nil, so ConnoisseurTip silently skips the print
+    rather than naming a spell the player will never see.
 ]]
 ns.TIP_MESSAGES = {
 	noPetFood = ns.L["TIP_PET_NO_FOOD"],
@@ -264,227 +275,31 @@ ns.TIP_MESSAGES = {
 	noHandPoison = ns.L["TIP_NO_HAND_POISON"],
 }
 
---[[
-    Spell IDs that ConnoisseurTip resolves at print time: one per conjure table
-    in ns.CONJURE_SPELLS below, taken from its rank-1 entry, plus the Rogue's
-    Poisons skill, which is not a conjure.
-]]
-ns.MISSING_SPELL_MESSAGE_IDS = {
-	-- Mage conjures
-	noConjureWater = 5504, -- Conjure Water (rank 1)
-	noConjureFood = 587, -- Conjure Food (rank 1)
-	noConjureManaGem = 759, -- Conjure Mana Agate
-	noRitualOfRefreshment = 43987, -- Ritual of Refreshment (TBC+)
-	-- Warlock conjures
-	noCreateHealthstone = 6201, -- Create Healthstone (Minor)
-	noCreateSoulstone = 693, -- Create Soulstone (Minor)
-	noRitualOfSouls = 29893, -- Ritual of Souls (TBC+)
-	-- Rogue poisons
-	noPoisonsSkill = 2842, -- Poisons (the rogue poison-crafting skill)
-}
-
---------------------------------------------------------------------------------
--- Rogue Poisons Skill
---------------------------------------------------------------------------------
-
---[[
-    "Poisons" (spell 2842) — the rogue poison-crafting skill; the same ID on
-    Era and TBC. Knowing it gates the Poisons macro (a rogue without it can't
-    apply poisons at all) and provides the middle-click crafting branch.
-]]
-ns.POISONS_SPELL_ID = 2842
-
---------------------------------------------------------------------------------
--- Hunter Pet Spells
---------------------------------------------------------------------------------
-
-ns.CALL_PET_SPELL_ID = 883
-ns.DISMISS_PET_SPELL_ID = 2641
-ns.FEED_PET_SPELL_ID = 6991
-ns.MEND_PET_SPELL_ID = 136
-ns.REVIVE_PET_SPELL_ID = 982
-
---------------------------------------------------------------------------------
--- Pet Buff Food
---------------------------------------------------------------------------------
-
--- Hunter and Warlock pet buff foods.
-
-ns.KIBLERS_BITS_ITEM_ID = 33874
-ns.SPORELING_SNACKS_ITEM_ID = 27656
-
-ns.KIBLERS_BUFF_ID = 43771
-ns.SPORELING_BUFF_ID = 33272
-
---------------------------------------------------------------------------------
--- Additional "Well Fed" Buff IDs
---------------------------------------------------------------------------------
-
--- { buffID = true }
-ns.WELL_FED_BUFF_IDS = {
-	[18125] = true, -- Blessed Sunfruit
-	[18141] = true, -- Blessed Sunfruit Juice
-	[18191] = true, -- Increased Stamina
-	[18192] = true, -- Increased Agility
-	[18193] = true, -- Increased Spirit
-	[18194] = true, -- Mana Regeneration
-	[18222] = true, -- Health Regeneration
-	[22730] = true, -- Increased Intellect
-	[23697] = true, -- Alterac Spring Water
-}
-
 --------------------------------------------------------------------------------
 -- Mode Order
 --------------------------------------------------------------------------------
 
-ns.MODE_ORDER = { "always", "party", "raid" }
+-- The one when-to-use list every mode dropdown offers: Always, then by group size, then by level.
+ns.MODE_ORDER = { "always", "solo", "party", "raid", "leveling", "maxlevel" }
 
 --------------------------------------------------------------------------------
--- Mage and Warlock Spells
+-- Restock Reminders
 --------------------------------------------------------------------------------
 
 --[[
-    Conjure spell lists, best rank first. Each entry is:
-
-        { spellID, requiredLevel[, rankNumber][, maxTargetLevel] }
-
-    spellID        The conjure spell the macro /casts.
-    requiredLevel  The level needed to USE the conjured item — not the
-                   level the spell is learned (Create Healthstone (Minor)
-                   is learned at 6, but its stone is usable at level 1).
-                   GetSmartSpell compares this against the player's level
-                   — or a friendly target's level — so the macro downranks
-                   to conjure an item the recipient can actually use. For
-                   lists that never downrank by target (Mana Gems,
-                   Soulstones) and the ritual utilities (Refreshment
-                   Table, Ritual of Souls), it is simply the spell's
-                   learn level.
-    rankNumber     Optional. When present, the /cast line is written as
-                   "Spell Name(Rank N)" to pin that exact rank. Omitted
-                   where every entry already has a unique spell name
-                   (each Mana Gem tier is its own spell). Lists flagged
-                   rankIsTBCOnly pin the rank ONLY on TBC — see the
-                   RECURRING BUG note on WarlockCreateHealthstone.
-    maxTargetLevel Optional, documentation only (Soulstones) — every
-                   consumer (GetSmartSpell, KnowsAny, the conjure-spell
-                   cache) reads only the first three fields.
-
-    A list may also carry named flags (skipped by ipairs, so harmless to
-    every entry walker):
-
-    rankIsTBCOnly  The rank column is a TBC-only representation;
-                   GetSmartSpell leaves this list's spell names bare
-                   (no "(Rank N)" suffix) only on Era and Forever.
+    Every restock reminder is either a headline on its own or a headline plus one
+    line per item you are short of. Stored as a mode rather than a boolean so the
+    option reads as a choice ("Simple" or "Verbose") instead of an unlabelled
+    switch, and so a third level could be added without another setting.
 ]]
-ns.CONJURE_SPELLS = {
-	MageCreateTable = {
-		-- {Spell ID, Spell Learn Level}
-		{ 58659, 80 }, -- Ritual of Refreshment, Rank 2
-		{ 43987, 70 }, -- Ritual of Refreshment, Rank 1
-	},
-	MageCreateWater = {
-		-- {Spell ID, Conjured Item Usage Level, Spell Rank}, -- Conjured Item
-		--[[
-		    Conjure Refreshment (Wrath) makes items that are food AND water,
-		    so its two ranks lead both lists. The rank column is the spell's
-		    own rank, not its position here.
-		]]
-		{ 42956, 80, 2 }, -- Conjured Mana Strudel (Conjure Refreshment, Rank 2)
-		{ 42955, 74, 1 }, -- Conjured Mana Pie (Conjure Refreshment, Rank 1)
-		{ 27090, 65, 9 }, -- Conjured Glacier Water
-		{ 37420, 60, 8 }, -- Conjured Mountain Spring Water
-		{ 10140, 55, 7 }, -- Conjured Crystal Water
-		{ 10139, 45, 6 }, -- Conjured Sparkling Water
-		{ 10138, 35, 5 }, -- Conjured Mineral Water
-		{ 6127, 25, 4 }, -- Conjured Spring Water
-		{ 5506, 15, 3 }, -- Conjured Purified Water
-		{ 5505, 5, 2 }, -- Conjured Fresh Water
-		{ 5504, 1, 1 }, -- Conjured Water
-	},
-	MageCreateFood = {
-		-- {Spell ID, Conjured Item Usage Level, Spell Rank}, -- Conjured Item
-		--[[
-		    Conjure Refreshment (Wrath) makes items that are food AND water,
-		    so its two ranks lead both lists. The rank column is the spell's
-		    own rank, not its position here.
-		]]
-		{ 42956, 80, 2 }, -- Conjured Mana Strudel (Conjure Refreshment, Rank 2)
-		{ 42955, 74, 1 }, -- Conjured Mana Pie (Conjure Refreshment, Rank 1)
-		{ 33717, 65, 8 }, -- Conjured Croissant
-		{ 28612, 55, 7 }, -- Conjured Cinnamon Roll
-		{ 10145, 45, 6 }, -- Conjured Sweet Roll
-		{ 10144, 35, 5 }, -- Conjured Sourdough
-		{ 6129, 25, 4 }, -- Conjured Pumpernickel
-		{ 990, 15, 3 }, -- Conjured Rye
-		{ 597, 5, 2 }, -- Conjured Bread
-		{ 587, 1, 1 }, -- Conjured Muffin
-	},
-	MageCreateManaGem = {
-		-- {Spell ID, Spell Learn Level}, -- Spell Name
-		{ 42985, 77 }, -- Conjure Mana Sapphire
-		{ 27101, 68 }, -- Conjure Mana Emerald
-		{ 10054, 58 }, -- Conjure Mana Ruby
-		{ 10053, 48 }, -- Conjure Mana Citrine
-		{ 3552, 38 }, -- Conjure Mana Jade
-		{ 759, 28 }, -- Conjure Mana Agate
-	},
-	WarlockCreateSoulwell = {
-		-- {Spell ID, Spell Learn Level}
-		{ 58887, 80 }, -- Ritual of Souls, Rank 2
-		{ 29893, 68 }, -- Ritual of Souls, Rank 1
-	},
-	WarlockCreateHealthstone = {
-		--[[
-		    RECURRING BUG — this has broken Era three times; read before
-		    touching this table, WarlockCreateSoulstone, or GetSmartSpell.
-		    The warlock stones are represented DIFFERENTLY per flavor:
-		      • Era and Forever:  each tier is its own distinctly-named spell, so
-		              C_Spell.GetSpellName already returns the fully-qualified name
-		              ("Create Healthstone (Minor)"). It must be cast bare —
-		              appending "(Rank N)" yields "Create Healthstone
-		              (Minor)(Rank 1)", a spell that does not exist, and the
-		              /cast silently no-ops.
-		      • TBC:  one spell with numeric ranks, cast as
-		              "Create Healthstone(Rank N)".
-		    rankIsTBCOnly makes GetSmartSpell pin the rank on TBC only. Mage
-		    Conjure Water/Food ARE numeric-rank on BOTH flavors, so their
-		    rank suffix is correct everywhere — do not "simplify" the two
-		    spell families together.
-		]]
-		rankIsTBCOnly = true,
-		-- {Spell ID, Conjured Item Usage Level, Spell Rank}, -- Conjured Item
-		{ 47878, 69, 8 }, -- Fel Healthstone
-		{ 47871, 63, 7 }, -- Demonic Healthstone
-		{ 27230, 60, 6 }, -- Master Healthstone
-		{ 11730, 48, 5 }, -- Major Healthstone
-		{ 11729, 36, 4 }, -- Greater Healthstone
-		{ 5699, 24, 3 }, -- Healthstone
-		{ 6202, 12, 2 }, -- Lesser Healthstone
-		{ 6201, 1, 1 }, -- Minor Healthstone
-	},
-	WarlockCreateSoulstone = {
-		--[[
-		    Max Target Level: a soulstone cannot be used on players ABOVE
-		    that level. It needs no selection logic — the caps rise with
-		    rank, so casting the best known rank always satisfies the cap.
-		    The resolver passes ignoreTarget=true, which is why the second
-		    column is the learn level rather than an item usage level.
+ns.REMINDER_SIMPLE = "simple"
+ns.REMINDER_VERBOSE = "verbose"
 
-		    rankIsTBCOnly: same Era-vs-TBC representation split as
-		    Healthstones — see the RECURRING BUG note on
-		    WarlockCreateHealthstone above.
-		]]
-		rankIsTBCOnly = true,
-		-- {Spell ID, Spell Learn Level, Spell Rank, Max Target Level}, -- Conjured Item
-		{ 47884, 76, 7, 80 }, -- Demonic Soulstone (Wrath)
-		{ 27238, 70, 6, 80 }, -- Master Soulstone (TBC)
-		{ 20757, 60, 5, 70 }, -- Major Soulstone
-		{ 20756, 50, 4, 60 }, -- Greater Soulstone
-		{ 20755, 40, 3, 50 }, -- Soulstone
-		{ 20752, 30, 2, 40 }, -- Lesser Soulstone
-		{ 693, 18, 1, 30 }, -- Minor Soulstone
-	},
-}
+--[[
+    Alert played when you reach an inn or city with something left to restock.
+    Built from ADDON_NAME so renaming the add-on folder cannot break the path.
+]]
+ns.RESTOCK_ALERT_SOUND = "Interface\\AddOns\\" .. ADDON_NAME .. "\\Includes\\Sounds\\Low-Battery.ogg"
 
 --------------------------------------------------------------------------------
 -- Reputation Standings
@@ -504,4 +319,483 @@ ns.REPUTATION_STANDINGS = {
 	{ value = 6, label = ns.L["RESTOCKER_REPUTATION_HONORED"], discount = 10 },
 	{ value = 7, label = ns.L["RESTOCKER_REPUTATION_REVERED"], discount = 15 },
 	{ value = 8, label = ns.L["RESTOCKER_REPUTATION_EXALTED"], discount = 20 },
+}
+
+--------------------------------------------------------------------------------
+-- Pet Diets
+--------------------------------------------------------------------------------
+
+--[[
+    Maps diet names from GetPetFoodTypes() to internal diet IDs. The API
+    returns LOCALIZED names ("Fleisch" on deDE), so the localized names from
+    the L["DIET_*"] locale keys are layered on top of the English baseline.
+    The English rows add no match of their own, since an untranslated DIET_*
+    key already falls back to English; they stay because the Starter List
+    categories look diet IDs up by English name.
+]]
+ns.PET_DIET_MAP = {
+	["Meat"] = 1,
+	["Fish"] = 2,
+	["Bread"] = 3,
+	["Cheese"] = 4,
+	["Fruit"] = 5,
+	["Fungus"] = 6,
+}
+
+ns.PET_DIET_MAP[ns.L["DIET_MEAT"]] = 1
+ns.PET_DIET_MAP[ns.L["DIET_FISH"]] = 2
+ns.PET_DIET_MAP[ns.L["DIET_BREAD"]] = 3
+ns.PET_DIET_MAP[ns.L["DIET_CHEESE"]] = 4
+ns.PET_DIET_MAP[ns.L["DIET_FRUIT"]] = 5
+ns.PET_DIET_MAP[ns.L["DIET_FUNGUS"]] = 6
+
+--------------------------------------------------------------------------------
+-- Rogue Poison Groups
+--------------------------------------------------------------------------------
+
+--[[
+    The canonical group numbering, keyed off by the poison tables and by the
+    Starter List. A group's name is the client's own name for its first item
+    (ns.GetPoisonGroupName), so no string here names one.
+]]
+ns.POISON_GROUPS = { ANESTHETIC = 1, CRIPPLING = 2, DEADLY = 3, INSTANT = 4, MIND_NUMBING = 5, WOUND = 6 }
+
+--------------------------------------------------------------------------------
+-- Scroll Scan Priority
+--------------------------------------------------------------------------------
+
+ns.SCROLL_CHECK_ORDER = {
+	"Agility",
+	"Strength",
+	"Protection",
+	"Intellect",
+	"Spirit",
+	"Stamina",
+}
+
+--------------------------------------------------------------------------------
+-- Starter List Categories
+--------------------------------------------------------------------------------
+
+--[[
+    What the List Builder window can offer, one row per checkbox.
+    Features/Restocker/Restocker-Starter-List.lua owns every decision made about
+    these rows -- which ladder each resolves to, who is offered it, what a tick
+    adds. This table only says what exists.
+
+    One table serves every client because it holds no game IDs. `chainKey`
+    names a ladder in ns.CONSUMABLE_UPGRADE_CHAINS, and the loaded flavor
+    folder's own ladders supply the items; the feature file resolves the key
+    at load and drops any row whose ladder that folder does not carry.
+]]
+
+--[[
+    The popup asks for WHOLE STACKS, not raw counts, because stacks are the
+    unit a bag slot thinks in. A stack is whatever the item itself stacks to,
+    so no row below carries a size: the staples do not share one, and some
+    differ by client. A Symbol of Divinity stacks to 5, a Symbol of Kings to
+    100, and an Ankh to 5 on Classic Era but 10 on TBC.
+    Features/Restocker/Restocker-Starter-List.lua reads the size off the item.
+
+    A tick defaults to one stack -- or to defaultStacks, where one is the
+    wrong opening offer -- and the dropdown beside it runs to a per-category
+    cap: 18 for ammo, where a hunter genuinely fills an 18-slot quiver, and a
+    tighter 4 everywhere else, where more stacks than that is just a heavier
+    corpse run.
+
+    countsItems turns the same dropdown into a plain count, which is what an
+    item that never stacks needs: Soul Shards take a bag slot each, so the
+    choice is how many slots to give them, and the dropdown says "20" rather
+    than "20 Stacks". It is declared here rather than read off the item
+    because the dropdown's labels are drawn before a cold item resolves.
+
+    A category with an explicit choices list offers those counts INSTEAD of
+    every number up to a cap. Soul Shards step in fours from 12 to 40 -- a
+    soul bag's worth at each of the sizes a warlock actually carries -- which
+    is the same question a forty-entry dropdown would ask, without the
+    scrolling. maxStacks is the cap for the every-number kind and is what
+    choices replaces, so a category sets one or the other, never both.
+
+    A category with fixedAmount gets no dropdown at all: totems are tools
+    you own one of.
+]]
+local FOOD_MAX_STACKS = 4
+local AMMO_MAX_STACKS = 18
+local POISON_MAX_STACKS = 4
+local REAGENT_MAX_STACKS = 4
+local SOUL_SHARD_CHOICES = { 12, 16, 20, 24, 28, 32, 36, 40 }
+local SOUL_SHARD_DEFAULT = 20
+
+--------------------------------------------------------------------------------
+-- Ladder And Class Keys
+--------------------------------------------------------------------------------
+
+--[[
+    Canonical diet numbering; the English keys are always present alongside
+    the localized aliases.
+]]
+local PET_DIET_MAP = ns.PET_DIET_MAP
+
+-- Canonical poison-group numbering.
+local POISON_GROUP = ns.POISON_GROUPS
+
+--[[
+    Class sets. classes on a category is WHO IS OFFERED it (absent = every
+    class); defaultFor is who gets it PRE-TICKED when the window opens. Mana
+    classes get water ticked; the manaless still see the row, unticked -- a
+    warrior can carry water for a druid friend, but nobody decides that for
+    them. Death Knights exist on Wrath, Mists and Standard clients, yet their
+    entries need no expansion gate of their own: only the Wrath folder gives
+    Corpse Dust a tier, and every other folder's empty ladder keeps the row
+    from being offered.
+]]
+local AMMO_CLASSES = { HUNTER = true, WARRIOR = true, ROGUE = true }
+local MANA_CLASSES =
+	{ DRUID = true, HUNTER = true, MAGE = true, PALADIN = true, PRIEST = true, SHAMAN = true, WARLOCK = true }
+
+--[[
+    One entry per checkbox. section groups entries under the popup's
+    headings.
+
+    A row that stands for a kind of item -- a food, water, an ammo type --
+    carries a label, and the food labels reuse the DIET_ keys so the popup
+    names bread whatever the pet-food tooltips call it. Every other row has no
+    label: it shows the client's own name for an item on its ladder, so it
+    needs no translation and always reads as the item does in bags and at
+    vendors. That item is the one a tick would add right now, or, for a row
+    marked namesFirstTier, the ladder's first item -- the poison types, whose
+    first item's name is the type's own ("Instant Poison").
+
+    The order HERE is for the maintainer's eye -- grouped by section, then
+    by class. Display order is the popup's to compute (SectionCategories in
+    Options-Starter-List-Popup.lua): dropdown staples first, fixed-amount
+    singles after, each run alphabetical by the name it shows.
+
+    A category whose ladder went missing is dropped by
+    Features/Restocker/Restocker-Starter-List.lua rather than crashing the popup
+    open.
+]]
+ns.STARTER_LIST_CATEGORIES = {
+	--[[
+	    Food, everyone. Bread arrives ticked for all; meat ticked for hunters
+	    (their pet eats it too).
+	]]
+	{
+		key = "bread",
+		section = "food",
+		label = ns.L["DIET_BREAD"],
+		chainKey = "food:" .. PET_DIET_MAP["Bread"],
+		maxStacks = FOOD_MAX_STACKS,
+		defaultFor = "all",
+	},
+	{
+		key = "cheese",
+		section = "food",
+		label = ns.L["DIET_CHEESE"],
+		chainKey = "food:" .. PET_DIET_MAP["Cheese"],
+		maxStacks = FOOD_MAX_STACKS,
+	},
+	{
+		key = "fish",
+		section = "food",
+		label = ns.L["DIET_FISH"],
+		chainKey = "food:" .. PET_DIET_MAP["Fish"],
+		maxStacks = FOOD_MAX_STACKS,
+	},
+	{
+		key = "fruit",
+		section = "food",
+		label = ns.L["DIET_FRUIT"],
+		chainKey = "food:" .. PET_DIET_MAP["Fruit"],
+		maxStacks = FOOD_MAX_STACKS,
+	},
+	{
+		key = "fungus",
+		section = "food",
+		label = ns.L["DIET_FUNGUS"],
+		chainKey = "food:" .. PET_DIET_MAP["Fungus"],
+		maxStacks = FOOD_MAX_STACKS,
+	},
+	{
+		key = "meat",
+		section = "food",
+		label = ns.L["DIET_MEAT"],
+		chainKey = "food:" .. PET_DIET_MAP["Meat"],
+		maxStacks = FOOD_MAX_STACKS,
+		defaultFor = { HUNTER = true },
+	},
+
+	-- Water, everyone; pre-ticked for the classes that drink for mana.
+	{
+		key = "water",
+		section = "water",
+		label = ns.L["LABEL_WATER"],
+		chainKey = "water",
+		maxStacks = FOOD_MAX_STACKS,
+		defaultFor = MANA_CLASSES,
+	},
+
+	-- Ammo, launcher classes only.
+	{
+		key = "bullets",
+		section = "ammo",
+		label = ns.L["STARTER_POPUP_BULLETS"],
+		chainKey = "bullet",
+		maxStacks = AMMO_MAX_STACKS,
+		classes = AMMO_CLASSES,
+	},
+	{
+		key = "arrows",
+		section = "ammo",
+		label = ns.L["STARTER_POPUP_ARROWS"],
+		chainKey = "arrow",
+		maxStacks = AMMO_MAX_STACKS,
+		classes = AMMO_CLASSES,
+	},
+
+	--[[
+	    Poisons, their own headed section for rogues (alphabetical, like the
+	    foods) -- the popup adds a note under its header that the ingredients
+	    buy themselves. Availability does the level work: every ladder opens
+	    at its spell's training level, so the section fills out as the rogue
+	    earns each type -- and Anesthetic's all-TBC ladder simply never comes
+	    up on Era.
+	]]
+	{
+		key = "anesthetic",
+		section = "poisons",
+		namesFirstTier = true,
+		chainKey = "poison:" .. POISON_GROUP.ANESTHETIC,
+		maxStacks = POISON_MAX_STACKS,
+		classes = { ROGUE = true },
+	},
+	{
+		key = "crippling",
+		section = "poisons",
+		namesFirstTier = true,
+		chainKey = "poison:" .. POISON_GROUP.CRIPPLING,
+		maxStacks = POISON_MAX_STACKS,
+		classes = { ROGUE = true },
+	},
+	{
+		key = "deadly",
+		section = "poisons",
+		namesFirstTier = true,
+		chainKey = "poison:" .. POISON_GROUP.DEADLY,
+		maxStacks = POISON_MAX_STACKS,
+		classes = { ROGUE = true },
+	},
+	{
+		key = "instant",
+		section = "poisons",
+		namesFirstTier = true,
+		chainKey = "poison:" .. POISON_GROUP.INSTANT,
+		maxStacks = POISON_MAX_STACKS,
+		classes = { ROGUE = true },
+	},
+	{
+		key = "mindnumbing",
+		section = "poisons",
+		namesFirstTier = true,
+		chainKey = "poison:" .. POISON_GROUP.MIND_NUMBING,
+		maxStacks = POISON_MAX_STACKS,
+		classes = { ROGUE = true },
+	},
+	{
+		key = "wound",
+		section = "poisons",
+		namesFirstTier = true,
+		chainKey = "poison:" .. POISON_GROUP.WOUND,
+		maxStacks = POISON_MAX_STACKS,
+		classes = { ROGUE = true },
+	},
+	--[[
+	    Reagents & Tools. Hearthstone is offered to every class -- the worked
+	    example that ANYTHING can go on the Restock List, not just the
+	    consumables the add-on curates -- alongside each class's own entries.
+	]]
+	{
+		key = "hearthstone",
+		section = "reagents",
+		chainKey = "reagent:hearthstone",
+		fixedAmount = 1,
+	},
+	{
+		key = "blindingpowder",
+		section = "reagents",
+		chainKey = "reagent:blinding-powder",
+		maxStacks = REAGENT_MAX_STACKS,
+		classes = { ROGUE = true },
+	},
+	{
+		key = "flashpowder",
+		section = "reagents",
+		chainKey = "reagent:flash-powder",
+		maxStacks = REAGENT_MAX_STACKS,
+		classes = { ROGUE = true },
+	},
+	-- A tool, not a consumable: you own one.
+	{
+		key = "thievestools",
+		section = "reagents",
+		chainKey = "reagent:thieves-tools",
+		fixedAmount = 1,
+		classes = { ROGUE = true },
+	},
+
+	{
+		key = "corpsedust",
+		section = "reagents",
+		chainKey = "reagent:corpse-dust",
+		maxStacks = REAGENT_MAX_STACKS,
+		classes = { DEATHKNIGHT = true },
+	},
+
+	{
+		key = "seeds",
+		section = "reagents",
+		chainKey = "reagent:seeds",
+		maxStacks = REAGENT_MAX_STACKS,
+		classes = { DRUID = true },
+	},
+	{
+		key = "wilds",
+		section = "reagents",
+		chainKey = "reagent:wilds",
+		maxStacks = REAGENT_MAX_STACKS,
+		classes = { DRUID = true },
+	},
+
+	{
+		key = "arcanepowder",
+		section = "reagents",
+		chainKey = "reagent:arcane-powder",
+		maxStacks = REAGENT_MAX_STACKS,
+		classes = { MAGE = true },
+	},
+	-- Light Feather serves the mage's Slow Fall and the priest's Levitate.
+	{
+		key = "lightfeather",
+		section = "reagents",
+		chainKey = "reagent:light-feather",
+		maxStacks = REAGENT_MAX_STACKS,
+		classes = { MAGE = true, PRIEST = true },
+	},
+	{
+		key = "teleportrunes",
+		section = "reagents",
+		chainKey = "reagent:rune-of-teleportation",
+		maxStacks = REAGENT_MAX_STACKS,
+		classes = { MAGE = true },
+	},
+	{
+		key = "portalrunes",
+		section = "reagents",
+		chainKey = "reagent:rune-of-portals",
+		maxStacks = REAGENT_MAX_STACKS,
+		classes = { MAGE = true },
+	},
+
+	{
+		key = "divinitysymbol",
+		section = "reagents",
+		chainKey = "reagent:symbol-of-divinity",
+		maxStacks = REAGENT_MAX_STACKS,
+		classes = { PALADIN = true },
+	},
+	{
+		key = "kingssymbol",
+		section = "reagents",
+		chainKey = "reagent:symbol-of-kings",
+		maxStacks = REAGENT_MAX_STACKS,
+		classes = { PALADIN = true },
+	},
+
+	{
+		key = "candles",
+		section = "reagents",
+		chainKey = "reagent:candles",
+		maxStacks = REAGENT_MAX_STACKS,
+		classes = { PRIEST = true },
+	},
+
+	{
+		key = "ankh",
+		section = "reagents",
+		chainKey = "reagent:ankh",
+		maxStacks = REAGENT_MAX_STACKS,
+		classes = { SHAMAN = true },
+	},
+	{
+		key = "fishscales",
+		section = "reagents",
+		chainKey = "reagent:fish-scales",
+		maxStacks = REAGENT_MAX_STACKS,
+		classes = { SHAMAN = true },
+	},
+	{
+		key = "fishoil",
+		section = "reagents",
+		chainKey = "reagent:fish-oil",
+		maxStacks = REAGENT_MAX_STACKS,
+		classes = { SHAMAN = true },
+	},
+	-- Totems are tools: one each, no dropdown.
+	{
+		key = "earthtotem",
+		section = "reagents",
+		chainKey = "reagent:earth-totem",
+		fixedAmount = 1,
+		classes = { SHAMAN = true },
+	},
+	{
+		key = "firetotem",
+		section = "reagents",
+		chainKey = "reagent:fire-totem",
+		fixedAmount = 1,
+		classes = { SHAMAN = true },
+	},
+	{
+		key = "watertotem",
+		section = "reagents",
+		chainKey = "reagent:water-totem",
+		fixedAmount = 1,
+		classes = { SHAMAN = true },
+	},
+	{
+		key = "airtotem",
+		section = "reagents",
+		chainKey = "reagent:air-totem",
+		fixedAmount = 1,
+		classes = { SHAMAN = true },
+	},
+
+	{
+		key = "figurine",
+		section = "reagents",
+		chainKey = "reagent:demonic-figurine",
+		maxStacks = REAGENT_MAX_STACKS,
+		classes = { WARLOCK = true },
+	},
+	{
+		key = "infernalstone",
+		section = "reagents",
+		chainKey = "reagent:infernal-stone",
+		maxStacks = REAGENT_MAX_STACKS,
+		classes = { WARLOCK = true },
+	},
+	--[[
+	    Soul Shards never stack, so their dropdown counts bag slots rather than
+	    stacks (countsItems), offering the soul-bag sizes above and opening on
+	    a middling one.
+	]]
+	{
+		key = "soulshards",
+		section = "reagents",
+		chainKey = "reagent:soul-shard",
+		countsItems = true,
+		choices = SOUL_SHARD_CHOICES,
+		defaultStacks = SOUL_SHARD_DEFAULT,
+		classes = { WARLOCK = true },
+	},
 }

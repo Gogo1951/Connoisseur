@@ -6,26 +6,17 @@ local Header = ns.OptionsHeader
 local Desc = ns.OptionsDesc
 local Spacer = ns.OptionsSpacer
 local RowLabel = ns.OptionsRowLabel
-local SubRow, SubLabel = ns.OptionsSubRow, ns.OptionsSubLabel
-
---[[
-    Sub-row cells, sized to their contents with room to spare rather than to the
-    row budget; see ns.OptionsSubRow on why an exact fit must be avoided.
-]]
-local SUB_CAPTION_WIDTH = 1.0
-local SUB_SELECT_WIDTH = 1.4
-
--- The click-layout values are long phrases, so that row gives its label less than the standard share.
-local EXPLOSIVES_LABEL_WIDTH = 1.4
 
 --------------------------------------------------------------------------------
 -- Active-State Predicates
 --------------------------------------------------------------------------------
 
 --[[
-    Each feature's mode sub-row and option sub-controls are hidden until the
-    feature toggle is on. These read the per-character settings table that
-    InitializeSavedVariables guarantees.
+    Every sub-option hides until its toggle is on. A dropdown then appears on
+    its toggle's line (see the Options Layout Grid in Data/Data.lua); a block
+    of checkboxes, the scroll and pet food types, has no line to share, so it
+    appears beneath its toggle instead. These read the per-character settings
+    table that InitializeSavedVariables guarantees.
 
     Settings live on the AceDB profile, so every character configures its own
     consumables. The exceptions on this panel are account-wide and read
@@ -35,6 +26,11 @@ local EXPLOSIVES_LABEL_WIDTH = 1.4
 
 local function GetSettings()
 	return ns.db and ns.db.profile
+end
+
+local function ConjuredFirstActive()
+	local settings = GetSettings()
+	return settings and settings.useConjuredFirst
 end
 
 local function BuffFoodActive()
@@ -47,26 +43,24 @@ local function ScrollsActive()
 	return settings and settings.useScrolls
 end
 
+-- A flavor whose data folder has no pet buff food shows no Pet Food Buffs section.
+local function NoPetBuffFoods()
+	return next(ns.PET_BUFF_FOODS) == nil
+end
+
 local function PetBuffActive()
 	local settings = GetSettings()
-	return settings and settings.usePetBuffFood
+	return not NoPetBuffFoods() and settings and settings.usePetBuffFood
 end
 
---[[
-    Gates for the sub-rows under their feature toggle: each is hidden until its
-    toggle is on, matching the mode sub-rows above.
-]]
-local function ReapplyThresholdHidden()
+local function ReapplyActive()
 	local settings = GetSettings()
-	return not (settings and settings.earlyReapply)
+	return settings and settings.earlyReapply
 end
 
-local function DruidReturnFormHidden()
-	if not ns.isDruid then
-		return true
-	end
+local function DruidMacroHelperActive()
 	local settings = GetSettings()
-	return not (settings and settings.enableDruidMacroHelper)
+	return settings and settings.enableDruidMacroHelper
 end
 
 local function NotDruid()
@@ -90,43 +84,41 @@ end
 -- Shared Widget Factories
 --------------------------------------------------------------------------------
 
--- A sub-row's silver caption cell, naming the control beside it.
-local function SubCaption(key)
+--[[
+    The when-to-use dropdown behind every mode setting -- Buff Food, Scroll
+    Buffs, Pet Food Buffs, and conjured food and water first -- so all four
+    offer the one list, ns.MODE_VALUES in ns.MODE_ORDER. It sits on its
+    toggle's line and hides until the toggle is on. Pet Food Buffs' isActive
+    already folds in its section's gate, so a flavor with no pet buff food
+    hides this along with the rest of the section. Selecting a mode rewrites
+    the macros under the throttle.
+]]
+local function FeatureModeSelect(settingKey, description, isActive, order)
 	return {
-		type = "description",
-		name = SubLabel(L[key]),
-		fontSize = "medium",
-		width = SUB_CAPTION_WIDTH,
+		type = "select",
+		name = "",
+		desc = description,
+		order = order,
+		width = ns.OPTIONS_CONTROL_WIDTH,
+		hidden = function()
+			return not isActive()
+		end,
+		values = ns.MODE_VALUES,
+		sorting = ns.MODE_ORDER,
+		get = function()
+			return ns.db.profile[settingKey]
+		end,
+		set = function(_, value)
+			ns.db.profile[settingKey] = value
+			ns.ResetMacroState()
+			ns.RequestUpdate()
+		end,
 	}
 end
 
---[[
-    Group-restriction mode sub-row shared by Buff Food, Scrolls, and Pet Food,
-    indented under the feature toggle and hidden until it is on. Selecting a
-    mode rewrites the macros under the throttle.
-]]
-local function FeatureModeRow(settingKey, featureName, activeFn, order)
-	return SubRow(order, function()
-		return not activeFn()
-	end, {
-		SubCaption("OPTIONS_MODE_CAPTION"),
-		{
-			type = "select",
-			name = "",
-			desc = string.format(L["OPTIONS_MODE_DESCRIPTION"], featureName),
-			width = SUB_SELECT_WIDTH,
-			values = ns.MODE_VALUES,
-			sorting = ns.MODE_ORDER,
-			get = function()
-				return ns.db.profile[settingKey] or "always"
-			end,
-			set = function(_, value)
-				ns.db.profile[settingKey] = value
-				ns.ResetMacroState()
-				ns.RequestUpdate()
-			end,
-		},
-	})
+-- Hover text for a mode dropdown choosing when the Food macro offers a feature.
+local function ModeDescription(featureName)
+	return string.format(L["OPTIONS_MODE_DESCRIPTION"], featureName)
 end
 
 -- Toggle for one entry inside a per-character settings subtable (scroll/pet types).
@@ -149,14 +141,44 @@ local function SubsetToggle(subtableKey, key, label, order)
 end
 
 --[[
+    One pet food toggle per row of the flavor folder's ns.PET_BUFF_FOODS, best
+    rank first, each named with the client's own item name. A name still
+    uncached shows as loading text and is warmed so the panel repaints.
+]]
+local function PetBuffTypeToggles()
+	local foods = {}
+	for itemID, row in pairs(ns.PET_BUFF_FOODS) do
+		foods[#foods + 1] = { itemID = itemID, rank = row[2], settingKey = row[3] }
+	end
+	table.sort(foods, function(a, b)
+		return a.rank > b.rank
+	end)
+
+	local toggles = {}
+	local coldItemIDs = {}
+	for order, food in ipairs(foods) do
+		local name = C_Item.GetItemInfo(food.itemID)
+		if not name then
+			coldItemIDs[#coldItemIDs + 1] = food.itemID
+			name = ns.GetItemDisplayName(food.itemID)
+		end
+		toggles["pet" .. food.settingKey] = SubsetToggle("petBuffTypes", food.settingKey, name, order)
+	end
+	ns.WarmItemCache(coldItemIDs, ns.OPTIONS_REGISTRY.Macros)
+	return toggles
+end
+
+--[[
     Poison-group dropdown shared by the Main Hand and Off Hand rows. Values
     resolve through ns.GetPoisonGroupName each time the dialog renders, and any
     base item still uncached is warmed so the panel repaints with the client's
-    own names. Rogue-only, like the section that hosts it.
+    own names. Rogue-only, like the section that hosts it. The order and the
+    values both come from ns.POISON_GROUP_BASE_ITEMS, so a group the loaded
+    data folder has no base item for is never offered.
 ]]
 local function PoisonHandDropdown(label, description, settingKey, order)
 	local sorting = {}
-	for _, groupID in pairs(ns.POISON_GROUPS) do
+	for groupID in pairs(ns.POISON_GROUP_BASE_ITEMS) do
 		sorting[#sorting + 1] = groupID
 	end
 	table.sort(sorting)
@@ -170,8 +192,8 @@ local function PoisonHandDropdown(label, description, settingKey, order)
 		values = function()
 			local values = {}
 			local coldItemIDs = {}
-			for groupID, baseItem in pairs(ns.POISON_GROUP_BASE_ITEMS or {}) do
-				values[groupID] = ns.GetPoisonGroupName(groupID)
+			for groupID, baseItem in pairs(ns.POISON_GROUP_BASE_ITEMS) do
+				values[groupID] = ns.GetPoisonGroupName(groupID) or ns.GetItemDisplayName(baseItem)
 				if not C_Item.GetItemInfo(baseItem) then
 					coldItemIDs[#coldItemIDs + 1] = baseItem
 				end
@@ -182,7 +204,7 @@ local function PoisonHandDropdown(label, description, settingKey, order)
 		sorting = sorting,
 		hidden = NotRogue,
 		get = function()
-			return ns.db.profile[settingKey] or 4
+			return ns.db.profile[settingKey]
 		end,
 		set = function(_, value)
 			ns.db.profile[settingKey] = value
@@ -193,17 +215,22 @@ local function PoisonHandDropdown(label, description, settingKey, order)
 end
 
 --[[
-    One factory for the Enable Macros toggles. hiddenFn is optional --
+    One factory for the Enable Macros toggles. isHidden is optional --
     Feed Pet and Poisons use it to stay hidden on the wrong class.
+
+    macroName is the macro's own MACRO_* name, shown without the "- " every
+    locale leads it with: the macros keep the dash, the panel drops it. The
+    LABEL_* strings can't stand in, since three of them name the item rather
+    than the macro (Explosive, Pet Food, Poison).
 ]]
-local function MacroToggle(label, key, order, hiddenFn)
+local function MacroToggle(macroName, key, order, isHidden)
 	return {
 		type = "toggle",
-		name = label,
-		desc = string.format(L["OPTIONS_MACRO_TOGGLE_DESCRIPTION"], ns.MACRO_CONFIG[key].label),
+		name = (macroName:gsub("^%- ", "")),
+		desc = L["OPTIONS_MACRO_TOGGLE_DESCRIPTION"],
 		order = order,
 		width = "normal",
-		hidden = hiddenFn,
+		hidden = isHidden,
 		get = function()
 			return ns.IsMacroEnabled(key)
 		end,
@@ -222,11 +249,12 @@ end
 --[[
     Everything that shapes the macros Connoisseur builds, in one page: which
     macros exist, then how each behaves. Page order is Macro Names on Buttons,
-    Enable Macros, Potions & Healthstones, Mana Gems & Runes, Buff
-    Re-Application, Buff Food, Scroll Buffs, Pet Food Buffs, Explosives, then
-    the class/race-gated Druids, Rogues, and Night Elves sections, which hide
-    themselves for characters they do not apply to. The Ignore List has its
-    own panel (Options-Ignore-List.lua).
+    Enable Macros, Food & Water (Buff Food, Scroll Buffs, and conjured food
+    and water first), Potions & Healthstones, Mana Gems & Runes, Buff
+    Re-Application, Pet Food Buffs, Explosives, then the class/race-gated
+    Druids, Rogues, and Night Elves sections, which hide themselves for
+    characters they do not apply to. The Ignore List has its own panel
+    (Options-Ignore-List.lua).
 
     Order values are spaced blocks so a section can be reordered or extended
     without renumbering its neighbors. The General page keeps the add-on-level
@@ -264,173 +292,77 @@ function ns.BuildMacrosOptions()
 		spaceEnable1 = Spacer(12),
 		descEnableMacros = Desc(GetColor("BODY") .. L["OPTIONS_ENABLE_MACROS_DESCRIPTION"] .. "|r", 13),
 		spaceEnable2 = Spacer(14),
-		enableBandage = MacroToggle(L["MACRO_BANDAGE"], "Bandage", 15),
-		enableExplosive = MacroToggle(L["MACRO_EXPLOSIVES"], "Explosive", 16),
-		enableFeedPet = MacroToggle(L["MACRO_FEED_PET"], "Feed Pet", 17, function()
-			return not ns.isHunter
-		end),
-		enableFood = MacroToggle(L["MACRO_FOOD"], "Food", 18),
-		enableHealthPotion = MacroToggle(L["MACRO_HEALTH_POTION"], "Health Potion", 19),
-		enableHealthstone = MacroToggle(L["MACRO_HEALTHSTONE"], "Healthstone", 20),
-		enableManaGem = MacroToggle(L["MACRO_MANA_GEM"], "Mana Gem", 21),
-		enableManaPotion = MacroToggle(L["MACRO_MANA_POTION"], "Mana Potion", 22),
-		enablePoisons = MacroToggle(L["MACRO_POISONS"], "Poisons", 23, NotRogue),
-		enableSoulstone = MacroToggle(L["MACRO_SOULSTONE"], "Soulstone", 24),
-		enableWater = MacroToggle(L["MACRO_WATER"], "Water", 25),
-
-		-- Potions & Healthstones
-		spacePotions0 = Spacer(30),
-		headerPotions = Header(L["OPTIONS_POTIONS_HEADER"], 31),
-		spacePotions1 = Spacer(32),
-		descPotions = Desc(GetColor("BODY") .. L["OPTIONS_POTIONS_DESCRIPTION"] .. "|r", 33),
-		spacePotions2 = Spacer(34),
-		toggleCombineHealthstones = {
-			type = "toggle",
-			name = L["OPTIONS_COMBINE_HEALTHSTONES"],
-			desc = L["OPTIONS_COMBINE_HEALTHSTONES_DESCRIPTION"],
-			order = 35,
-			width = "full",
-			get = function()
-				local settings = GetSettings()
-				return settings and settings.combineHealthstones
-			end,
-			set = function(_, value)
-				ns.db.profile.combineHealthstones = value
-				ns.ResetMacroState()
-				ns.RequestUpdate()
-			end,
-		},
-
-		-- Mana Gems & Runes
-		spaceManaGems0 = Spacer(40),
-		headerManaGems = Header(L["OPTIONS_MANA_GEMS_HEADER"], 41),
-		spaceManaGems1 = Spacer(42),
-		descManaGems = Desc(GetColor("BODY") .. L["OPTIONS_MANA_GEMS_DESCRIPTION"] .. "|r", 43),
-		spaceManaGems2 = Spacer(44),
-		toggleIncludeManaRunes = {
-			type = "toggle",
-			name = L["OPTIONS_INCLUDE_MANA_RUNES"],
-			desc = L["OPTIONS_INCLUDE_MANA_RUNES_DESCRIPTION"],
-			order = 45,
-			width = "full",
-			get = function()
-				local settings = GetSettings()
-				return settings and settings.includeManaRunes
-			end,
-			set = function(_, value)
-				ns.db.profile.includeManaRunes = value
-				ns.ResetMacroState()
-				ns.RequestUpdate()
-			end,
+		enableMacrosGroup = {
+			type = "group",
+			name = "",
+			order = 15,
+			inline = true,
+			args = {
+				enableBandage = MacroToggle(L["MACRO_BANDAGE"], "Bandage", 1),
+				enableExplosive = MacroToggle(L["MACRO_EXPLOSIVES"], "Explosive", 2),
+				enableFeedPet = MacroToggle(L["MACRO_FEED_PET"], "Feed Pet", 3, function()
+					return not ns.isHunter
+				end),
+				enableFood = MacroToggle(L["MACRO_FOOD"], "Food", 4),
+				enableHealthPotion = MacroToggle(L["MACRO_HEALTH_POTION"], "Health Potion", 5),
+				enableHealthstone = MacroToggle(L["MACRO_HEALTHSTONE"], "Healthstone", 6),
+				enableManaGem = MacroToggle(L["MACRO_MANA_GEM"], "Mana Gem", 7),
+				enableManaPotion = MacroToggle(L["MACRO_MANA_POTION"], "Mana Potion", 8),
+				enablePoisons = MacroToggle(L["MACRO_POISONS"], "Poisons", 9, NotRogue),
+				enableSoulstone = MacroToggle(L["MACRO_SOULSTONE"], "Soulstone", 10),
+				enableWater = MacroToggle(L["MACRO_WATER"], "Water", 11),
+			},
 		},
 
 		--[[
-		    Buff Re-Application -- one global threshold governing Buff
-		    Food, Scroll Buffs, and Pet Food Buffs, so it sits above them.
-		    Dropdown keys are the threshold in seconds, stored directly in
-		    earlyReapplyThreshold.
+		    Food & Water -- what the Food and Water macros put ahead of your
+		    best food and drink: buff food, scrolls, then conjured food and
+		    water. One description serves the section, so each option's own
+		    hover text says what it does. Each mode dropdown shows on its
+		    toggle's line while the toggle is on, and a break follows every
+		    row, the house rhythm the Rogue, Restocker and Readiness rows
+		    keep. The scroll-type checks sit beneath Scroll Buffs, after its
+		    break, while it is on, with a break of their own below them.
 		]]
-		spaceReapply0 = Spacer(90),
-		headerReapply = Header(L["OPTIONS_REAPPLY_HEADER"], 91),
-		spaceReapply1 = Spacer(92),
-		descReapply = Desc(GetColor("BODY") .. L["OPTIONS_REAPPLY_DESCRIPTION"] .. "|r", 93),
-		spaceReapply2 = Spacer(94),
-		toggleReapply = {
-			type = "toggle",
-			name = L["OPTIONS_REAPPLY"],
-			desc = L["OPTIONS_REAPPLY_DESCRIPTION"],
-			order = 95,
-			width = "full",
-			get = function()
-				local settings = GetSettings()
-				return settings and settings.earlyReapply
-			end,
-			set = function(_, value)
-				ns.db.profile.earlyReapply = value
-				ns.ResetMacroState()
-				ns.RequestUpdate()
-			end,
-		},
-		reapplyThreshold = SubRow(96, ReapplyThresholdHidden, {
-			SubCaption("OPTIONS_REAPPLY_THRESHOLD_CAPTION"),
-			{
-				type = "select",
-				name = "",
-				desc = L["OPTIONS_REAPPLY_THRESHOLD_DESCRIPTION"],
-				width = SUB_SELECT_WIDTH,
-				values = {
-					[60] = L["REAPPLY_THRESHOLD_ONE"],
-					[120] = string.format(L["REAPPLY_THRESHOLD_MANY"], 2),
-					[180] = string.format(L["REAPPLY_THRESHOLD_MANY"], 3),
-					[240] = string.format(L["REAPPLY_THRESHOLD_MANY"], 4),
-					[300] = string.format(L["REAPPLY_THRESHOLD_MANY"], 5),
-				},
-				sorting = { 60, 120, 180, 240, 300 },
-				get = function()
-					return ns.db.profile.earlyReapplyThreshold or 120
-				end,
-				set = function(_, value)
-					ns.db.profile.earlyReapplyThreshold = value
-					ns.ResetMacroState()
-					ns.RequestUpdate()
-				end,
-			},
-		}),
-
-		-- Buff Food
-		spaceBuff0 = Spacer(100),
-		headerBuff = Header(L["FEATURE_BUFF_FOOD"], 101),
-		spaceBuff1 = Spacer(102),
-		descBuff = Desc(GetColor("BODY") .. L["OPTIONS_BUFF_FOOD_DESCRIPTION"] .. "|r", 103),
-		detailBuff = Desc(GetColor("HELP") .. L["OPTIONS_BUFF_FOOD_DETAIL"] .. "|r", 104),
-		spaceBuff2 = Spacer(105),
+		spaceFoodWater0 = Spacer(20),
+		headerFoodWater = Header(L["OPTIONS_FOOD_WATER_HEADER"], 21),
+		spaceFoodWater1 = Spacer(22),
+		descFoodWater = Desc(GetColor("BODY") .. L["OPTIONS_FOOD_WATER_DESCRIPTION"] .. "|r", 23),
+		spaceFoodWater2 = Spacer(24),
 		toggleBuffFood = {
 			type = "toggle",
 			name = L["OPTIONS_BUFF_FOOD"],
 			desc = L["OPTIONS_BUFF_FOOD_DESCRIPTION"],
-			order = 106,
-			width = "full",
+			order = 25,
+			width = ns.OPTIONS_LABEL_WIDTH,
 			get = function()
 				return BuffFoodActive()
 			end,
 			set = function(_, value)
-				ns.ToggleBuffFood(value)
+				ns.ToggleMacroSetting("useBuffFood", value)
 			end,
 		},
-		buffFoodMode = FeatureModeRow("buffFoodMode", L["FEATURE_BUFF_FOOD"], BuffFoodActive, 107),
-
-		-- Scroll Buffs
-		spaceScroll0 = Spacer(200),
-		headerScroll = Header(L["FEATURE_SCROLL_BUFFS"], 201),
-		spaceScroll1 = Spacer(202),
-		descScroll = Desc(GetColor("BODY") .. L["OPTIONS_USE_SCROLLS_DESCRIPTION"] .. "|r", 203),
-		spaceScroll2 = Spacer(204),
+		buffFoodMode = FeatureModeSelect("buffFoodMode", ModeDescription(L["FEATURE_BUFF_FOOD"]), BuffFoodActive, 26),
+		spaceBuffFood = Spacer(27),
 		toggleScrolls = {
 			type = "toggle",
 			name = L["OPTIONS_USE_SCROLLS"],
 			desc = L["OPTIONS_USE_SCROLLS_DESCRIPTION"],
-			order = 205,
-			width = "full",
+			order = 28,
+			width = ns.OPTIONS_LABEL_WIDTH,
 			get = function()
 				return ScrollsActive()
 			end,
 			set = function(_, value)
-				ns.ToggleScrollBuffs(value)
+				ns.ToggleMacroSetting("useScrolls", value)
 			end,
 		},
-		scrollsMode = FeatureModeRow("scrollsMode", L["FEATURE_SCROLL_BUFFS"], ScrollsActive, 206),
-		spaceScrollTypes0 = {
-			type = "description",
-			name = " ",
-			order = 207,
-			hidden = function()
-				return not ScrollsActive()
-			end,
-		},
+		scrollsMode = FeatureModeSelect("scrollsMode", ModeDescription(L["FEATURE_SCROLL_BUFFS"]), ScrollsActive, 29),
+		spaceScrolls = Spacer(30),
 		scrollTypesGroup = {
 			type = "group",
 			name = L["OPTIONS_SCROLL_TYPES"],
-			order = 208,
+			order = 31,
 			inline = true,
 			hidden = function()
 				return not ScrollsActive()
@@ -444,19 +376,152 @@ function ns.BuildMacrosOptions()
 				scrollStrength = SubsetToggle("scrollTypes", "Strength", L["OPTIONS_SCROLL_STRENGTH"], 6),
 			},
 		},
+		spaceScrollTypes = {
+			type = "description",
+			name = " ",
+			order = 32,
+			hidden = function()
+				return not ScrollsActive()
+			end,
+		},
+		toggleConjuredFirst = {
+			type = "toggle",
+			name = L["OPTIONS_CONJURED_FIRST"],
+			desc = L["OPTIONS_CONJURED_FIRST_DESCRIPTION"],
+			order = 33,
+			width = ns.OPTIONS_LABEL_WIDTH,
+			get = function()
+				return ConjuredFirstActive()
+			end,
+			set = function(_, value)
+				ns.ToggleMacroSetting("useConjuredFirst", value)
+			end,
+		},
+		conjuredFirstMode = FeatureModeSelect(
+			"conjuredFirstMode",
+			L["OPTIONS_CONJURED_FIRST_MODE_DESCRIPTION"],
+			ConjuredFirstActive,
+			34
+		),
+
+		-- Potions & Healthstones
+		spacePotions0 = Spacer(40),
+		headerPotions = Header(L["OPTIONS_POTIONS_HEADER"], 41),
+		spacePotions1 = Spacer(42),
+		descPotions = Desc(GetColor("BODY") .. L["OPTIONS_POTIONS_DESCRIPTION"] .. "|r", 43),
+		spacePotions2 = Spacer(44),
+		toggleCombineHealthstones = {
+			type = "toggle",
+			name = L["OPTIONS_COMBINE_HEALTHSTONES"],
+			desc = L["OPTIONS_COMBINE_HEALTHSTONES_DESCRIPTION"],
+			order = 45,
+			width = "full",
+			get = function()
+				local settings = GetSettings()
+				return settings and settings.combineHealthstones
+			end,
+			set = function(_, value)
+				ns.db.profile.combineHealthstones = value
+				ns.ResetMacroState()
+				ns.RequestUpdate()
+			end,
+		},
+
+		-- Mana Gems & Runes
+		spaceManaGems0 = Spacer(50),
+		headerManaGems = Header(L["OPTIONS_MANA_GEMS_HEADER"], 51),
+		spaceManaGems1 = Spacer(52),
+		descManaGems = Desc(GetColor("BODY") .. L["OPTIONS_MANA_GEMS_DESCRIPTION"] .. "|r", 53),
+		spaceManaGems2 = Spacer(54),
+		toggleIncludeManaRunes = {
+			type = "toggle",
+			name = L["OPTIONS_INCLUDE_MANA_RUNES"],
+			desc = L["OPTIONS_INCLUDE_MANA_RUNES_DESCRIPTION"],
+			order = 55,
+			width = "full",
+			get = function()
+				local settings = GetSettings()
+				return settings and settings.includeManaRunes
+			end,
+			set = function(_, value)
+				ns.db.profile.includeManaRunes = value
+				ns.ResetMacroState()
+				ns.RequestUpdate()
+			end,
+		},
+
+		--[[
+		    Buff Re-Application -- one threshold governing Buff Food
+		    and Scroll Buffs (under Food & Water) and Pet Food Buffs below.
+		    Dropdown keys are the threshold in seconds, stored directly in
+		    earlyReapplyThreshold.
+		]]
+		spaceReapply0 = Spacer(90),
+		headerReapply = Header(L["OPTIONS_REAPPLY_HEADER"], 91),
+		spaceReapply1 = Spacer(92),
+		descReapply = Desc(GetColor("BODY") .. L["OPTIONS_REAPPLY_SECTION_DESCRIPTION"] .. "|r", 93),
+		spaceReapply2 = Spacer(94),
+		toggleReapply = {
+			type = "toggle",
+			name = L["OPTIONS_REAPPLY"],
+			desc = L["OPTIONS_REAPPLY_DESCRIPTION"],
+			order = 95,
+			width = ns.OPTIONS_LABEL_WIDTH,
+			get = function()
+				return ReapplyActive()
+			end,
+			set = function(_, value)
+				ns.db.profile.earlyReapply = value
+				ns.ResetMacroState()
+				ns.RequestUpdate()
+			end,
+		},
+		reapplyThreshold = {
+			type = "select",
+			name = "",
+			desc = L["OPTIONS_REAPPLY_THRESHOLD_DESCRIPTION"],
+			order = 96,
+			width = ns.OPTIONS_CONTROL_WIDTH,
+			hidden = function()
+				return not ReapplyActive()
+			end,
+			values = {
+				[60] = L["REAPPLY_THRESHOLD_ONE"],
+				[120] = string.format(L["REAPPLY_THRESHOLD_MANY"], 2),
+				[180] = string.format(L["REAPPLY_THRESHOLD_MANY"], 3),
+				[240] = string.format(L["REAPPLY_THRESHOLD_MANY"], 4),
+				[300] = string.format(L["REAPPLY_THRESHOLD_MANY"], 5),
+			},
+			sorting = { 60, 120, 180, 240, 300 },
+			get = function()
+				return ns.db.profile.earlyReapplyThreshold
+			end,
+			set = function(_, value)
+				ns.db.profile.earlyReapplyThreshold = value
+				ns.ResetMacroState()
+				ns.RequestUpdate()
+			end,
+		},
 
 		-- Pet Food Buffs
-		spacePet0 = Spacer(300),
-		headerPet = Header(L["OPTIONS_PET_HEADER"], 301),
-		spacePet1 = Spacer(302),
-		descPet = Desc(GetColor("BODY") .. L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"] .. "|r", 303),
-		spacePet2 = Spacer(304),
+		spacePet0 = { type = "description", name = " ", order = 300, hidden = NoPetBuffFoods },
+		headerPet = Header(L["OPTIONS_PET_HEADER"], 301, NoPetBuffFoods),
+		spacePet1 = { type = "description", name = " ", order = 302, hidden = NoPetBuffFoods },
+		descPet = {
+			type = "description",
+			name = GetColor("BODY") .. L["OPTIONS_PET_SECTION_DESCRIPTION"] .. "|r",
+			fontSize = "medium",
+			order = 303,
+			hidden = NoPetBuffFoods,
+		},
+		spacePet2 = { type = "description", name = " ", order = 304, hidden = NoPetBuffFoods },
 		togglePetBuffs = {
 			type = "toggle",
 			name = L["OPTIONS_USE_PET_BUFFS"],
 			desc = L["OPTIONS_USE_PET_BUFFS_DESCRIPTION"],
 			order = 305,
-			width = "full",
+			width = ns.OPTIONS_LABEL_WIDTH,
+			hidden = NoPetBuffFoods,
 			get = function()
 				return PetBuffActive()
 			end,
@@ -467,7 +532,12 @@ function ns.BuildMacrosOptions()
 				ns.RequestUpdate()
 			end,
 		},
-		petBuffFoodMode = FeatureModeRow("petBuffFoodMode", L["OPTIONS_PET_HEADER"], PetBuffActive, 306),
+		petBuffFoodMode = FeatureModeSelect(
+			"petBuffFoodMode",
+			ModeDescription(L["OPTIONS_PET_HEADER"]),
+			PetBuffActive,
+			306
+		),
 		spacePetTypes0 = {
 			type = "description",
 			name = " ",
@@ -484,10 +554,7 @@ function ns.BuildMacrosOptions()
 			hidden = function()
 				return not PetBuffActive()
 			end,
-			args = {
-				petKiblers = SubsetToggle("petBuffTypes", "KiblersBits", L["OPTIONS_PET_BUFF_KIBLERS"], 1),
-				petSporeling = SubsetToggle("petBuffTypes", "SporelingSnacks", L["OPTIONS_PET_BUFF_SPORELING"], 2),
-			},
+			args = PetBuffTypeToggles(),
 		},
 
 		-- Explosives
@@ -496,24 +563,20 @@ function ns.BuildMacrosOptions()
 		spaceExplosives1 = Spacer(352),
 		descExplosives = Desc(GetColor("BODY") .. L["OPTIONS_EXPLOSIVES_DESCRIPTION"] .. "|r", 353),
 		spaceExplosives2 = Spacer(354),
-		labelExplosivesClickMode = RowLabel(
-			GetColor("TITLE") .. L["OPTIONS_EXPLOSIVES_CLICK_LAYOUT"] .. "|r",
-			355,
-			EXPLOSIVES_LABEL_WIDTH
-		),
+		labelExplosivesClickMode = RowLabel(GetColor("TITLE") .. L["OPTIONS_EXPLOSIVES_CLICK_LAYOUT"] .. "|r", 355),
 		explosivesClickMode = {
 			type = "select",
 			name = "",
 			desc = L["OPTIONS_EXPLOSIVES_CLICK_LAYOUT_DESCRIPTION"],
 			order = 356,
-			width = ns.OPTIONS_ROW_WIDTH - EXPLOSIVES_LABEL_WIDTH,
+			width = ns.OPTIONS_CONTROL_WIDTH,
 			values = {
 				atplayer = L["EXPLOSIVES_MODE_ATPLAYER"],
 				toss = L["EXPLOSIVES_MODE_TOSS"],
 			},
 			sorting = { "atplayer", "toss" },
 			get = function()
-				return ns.db.profile.explosivesClickMode or "atplayer"
+				return ns.db.profile.explosivesClickMode
 			end,
 			set = function(_, value)
 				ns.db.profile.explosivesClickMode = value
@@ -531,37 +594,38 @@ function ns.BuildMacrosOptions()
 			name = L["OPTIONS_DRUID_MACRO_HELPER"],
 			desc = L["OPTIONS_DRUID_MACRO_HELPER_DESCRIPTION"],
 			order = 503,
-			width = "full",
+			width = ns.OPTIONS_LABEL_WIDTH,
 			hidden = NotDruid,
 			get = function()
-				return ns.db and ns.db.profile and ns.db.profile.enableDruidMacroHelper
+				return DruidMacroHelperActive()
 			end,
 			set = function(_, value)
-				ns.ToggleDruidMacroHelper(value)
+				ns.ToggleMacroSetting("enableDruidMacroHelper", value)
 			end,
 		},
-		druidReturnForm = SubRow(504, DruidReturnFormHidden, {
-			SubCaption("OPTIONS_DRUID_RETURN_FORM_CAPTION"),
-			{
-				type = "select",
-				name = "",
-				desc = L["OPTIONS_DRUID_RETURN_FORM_DESCRIPTION"],
-				width = SUB_SELECT_WIDTH,
-				values = {
-					bear = L["DRUID_FORM_BEAR"],
-					cat = L["DRUID_FORM_CAT"],
-				},
-				sorting = { "bear", "cat" },
-				get = function()
-					return ns.db.profile.druidReturnForm or "bear"
-				end,
-				set = function(_, value)
-					ns.db.profile.druidReturnForm = value
-					ns.ResetMacroState()
-					ns.RequestUpdate()
-				end,
+		druidReturnForm = {
+			type = "select",
+			name = "",
+			desc = L["OPTIONS_DRUID_RETURN_FORM_DESCRIPTION"],
+			order = 504,
+			width = ns.OPTIONS_CONTROL_WIDTH,
+			hidden = function()
+				return NotDruid() or not DruidMacroHelperActive()
+			end,
+			values = {
+				bear = L["DRUID_FORM_BEAR"],
+				cat = L["DRUID_FORM_CAT"],
 			},
-		}),
+			sorting = { "bear", "cat" },
+			get = function()
+				return ns.db.profile.druidReturnForm
+			end,
+			set = function(_, value)
+				ns.db.profile.druidReturnForm = value
+				ns.ResetMacroState()
+				ns.RequestUpdate()
+			end,
+		},
 
 		--[[
 		    Rogues -- poison group per weapon slot plus Stealth Eating.
@@ -613,7 +677,7 @@ function ns.BuildMacrosOptions()
 				return ns.db and ns.db.profile and ns.db.profile.enableStealthEating
 			end,
 			set = function(_, value)
-				ns.ToggleStealthEating(value)
+				ns.ToggleMacroSetting("enableStealthEating", value)
 			end,
 		},
 
@@ -640,7 +704,7 @@ function ns.BuildMacrosOptions()
 				return ns.db and ns.db.profile and ns.db.profile.enableShadowmeldDrinking
 			end,
 			set = function(_, value)
-				ns.ToggleShadowmeldDrinking(value)
+				ns.ToggleMacroSetting("enableShadowmeldDrinking", value)
 			end,
 		},
 		toggleStealthEatingNightElf = {
@@ -654,7 +718,7 @@ function ns.BuildMacrosOptions()
 				return ns.db and ns.db.profile and ns.db.profile.enableStealthEating
 			end,
 			set = function(_, value)
-				ns.ToggleStealthEating(value)
+				ns.ToggleMacroSetting("enableStealthEating", value)
 			end,
 		},
 	}

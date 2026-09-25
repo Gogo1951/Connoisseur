@@ -21,7 +21,7 @@ local function ShouldUseDruidMacroHelper(typeName)
 	if not ns.isDruid then
 		return false
 	end
-	if not (ns.DRUID_MACRO_HELPER_TYPES and ns.DRUID_MACRO_HELPER_TYPES[typeName]) then
+	if not ns.DRUID_MACRO_HELPER_TYPES[typeName] then
 		return false
 	end
 	local settings = ns.db and ns.db.profile
@@ -64,7 +64,7 @@ local function BuildDruidMacroHelperBody(typeName, useIDs, stackIDs, formName)
 	--[[
 	    Stacked ranked /use lines, best item first — combat fallback when
 	    the best item is depleted. See BuildUseBlock in
-	    Engine.lua for the shared-cooldown reasoning.
+	    Body-Builder.lua for the shared-cooldown reasoning.
 	]]
 	local firstUse = #lines + 1
 	for _, id in ipairs(useIDs) do
@@ -93,7 +93,7 @@ local function BuildDruidMacroHelperBody(typeName, useIDs, stackIDs, formName)
 	    Drop /use lines from the bottom until the body fits — stacked
 	    Healthstone lines go first since they sit lowest, then potion
 	    fallbacks; the rank-1 potion line is never dropped. Mirrors the
-	    trim in Engine.lua.
+	    trim in Body-Builder.lua.
 	]]
 	while #body > ns.MACRO_BODY_MAX_LENGTH and #lines > firstUse + 2 do
 		table.remove(lines, #lines - 2)

@@ -55,9 +55,12 @@ ns.RegisterMacroType({
 	    competes while the scanner's live ns.allowBuffFood preference is on
 	    (setting + mode + not Well Fed + not self-targeting + not arena),
 	    and the allowBuffFood flag additionally makes the ladder prefer buff
-	    food outright when it is. Hybrids beat dedicated food on ties —
-	    one bag slot covering both needs. The winner record carries the
-	    item link that ns.bestFoodLink and the Food body hooks read.
+	    food outright when it is. While Use Conjured Food & Water First holds
+	    (ns.allowConjuredFirst), conjured food comes next, ahead of anything
+	    that restores more. Hybrids beat dedicated food on ties — one bag
+	    slot covering both needs. The winner record carries the item link,
+	    which the scanner publishes as ns.bestFoodLink for the mini-map
+	    tooltip.
 	]]
 	itemTypes = { food = true, foodwater = true },
 	accepts = function(data)
@@ -67,6 +70,7 @@ ns.RegisterMacroType({
 		return data.healthValue
 	end,
 	allowBuffFood = true,
+	allowConjuredFirst = true,
 	preferHybrid = true,
 	--[[
 	    Only the link: every field the ladder compares is filled by the

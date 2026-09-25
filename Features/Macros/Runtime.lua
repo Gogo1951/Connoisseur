@@ -10,10 +10,9 @@ local L = ns.L
 
     These are intentionally GLOBAL — macro bodies invoke them through `/run`,
     which executes in the global environment and cannot see the add-on
-    namespace. This is the documented exception to the rule that the only
-    globals are SavedVariables, slash commands, and named frames; each name
-    carries the distinctive "Connoisseur" prefix to keep collision risk
-    negligible.
+    namespace. The names a written macro body reaches through /run are among
+    the globals the house rules allow; each carries the distinctive
+    "Connoisseur" prefix to keep collision risk negligible.
 
     They are the runtime half of the macro system: the macro builders emit
     `/run ConnoisseurFire / ConnoisseurTip / ConnoisseurTipIf /
@@ -24,16 +23,17 @@ local L = ns.L
 ]]
 
 --[[
-    Transport between the /run snippet in consumable macros and the
-    UI_ERROR_MESSAGE handler in Core. The macro writes lastID and lastTime so a
-    zone-restriction error can be correlated back to its triggering item.
+    Transport between the /run snippet in consumable macros and
+    ns.OnMacroUiErrorMessage below, which Core routes UI_ERROR_MESSAGE to. The
+    macro writes lastID and lastTime so a zone-restriction error can be
+    correlated back to its triggering item.
 ]]
 local macroFireState = {}
 
 --[[
     Records the firing item with `/run ConnoisseurFire(itemID)` instead of inlining a
-    longer snippet — the saved bytes matter when stacking scroll uses against the
-    255 macro-body ceiling.
+    longer snippet: every standard body with an item in bags carries the call, so the
+    saved bytes count against the 255 macro-body ceiling in every consumable macro.
 ]]
 function ConnoisseurFire(itemID)
 	macroFireState.lastID = itemID
@@ -48,7 +48,7 @@ end
     its combat-lockdown guard, since a zone-locked potion is usually pressed
     mid-fight.
 ]]
-function ns.ReportZoneRestriction(message)
+function ns.OnMacroUiErrorMessage(message)
 	if not (macroFireState.lastTime and (GetTime() - macroFireState.lastTime) < 1.0) then
 		return
 	end
@@ -64,13 +64,7 @@ function ns.ReportZoneRestriction(message)
 	end
 
 	local itemID = macroFireState.lastID or 0
-	local link = "Item #" .. itemID
-	if itemID ~= 0 then
-		local _, itemLink = C_Item.GetItemInfo(itemID)
-		if itemLink then
-			link = itemLink
-		end
-	end
+	local link = ns.GetItemHyperlink(itemID)
 
 	ns.PrintMessage(string.format(L["MESSAGE_BUG_REPORT"], link, itemID, zone, subzone, mapID, ns.DISCORD_URL))
 	macroFireState.lastTime = 0
@@ -85,10 +79,10 @@ end
     player will never see.
 ]]
 local function ResolveTipText(key)
-	if ns.TIP_MESSAGES and ns.TIP_MESSAGES[key] then
+	if ns.TIP_MESSAGES[key] then
 		return ns.TIP_MESSAGES[key]
 	end
-	if ns.MISSING_SPELL_MESSAGE_IDS and ns.MISSING_SPELL_MESSAGE_IDS[key] then
+	if ns.MISSING_SPELL_MESSAGE_IDS[key] then
 		local name = C_Spell.GetSpellName(ns.MISSING_SPELL_MESSAGE_IDS[key])
 		if not name then
 			return nil
@@ -107,9 +101,10 @@ end
 
 --[[
     Conditional sibling of ConnoisseurTip — fires the tip only when the macro
-    conditional `condition` matches. Used by the Feed Pet macro for level-10/11
-    hunters who don't know Mend Pet yet, so right-click or in-combat clicks
-    print an explanation instead of silently doing nothing useful. We append a
+    conditional `condition` matches. The conjure block uses it for a click whose
+    spell is not learned yet, the Poisons macro for a hand with no poison, and
+    the Feed Pet macro for level-10/11 hunters who don't know Mend Pet yet, so
+    those clicks print an explanation instead of silently doing nothing useful. We append a
     sentinel " 1" so SecureCmdOptionParse returns "1" on match and nil on miss —
     clean truthy/falsy semantics regardless of how the API treats an empty
     action body.
@@ -129,7 +124,7 @@ end
     macro body from an older version still prints something sensible.
 ]]
 function ConnoisseurNoItem(typeName)
-	local config = ns.MACRO_CONFIG and ns.MACRO_CONFIG[typeName]
+	local config = ns.MACRO_CONFIG[typeName]
 	local label = config and config.label or typeName
 	ns.PrintMessage(string.format(L["MESSAGE_NO_ITEM"], label))
 end

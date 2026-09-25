@@ -28,7 +28,7 @@ local BUTTON_FONT = ns.RESTOCK_BUTTON_FONT
     apparently half-empty list days later.
 
     Held as the group's own display name rather than an index, because the list of
-    groups is derived from whatever the profile happens to contain and changes as
+    groups is derived from whatever the list happens to contain and changes as
     items are added and removed.
 ]]
 ns.restockSelectedGroup = nil
@@ -47,14 +47,12 @@ function ns.ClearRestockGroupSelection()
 end
 
 --[[
-    The pane's gold is the palette's TITLE, read from the shared numeric palette.
-    The two greys are this pane's own states -- an unselected type, and its count,
-    which sits a step quieter than its label -- and are named rather than repeated
-    as bare triples at the call sites.
+    The two greys are this pane's own states, not palette roles: an unselected
+    type, and its count, a step quieter than its label.
 ]]
 local GOLD = ns.COLORS_RGB.TITLE
-local ROW_LABEL = ns.HexToRGB("C7BDAD") -- an unselected type
-local ROW_COUNT = ns.HexToRGB("858075") -- its count, one step quieter
+local ROW_LABEL = ns.HexToRGB(ns.RESTOCKER_WINDOW_COLORS.ROW_LABEL)
+local ROW_COUNT = ns.HexToRGB(ns.RESTOCKER_WINDOW_COLORS.ROW_COUNT)
 
 local GROUP_ROW_HEIGHT = 20
 local GROUP_ROW_INSET = 8
@@ -238,7 +236,7 @@ function ns.CreateRestockGroupPane(parent, listInset, topInset)
 end
 
 --[[
-    Refill the pane from the current profile. Called by ns.UpdateRestockList, so the counts
+    Refill the pane from the current list. Called by ns.UpdateRestockList, so the counts
     and the set of categories track every add, remove and keystroke in the filter
     box without anything else having to remember to ask.
 ]]
@@ -268,7 +266,7 @@ function ns.UpdateRestockGroupPane(items, view)
 	end
 	local offset = 0
 
-	local function place(label, count, group)
+	local function Place(label, count, group)
 		local row = GetCategoryRow()
 		row.isInUse = true
 		row:SetParent(child)
@@ -280,12 +278,12 @@ function ns.UpdateRestockGroupPane(items, view)
 		offset = offset + GROUP_ROW_HEIGHT
 	end
 
-	place(L["RESTOCKER_GROUP_ALL"], total, nil)
+	Place(L["RESTOCKER_GROUP_ALL"], total, nil)
 	offset = offset + 6 -- a break under All, which is not one of the types
 
 	local selectedShown = (ns.restockSelectedGroup == nil)
 	for _, group in ipairs(groups) do
-		place(group.name, group.count, group.name)
+		Place(group.name, group.count, group.name)
 		if group.name == ns.restockSelectedGroup then
 			selectedShown = true
 		end
@@ -299,7 +297,7 @@ function ns.UpdateRestockGroupPane(items, view)
 	    filter matches none of it, and the row is still there to click away from.
 	]]
 	if not selectedShown then
-		place(ns.restockSelectedGroup, 0, ns.restockSelectedGroup)
+		Place(ns.restockSelectedGroup, 0, ns.restockSelectedGroup)
 	end
 
 	child:SetWidth(width)

@@ -5,7 +5,72 @@ local GetColor = ns.GetColor
 local Header = ns.OptionsHeader
 local Desc = ns.OptionsDesc
 local Spacer = ns.OptionsSpacer
-local SubRow, SubLabel = ns.OptionsSubRow, ns.OptionsSubLabel
+
+--------------------------------------------------------------------------------
+-- Sub-Option Rows
+--------------------------------------------------------------------------------
+
+--[[
+    A sub-option is a control that only means anything while the toggle above it
+    is on. A dropdown never takes this row: it shares its toggle's line instead
+    (the Options Layout Grid in Data/Data.lua). What remains is a dependent
+    checkbox with no line to share, such as the Restock reminder's Play Sound,
+    and it is marked two ways at once. This panel is the only one that builds
+    these rows; the helpers move to Options-Utilities.lua once a second does.
+
+    The row leads with a blank indent cell, which moves the checkbox itself.
+    Padding the label instead would indent only the caption -- AceConfig pins a
+    checkbox at the left edge of its own widget -- leaving the box lined up with
+    its parent's and the words drifting away from it.
+
+    SubLabel then colors the caption HELP silver against the parent's white, so
+    the row reads as subordinate rather than merely shifted.
+
+    The whole row is wrapped in an inline group with no name, which AceConfig
+    renders as a bare SimpleGroup -- no border, no title, no padding -- at
+    "fill" width. That wrapper is load-bearing, not decoration. Laid out flat,
+    the indent and its control are just two more widgets in the panel's flow,
+    kept together only by their widths happening to fill the line; the pair
+    after them then packs onto whatever space is left and its indent stops
+    indenting anything. A fill widget always gets a line to itself, so one group
+    per sub-option pins one row per sub-option no matter what the pane is doing.
+
+    Inside the group the controls need slack rather than an exact fit: a row
+    summing to the full pane width sits on the wrap boundary, where a pass that
+    measures a control before its width is applied tips the control onto its own
+    line and strands the indent above it.
+
+    Hiding belongs on the group, never on the controls inside it -- hiding only
+    the control would leave its indent cell behind as a blank line.
+]]
+local function SubRow(order, hidden, controls)
+	local args = {
+		indent = {
+			type = "description",
+			name = " ",
+			width = ns.OPTIONS_SUB_INDENT_WIDTH,
+			order = 1,
+		},
+	}
+
+	for index, control in ipairs(controls) do
+		control.order = index + 1
+		args["control" .. index] = control
+	end
+
+	return {
+		type = "group",
+		name = "",
+		inline = true,
+		order = order,
+		hidden = hidden,
+		args = args,
+	}
+end
+
+local function SubLabel(text)
+	return GetColor("HELP") .. text .. "|r"
+end
 
 --[[
     Speaker control beside the Play Sound toggle, matching Thanks for the Buff's
@@ -20,7 +85,7 @@ local SubRow, SubLabel = ns.OptionsSubRow, ns.OptionsSubLabel
     before turning it on is the point.
 
     Its Play Sound toggle must NOT be full-width, or the speaker is pushed onto
-    a line of its own (TFTB learned this the same way).
+    a line of its own.
 ]]
 local SOUND_ICON = "Interface\\Common\\VoiceChat-Speaker"
 local SOUND_ICON_SIZE = 18
@@ -59,14 +124,10 @@ local function PlayAlert()
 end
 
 --[[
-    Each reminder is a full-width toggle with a sub-row choosing how much it
-    says. The sub-row's cells are sized to their contents with room to spare,
-    never to the row budget (see ns.OptionsSubRow), and the dropdown keeps just
-    enough width to clear its arrow beside one-word values.
+    Each reminder is a toggle with the dropdown choosing how much it says on
+    the same line, sized like every other toggle-and-dropdown row (the Options
+    Layout Grid in Data/Data.lua) so the three rows end together.
 ]]
-local REMINDER_CAPTION_WIDTH = 1.0
-local REMINDER_MODE_WIDTH = 0.8
-
 local function ReminderModes()
 	return {
 		[ns.REMINDER_SIMPLE] = L["OPTIONS_RESTOCKER_MODE_SIMPLE"],
@@ -83,7 +144,7 @@ local function ReminderToggle(labelKey, descKey, settingKey, order, onSet)
 		name = L[labelKey],
 		desc = L[descKey],
 		order = order,
-		width = "full",
+		width = ns.OPTIONS_LABEL_WIDTH,
 		get = function()
 			local settings = GetRestockerSettings()
 			return settings and settings[settingKey]
@@ -101,41 +162,33 @@ local function ReminderToggle(labelKey, descKey, settingKey, order, onSet)
 end
 
 --[[
-    The Simple/Verbose sub-row under a reminder toggle. Hidden with the
+    The Simple/Verbose dropdown beside a reminder toggle. Hidden with the
     reminder off -- how loudly a silent reminder speaks is not a question.
 ]]
-local function ReminderModeRow(settingKey, enabledKey, order)
-	local function ReminderOff()
-		local settings = GetRestockerSettings()
-		return not (settings and settings[enabledKey])
-	end
-
-	return SubRow(order, ReminderOff, {
-		{
-			type = "description",
-			name = SubLabel(L["OPTIONS_RESTOCKER_REMIND_MODE_CAPTION"]),
-			fontSize = "medium",
-			width = REMINDER_CAPTION_WIDTH,
-		},
-		{
-			type = "select",
-			name = "",
-			desc = L["OPTIONS_RESTOCKER_REMIND_MODE_DESCRIPTION"],
-			width = REMINDER_MODE_WIDTH,
-			values = ReminderModes,
-			sorting = REMINDER_MODE_ORDER,
-			get = function()
-				local settings = GetRestockerSettings()
-				return (settings and settings[settingKey]) or ns.REMINDER_VERBOSE
-			end,
-			set = function(_, value)
-				local settings = GetRestockerSettings()
-				if settings then
-					settings[settingKey] = value
-				end
-			end,
-		},
-	})
+local function ReminderModeSelect(settingKey, enabledKey, order)
+	return {
+		type = "select",
+		name = "",
+		desc = L["OPTIONS_RESTOCKER_REMIND_MODE_DESCRIPTION"],
+		order = order,
+		width = ns.OPTIONS_CONTROL_WIDTH,
+		hidden = function()
+			local settings = GetRestockerSettings()
+			return not (settings and settings[enabledKey])
+		end,
+		values = ReminderModes,
+		sorting = REMINDER_MODE_ORDER,
+		get = function()
+			local settings = GetRestockerSettings()
+			return (settings and settings[settingKey]) or ns.REMINDER_VERBOSE
+		end,
+		set = function(_, value)
+			local settings = GetRestockerSettings()
+			if settings then
+				settings[settingKey] = value
+			end
+		end,
+	}
 end
 
 --[[
@@ -143,9 +196,9 @@ end
     their own, so they lead), then the List Builder toggle, then the window's
     auto-open behavior, then Praise.
 
-    The three reminders are peers at the top level, each a toggle with a
-    sub-row choosing how much it reports; the in-town reminder adds a second
-    sub-row for its sound.
+    The three reminders are peers at the top level, each a toggle with the
+    dropdown choosing how much it reports on the same line; the in-town
+    reminder adds a sub-row for its sound.
 ]]
 function ns.BuildRestockerOptions()
 	return {
@@ -175,15 +228,15 @@ function ns.BuildRestockerOptions()
 				"OPTIONS_RESTOCKER_REMIND_DESCRIPTION",
 				"restockReminderChat",
 				3,
-				-- Reveal or hide this reminder's sub-rows without a reopen.
+				-- Reveal or hide its dropdown and sound row without a reopen.
 				Refresh
 			),
-			modeRestockerRemind = ReminderModeRow("restockReminderMode", "restockReminderChat", 4),
+			modeRestockerRemind = ReminderModeSelect("restockReminderMode", "restockReminderChat", 4),
 
 			--[[
 			    The speaker shares this row, so the toggle takes a plain unit
 			    width -- full-width would push the speaker onto a line of its
-			    own (the same thing TFTB's DefineSoundToggle warns about).
+			    own.
 
 			    Only the in-town reminder gets a sound: it arrives while you are
 			    running around, where a chat line is easy to miss. The merchant
@@ -233,7 +286,7 @@ function ns.BuildRestockerOptions()
 				9,
 				Refresh
 			),
-			modeRestockerMerchantRemind = ReminderModeRow("merchantReminderMode", "merchantReminder", 10),
+			modeRestockerMerchantRemind = ReminderModeSelect("merchantReminderMode", "merchantReminder", 10),
 
 			spaceBank0 = Spacer(11),
 			toggleRestockerBankRemind = ReminderToggle(
@@ -243,7 +296,7 @@ function ns.BuildRestockerOptions()
 				12,
 				Refresh
 			),
-			modeRestockerBankRemind = ReminderModeRow("bankReminderMode", "bankReminder", 13),
+			modeRestockerBankRemind = ReminderModeSelect("bankReminderMode", "bankReminder", 13),
 
 			--[[
 			    The starter List Builder. Reads the same per-character flag the

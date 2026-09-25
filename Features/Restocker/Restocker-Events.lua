@@ -56,8 +56,8 @@ function ns.InitializeRestocker()
 	ns.InitRestockerEvents()
 
 	--[[
-	    The two modules with real one-time setup, called by name. A registry that
-	    walked every module looking for an init hook hid which two those were.
+	    The two modules with real one-time setup, called by name so it stays
+	    plain which two they are.
 	]]
 	ns.InitRestockBagDefinitions()
 	ns.SetupCraftingRecipes()
@@ -104,8 +104,10 @@ end
 
     The client fires MERCHANT_CLOSED and BANKFRAME_CLOSED on loading-screen
     teardown (boat crossings included) with no matching open -- and can double-fire
-    them -- so each close handler keys the reminder off its tracked open flag: a
-    _CLOSED event alone does not mean a window was ever open.
+    them -- so each close handler keys the reminder, and closing the Restock
+    window, off its tracked open flag: a _CLOSED event alone does not mean a
+    window was ever open. The Restock window then closes only if that visit
+    opened it (ns.ShowRestockWindowForVisit).
 ]]
 local SETTLE_DELAY = 0.3
 
@@ -126,7 +128,9 @@ function ns.OnRestockerMerchantClose()
 	local merchantWasOpen = ns.merchantIsOpen
 	ns.merchantIsOpen = false
 	ns.merchantBuyingSkipped = false
-	ns.HideRestockWindow()
+	if merchantWasOpen then
+		ns.HideRestockWindowAfterVisit()
+	end
 
 	local settings = ns.restockSettings
 	if settings and merchantWasOpen then
@@ -138,13 +142,15 @@ function ns.OnRestockerBankOpen()
 	ns.LoadRestockBankBags()
 
 	local settings = ns.restockSettings
+	local list = settings.lists[settings.currentList]
 
-	if IsShiftKeyDown() or settings.lists[settings.currentList] == nil then
+	-- An empty list has nothing to move, so the run would only announce a restock that never happened.
+	if IsShiftKeyDown() or list == nil or next(list) == nil then
 		return
 	end
 
 	if settings.autoOpenAtBank then
-		ns.ShowRestockWindow()
+		ns.ShowRestockWindowForVisit()
 	end
 
 	ns.bankIsOpen = true
@@ -155,7 +161,9 @@ function ns.OnRestockerBankClose()
 	local bankWasOpen = ns.bankIsOpen
 	ns.bankIsOpen = false
 	ns.StopBankRestock()
-	ns.HideRestockWindow()
+	if bankWasOpen then
+		ns.HideRestockWindowAfterVisit()
+	end
 
 	local settings = ns.restockSettings
 	if settings and bankWasOpen then
@@ -173,9 +181,9 @@ end
     still returns the PREVIOUS level during this event (see
     ns.UpgradeRestockList), so reading it here makes the ding a no-op.
 
-    Classic Era's ladders top out at level 45, so a Classic character sees this a
-    handful of times and then never again -- which is exactly what the expansion
-    flag on each tier is for.
+    Classic Era's ladders top out at level 60, so a Classic character sees this a
+    handful of times and then never again: each flavor folder holds only the tiers
+    its own client sells.
 ]]
 function ns.OnRestockerLevelUp(newLevel)
 	ns.UpgradeRestockList(newLevel)
@@ -198,12 +206,15 @@ function ns.OnRestockerUiErrorMessage(_, message)
 		--[[
 		    Matched against the client's own ERR_INV_FULL / ERR_BANK_FULL globals rather than
 		    the numeric message ids, which can renumber between client builds and would fail
-		    silently -- the same text comparison Core's dispatcher uses for ERR_ITEM_WRONG_ZONE.
+		    silently -- the same text comparison ns.OnMacroUiErrorMessage (Macros/Runtime.lua)
+		    makes for ERR_ITEM_WRONG_ZONE.
 		    Do NOT hard-stop restocking here: this error
 		    can fire on a transient race, and silently killing the whole run is what left later
 		    items untouched. The restock loop re-scans every step and stops itself with a clear
-		    message when it's genuinely out of room (see RunRestockLogic / StuckMessage). Buying,
-		    which has no such self-check, still stops.
+		    message when it's genuinely out of room (see RunRestockLogic / StuckMessage). Clearing
+		    restockBuying stops nothing already sent: a merchant run issues every purchase inside
+		    one MERCHANT_SHOW handler, before this error can arrive, which is why that run checks
+		    its own money and bag space as it goes (ns.RestockFromMerchant).
 		]]
 		ns.restockBuying = false
 	end
@@ -212,9 +223,9 @@ end
 --[[
     Core's dispatcher keeps ONE handler per event name, so anything else wanting an
     event already in this table shares the existing entry rather than adding a
-    second one. That is why the arrival check and the Starter List pop-up both
-    hang off OnEnteringWorld: the pop-up's half is called from inside that
-    handler rather than registering a second one of its own.
+    second one. That is why the arrival check, the Starter List pop-up and the
+    upgrade catch-up all hang off ns.OnRestockerEnteringWorld: each is called from
+    inside that handler rather than registering a second one of its own.
 ]]
 function ns.InitRestockerEvents()
 	ns.restockerEventHandlers = {

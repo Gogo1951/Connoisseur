@@ -47,7 +47,7 @@ end
     control instead of overflowing it.
 
     ns.restockRowHeight and ns.restockButtonHeight start at the values the fixed layout used
-    and are recomputed by ns.RefreshRestockRowMetrics once the frame exists. With the
+    and are recomputed by ns.RefreshRestockRowMetrics when the window is built. With the
     stock font the measurement lands back on exactly these numbers.
 ]]
 ns.restockRowHeight = 26
@@ -173,20 +173,21 @@ local COLUMN_PAD_X = 8 -- caption to column edge, both sides together
 local COLUMN_MIN_WIDTH = 24
 
 --[[
-    A starting width, replaced the first time the font resolves. Amount is
-    measured like every other column -- against its own caption AND against a
-    four-digit count, since the edit box under it has to hold what the caption
-    names. A fixed width truncates the heading (at 40px it reads "Am..."), so
-    this one is measured too.
+    A starting width, replaced once the font resolves (see ResolveColumns).
+    Amount is measured like every other column -- against its own caption AND
+    against a four-digit count, since the edit box under it has to hold what
+    the caption names. A fixed width truncates the heading (at 40px it reads
+    "Am..."), so this one is measured too.
 ]]
 ns.restockAmountWidth = 58
 local AMOUNT_DIGITS_SAMPLE = "8888"
 
 --[[
-    Starting widths are the English measurement, replaced the first time the font
-    resolves. Cells re-read them on every update (see UpdateRestockListRow), and
-    because each cell is anchored to its neighbour's edge rather than to a fixed
-    x, setting a new width is all it takes to reflow the whole chain.
+    Starting widths are the English measurement, replaced once the font
+    resolves (see ResolveColumns). Cells re-read them on every update (see
+    UpdateRestockListRow), and because each cell is anchored to its
+    neighbour's edge rather than to a fixed x, setting a new width is all it
+    takes to reflow the whole chain.
 ]]
 ns.restockColumnWidths = {
 	withdraw = 38,
@@ -221,7 +222,7 @@ local function MeasureColumns()
 			end
 		end
 		if width <= 0 then
-			return nil -- font not resolved yet; the next call re-measures
+			return nil -- font not resolved yet; the next list refresh measures again
 		end
 		widths[column.key] = math.max(COLUMN_MIN_WIDTH, math.ceil(width) + COLUMN_PAD_X)
 	end
@@ -253,7 +254,10 @@ local function TooltipBody(column)
 	return column.bodyText
 end
 
--- Resolve the column widths once. A cheap no-op after that.
+--[[
+    Measure the column widths. Until the font resolves this measures again on
+    every call (each list refresh makes one); a cheap no-op after that.
+]]
 local function ResolveColumns()
 	if columnsResolved then
 		return
@@ -293,7 +297,7 @@ local function FitButton(button)
 	end
 	local width = fontString:GetStringWidth()
 	if not width or width <= 0 then
-		return -- font not resolved yet; the next UpdateRestockListRow re-fits it
+		return -- font not resolved yet; the button keeps the width it already has
 	end
 	button:SetWidth(math.max(BUTTON_MIN_WIDTH, math.ceil(width) + BUTTON_PAD_X))
 	button:SetHeight(ns.restockButtonHeight)
@@ -344,18 +348,15 @@ local AMOUNT_GAP = 6 -- amount box to the remove control
 ]]
 --[[
     Every lit control in the window is the palette's TITLE gold and every plain
-    body string its TEXT white, so both are read from the shared numeric palette
-    rather than written out again here.
-
-    The greys below are not palette roles: they are this window's own UI states,
-    and each says something a palette colour does not. They live here as named
-    constants so no call site carries a bare triple.
+    body string its TEXT white. The greys below are not palette roles: they are
+    this window's own UI states, and each says something a palette colour does not.
 ]]
 local GOLD = ns.COLORS_RGB.TITLE
 local WHITE = ns.COLORS_RGB.TEXT
+local WINDOW_COLORS = ns.RESTOCKER_WINDOW_COLORS
 
-local DASH_OFF = ns.HexToRGB("7A7A7A") -- a setting that is off
-local DASH_NOT_APPLICABLE = ns.HexToRGB("474747") -- a setting that cannot apply
+local DASH_OFF = ns.HexToRGB(WINDOW_COLORS.DASH_OFF)
+local DASH_NOT_APPLICABLE = ns.HexToRGB(WINDOW_COLORS.DASH_NOT_APPLICABLE)
 --[[
     Column headings are coloured by the band they belong to, so the eye can see
     where Bank stops and Merchant starts without a rule between them. The three
@@ -380,15 +381,15 @@ local HEADER_CAPTION_UNGROUPED = ns.COLORS_RGB.TITLE -- Item, Upgrade, Amount
 
 local GROUP_TONE = {
 	RESTOCKER_ROW_BANK = {
-		label = ns.HexToRGB("39D5FF"),
-		caption = ns.HexToRGB("8BC7D8"),
+		label = ns.HexToRGB(WINDOW_COLORS.BANK_LABEL),
+		caption = ns.HexToRGB(WINDOW_COLORS.BANK_CAPTION),
 	},
 	RESTOCKER_ROW_MERCHANT = {
-		label = ns.HexToRGB("FF4FA3"),
-		caption = ns.HexToRGB("D38EAF"),
+		label = ns.HexToRGB(WINDOW_COLORS.MERCHANT_LABEL),
+		caption = ns.HexToRGB(WINDOW_COLORS.MERCHANT_CAPTION),
 	},
 }
-local REPUTATION_SET = ns.HexToRGB("D99959") -- a standing is required, amber to stand out
+local REPUTATION_SET = ns.HexToRGB(WINDOW_COLORS.REPUTATION_SET) -- amber, to stand out
 
 --[[
     Lay the cells out right to left, and hand back the leftmost one. Used by both
@@ -487,7 +488,7 @@ function ns.CreateRestockColumnHeader(parent, scrollFrame)
 	captionRow:SetPoint("BOTTOMRIGHT", header, "BOTTOMRIGHT", 0, 2)
 	captionRow:SetHeight(ns.restockButtonHeight)
 
-	local function caption(parentFrame, text, tone, width)
+	local function Caption(parentFrame, text, tone, width)
 		local fontString = parentFrame:CreateFontString(nil, "OVERLAY")
 		fontString:SetFontObject(BUTTON_FONT)
 		fontString:SetTextColor(tone.r, tone.g, tone.b)
@@ -508,7 +509,7 @@ function ns.CreateRestockColumnHeader(parent, scrollFrame)
 	removeSpacer:SetSize(REMOVE_ICON_SIZE, 1)
 	removeSpacer:SetPoint("RIGHT", captionRow, "RIGHT", -ROW_INSET, 0)
 
-	local amount = caption(captionRow, L["RESTOCKER_COLUMN_AMOUNT"], HEADER_CAPTION_UNGROUPED, ns.restockAmountWidth)
+	local amount = Caption(captionRow, L["RESTOCKER_COLUMN_AMOUNT"], HEADER_CAPTION_UNGROUPED, ns.restockAmountWidth)
 	amount:SetPoint("RIGHT", removeSpacer, "LEFT", -AMOUNT_GAP, 0)
 	header.amountCaption = amount
 
@@ -557,7 +558,7 @@ function ns.CreateRestockColumnHeader(parent, scrollFrame)
 				end
 				last = COLUMNS[j]
 			end
-			local band = caption(header, L[column.group], BAND_LABEL_TONE[column.key])
+			local band = Caption(header, L[column.group], BAND_LABEL_TONE[column.key])
 			band:SetJustifyH("CENTER")
 			band:SetPoint("LEFT", header.cells[column.key], "LEFT", 0, 0)
 			band:SetPoint("RIGHT", header.cells[last.key], "RIGHT", 0, 0)
@@ -565,7 +566,7 @@ function ns.CreateRestockColumnHeader(parent, scrollFrame)
 		end
 	end
 
-	local item = caption(captionRow, L["RESTOCKER_COLUMN_ITEM"], HEADER_CAPTION_UNGROUPED)
+	local item = Caption(captionRow, L["RESTOCKER_COLUMN_ITEM"], HEADER_CAPTION_UNGROUPED)
 	item:SetPoint("LEFT", captionRow, "LEFT", NAME_INSET, 0)
 
 	ns.restockColumnHeader = header
@@ -573,10 +574,12 @@ function ns.CreateRestockColumnHeader(parent, scrollFrame)
 end
 
 --[[
-    Re-sync the header to the current column widths. Called from ns.UpdateRestockList, which
-    is where a late measurement first shows up.
+    Re-sync the header to the current column widths, measuring first if the
+    font had not resolved when the window was built. Called from
+    ns.UpdateRestockList, which is where a late measurement first shows up.
 ]]
 function ns.RefreshRestockColumnHeader()
+	ResolveColumns()
 	local header = ns.restockColumnHeader
 	if header and header.cells then
 		ApplyColumnWidths(header.cells)

@@ -4,13 +4,9 @@ local _, ns = ...
 -- Saved Item Format
 --------------------------------------------------------------------------------
 
---[[
-    Strip a saved item down to the clean format and keep its itemID synced to its key.
-    Drops the bulky itemLink (we can always rebuild it from the itemID).
-]]
+-- Keep a saved item's itemID synced to its key.
 local function CleanItem(item, itemID)
 	item.itemID = itemID
-	item.itemLink = nil
 	return item
 end
 
@@ -25,10 +21,11 @@ end
     absent reads as each flag's own default: a line written before buyExtra
     existed reads Extra off, which is what a row that never asked for it means.
     itemType is the human-readable class from C_Item.GetItemInfo (e.g. "Consumable",
-    "Quest", "Trade Goods") and leads so the file sorts into groups. It is purely a
-    convenience label (re-derived from the itemID); only the name is used at runtime.
+    "Quest", "Trade Goods") and leads so the file sorts into groups. It also files the
+    row in the window's category pane and filter while the item itself is still cold.
     The itemID is NOT stored -- the table key IS the itemID (single source of truth).
-    Neither itemType nor itemName may contain a comma (no WoW values do).
+    A comma splits the label, so a name containing one reads back cut short; the
+    client's own name replaces it at login whenever the client knows the item.
     There is no version stamp, and none is needed: the parser also reads a line with
     no leading type, and the next save rewrites it in the current form.
 ]]
@@ -141,17 +138,21 @@ end
 --[[
     Convert every saved item to its in-memory table form (called on login). Tolerates
     tables left behind by a crash/reload and hand-edited entries; keeps itemID synced
-    to the table key and drops any stale itemLink. Idempotent.
+    to the table key. Idempotent.
 ]]
 function ns.InflateSavedRestockItems(db)
 	for _, list in pairs(db.lists or {}) do
 		for key, item in pairs(list) do
 			if type(item) == "string" then
 				local inflated = ItemFromString(item, key)
-				-- Best-effort: refresh name/type from the item cache when it's known
+				--[[
+				    Refresh name and type from the client whenever it knows the item: a
+				    saved name goes stale after a client language switch or a rename,
+				    and the merchant matches orders by name.
+				]]
 				local info = ns.GetItemData(inflated.itemID)
 				if info then
-					if inflated.itemName == "" then
+					if info.itemName and info.itemName ~= "" then
 						inflated.itemName = info.itemName
 					end
 					if info.itemType and info.itemType ~= "" then

@@ -40,43 +40,77 @@ ns.diagnostics = ns.diagnostics or { enabled = false, logging = false, log = nil
 ]]
 ns.DiagnosticsStrings = {
 	TAB = "Diagnostic Tools",
-	WARNING = "These tools help diagnose problems and are meant for developers. They won't change how the add-on works, but their output includes technical details about your client and installed add-ons. Leave this off unless you're troubleshooting with someone.",
+	WARNING = "These tools help diagnose problems and are meant for developers. While they are on, the Restock List also prints a step-by-step trace to chat during bank restocks, and their output includes technical details about your client and installed add-ons. Leave this off unless you're troubleshooting with someone.",
 	ENABLE = "Enable Diagnostic Tools",
-	ENABLE_DESCRIPTION = "Shows the diagnostic reports and the event log below until you log out or turn it off.",
+	ENABLE_DESCRIPTION = "Shows the diagnostic reports and the event log below, and turns on the Restock List's chat trace during bank restocks, until you log out or turn it off.",
 	EVENT_LOG_TITLE = "Event Log",
 	EVENT_LOG_START = "Start Event Log",
+	EVENT_LOG_START_DESC = "Starts recording the events Connoisseur receives, replacing any earlier capture.",
 	EVENT_LOG_STOP = "Stop Event Log",
+	EVENT_LOG_STOP_DESC = "Stops recording and keeps what was captured.",
 	EVENT_LOG_SHOW = "Show Captured Events",
+	EVENT_LOG_SHOW_DESC = "Shows the captured events in the box below.",
 	EVENT_LOG_HINT = "Captures the events the add-on registered for, with arguments, in the order they fired. The best tool for 'my macro didn't update' reports.",
 	EVENTS_TITLE = "Event Registration",
 	EVENTS_BUTTON = "Test Event Registration",
+	EVENTS_BUTTON_DESC = "Checks that every event Connoisseur uses exists on this client.",
 	API_TITLE = "API Endpoints",
 	API_BUTTON = "Test WoW API Endpoints",
+	API_BUTTON_DESC = "Checks that every game function Connoisseur uses exists on this client.",
 	CONTEXT_TITLE = "Connoisseur Context",
 	CONTEXT_BUTTON = "Show Connoisseur Context",
+	CONTEXT_BUTTON_DESC = "Shows your character, the items Connoisseur last picked, the spells it checks and your display settings.",
 	SELECTION_TITLE = "Item Selection",
 	SELECTION_BUTTON = "Show Selection Report",
+	SELECTION_BUTTON_DESC = "Shows what each macro picked and the ranking step that decided it.",
 	READINESS_TITLE = "Readiness Report",
 	READINESS_BUTTON = "Show Readiness Report",
+	READINESS_BUTTON_DESC = "Shows what the Readiness Report would print right now.",
 	READINESS_HINT = "Renders the Readiness Report as it would print right now, without waiting for a ready check. The tool for 'I turned a switch on and nothing happened': it tells a report that is quiet because you are ready apart from one that never ran, and lists which switches are on.",
 	SELECTION_HINT = "Shows what each macro picked and which runners-up it beat, naming the ranking step that decided each one. The tool for 'why did it choose that item?' reports. Candidates are only kept while these tools are enabled, so trigger a rescan (loot something, or change zone) after turning them on.",
 	ADDONS_TITLE = "Other Add-ons",
 	ADDONS_BUTTON = "List Installed Add-ons",
+	ADDONS_BUTTON_DESC = "Lists every installed add-on with its version and whether it is loaded.",
 	SAVED_TITLE = "Saved Variables",
 	SAVED_BUTTON = "Dump Saved Variables",
+	SAVED_BUTTON_DESC = "Shows Connoisseur's saved settings, Restock Lists included.",
 	LIBS_TITLE = "Library Versions",
 	LIBS_BUTTON = "List Library Versions",
-	VALIDATE_TITLE = "Validate Data: %s",
+	LIBS_BUTTON_DESC = "Lists every loaded shared library and its version.",
+	VALIDATE_TITLE = "Validate Data: %s/%s-%s.lua",
 	VALIDATE_BUTTON = "Validate Data",
-	VALIDATE_PROGRESS = "Validated %s / %s items...",
+	VALIDATE_BUTTON_DESC = "Checks every id in %s/%s-%s.lua against this client and builds a report you can paste into a spreadsheet.",
+	VALIDATE_PROGRESS = "Validated %s / %s IDs (batch %d of %d)...",
 	TAINT_TITLE = "Taint Log",
 	TAINT_STATE = "Taint logging is currently set to level %d (0 = off, 2 = verbose).",
 	TAINT_ON = "Turn On Taint Log",
+	TAINT_ON_DESC = "Starts writing taint details to Logs\\taint.log.",
 	TAINT_OFF = "Turn Off Taint Log",
+	TAINT_OFF_DESC = "Stops writing to the taint log.",
 	TAINT_HINT = "Writes to Logs\\taint.log. The setting persists until turned off; reload your UI to capture taint from login onward.",
 	TOOLS_TITLE = "External Tools",
 	TOOLS_ERRORS = "Lua errors: install BugSack and !BugGrabber, or enable %s to surface them.",
 	TOOLS_ETRACE = "Live event tracing: use %s.",
+	-- The Restock List's bank trace (ns.RestockerDebug), printed while these tools are on.
+	TRACE_PUT_CURSOR_ITEM = "PutCursorItem(%s) bag=%s slot=%s",
+	TRACE_PUT_CURSOR_NO_SLOT = "PutCursorItem(%s) bag=%s -- no empty slot",
+	TRACE_BANK_NO_ROOM = "PutItemInBank: no room to drop, clearing cursor",
+	TRACE_BAG_NO_ROOM = "PutItemInPlayerBag: no room to drop, clearing cursor",
+	TRACE_USE_FROM_BANK = "Use %s from bank, bag=%s, slot=%s",
+	TRACE_OVERSHOOT_FROM_BANK = "Overshoot %s from bank (split not landing), bag=%s, slot=%s",
+	TRACE_SPLIT_FROM_BANK = "Split %s from bank, bag=%s, slot=%s",
+	TRACE_BEST_FIT_NO_STACKS = "BestFit: no existing stacks for merging %s x%s",
+	TRACE_BEST_FIT_NO_CANDIDATES = "BestFit: found stacks but no candidates for merging %s x%s",
+	TRACE_BEST_FIT_CANDIDATE = "BestFit: candidate for merging %s x%s is %s:%s",
+	TRACE_CURSOR_FOREIGN_ITEM = "Cursor holds an item we do not maintain, waiting (%d/%d)",
+	TRACE_TOO_MANY = "Too many %s in bag (%d need %d)",
+	TRACE_TOO_FEW = "Too few %s in bag (%d need %d)",
+	TRACE_CONSOLIDATE = "Consolidate %s: %d from %s:%s -> %s:%s",
+	TRACE_TOP_OFF = "Top off %s: %d from %s:%s -> %s:%s",
+	TRACE_MERCHANT_OPEN = "Merchant open -- aborting bank restock so UseContainerItem can never sell",
+	TRACE_IN_TRANSIT = "%s in transit (bag+bank %d, was %d), waiting",
+	TRACE_CREATE_COROUTINE = "Maintain: create coro",
+	TRACE_COROUTINE_RUNNING = "Maintain: coro running",
 }
 
 --------------------------------------------------------------------------------
@@ -97,14 +131,15 @@ end
 local function GetClientHeader()
 	local version, build, _, tocVersion = GetBuildInfo()
 	return string.format(
-		"%s %s // Client %s // Build %s // TOC %s // Locale %s // Project %s",
+		"%s %s // Client %s // Build %s // TOC %s // Locale %s // Flavor %s // Data %s",
 		L["ADDON_TITLE"],
 		ns.Version,
 		version,
 		build,
 		tocVersion,
 		GetLocale(),
-		tostring(WOW_PROJECT_ID)
+		tostring(ns.FLAVOR),
+		tostring(ns.DATA_FOLDER)
 	)
 end
 
@@ -132,7 +167,7 @@ local EVENT_LOG_MAX_ARG_LENGTH = 255
     runs from Core's dispatcher BEFORE the real handler, so at that moment
     nothing yet knows whether this particular aura change moved anything the
     add-on tracks. Its signal firings are therefore logged from the other end --
-    ns.HandleUnitAura (Features/Scanner-Character.lua) calls ns.LogEventNow once
+    ns.OnUnitAura (Features/Scanner-Auras.lua) calls ns.LogEventNow once
     it has decided something changed, so a stale-macro report shows the aura
     change that preceded the rebuild in full, with the rest of the traffic
     counted beneath it.
@@ -170,8 +205,8 @@ ns.MESSAGE_ID_FILTERED_EVENTS = {
 --[[
     The log's allowlist: the messages this add-on actually acts on. Every entry
     is the exact global its live handler compares against -- ERR_ITEM_WRONG_ZONE
-    (ns.ReportZoneRestriction, Macros/Runtime.lua), SPELL_FAILED_TARGETS_DEAD
-    (ns.HandleHunterPetError, Macros/Tools-Hunters.lua), and ERR_INV_FULL /
+    (ns.OnMacroUiErrorMessage, Macros/Runtime.lua), SPELL_FAILED_TARGETS_DEAD
+    (ns.OnHunterUiErrorMessage, Macros/Tools-Hunters.lua), and ERR_INV_FULL /
     ERR_BANK_FULL (ns.OnRestockerUiErrorMessage, Restocker/Restocker-Events.lua) -- read
     live on every call and never persisted, so the filter cannot drift from the
     handlers and start making the log lie about what fired.
@@ -276,6 +311,11 @@ end
     verbatim in the report editbox rather than rendering as a clickable item
     swatch. Escaping last also means the cut can never leave a dangling pipe that
     would eat the following ", " separator.
+
+    A secret argument (Forever, while the client restricts the data, e.g. a
+    cast's spell ID mid-fight) is written as <secret> before any string work
+    touches it: this tap runs ahead of every handler, and string work on a
+    secret value can throw or hand back another secret.
 ]]
 local function AppendLogEntry(event, ...)
 	local log = ns.diagnostics.log
@@ -287,8 +327,13 @@ local function AppendLogEntry(event, ...)
 		if index > EVENT_LOG_MAX_ARGS then
 			break
 		end
-		local raw = string.sub(tostring((select(index, ...))), 1, EVENT_LOG_MAX_ARG_LENGTH)
-		parts[index] = (raw:gsub("|", "||"))
+		local value = (select(index, ...))
+		if ns.IsSecretValue(value) then
+			parts[index] = "<secret>"
+		else
+			local raw = string.sub(tostring(value), 1, EVENT_LOG_MAX_ARG_LENGTH)
+			parts[index] = (raw:gsub("|", "||"))
+		end
 	end
 	log[#log + 1] = string.format("%.3f %s(%s)", GetTime(), event, table.concat(parts, ", "))
 	if #log > EVENT_LOG_SIZE then
@@ -467,11 +512,24 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(C_AddOns) == "table" and type(C_AddOns.GetNumAddOns) == "function"
 		end,
 	},
+	{
+		"C_AddOns.IsAddOnLoaded",
+		function()
+			return type(C_AddOns) == "table" and type(C_AddOns.IsAddOnLoaded) == "function"
+		end,
+	},
+	-- Decides Season of Discovery's data folder (Data/Flavor.lua), which is only ever asked on Classic Era.
+	{
+		"C_Seasons.GetActiveSeason (Classic Era only)",
+		function()
+			return type(C_Seasons) == "table" and type(C_Seasons.GetActiveSeason) == "function"
+		end,
+	},
 	--[[
 	    C_Container is the container surface on all three target clients, so both
 	    readers are probed there and nowhere else. Neither carries a legacy
 	    fallback nor may be given one, so there is no legacy row to pair with
-	    either (see the container shims in Utilities).
+	    either.
 	]]
 	{
 		"C_Container.GetContainerNumSlots",
@@ -506,8 +564,8 @@ ns.DIAGNOSTIC_API_CHECKS = {
 	},
 	--[[
 	    A frame method, read off UIParent because every frame shares one
-	    metatable. The Restocker window's resize grip uses SetResizeBounds; if
-	    this row FAILs the window still opens, it just cannot be resized.
+	    metatable. The Restocker window calls SetResizeBounds unconditionally as
+	    it is built, so a FAIL here means that window errors when it opens.
 	]]
 	{
 		"Frame:SetResizeBounds",
@@ -552,21 +610,9 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	{
-		"GetItemCount (legacy)",
-		function()
-			return type(GetItemCount) == "function"
-		end,
-	},
-	{
 		"C_Item.GetItemIconByID",
 		function()
 			return type(C_Item) == "table" and type(C_Item.GetItemIconByID) == "function"
-		end,
-	},
-	{
-		"GetItemIcon (legacy)",
-		function()
-			return type(GetItemIcon) == "function"
 		end,
 	},
 	{
@@ -595,14 +641,81 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	--[[
-	    Guarded in ns.WarmItemCache (Options/Options-Utilities.lua): without it
-	    an options item list can only show ids the client already cached, so the
+	    Called by ns.WarmItemCache (Options/Options-Utilities.lua): without it an
+	    options item list can only show ids the client already cached, so the
 	    rows sit on their loading text until something else pulls the data.
 	]]
 	{
 		"C_Item.RequestLoadItemDataByID",
 		function()
 			return type(C_Item) == "table" and type(C_Item.RequestLoadItemDataByID) == "function"
+		end,
+	},
+	-- Validate Data's other item columns.
+	{
+		"C_Item.GetItemSpell",
+		function()
+			return type(C_Item) == "table" and type(C_Item.GetItemSpell) == "function"
+		end,
+	},
+	{
+		"C_Item.GetItemInventoryTypeByID",
+		function()
+			return type(C_Item) == "table" and type(C_Item.GetItemInventoryTypeByID) == "function"
+		end,
+	},
+	{
+		"C_Item.GetItemUniquenessByID",
+		function()
+			return type(C_Item) == "table" and type(C_Item.GetItemUniquenessByID) == "function"
+		end,
+	},
+	{
+		"C_Item.GetDetailedItemLevelInfo",
+		function()
+			return type(C_Item) == "table" and type(C_Item.GetDetailedItemLevelInfo) == "function"
+		end,
+	},
+	{
+		"C_Item.GetItemSetInfo",
+		function()
+			return type(C_Item) == "table" and type(C_Item.GetItemSetInfo) == "function"
+		end,
+	},
+	{
+		"C_Item.IsConsumableItem",
+		function()
+			return type(C_Item) == "table" and type(C_Item.IsConsumableItem) == "function"
+		end,
+	},
+	{
+		"C_Item.IsEquippableItem",
+		function()
+			return type(C_Item) == "table" and type(C_Item.IsEquippableItem) == "function"
+		end,
+	},
+	{
+		"C_Item.IsHelpfulItem",
+		function()
+			return type(C_Item) == "table" and type(C_Item.IsHelpfulItem) == "function"
+		end,
+	},
+	{
+		"C_Item.IsHarmfulItem",
+		function()
+			return type(C_Item) == "table" and type(C_Item.IsHarmfulItem) == "function"
+		end,
+	},
+	{
+		"C_Item.ItemHasRange",
+		function()
+			return type(C_Item) == "table" and type(C_Item.ItemHasRange) == "function"
+		end,
+	},
+	{
+		"C_Item.IsUsableItem",
+		function()
+			return type(C_Item) == "table" and type(C_Item.IsUsableItem) == "function"
 		end,
 	},
 	{
@@ -718,11 +831,34 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(GetMerchantItemInfo) == "function"
 		end,
 	},
+	--[[
+	    The level cap behind the Leveling and Max Level modes (ns.GetMaxPlayerLevel
+	    in Utilities), the smaller of these two, which all three clients ship.
+	    Show Connoisseur Context prints what each one answers.
+	]]
+	{
+		"GetMaxPlayerLevel",
+		function()
+			return type(GetMaxPlayerLevel) == "function"
+		end,
+	},
+	{
+		"GetMaxLevelForPlayerExpansion",
+		function()
+			return type(GetMaxLevelForPlayerExpansion) == "function"
+		end,
+	},
 	-- Forever's bank is its purchased tabs; Era and TBC read BANK_CONTAINER and the bank bags instead.
 	{
 		"C_Bank.FetchPurchasedBankTabIDs",
 		function()
 			return type(C_Bank) == "table" and type(C_Bank.FetchPurchasedBankTabIDs) == "function"
+		end,
+	},
+	{
+		"BANK_CONTAINER (legacy)",
+		function()
+			return type(BANK_CONTAINER) == "number"
 		end,
 	},
 	{
@@ -743,15 +879,22 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(C_Secrets) == "table" and type(C_Secrets.CanCompareUnitTokens) == "function"
 		end,
 	},
+	-- Behind ns.IsSecretValue, which answers false where it FAILs (Era and TBC).
+	{
+		"issecretvalue",
+		function()
+			return type(issecretvalue) == "function"
+		end,
+	},
 	--[[
 	    The Readiness Report's surface. Every one of these is reached only when
-	    its own switch is on, so a missing one takes a whole line of the report
-	    down and nothing else -- and does it silently, since a client with
+	    its own switch is on, and nothing isolates a probe, so a missing one
+	    stops the whole report -- and does it silently, since a client with
 	    scriptErrors off swallows the error. A FAIL here is the fastest
 	    explanation for "I turned that on and the report went quiet". The
 	    exceptions are GetNumTalentTabs and UnitCharacterPoints, which the
-	    probes check before calling: they FAIL on Forever as expected, and their
-	    lines simply never show there.
+	    probes reach through ns accessors that answer nil where the client lacks
+	    them: they FAIL on Forever as expected, and their lines never show there.
 	]]
 	{
 		"GetWeaponEnchantInfo",
@@ -796,23 +939,18 @@ ns.DIAGNOSTIC_API_CHECKS = {
 			return type(UnitIsPVP) == "function"
 		end,
 	},
+	-- Not the report's alone: every feature reads spell names through this.
 	{
 		"C_Spell.GetSpellName",
 		function()
 			return type(C_Spell) == "table" and type(C_Spell.GetSpellName) == "function"
 		end,
 	},
-	-- Validate Data reads each of these through C_Spell when the client has it, the legacy global otherwise.
+	-- Validate Data reads spells through these.
 	{
 		"C_Spell.GetSpellInfo",
 		function()
 			return type(C_Spell) == "table" and type(C_Spell.GetSpellInfo) == "function"
-		end,
-	},
-	{
-		"GetSpellInfo (legacy)",
-		function()
-			return type(GetSpellInfo) == "function"
 		end,
 	},
 	{
@@ -822,9 +960,118 @@ ns.DIAGNOSTIC_API_CHECKS = {
 		end,
 	},
 	{
-		"GetSpellSubtext (legacy)",
+		"C_Spell.DoesSpellExist",
 		function()
-			return type(GetSpellSubtext) == "function"
+			return type(C_Spell) == "table" and type(C_Spell.DoesSpellExist) == "function"
+		end,
+	},
+	{
+		"C_Spell.RequestLoadSpellData",
+		function()
+			return type(C_Spell) == "table" and type(C_Spell.RequestLoadSpellData) == "function"
+		end,
+	},
+	{
+		"C_Spell.IsSpellDataCached",
+		function()
+			return type(C_Spell) == "table" and type(C_Spell.IsSpellDataCached) == "function"
+		end,
+	},
+	{
+		"C_Spell.GetSpellDescription",
+		function()
+			return type(C_Spell) == "table" and type(C_Spell.GetSpellDescription) == "function"
+		end,
+	},
+	{
+		"C_Spell.GetSpellPowerCost",
+		function()
+			return type(C_Spell) == "table" and type(C_Spell.GetSpellPowerCost) == "function"
+		end,
+	},
+	{
+		"C_Spell.GetSpellLink",
+		function()
+			return type(C_Spell) == "table" and type(C_Spell.GetSpellLink) == "function"
+		end,
+	},
+	{
+		"C_Spell.GetSpellLevelLearned",
+		function()
+			return type(C_Spell) == "table" and type(C_Spell.GetSpellLevelLearned) == "function"
+		end,
+	},
+	{
+		"C_Spell.GetSpellMaxCumulativeAuraApplications",
+		function()
+			return type(C_Spell) == "table" and type(C_Spell.GetSpellMaxCumulativeAuraApplications) == "function"
+		end,
+	},
+	{
+		"C_Spell.IsSpellPassive",
+		function()
+			return type(C_Spell) == "table" and type(C_Spell.IsSpellPassive) == "function"
+		end,
+	},
+	{
+		"C_Spell.IsSpellHelpful",
+		function()
+			return type(C_Spell) == "table" and type(C_Spell.IsSpellHelpful) == "function"
+		end,
+	},
+	{
+		"C_Spell.IsSpellHarmful",
+		function()
+			return type(C_Spell) == "table" and type(C_Spell.IsSpellHarmful) == "function"
+		end,
+	},
+	{
+		"C_Spell.SpellHasRange",
+		function()
+			return type(C_Spell) == "table" and type(C_Spell.SpellHasRange) == "function"
+		end,
+	},
+	{
+		"C_Spell.IsSelfBuff",
+		function()
+			return type(C_Spell) == "table" and type(C_Spell.IsSelfBuff) == "function"
+		end,
+	},
+	{
+		"C_Spell.IsConsumableSpell",
+		function()
+			return type(C_Spell) == "table" and type(C_Spell.IsConsumableSpell) == "function"
+		end,
+	},
+	--[[
+	    Validate Data's tooltip text (ns.GetItemTooltipLines and
+	    ns.GetSpellTooltipLines in Utilities): Forever reads the C_TooltipInfo
+	    pair, and Era and TBC the hidden tooltip's setters, read off
+	    GameTooltip. Forever passes both, since its tooltips are built from
+	    that same data.
+	]]
+	{
+		"C_TooltipInfo.GetItemByID",
+		function()
+			return type(C_TooltipInfo) == "table" and type(C_TooltipInfo.GetItemByID) == "function"
+		end,
+	},
+	{
+		"C_TooltipInfo.GetSpellByID",
+		function()
+			return type(C_TooltipInfo) == "table" and type(C_TooltipInfo.GetSpellByID) == "function"
+		end,
+	},
+	{
+		"GameTooltip:SetItemByID",
+		function()
+			return type(GameTooltip.SetItemByID) == "function"
+		end,
+	},
+	{
+		"GameTooltip:SetSpellByID",
+		function()
+			return type(GameTooltip.SetSpellByID) == "function"
 		end,
 	},
 	{
@@ -953,22 +1200,22 @@ end
 ]]
 ns.DIAGNOSTIC_SPELLS = {
 	-- { spellID, label }
-	{ 587, "Conjure Food (Rank 1)" },
-	{ 5504, "Conjure Water (Rank 1)" },
-	{ 759, "Conjure Mana Agate" },
-	{ 43987, "Ritual of Refreshment" },
-	{ 6201, "Create Healthstone (Minor)" },
-	{ 693, "Create Soulstone (Minor)" },
-	{ 29893, "Ritual of Souls" },
-	{ 883, "Call Pet" },
-	{ 6991, "Feed Pet" },
-	{ 136, "Mend Pet" },
-	{ 982, "Revive Pet" },
-	{ 2641, "Dismiss Pet" },
-	{ 20580, "Shadowmeld" },
-	{ 2842, "Poisons" },
-	{ 1784, "Stealth" },
-	{ 20222, "Goblin Engineer" },
+	{ ns.MISSING_SPELL_MESSAGE_IDS.noConjureFood, "Conjure Food (Rank 1)" },
+	{ ns.MISSING_SPELL_MESSAGE_IDS.noConjureWater, "Conjure Water (Rank 1)" },
+	{ ns.MISSING_SPELL_MESSAGE_IDS.noConjureManaGem, "Conjure Mana Agate" },
+	{ ns.MISSING_SPELL_MESSAGE_IDS.noRitualOfRefreshment, "Ritual of Refreshment" },
+	{ ns.MISSING_SPELL_MESSAGE_IDS.noCreateHealthstone, "Create Healthstone (Minor)" },
+	{ ns.MISSING_SPELL_MESSAGE_IDS.noCreateSoulstone, "Create Soulstone (Minor)" },
+	{ ns.MISSING_SPELL_MESSAGE_IDS.noRitualOfSouls, "Ritual of Souls" },
+	{ ns.CALL_PET_SPELL_ID, "Call Pet" },
+	{ ns.FEED_PET_SPELL_ID, "Feed Pet" },
+	{ ns.MEND_PET_SPELL_ID, "Mend Pet" },
+	{ ns.REVIVE_PET_SPELL_ID, "Revive Pet" },
+	{ ns.DISMISS_PET_SPELL_ID, "Dismiss Pet" },
+	{ ns.SHADOWMELD_SPELL_ID, "Shadowmeld" },
+	{ ns.POISONS_SPELL_ID, "Poisons" },
+	{ ns.STEALTH_SPELL_ID, "Stealth" },
+	{ ns.GOBLIN_ENGINEER_SPELL_ID, "Goblin Engineer" },
 }
 
 function ns.BuildContextReport()
@@ -981,6 +1228,14 @@ function ns.BuildContextReport()
 		tostring(UnitLevel("player")),
 		tostring(ns.cachedPlayerLevel),
 		tostring(ns.cachedMapID)
+	)
+
+	-- The cap the Leveling and Max Level modes compare against, and what each reader answers.
+	lines[#lines + 1] = string.format(
+		"Max level: %s // GetMaxPlayerLevel: %s // GetMaxLevelForPlayerExpansion: %s",
+		tostring(ns.GetMaxPlayerLevel()),
+		tostring(GetMaxPlayerLevel and GetMaxPlayerLevel()),
+		tostring(GetMaxLevelForPlayerExpansion and GetMaxLevelForPlayerExpansion())
 	)
 
 	-- The profession ranks the scanner's usability gates read (0 = unlearned).
@@ -1039,15 +1294,18 @@ function ns.BuildContextReport()
 	lines[#lines + 1] = "-- Spell knowledge --"
 	for _, entry in ipairs(ns.DIAGNOSTIC_SPELLS) do
 		local spellID, label = entry[1], entry[2]
-		local known = ns.IsSpellKnown(spellID) or ns.IsPlayerSpell(spellID)
-		local name = C_Spell.GetSpellName(spellID)
-		lines[#lines + 1] = string.format(
-			"[%s] %s (%d)%s",
-			known and "KNOWN" or "  -  ",
-			label,
-			spellID,
-			name and (" = " .. name) or " (no name on this client)"
-		)
+		-- A spell this client's data folder doesn't carry has a nil ID and gets no line.
+		if spellID then
+			local known = ns.IsSpellKnown(spellID) or ns.IsPlayerSpell(spellID)
+			local name = C_Spell.GetSpellName(spellID)
+			lines[#lines + 1] = string.format(
+				"[%s] %s (%d)%s",
+				known and "KNOWN" or "  -  ",
+				label,
+				spellID,
+				name and (" = " .. name) or " (no name on this client)"
+			)
+		end
 	end
 
 	lines[#lines + 1] = ""
@@ -1142,6 +1400,7 @@ function ns.BuildSelectionReport()
 	end
 
 	lines[#lines + 1] = string.format("allowBuffFood (live scan preference): %s", tostring(ns.allowBuffFood))
+	lines[#lines + 1] = string.format("allowConjuredFirst (live scan preference): %s", tostring(ns.allowConjuredFirst))
 	if not retained then
 		lines[#lines + 1] = ""
 		lines[#lines + 1] =
@@ -1240,13 +1499,21 @@ function ns.BuildReadinessDiagnosticReport()
 	lines[#lines + 1] = ""
 	lines[#lines + 1] = "-- What it would print now --"
 
-	local body = ns.BuildReadinessLines(select(2, IsInInstance()) == "arena")
-	if not body then
-		lines[#lines + 1] = "(nothing -- this character has nothing the report would name)"
+	-- The report walks auras, and on Forever a restricted aura read throws.
+	if C_Secrets.ShouldAurasBeSecret() then
+		lines[#lines + 1] = "(aura data is restricted right now -- run this report again out of combat)"
 	else
-		lines[#lines + 1] = ns.L["READINESS_TITLE"]
-		for _, line in ipairs(body) do
-			lines[#lines + 1] = line
+		-- A probe that throws must still leave a report, or this button shows nothing at all.
+		local ok, body = pcall(ns.BuildReadinessLines, select(2, IsInInstance()) == "arena")
+		if not ok then
+			lines[#lines + 1] = "ERROR: " .. tostring(body)
+		elseif not body then
+			lines[#lines + 1] = "(nothing -- this character has nothing the report would name)"
+		else
+			lines[#lines + 1] = ns.L["READINESS_TITLE"]
+			for _, line in ipairs(body) do
+				lines[#lines + 1] = line
+			end
 		end
 	end
 
@@ -1273,7 +1540,13 @@ function ns.BuildAddOnReport()
 	for index = 1, count do
 		local name, _, _, loadable = getInfo(index)
 		local version = getMetadata(index, "Version") or "?"
-		lines[#lines + 1] = string.format("%s v%s [%s]", name, version, loadable and "loadable" or "disabled")
+		lines[#lines + 1] = string.format(
+			"%s v%s [%s, %s]",
+			name,
+			version,
+			loadable and "loadable" or "disabled",
+			C_AddOns.IsAddOnLoaded(name) and "loaded" or "not loaded"
+		)
 	end
 	return table.concat(lines, "\n")
 end
@@ -1283,22 +1556,13 @@ end
 --------------------------------------------------------------------------------
 
 --[[
-    Tables counted rather than printed, because they run to hundreds of rows and
-    a report has to stay readable (see DATA -- large arrays are described, not
-    reproduced).
-
-    itemCache is matched by key at any depth, since under AceDB it moves around
-    with the active profile. The restock lists are matched by the exact path
-    their container sits at, so no other table that happens to share the key
-    is ever summarized -- AceDB's own profiles table, one level up, must print
-    in full, since it holds the settings a bug report is about.
+    Every row the player can edit prints in full, since those rows are what
+    explain a bug. Only what the add-on fills in itself is counted instead:
+    itemCache, the derived consumable cache, matched by key at any depth, since
+    under AceDB it moves around with the active profile.
 ]]
 local SUMMARIZED_BY_KEY = {
 	itemCache = "cached items",
-}
-
-local SUMMARIZED_CHILDREN_BY_PATH = {
-	["global.restocker.lists"] = "items",
 }
 
 local function CountEntries(value)
@@ -1309,12 +1573,11 @@ local function CountEntries(value)
 	return count
 end
 
-local function DumpTable(value, indent, depth, lines, path)
+local function DumpTable(value, indent, depth, lines)
 	if depth > 8 then
 		lines[#lines + 1] = indent .. "<max depth>"
 		return
 	end
-	local childNoun = SUMMARIZED_CHILDREN_BY_PATH[path]
 	local keys = {}
 	for key in pairs(value) do
 		keys[#keys + 1] = key
@@ -1324,15 +1587,14 @@ local function DumpTable(value, indent, depth, lines, path)
 	end)
 	for _, key in ipairs(keys) do
 		local entry = value[key]
-		local noun = type(entry) == "table" and (childNoun or SUMMARIZED_BY_KEY[key])
+		local noun = type(entry) == "table" and SUMMARIZED_BY_KEY[key]
 		if type(entry) ~= "table" then
 			lines[#lines + 1] = indent .. tostring(key) .. " = " .. tostring(entry)
 		elseif noun then
 			lines[#lines + 1] = indent .. tostring(key) .. string.format(" = <%d %s>", CountEntries(entry), noun)
 		else
 			lines[#lines + 1] = indent .. tostring(key) .. " = {"
-			local childPath = (path == "") and tostring(key) or (path .. "." .. tostring(key))
-			DumpTable(entry, indent .. "    ", depth + 1, lines, childPath)
+			DumpTable(entry, indent .. "    ", depth + 1, lines)
 			lines[#lines + 1] = indent .. "}"
 		end
 	end
@@ -1344,13 +1606,11 @@ function ns.BuildSavedVariablesReport()
 	--[[
 	    Dump the single AceDB-managed SavedVariable in its real on-disk shape
 	    (profiles / global / profileKeys). Everything the add-on saves is in
-	    here, the Restock Lists included. DumpTable counts rather than prints the
-	    two tables that run long -- any itemCache it meets, and each restock list
-	    under global.restocker.lists -- so the report stays readable, and it
-	    never writes.
+	    here, the Restock Lists included, row by row. DumpTable counts only the
+	    derived itemCache rather than printing it, and it never writes.
 	]]
 	lines[#lines + 1] = "ConnoisseurDB = {"
-	DumpTable(ConnoisseurDB or {}, "    ", 1, lines, "")
+	DumpTable(ConnoisseurDB or {}, "    ", 1, lines)
 	lines[#lines + 1] = "}"
 
 	return table.concat(lines, "\n")
@@ -1393,6 +1653,11 @@ local function Values(source)
 	return ids
 end
 
+-- A single-ID constant: the value on ns is the ID itself.
+local function Self(id)
+	return { id }
+end
+
 -- One field of every row, by index for row arrays and by name for keyed rows.
 local function Column(field)
 	return function(source)
@@ -1404,15 +1669,15 @@ local function Column(field)
 	end
 end
 
--- Named fields of one table, for the single-ID constants.
-local function Named(fields)
-	return function(source)
-		local ids = {}
-		for _, field in ipairs(fields) do
-			ids[#ids + 1] = source[field]
+-- Every ID in a table whose values are lists of IDs.
+local function ListValues(source)
+	local ids = {}
+	for _, list in pairs(source) do
+		for _, id in ipairs(list) do
+			ids[#ids + 1] = id
 		end
-		return ids
 	end
+	return ids
 end
 
 local function UpgradeTierItems(chains)
@@ -1468,251 +1733,194 @@ local function ConjureSpellIDs(conjureSpells)
 end
 
 --[[
-    ns.CONJURED_ITEM_IDS_BY_SPELL is filled by both Healthstones.lua and
-    Mana-Gems.lua. A row belongs to Healthstones when it conjures a Healthstone
-    and to Mana Gems otherwise, so every row is validated exactly once.
-]]
-local function ConjuresHealthstone(itemIDs)
-	for _, itemID in ipairs(itemIDs) do
-		if ns.RAW_DATA.Healthstone[itemID] then
-			return true
-		end
-	end
-	return false
-end
-
-local function ConjureRows(healthstones, readRow)
-	return function(conjured)
-		local ids = {}
-		for spellID, itemIDs in pairs(conjured) do
-			if ConjuresHealthstone(itemIDs) == healthstones then
-				readRow(ids, spellID, itemIDs)
-			end
-		end
-		return ids
-	end
-end
-
-local function AddConjureSpell(ids, spellID)
-	ids[#ids + 1] = spellID
-end
-
-local function AddConjuredItems(ids, _, itemIDs)
-	for _, itemID in ipairs(itemIDs) do
-		ids[#ids + 1] = itemID
-	end
-end
-
---[[
-    Every spell and item ID the Data/ files ship, one entry per file. Each table
-    names its source, whether its IDs are items or spells, and idsOf, which
-    returns the IDs to validate. A data file missing from here is one the
-    validator never checks.
+    One entry per file in the flavor folders, labeled by the table part of its
+    file name; the panel titles each section with the folder this client loaded
+    (ns.DATA_FOLDER). Every table is named by its key on ns, never held as a
+    reference, so a table this client's folder never built reports TABLE MISSING
+    instead of throwing. kind is "spell" or "item" for IDs the client can look
+    up, or "other" for IDs no client API reads, which report their row count;
+    idsOf returns the IDs to validate. A folder file missing from here is one
+    the validator never checks.
 ]]
 ns.DIAGNOSTIC_DATA_SOURCES = {
+	-- { label, tables = { { table = <key on ns>, kind, idsOf } } }
 	{
-		label = "Bandages.lua",
+		label = "Bandages",
 		tables = {
-			{ name = "ns.RAW_DATA.Bandage", source = ns.RAW_DATA.Bandage, kind = "item", idsOf = Keys },
+			{ table = "BANDAGES", kind = "item", idsOf = Keys },
 		},
 	},
 	{
-		label = "Consumable-Upgrade-Paths.lua",
+		label = "Conjure-Spells",
 		tables = {
-			{
-				name = "ns.CONSUMABLE_UPGRADE_CHAINS",
-				source = ns.CONSUMABLE_UPGRADE_CHAINS,
-				kind = "item",
-				idsOf = UpgradeTierItems,
-			},
+			{ table = "CONJURE_SPELLS", kind = "spell", idsOf = ConjureSpellIDs },
+			{ table = "MISSING_SPELL_MESSAGE_IDS", kind = "spell", idsOf = Values },
 		},
 	},
 	{
-		label = "Elixirs.lua",
+		label = "Conjured-Items",
 		tables = {
-			{ name = "ns.FLASK_BUFF_IDS", source = ns.FLASK_BUFF_IDS, kind = "spell", idsOf = Keys },
-			{ name = "ns.ELIXIR_BUFF_IDS", source = ns.ELIXIR_BUFF_IDS, kind = "spell", idsOf = Keys },
+			{ table = "CONJURED_ITEM_IDS_BY_SPELL", kind = "spell", idsOf = Keys },
+			{ table = "CONJURED_ITEM_IDS_BY_SPELL", kind = "item", idsOf = ListValues },
 		},
 	},
 	{
-		label = "Explosives.lua",
+		label = "Consumable-Upgrade-Paths",
 		tables = {
-			{ name = "ns.RAW_DATA.Explosives", source = ns.RAW_DATA.Explosives, kind = "item", idsOf = Keys },
-			{
-				name = "ns.RAW_DATA.Explosives (required spell)",
-				source = ns.RAW_DATA.Explosives,
-				kind = "spell",
-				idsOf = Column(4),
-			},
+			{ table = "CONSUMABLE_UPGRADE_CHAINS", kind = "item", idsOf = UpgradeTierItems },
 		},
 	},
 	{
-		label = "Food-and-Water.lua",
+		label = "Elixirs",
 		tables = {
-			{ name = "ns.RAW_DATA.FoodAndWater", source = ns.RAW_DATA.FoodAndWater, kind = "item", idsOf = Keys },
+			{ table = "FLASK_BUFF_IDS", kind = "spell", idsOf = Keys },
+			{ table = "ELIXIR_BUFF_IDS", kind = "spell", idsOf = Keys },
 		},
 	},
 	{
-		label = "Healthstones.lua",
+		label = "Explosives",
 		tables = {
-			{ name = "ns.RAW_DATA.Healthstone", source = ns.RAW_DATA.Healthstone, kind = "item", idsOf = Keys },
-			{
-				name = "ns.CONJURED_ITEM_IDS_BY_SPELL",
-				source = ns.CONJURED_ITEM_IDS_BY_SPELL,
-				kind = "spell",
-				idsOf = ConjureRows(true, AddConjureSpell),
-			},
-			{
-				name = "ns.CONJURED_ITEM_IDS_BY_SPELL",
-				source = ns.CONJURED_ITEM_IDS_BY_SPELL,
-				kind = "item",
-				idsOf = ConjureRows(true, AddConjuredItems),
-			},
+			{ table = "EXPLOSIVES", kind = "item", idsOf = Keys },
+			{ table = "EXPLOSIVES", kind = "spell", idsOf = Column(4) },
 		},
 	},
 	{
-		label = "Mana-Gems.lua",
+		label = "Food-and-Water",
 		tables = {
-			{ name = "ns.RAW_DATA.ManaGem", source = ns.RAW_DATA.ManaGem, kind = "item", idsOf = Keys },
-			{ name = "ns.RAW_DATA.ManaRune", source = ns.RAW_DATA.ManaRune, kind = "item", idsOf = Keys },
-			{
-				name = "ns.CONJURED_ITEM_IDS_BY_SPELL",
-				source = ns.CONJURED_ITEM_IDS_BY_SPELL,
-				kind = "spell",
-				idsOf = ConjureRows(false, AddConjureSpell),
-			},
-			{
-				name = "ns.CONJURED_ITEM_IDS_BY_SPELL",
-				source = ns.CONJURED_ITEM_IDS_BY_SPELL,
-				kind = "item",
-				idsOf = ConjureRows(false, AddConjuredItems),
-			},
+			{ table = "FOOD_AND_WATER", kind = "item", idsOf = Keys },
 		},
 	},
 	{
-		label = "Pet-Foods.lua",
+		label = "Game-IDs",
 		tables = {
-			{ name = "ns.PET_FOOD_DATA", source = ns.PET_FOOD_DATA, kind = "item", idsOf = Keys },
+			{ table = "ALCHEMY_SPELL_ID", kind = "spell", idsOf = Self },
+			{ table = "CALL_PET_SPELL_ID", kind = "spell", idsOf = Self },
+			{ table = "DISMISS_PET_SPELL_ID", kind = "spell", idsOf = Self },
+			{ table = "DRUID_BEAR_FORM_SPELL_ID", kind = "spell", idsOf = Self },
+			{ table = "DRUID_CAT_FORM_SPELL_ID", kind = "spell", idsOf = Self },
+			{ table = "DRUID_DIRE_BEAR_FORM_SPELL_ID", kind = "spell", idsOf = Self },
+			{ table = "ENGINEERING_SPELL_ID", kind = "spell", idsOf = Self },
+			{ table = "FEED_PET_SPELL_ID", kind = "spell", idsOf = Self },
+			{ table = "FIRST_AID_SPELL_ID", kind = "spell", idsOf = Self },
+			{ table = "GOBLIN_ENGINEER_SPELL_ID", kind = "spell", idsOf = Self },
+			{ table = "MEND_PET_SPELL_ID", kind = "spell", idsOf = Self },
+			{ table = "PET_BUFF_FOODS", kind = "spell", idsOf = Column(1) },
+			{ table = "POISONS_SPELL_ID", kind = "spell", idsOf = Self },
+			{ table = "REVIVE_PET_SPELL_ID", kind = "spell", idsOf = Self },
+			{ table = "SHADOWMELD_SPELL_ID", kind = "spell", idsOf = Self },
+			{ table = "STEALTH_SPELL_ID", kind = "spell", idsOf = Self },
+			{ table = "PET_BUFF_FOODS", kind = "item", idsOf = Keys },
 		},
 	},
 	{
-		label = "Poison-Recipes.lua",
+		label = "Healthstones",
 		tables = {
-			{ name = "ns.POISON_RECIPES (crafted)", source = ns.POISON_RECIPES, kind = "item", idsOf = Column(1) },
-			{
-				name = "ns.POISON_RECIPES (reagents)",
-				source = ns.POISON_RECIPES,
-				kind = "item",
-				idsOf = RecipeReagents,
-			},
+			{ table = "HEALTHSTONES", kind = "item", idsOf = Keys },
 		},
 	},
 	{
-		label = "Poisons.lua",
+		label = "Macro-Default-Items",
 		tables = {
-			{ name = "ns.POISON_DATA", source = ns.POISON_DATA, kind = "item", idsOf = Keys },
-			{ name = "ns.POISON_GROUP_BASE_ITEMS", source = ns.POISON_GROUP_BASE_ITEMS, kind = "item", idsOf = Values },
+			{ table = "MACRO_DEFAULT_ITEM_IDS", kind = "item", idsOf = Values },
 		},
 	},
 	{
-		label = "Potions.lua",
+		label = "Mana-Gems",
 		tables = {
-			{ name = "ns.RAW_DATA.Potions", source = ns.RAW_DATA.Potions, kind = "item", idsOf = Keys },
+			{ table = "MANA_GEMS", kind = "item", idsOf = Keys },
+			{ table = "MANA_RUNES", kind = "item", idsOf = Keys },
 		},
 	},
 	{
-		label = "Questionable-Equipment.lua",
+		label = "Pet-Foods",
 		tables = {
-			{ name = "ns.QUESTIONABLE_EQUIPMENT", source = ns.QUESTIONABLE_EQUIPMENT, kind = "item", idsOf = Keys },
+			{ table = "PET_FOOD_DATA", kind = "item", idsOf = Keys },
 		},
 	},
 	{
-		label = "Scrolls.lua",
+		label = "Poison-Recipes",
 		tables = {
-			{ name = "ns.SCROLL_DATA items", source = ns.SCROLL_DATA, kind = "item", idsOf = ScrollColumn(1) },
-			{ name = "ns.SCROLL_DATA buffs", source = ns.SCROLL_DATA, kind = "spell", idsOf = ScrollColumn(2) },
-			{
-				name = "ns.SCROLL_DATA conflictSpells",
-				source = ns.SCROLL_DATA,
-				kind = "spell",
-				idsOf = ScrollConflictSpells,
-			},
+			{ table = "POISON_RECIPES", kind = "item", idsOf = Column(1) },
+			{ table = "POISON_RECIPES", kind = "item", idsOf = RecipeReagents },
 		},
 	},
 	{
-		label = "Soulstones.lua",
+		label = "Poisons",
 		tables = {
-			{ name = "ns.RAW_DATA.Soulstone", source = ns.RAW_DATA.Soulstone, kind = "item", idsOf = Keys },
-			{
-				name = "ns.SOULSTONE_BUFF_SPELL_IDS",
-				source = ns.SOULSTONE_BUFF_SPELL_IDS,
-				kind = "spell",
-				idsOf = Values,
-			},
+			{ table = "POISON_DATA", kind = "item", idsOf = Keys },
+			{ table = "POISON_GROUP_BASE_ITEMS", kind = "item", idsOf = Values },
 		},
 	},
 	{
-		label = "Data.lua",
+		label = "Potions",
 		tables = {
-			{ name = "ns.CONJURE_SPELLS", source = ns.CONJURE_SPELLS, kind = "spell", idsOf = ConjureSpellIDs },
-			{ name = "ns.WELL_FED_BUFF_IDS", source = ns.WELL_FED_BUFF_IDS, kind = "spell", idsOf = Keys },
-			{
-				name = "ns.MISSING_SPELL_MESSAGE_IDS",
-				source = ns.MISSING_SPELL_MESSAGE_IDS,
-				kind = "spell",
-				idsOf = Values,
-			},
-			{
-				name = "ns.*_SPELL_ID and ns.*_BUFF_ID",
-				source = ns,
-				kind = "spell",
-				idsOf = Named({
-					"CALL_PET_SPELL_ID",
-					"DISMISS_PET_SPELL_ID",
-					"DRUID_BEAR_FORM_SPELL_ID",
-					"DRUID_CAT_FORM_SPELL_ID",
-					"DRUID_DIRE_BEAR_FORM_SPELL_ID",
-					"FEED_PET_SPELL_ID",
-					"KIBLERS_BUFF_ID",
-					"MEND_PET_SPELL_ID",
-					"POISONS_SPELL_ID",
-					"REVIVE_PET_SPELL_ID",
-					"SHADOWMELD_SPELL_ID",
-					"SPORELING_BUFF_ID",
-					"STEALTH_SPELL_ID",
-				}),
-			},
-			{
-				name = "ns.MACRO_CONFIG defaultID",
-				source = ns.MACRO_CONFIG,
-				kind = "item",
-				idsOf = Column("defaultID"),
-			},
-			{
-				name = "ns.*_ITEM_ID",
-				source = ns,
-				kind = "item",
-				idsOf = Named({ "KIBLERS_BITS_ITEM_ID", "SPORELING_SNACKS_ITEM_ID" }),
-			},
+			{ table = "POTIONS", kind = "item", idsOf = Keys },
+		},
+	},
+	{
+		label = "Questionable-Equipment",
+		tables = {
+			{ table = "QUESTIONABLE_EQUIPMENT", kind = "item", idsOf = Keys },
+		},
+	},
+	{
+		label = "Scrolls",
+		tables = {
+			{ table = "SCROLL_DATA", kind = "item", idsOf = ScrollColumn(1) },
+			{ table = "SCROLL_DATA", kind = "spell", idsOf = ScrollColumn(2) },
+			{ table = "SCROLL_DATA", kind = "spell", idsOf = ScrollConflictSpells },
+		},
+	},
+	{
+		label = "Soulstones",
+		tables = {
+			{ table = "SOULSTONES", kind = "item", idsOf = Keys },
+			{ table = "SOULSTONE_BUFF_SPELL_IDS", kind = "spell", idsOf = Values },
+		},
+	},
+	{
+		label = "Well-Fed-Buffs",
+		tables = {
+			{ table = "WELL_FED_BUFF_IDS", kind = "spell", idsOf = Keys },
+			{ table = "WELL_FED_ICON_IDS", kind = "other", idsOf = Keys },
 		},
 	},
 }
 
+-- In SpellCells' order.
 local SPELL_COLUMNS = {
 	"STATUS",
 	"Spell ID",
 	"Source",
 	"Name",
 	"Subtext",
+	"Description",
+	"Tooltip",
 	"Icon",
+	"Original Icon",
 	"Cast Time",
 	"Min Range",
 	"Max Range",
+	"Power Cost",
+	"Link",
+	"Level Learned",
+	"Max Stacks",
+	"IsSpellPassive",
+	"IsSpellHelpful",
+	"IsSpellHarmful",
+	"SpellHasRange",
+	"IsSelfBuff",
+	"IsConsumableSpell",
 	"IsPlayerSpell",
 	"IsSpellKnown",
 }
 
--- C_Item.GetItemInfo's seventeen returns, in order, then C_Item.GetItemInfoInstant's fields after the ID it repeats.
+--[[
+    In ItemCells' order: C_Item.GetItemInfo's eighteen returns, the item's
+    spell and that spell's text, the tooltip, C_Item.GetItemInfoInstant's
+    fields after the ID it repeats, then the remaining readers' columns, one or
+    more per reader.
+]]
 local ITEM_COLUMNS = {
 	"STATUS",
 	"Item ID",
@@ -1734,24 +1942,60 @@ local ITEM_COLUMNS = {
 	"Expansion ID",
 	"Set ID",
 	"Crafting Reagent",
+	"Item Description",
+	"Item Spell",
+	"Item Spell ID",
+	"Item Spell Description",
+	"Tooltip",
 	"Instant Type",
 	"Instant Subtype",
 	"Instant Equip Location",
 	"Instant Icon",
 	"Instant Class ID",
 	"Instant Subclass ID",
+	"Inventory Type",
+	"Item Family",
+	"Unique",
+	"Limit Category",
+	"Limit Category Count",
+	"Limit Category ID",
+	"Actual Item Level",
+	"Preview Item Level",
+	"Sparse Item Level",
+	"Set Name",
+	"IsConsumableItem",
+	"IsEquippableItem",
+	"IsHelpfulItem",
+	"IsHarmfulItem",
+	"ItemHasRange",
+	"IsUsableItem",
+	"No Mana",
+	"Count In Bags",
 }
-local ITEM_INFO_RETURNS = 17
+local ITEM_INFO_RETURNS = 18
+
+-- An "other" table reports how many rows it holds, since no client API reads its IDs.
+local OTHER_COLUMNS = {
+	"STATUS",
+	"Source",
+	"Rows",
+}
 
 local VALIDATE_BATCH_SIZE = 100
 local VALIDATE_POLL_SECONDS = 0.2
 
+-- A repaint rebuilds the whole panel, every finished report box included, so progress redraws at most this often.
+local VALIDATE_REPAINT_SECONDS = 1
+
 --[[
-    Polls that resolved nothing new before the stragglers are flagged NOT ON
-    CLIENT. Counting idle polls rather than all of them means a slow load that
-    is still moving is never cut off.
+    Polls that settled nothing new before a batch's stragglers are flagged.
+    Counting idle polls rather than all of them means a slow load that is still
+    moving is never cut off.
 ]]
 local VALIDATE_MAX_IDLE_POLLS = 25
+
+-- Idle polls between asking again for a batch's stragglers, in case a load request went unanswered.
+local VALIDATE_RETRY_POLLS = 5
 
 -- Tabs and newlines would split the TSV, and a raw pipe would render as an escape.
 local function Cell(value)
@@ -1770,167 +2014,346 @@ local function WithCommas(number)
 	return text
 end
 
+--[[
+    A table this client's folder never built settles as one TABLE MISSING row
+    before the run starts, so the rest of the entry still validates, and an
+    "other" table settles there as its row count.
+]]
 local function CollectValidationRows(entry)
-	local spellRows, itemRows = {}, {}
+	local rowsByKind = { spell = {}, item = {}, other = {} }
 	for _, dataTable in ipairs(entry.tables) do
-		local seen, ids = {}, {}
-		for _, id in ipairs(dataTable.idsOf(dataTable.source)) do
-			if not seen[id] then
-				seen[id] = true
-				ids[#ids + 1] = id
+		local name = "ns." .. dataTable.table
+		local source = ns[dataTable.table]
+		local rows = rowsByKind[dataTable.kind]
+		if source == nil then
+			rows[#rows + 1] = {
+				cells = dataTable.kind == "other" and { "TABLE MISSING", Cell(name) }
+					or { "TABLE MISSING", "", Cell(name) },
+			}
+		elseif dataTable.kind == "other" then
+			rows[#rows + 1] = { cells = { "OK", Cell(name), Cell(#dataTable.idsOf(source)) } }
+		else
+			local seen, ids = {}, {}
+			for _, id in ipairs(dataTable.idsOf(source)) do
+				if not seen[id] then
+					seen[id] = true
+					ids[#ids + 1] = id
+				end
+			end
+			table.sort(ids)
+			for _, id in ipairs(ids) do
+				rows[#rows + 1] = { id = id, source = name, kind = dataTable.kind }
 			end
 		end
-		table.sort(ids)
-
-		local rows = (dataTable.kind == "spell") and spellRows or itemRows
-		for _, id in ipairs(ids) do
-			rows[#rows + 1] = { id = id, source = dataTable.name }
-		end
 	end
-	return spellRows, itemRows
+	return rowsByKind.spell, rowsByKind.item, rowsByKind.other
 end
 
-local function ReadSpell(spellID)
-	local name, icon, castTime, minRange, maxRange
-	if type(C_Spell) == "table" and C_Spell.GetSpellInfo then
-		local info = C_Spell.GetSpellInfo(spellID)
-		if info then
-			name, icon, castTime, minRange, maxRange =
-				info.name, info.iconID, info.castTime, info.minRange, info.maxRange
+-- A whole tooltip in one cell: " // " between lines, " >> " before a line's right-hand text.
+local function TooltipText(lines)
+	local parts = {}
+	for _, line in ipairs(lines or {}) do
+		local left, right = line[1] or "", line[2]
+		if right and right ~= "" then
+			parts[#parts + 1] = left .. " >> " .. right
+		elseif left ~= "" then
+			parts[#parts + 1] = left
+		end
+	end
+	return table.concat(parts, " // ")
+end
+
+-- Each cost a spell carries: its power token and amount, then whatever else about it is set.
+local function PowerCostText(costs)
+	local parts = {}
+	for _, cost in ipairs(costs or {}) do
+		local text = tostring(cost.name) .. " " .. tostring(cost.cost)
+		if cost.minCost and cost.minCost ~= cost.cost then
+			text = text .. " min " .. cost.minCost
+		end
+		if (cost.costPercent or 0) > 0 then
+			text = text .. " " .. cost.costPercent .. "%"
+		end
+		if (cost.costPerSec or 0) > 0 then
+			text = text .. " " .. cost.costPerSec .. "/sec"
+		end
+		if (cost.requiredAuraID or 0) > 0 then
+			text = text .. " aura " .. cost.requiredAuraID
+		end
+		parts[#parts + 1] = text
+	end
+	return table.concat(parts, "; ")
+end
+
+-- Exactly count cells from a call's returns, so a call that returns nothing still fills its columns.
+local function Append(cells, count, ...)
+	for position = 1, count do
+		cells[#cells + 1] = Cell((select(position, ...)))
+	end
+end
+
+local function SpellCells(row)
+	local id = row.id
+	local info = C_Spell.GetSpellInfo(id) or {}
+	return {
+		row.status,
+		Cell(id),
+		Cell(row.source),
+		Cell(info.name),
+		Cell(C_Spell.GetSpellSubtext(id)),
+		Cell(C_Spell.GetSpellDescription(id)),
+		Cell(TooltipText(row.tooltip)),
+		Cell(info.iconID),
+		Cell(info.originalIconID),
+		Cell(info.castTime),
+		Cell(info.minRange),
+		Cell(info.maxRange),
+		Cell(PowerCostText(C_Spell.GetSpellPowerCost(id))),
+		Cell(C_Spell.GetSpellLink(id)),
+		Cell(C_Spell.GetSpellLevelLearned(id)),
+		Cell(C_Spell.GetSpellMaxCumulativeAuraApplications(id)),
+		Cell(C_Spell.IsSpellPassive(id)),
+		Cell(C_Spell.IsSpellHelpful(id)),
+		Cell(C_Spell.IsSpellHarmful(id)),
+		Cell(C_Spell.SpellHasRange(id)),
+		Cell(C_Spell.IsSelfBuff(id)),
+		Cell(C_Spell.IsConsumableSpell(id)),
+		Cell(ns.IsPlayerSpell(id)),
+		Cell(ns.IsSpellKnown(id)),
+	}
+end
+
+local function ItemCells(row)
+	local id = row.id
+	local cells = { row.status, Cell(id), Cell(row.source) }
+	local _, spellID = C_Item.GetItemSpell(id)
+	local setID = select(16, C_Item.GetItemInfo(id))
+	Append(cells, ITEM_INFO_RETURNS, C_Item.GetItemInfo(id))
+	Append(cells, 2, C_Item.GetItemSpell(id))
+	Append(cells, 1, spellID and C_Spell.GetSpellDescription(spellID))
+	Append(cells, 1, TooltipText(row.tooltip))
+	Append(cells, 6, select(2, C_Item.GetItemInfoInstant(id)))
+	Append(cells, 1, C_Item.GetItemInventoryTypeByID(id))
+	Append(cells, 1, C_Item.GetItemFamily(id))
+	Append(cells, 4, C_Item.GetItemUniquenessByID(id))
+	Append(cells, 3, C_Item.GetDetailedItemLevelInfo(id))
+	Append(cells, 1, setID and C_Item.GetItemSetInfo(setID))
+	Append(cells, 1, C_Item.IsConsumableItem(id))
+	Append(cells, 1, C_Item.IsEquippableItem(id))
+	Append(cells, 1, C_Item.IsHelpfulItem(id))
+	Append(cells, 1, C_Item.IsHarmfulItem(id))
+	Append(cells, 1, C_Item.ItemHasRange(id))
+	Append(cells, 2, C_Item.IsUsableItem(id))
+	Append(cells, 1, C_Item.GetItemCount(id))
+	return cells
+end
+
+-- A read that threw settles its row with the error where the name goes, and the run carries on.
+local function ErrorCells(row, message)
+	return { "ERROR", Cell(row.id), Cell(row.source), Cell(message) }
+end
+
+local function SettleRow(row, status)
+	row.status = status
+	local ok, cells = pcall(row.kind == "spell" and SpellCells or ItemCells, row)
+	if ok then
+		row.cells = cells
+	elseif status == "NOT ON CLIENT" then
+		-- A reader may throw on an ID the client doesn't know; the status is the finding.
+		row.cells = { status, Cell(row.id), Cell(row.source) }
+	else
+		row.cells = ErrorCells(row, cells)
+	end
+end
+
+local function RequestRowData(row)
+	if row.kind == "spell" then
+		C_Spell.RequestLoadSpellData(row.id)
+	else
+		C_Item.RequestLoadItemDataByID(row.id)
+		row.spellRequested = nil
+	end
+end
+
+local function IsSpellTextLoaded(spellID)
+	return C_Spell.IsSpellDataCached(spellID) or C_Spell.GetSpellDescription(spellID) ~= ""
+end
+
+-- A tooltip whose item is still loading shows only the retrieving line.
+local function IsTooltipLoaded(lines)
+	local first = lines and lines[1] and lines[1][1]
+	return first ~= nil and first ~= "" and first ~= RETRIEVING_ITEM_INFO
+end
+
+--[[
+    One poll of an unsettled row, returning the status to settle it with or nil
+    to keep waiting. The first poll asks whether the client knows the ID and
+    requests its data. A row is complete once everything its cells read has
+    loaded: the spell or item, its text (an item's through its spell) and its
+    tooltip. The tooltip is read as soon as the spell or item loads, so a row
+    that times out still shows how far it got.
+]]
+local function PollRow(row)
+	local id = row.id
+	if not row.requested then
+		row.requested = true
+		local exists
+		if row.kind == "spell" then
+			exists = C_Spell.DoesSpellExist(id)
+		else
+			exists = C_Item.DoesItemExistByID(id)
+		end
+		if not exists then
+			return "NOT ON CLIENT"
+		end
+		RequestRowData(row)
+	end
+
+	if row.kind == "spell" then
+		if not C_Spell.GetSpellInfo(id) then
+			return nil
+		end
+		row.tooltip = ns.GetSpellTooltipLines(id)
+		if not IsSpellTextLoaded(id) then
+			return nil
 		end
 	else
-		local _
-		name, _, icon, castTime, minRange, maxRange = GetSpellInfo(spellID)
+		if not C_Item.GetItemInfo(id) then
+			return nil
+		end
+		row.tooltip = ns.GetItemTooltipLines(id)
+		local _, spellID = C_Item.GetItemSpell(id)
+		if spellID and not IsSpellTextLoaded(spellID) then
+			if row.spellRequested ~= spellID then
+				row.spellRequested = spellID
+				C_Spell.RequestLoadSpellData(spellID)
+			end
+			return nil
+		end
 	end
-
-	local subtext
-	if type(C_Spell) == "table" and C_Spell.GetSpellSubtext then
-		subtext = C_Spell.GetSpellSubtext(spellID)
-	elseif GetSpellSubtext then
-		subtext = GetSpellSubtext(spellID)
-	end
-
-	return name, subtext, icon, castTime, minRange, maxRange
+	return IsTooltipLoaded(row.tooltip) and "OK" or nil
 end
 
-local function ReadItem(row)
-	local info = { C_Item.GetItemInfo(row.id) }
-	if info[1] == nil then
-		return false
-	end
-	row.info = info
-	row.status = "OK"
-	return true
-end
-
-local function BuildValidationReport(spellRows, itemRows)
+local function BuildValidationReport(spellRows, itemRows, otherRows)
 	local lines = { GetClientHeader(), "" }
-
-	if #spellRows > 0 then
-		lines[#lines + 1] = table.concat(SPELL_COLUMNS, "\t")
-		for _, row in ipairs(spellRows) do
-			local name, subtext, icon, castTime, minRange, maxRange = ReadSpell(row.id)
-			lines[#lines + 1] = table.concat({
-				name and "OK" or "NOT ON CLIENT",
-				Cell(row.id),
-				Cell(row.source),
-				Cell(name),
-				Cell(subtext),
-				Cell(icon),
-				Cell(castTime),
-				Cell(minRange),
-				Cell(maxRange),
-				Cell(ns.IsPlayerSpell(row.id)),
-				Cell(ns.IsSpellKnown(row.id)),
-			}, "\t")
+	local blocks = { { SPELL_COLUMNS, spellRows }, { ITEM_COLUMNS, itemRows }, { OTHER_COLUMNS, otherRows } }
+	for _, block in ipairs(blocks) do
+		local columns, rows = block[1], block[2]
+		if #rows > 0 then
+			if #lines > 2 then
+				lines[#lines + 1] = ""
+			end
+			lines[#lines + 1] = table.concat(columns, "\t")
+			for _, row in ipairs(rows) do
+				lines[#lines + 1] = table.concat(row.cells, "\t")
+			end
 		end
 	end
-
-	if #itemRows > 0 then
-		if #spellRows > 0 then
-			lines[#lines + 1] = ""
-		end
-		lines[#lines + 1] = table.concat(ITEM_COLUMNS, "\t")
-		for _, row in ipairs(itemRows) do
-			local cells = { row.status, Cell(row.id), Cell(row.source) }
-			for index = 1, ITEM_INFO_RETURNS do
-				cells[#cells + 1] = Cell(row.info and row.info[index])
-			end
-			local instant = { C_Item.GetItemInfoInstant(row.id) }
-			for index = 2, 7 do
-				cells[#cells + 1] = Cell(instant[index])
-			end
-			lines[#lines + 1] = table.concat(cells, "\t")
-		end
-	end
-
 	return table.concat(lines, "\n")
 end
 
 --[[
     Validates one ns.DIAGNOSTIC_DATA_SOURCES entry into ns.diagnostics[field],
-    calling onUpdate after every rewrite so the panel redraws. Spells answer at
-    once; item data loads asynchronously, so items are requested about a hundred
-    per frame and then polled, with a progress line standing in until the
+    calling onUpdate so the panel redraws: for the progress line at most every
+    VALIDATE_REPAINT_SECONDS, and always for the finished report. Spell and item
+    data load asynchronously, so the IDs go through in batches of a hundred:
+    each batch is requested, then polled until every row in it has settled,
+    and only then does the next one start. A progress line stands in until the
     finished TSV replaces it. A second press restarts the section, and turning
-    the tools off stops it where it is.
+    the tools off stops it and clears its progress line.
 ]]
 function ns.RunDataValidation(index, field, onUpdate)
-	local spellRows, itemRows = CollectValidationRows(ns.DIAGNOSTIC_DATA_SOURCES[index])
+	local spellRows, itemRows, otherRows = CollectValidationRows(ns.DIAGNOSTIC_DATA_SOURCES[index])
 
 	ns.diagnostics.validationRuns = ns.diagnostics.validationRuns or {}
 	local runs = ns.diagnostics.validationRuns
 	local run = {}
 	runs[index] = run
 
-	local canCheckExists = type(C_Item) == "table" and C_Item.DoesItemExistByID ~= nil
-	local canRequestLoad = type(C_Item) == "table" and C_Item.RequestLoadItemDataByID ~= nil
-	local requested, validated, idlePolls = 0, 0, 0
+	local queue = {}
+	for _, rows in ipairs({ spellRows, itemRows }) do
+		for _, row in ipairs(rows) do
+			queue[#queue + 1] = row
+		end
+	end
+	local batches = math.ceil(#queue / VALIDATE_BATCH_SIZE)
+	local first, idlePolls = 1, 0
+	local lastPaint
 
 	local function Step()
-		if runs[index] ~= run or not ns.diagnostics.enabled then
+		if runs[index] ~= run then
 			return
 		end
-
-		if requested < #itemRows then
-			for position = requested + 1, math.min(requested + VALIDATE_BATCH_SIZE, #itemRows) do
-				local row = itemRows[position]
-				if canCheckExists and not C_Item.DoesItemExistByID(row.id) then
-					row.status = "NOT ON CLIENT"
-					validated = validated + 1
-				elseif ReadItem(row) then
-					validated = validated + 1
-				elseif canRequestLoad then
-					C_Item.RequestLoadItemDataByID(row.id)
-				end
-				requested = position
-			end
-		else
-			local resolvedAny = false
-			for _, row in ipairs(itemRows) do
-				if not row.status and ReadItem(row) then
-					validated = validated + 1
-					resolvedAny = true
-				end
-			end
-			idlePolls = resolvedAny and 0 or (idlePolls + 1)
-		end
-
-		if validated == #itemRows or idlePolls >= VALIDATE_MAX_IDLE_POLLS then
-			for _, row in ipairs(itemRows) do
-				row.status = row.status or "NOT ON CLIENT"
-			end
+		if not ns.diagnostics.enabled then
 			runs[index] = nil
-			ns.diagnostics[field] = BuildValidationReport(spellRows, itemRows)
-			onUpdate()
+			ns.diagnostics[field] = nil
 			return
+		end
+
+		local last = math.min(first + VALIDATE_BATCH_SIZE - 1, #queue)
+		local pending, settledAny = 0, false
+		for position = first, last do
+			local row = queue[position]
+			if not row.cells then
+				local ok, status = pcall(PollRow, row)
+				if not ok then
+					row.cells = ErrorCells(row, status)
+				elseif status then
+					SettleRow(row, status)
+				end
+				if row.cells then
+					settledAny = true
+				else
+					pending = pending + 1
+				end
+			end
+		end
+
+		if pending > 0 then
+			idlePolls = settledAny and 0 or idlePolls + 1
+			if idlePolls >= VALIDATE_MAX_IDLE_POLLS then
+				-- A straggler that loaded far enough to draw a tooltip is incomplete; one that never loaded is missing.
+				for position = first, last do
+					local row = queue[position]
+					if not row.cells then
+						SettleRow(row, row.tooltip and "INCOMPLETE" or "NOT ON CLIENT")
+					end
+				end
+				pending = 0
+			elseif idlePolls > 0 and idlePolls % VALIDATE_RETRY_POLLS == 0 then
+				for position = first, last do
+					if not queue[position].cells then
+						pcall(RequestRowData, queue[position])
+					end
+				end
+			end
+		end
+
+		if pending == 0 then
+			first, idlePolls = last + 1, 0
+			if first > #queue then
+				runs[index] = nil
+				ns.diagnostics[field] = BuildValidationReport(spellRows, itemRows, otherRows)
+				onUpdate()
+				return
+			end
 		end
 
 		ns.diagnostics[field] = GetClientHeader()
 			.. "\n\n"
-			.. string.format(ns.DiagnosticsStrings.VALIDATE_PROGRESS, WithCommas(validated), WithCommas(#itemRows))
-		onUpdate()
-		C_Timer.After((requested < #itemRows) and 0 or VALIDATE_POLL_SECONDS, Step)
+			.. string.format(
+				ns.DiagnosticsStrings.VALIDATE_PROGRESS,
+				WithCommas(last - pending),
+				WithCommas(#queue),
+				math.ceil(first / VALIDATE_BATCH_SIZE),
+				batches
+			)
+		local now = GetTime()
+		if not lastPaint or now - lastPaint >= VALIDATE_REPAINT_SECONDS then
+			lastPaint = now
+			onUpdate()
+		end
+		C_Timer.After(pending == 0 and 0 or VALIDATE_POLL_SECONDS, Step)
 	end
 
 	Step()

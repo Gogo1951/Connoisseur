@@ -1,5 +1,4 @@
 local _, ns = ...
-local L = ns.L
 local MACRO_CONFIG = ns.MACRO_CONFIG
 
 --------------------------------------------------------------------------------
@@ -25,7 +24,7 @@ local MACRO_CONFIG = ns.MACRO_CONFIG
     The player picks a poison GROUP per hand (Options → Poisons, Rogues
     only); the scan resolves each group to the best rank the rogue can use
     and actually has in bags. Poisons aren't soulbound, so a twink can carry
-    ranks above their level — the required-level column in Data/Poisons.lua
+    ranks above their level — the required-level column in ns.POISON_DATA
     gates those out.
 
     The tooltip/icon always tracks the Main Hand pick (falling back to the
@@ -49,23 +48,22 @@ end
 
 --[[
     Per-group candidate lists sorted best-first (highest required level =
-    highest rank), precomputed once from ns.POISON_DATA (Data/Poisons.lua, which
+    highest rank), precomputed once from ns.POISON_DATA (Data/{Game}/Poisons-{Game}.lua, which
     loads before this file) so the per-update scan is a plain walk. Same pattern
-    as the derived scroll lookups in Features/Scanner-Character.lua. Every
-    consumer reads ns.POISONS_BY_GROUP from inside a function, so the build only
-    needs to finish before the first macro update.
+    as the derived scroll lookups in Features/Scanner-Auras.lua. Only
+    FindBestPoison below reads it.
 ]]
-ns.POISONS_BY_GROUP = {}
+local POISONS_BY_GROUP = {}
 for itemID, row in pairs(ns.POISON_DATA) do
 	local group = row[2]
-	local list = ns.POISONS_BY_GROUP[group]
+	local list = POISONS_BY_GROUP[group]
 	if not list then
 		list = {}
-		ns.POISONS_BY_GROUP[group] = list
+		POISONS_BY_GROUP[group] = list
 	end
 	list[#list + 1] = { itemID, row[1] }
 end
-for _, list in pairs(ns.POISONS_BY_GROUP) do
+for _, list in pairs(POISONS_BY_GROUP) do
 	table.sort(list, function(a, b)
 		if a[2] ~= b[2] then
 			return a[2] > b[2]
@@ -80,35 +78,29 @@ end
 
 --[[
     Localized group name for the Options dropdowns: the base (rank 1) item's
-    client-localized name. Falls back to the group's locale string while
-    C_Item.GetItemInfo is still cold; the call itself starts the async load.
+    client-localized name. Nil while C_Item.GetItemInfo is still cold -- the
+    call itself starts the async load -- and the dropdown shows the panels'
+    loading text until ns.WarmItemCache repaints it.
 ]]
 function ns.GetPoisonGroupName(groupID)
-	local baseItem = ns.POISON_GROUP_BASE_ITEMS and ns.POISON_GROUP_BASE_ITEMS[groupID]
-	if baseItem then
-		local name = C_Item.GetItemInfo(baseItem)
-		if name then
-			return name
-		end
-	end
-	local key = ns.POISON_GROUP_NAME_KEYS[groupID]
-	return key and L[key] or tostring(groupID)
+	local baseItem = ns.POISON_GROUP_BASE_ITEMS[groupID]
+	return baseItem and (C_Item.GetItemInfo(baseItem))
 end
 
 --[[
-    Best usable poison for a group: the lists in ns.POISONS_BY_GROUP are sorted
+    Best usable poison for a group: the lists in POISONS_BY_GROUP are sorted
     best-first, so the first entry the rogue meets the level requirement for,
     has in bags AND has not ignored wins. Returns nil when the group has nothing
     usable.
 ]]
 local function FindBestPoison(groupID)
-	local list = ns.POISONS_BY_GROUP and ns.POISONS_BY_GROUP[groupID]
+	local list = POISONS_BY_GROUP[groupID]
 	if not list then
 		return nil
 	end
 	local playerLevel = ns.cachedPlayerLevel or 1
 	for _, entry in ipairs(list) do
-		if entry[2] <= playerLevel and ns.GetItemCount(entry[1]) > 0 and not ns.IsIgnored(entry[1]) then
+		if entry[2] <= playerLevel and C_Item.GetItemCount(entry[1]) > 0 and not ns.IsIgnored(entry[1]) then
 			return entry[1]
 		end
 	end
@@ -162,7 +154,7 @@ end
     Macros/Explosive.lua) — is the Off Hand branch, tested as [btn:1].
 ]]
 local function BuildPoisonsBody(knows, mainID, offID)
-	local tooltipID = mainID or offID or MACRO_CONFIG["Poisons"].defaultID
+	local tooltipID = mainID or offID or ns.MACRO_DEFAULT_ITEM_IDS["Poisons"]
 	local lines = { "#showtooltip item:" .. tooltipID }
 
 	if not knows then

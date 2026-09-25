@@ -10,21 +10,16 @@ local LibDBIcon = LibStub("LibDBIcon-1.0")
 --------------------------------------------------------------------------------
 
 --[[
-    The class's display color as a ready-to-use "|cffRRGGBB" prefix. Prefers
+    The class's display color as a ready-to-use "|cffRRGGBB" prefix, from
     ns.CLASS_COLORS (Data/Data.lua) so the tooltip matches the add-on's own
-    palette, falls back to Blizzard's RAID_CLASS_COLORS (whose colorStr is an
-    8-char "ffRRGGBB" string), then to white if neither is available.
+    palette; a class the table lacks gets the palette's TEXT.
 ]]
 local function GetClassColorEscape(classToken)
 	local localHex = ns.CLASS_COLORS and ns.CLASS_COLORS[classToken]
 	if localHex then
 		return "|cff" .. localHex
 	end
-	local color = RAID_CLASS_COLORS and RAID_CLASS_COLORS[classToken]
-	if color and color.colorStr then
-		return "|c" .. color.colorStr
-	end
-	return "|cffFFFFFF"
+	return GetColor("TEXT")
 end
 
 --------------------------------------------------------------------------------
@@ -50,8 +45,8 @@ function ns.UpdateMinimapIcon()
 		return
 	end
 
-	local iconID = ns.bestFoodID or ns.MACRO_CONFIG["Food"].defaultID
-	local newIcon = ns.GetItemIcon(iconID) or "Interface\\Icons\\INV_Misc_Food_02"
+	local iconID = ns.bestFoodID or ns.MACRO_DEFAULT_ITEM_IDS["Food"]
+	local newIcon = C_Item.GetItemIconByID(iconID) or "Interface\\Icons\\INV_Misc_Food_02"
 	ns.dataBrokerObject.icon = newIcon
 
 	local button = LibDBIcon:GetMinimapButton(ns.LOCALE_NAME)
@@ -120,7 +115,7 @@ end
 ]]
 local function ItemValue(itemID, itemLink)
 	if itemID and itemLink then
-		return format("|T%s:14:14|t %s", ns.GetItemIcon(itemID), itemLink)
+		return format("|T%s:14:14|t %s", C_Item.GetItemIconByID(itemID), itemLink)
 	end
 	return GetColor("BODY") .. L["MINIMAP_NONE"] .. "|r"
 end
@@ -167,7 +162,7 @@ UpdateTooltip = function(anchor)
 	)
 	tooltip:AddLine(" ")
 
-	-- Include Scroll Buffs
+	-- Enable Scroll Buffs
 	local scrollState = settings.useScrolls and (GetColor("ON") .. L["MINIMAP_ENABLED"] .. "|r")
 		or (GetColor("OFF") .. L["MINIMAP_DISABLED"] .. "|r")
 	tooltip:AddDoubleLine(GetColor("TITLE") .. L["FEATURE_SCROLL_BUFFS"] .. "|r", scrollState)
@@ -351,7 +346,8 @@ UpdateTooltip = function(anchor)
 	elseif #groceries <= RESTOCKER_REPORT_MAX_ROWS then
 		tooltip:AddLine(GetColor("TITLE") .. L["MINIMAP_RESTOCKER_REPORT"] .. "|r")
 		for _, entry in ipairs(groceries) do
-			local icon = entry.itemID and ns.GetItemIcon(entry.itemID) or "Interface\\ICONS\\INV_Misc_QuestionMark"
+			local icon = entry.itemID and C_Item.GetItemIconByID(entry.itemID)
+				or "Interface\\ICONS\\INV_Misc_QuestionMark"
 			tooltip:AddDoubleLine(
 				format("|T%s:14:14|t %s", icon, ns.GetItemHyperlink(entry.itemID, entry.itemName)),
 				GetColor("BODY") .. format(L["MINIMAP_RESTOCKER_ITEM_COUNT"], entry.have, entry.wanted) .. "|r"
@@ -387,15 +383,11 @@ ns.dataBrokerObject = LibDataBroker:NewDataObject(ns.LOCALE_NAME, {
 			return
 		end
 		if button == "RightButton" and ns.bestFoodID then
-			--[[
-				    bestFoodID is never already ignored (the scanner filters both
-				    lists), so the toggle only ever adds here.
-				]]
-			ns.ToggleIgnore(ns.bestFoodID)
+			ns.IgnoreItem(ns.bestFoodID)
 		elseif button == "LeftButton" and IsShiftKeyDown() then
-			ns.ToggleScrollBuffs()
+			ns.ToggleMacroSetting("useScrolls")
 		elseif button == "LeftButton" then
-			ns.ToggleBuffFood()
+			ns.ToggleMacroSetting("useBuffFood")
 		elseif button == "MiddleButton" then
 			ns.ClearIgnoreList()
 		end

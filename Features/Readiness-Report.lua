@@ -29,8 +29,9 @@ local GetColor = ns.GetColor
     Each category answers to its own account-wide switch, all of them dead while
     the master switch is off; see Data/Default-Settings.lua for the defaults.
 
-    Inside a PvP Arena the report drops what an arena makes moot and keeps what
-    the prep room can still fix; see ns.BuildReadinessLines.
+    Inside a PvP Arena the report drops its buff, expiring and missing-item
+    clauses and keeps what the prep room can still fix; see
+    ns.BuildReadinessLines.
 ]]
 
 --------------------------------------------------------------------------------
@@ -139,9 +140,9 @@ local function SoulstoneBuffName()
 	return soulstoneBuffName or nil
 end
 
-local soulstoneBuffLookup = {}
+local SOULSTONE_BUFF_LOOKUP = {}
 for _, spellID in ipairs(ns.SOULSTONE_BUFF_SPELL_IDS) do
-	soulstoneBuffLookup[spellID] = true
+	SOULSTONE_BUFF_LOOKUP[spellID] = true
 end
 
 local function UnitHasSoulstone(unit)
@@ -155,7 +156,7 @@ local function UnitHasSoulstone(unit)
 		if not aura then
 			return false
 		end
-		if soulstoneBuffLookup[aura.spellId] or (wantedName and aura.name == wantedName) then
+		if SOULSTONE_BUFF_LOOKUP[aura.spellId] or (wantedName and aura.name == wantedName) then
 			return true
 		end
 	end
@@ -191,13 +192,13 @@ local function BuildMissingBuffs(settings, reports)
 	local missing = {}
 
 	--[[
-	    TBC only, which is a maintainer decision rather than a data one: Era
+	    TBC and later, which is a maintainer decision rather than a data one: Era
 	    and Forever have flasks and elixirs, but they are not what an Era raid
 	    runs on, so the line would be wrong for most of the people it fired at.
 	    The option hides itself on Era and Forever to match
 	    (Options/Options-Readiness-Report.lua).
 	]]
-	if reports.readinessFlask and not (ns.IS_ERA or ns.IS_FOREVER) and not ns.HasFlaskOrElixirs() then
+	if reports.readinessFlask and ns.EXPANSION >= 2 and not ns.HasFlaskOrElixirs() then
 		missing[#missing + 1] = L["READINESS_FLASK"]
 	end
 
@@ -243,10 +244,16 @@ local function BuildMissingBuffs(settings, reports)
 
 	--[[
 	    The one entry that asks the GROUP rather than the player: is a stone up
-	    on anyone. Only a Warlock sees it, because only a Warlock can put one
-	    up. Everyone else would be reading a nag they cannot clear.
+	    on anyone. Only a Warlock who knows Create Soulstone sees it, because
+	    only they can put one up. Anyone else would be reading a nag they cannot
+	    clear.
 	]]
-	if reports.readinessSoulstone and ns.isWarlock and not GroupHasSoulstone() then
+	if
+		reports.readinessSoulstone
+		and ns.isWarlock
+		and ns.KnowsAny(ns.CONJURE_SPELLS.WarlockCreateSoulstone)
+		and not GroupHasSoulstone()
+	then
 		missing[#missing + 1] = L["READINESS_SOULSTONE"]
 	end
 
@@ -285,7 +292,7 @@ local function BuildExpiring(reports)
 		return expiring
 	end
 
-	local threshold = reports.readinessExpiringThreshold or 150
+	local threshold = reports.readinessExpiringThreshold
 	for _, entry in ipairs(ns.GetExpiringBuffs(threshold)) do
 		if entry.remaining < 60 then
 			expiring[#expiring + 1] = string.format(L["READINESS_TIME_EXPIRING"], entry.name)
@@ -310,29 +317,31 @@ end
     ScanBags fills every category whether or not its macro is enabled -- the
     enabled check lives in the macro writer, not the scanner -- so these read
     real bag contents, and a player who turned a macro off still gets a truthful
-    answer about what they are carrying.
+    answer about what they are carrying. An item on either Ignore List counts as
+    carried too (ns.scannedIgnoredTypes): the report never names something the
+    player has in their bags.
 ]]
 local function CarryingNone(typeName)
 	local selection = ns.bestSelection
 	local entry = selection and selection[typeName]
-	return entry ~= nil and entry.id == nil
+	return entry ~= nil and entry.id == nil and not ns.scannedIgnoredTypes[typeName]
 end
 
 --[[
-    The Mana Gem category can be won by a Demonic or Dark Rune once the player
-    adds runes to that macro, and a rune is not the gem this line asks a Mage to
-    conjure. So only a gem among the ranked ids counts. A held gem always makes
-    the list: there are two runes and three ranked slots.
+    The Mana Gem category can be won by a rune once the player adds runes to
+    that macro, and a rune is not the gem this line asks a Mage to conjure, while
+    enough runes can push a held gem out of the ranked slots. So the line looks
+    for any gem in the last scan's bag counts instead. Silent before the first
+    scan, like every item line.
 ]]
 local function CarryingNoManaGem()
 	local selection = ns.bestSelection
-	local entry = selection and selection["Mana Gem"]
-	if entry == nil then
+	if not (selection and selection["Mana Gem"]) then
 		return false
 	end
-	local gems = ns.RAW_DATA.ManaGem or {}
-	for _, id in ipairs(entry.topIDs or { entry.id }) do
-		if gems[id] then
+	local counts = ns.scannedItemCounts
+	for gemID in pairs(ns.MANA_GEMS) do
+		if (counts[gemID] or 0) > 0 then
 			return false
 		end
 	end
@@ -350,8 +359,13 @@ local function BuildMissingItems(reports)
 		missing[#missing + 1] = L["READINESS_HEALTHSTONE"]
 	end
 
-	-- Mage-only: mana gems are conjured, so anywhere else this could only ever read "missing".
-	if reports.readinessManaGem and ns.isMage and CarryingNoManaGem() then
+	-- A Mage who can conjure one: anyone else could only ever read "missing".
+	if
+		reports.readinessManaGem
+		and ns.isMage
+		and ns.KnowsAny(ns.CONJURE_SPELLS.MageCreateManaGem)
+		and CarryingNoManaGem()
+	then
 		missing[#missing + 1] = L["READINESS_MANA_GEM"]
 	end
 
@@ -390,7 +404,8 @@ local function BuildCharacter(reports, inArena)
 		end
 	end
 
-	if reports.readinessPvP and not inArena and ns.IsPvPFlagged() then
+	-- Arenas and battlegrounds flag everyone, so the warning would be one nobody can clear.
+	if reports.readinessPvP and not inArena and select(2, IsInInstance()) ~= "pvp" and ns.IsPvPFlagged() then
 		-- The one entry coloured as a warning rather than a value; it is the one that bites.
 		entries[#entries + 1] = GetColor("OFF") .. L["READINESS_PVP_ON"] .. "|r" .. GetColor("TEXT")
 	end
@@ -414,11 +429,11 @@ end
     Deliberately ignores the master switch: this answers what the report WOULD
     say, and the caller decides whether it is allowed to say it.
 
-    inArena applies the arena rule. Arenas block the buffs and consumables the
-    Missing Buffs, Expiring Soon and Missing Items clauses ask for, and flag
-    every player for PvP, so those clauses and the PvP entry drop. Damaged gear,
-    the spec and unspent points, and non-combat gear stay, because the prep
-    room can still fix them.
+    inArena applies the arena rule. Arenas block potions, buff food and
+    scrolls, and flag every player for PvP. The Missing Buffs, Expiring Soon
+    and Missing Items clauses and the PvP entry drop there; damaged gear, the
+    spec and unspent points, and non-combat gear stay, because the prep room
+    can still fix them.
 ]]
 function ns.BuildReadinessLines(inArena)
 	local reports = ns.db and ns.db.global
@@ -437,7 +452,7 @@ function ns.BuildReadinessLines(inArena)
 		missingItems = BuildMissingItems(reports)
 	end
 
-	local damaged = reports.readinessDurability and ns.GetDamagedGear(reports.readinessDurabilityThreshold or 20) or {}
+	local damaged = reports.readinessDurability and ns.GetDamagedGear(reports.readinessDurabilityThreshold) or {}
 	local itemsLine =
 		Line(Clause(L["READINESS_MISSING_ITEMS"], missingItems), Clause(L["READINESS_DAMAGED_GEAR"], damaged))
 
@@ -492,7 +507,7 @@ end
     fired mid-pull), every aura field comes back secret and comparing one
     errors, so the report stays silent and the next ready check reports.
 ]]
-function ns.ReportReadiness()
+function ns.OnReadyCheck()
 	local reports = ns.db and ns.db.global
 	if not (reports and reports.readinessReportEnabled) then
 		return

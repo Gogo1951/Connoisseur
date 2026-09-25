@@ -21,7 +21,7 @@ local L = ns.L
     name it actually has to draw (see ns.ResolveRestockGroupPaneWidth) and is capped so this
     number stays honest: MIN_WIDTH is set against the CAP rather than the usual
     width, so the item name keeps its floor even on a client whose type names run
-    long. Raising that cap means raising this. The footer's own floor (the profile
+    long. Raising that cap means raising this. The footer's own floor (the list
     row up to the Rename label) is 580, comfortably under both.
 
     DEFAULT_WIDTH is a step above the floor so a fresh window opens with room for
@@ -43,24 +43,21 @@ local function Clamp(value, minimum, maximum, fallback)
 	return math.max(minimum, math.min(maximum, value))
 end
 
---[[
-    Persist where the window is and how big it is. Called when a drag or a
-    resize finishes, and again at logout, so a crash loses at most the last
-    adjustment rather than the whole layout.
-]]
+-- Written whole: AceDB can clear an empty framePosition at logout before this runs.
 function ns.SaveRestockWindowGeometry()
 	local frame = ns.restockWindow
 	if not frame then
 		return
 	end
-	local settings = ns.restockSettings
 	local point, _, relativePoint, xOffset, yOffset = frame:GetPoint(frame:GetNumPoints())
-	settings.framePosition.point = point
-	settings.framePosition.relativePoint = relativePoint
-	settings.framePosition.xOffset = xOffset
-	settings.framePosition.yOffset = yOffset
-	settings.framePosition.width = math.floor(frame:GetWidth() + 0.5)
-	settings.framePosition.height = math.floor(frame:GetHeight() + 0.5)
+	ns.restockSettings.framePosition = {
+		point = point,
+		relativePoint = relativePoint,
+		xOffset = xOffset,
+		yOffset = yOffset,
+		width = math.floor(frame:GetWidth() + 0.5),
+		height = math.floor(frame:GetHeight() + 0.5),
+	}
 end
 
 --[[
@@ -82,7 +79,9 @@ local function CreateAddonFrame()
 		settings.framePosition.xOffset or -5,
 		settings.framePosition.yOffset or 0
 	)
-	addonFrame:SetFrameStrata("FULLSCREEN")
+	addonFrame:SetFrameStrata("HIGH")
+	-- A saved position from another resolution or UI scale must not open off-screen.
+	addonFrame:SetClampedToScreen(true)
 	addonFrame:SetMovable(true)
 	addonFrame:SetResizable(true)
 	addonFrame:EnableMouse(true)
@@ -93,10 +92,7 @@ local function CreateAddonFrame()
 		ns.SaveRestockWindowGeometry()
 	end)
 
-	-- SetResizeBounds is probed in Diagnostics' API checks.
-	if addonFrame.SetResizeBounds then
-		addonFrame:SetResizeBounds(MIN_WIDTH, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT)
-	end
+	addonFrame:SetResizeBounds(MIN_WIDTH, MIN_HEIGHT, MAX_WIDTH, MAX_HEIGHT)
 
 	--[[
 	    Children are anchored to two corners rather than given a size, so the whole
@@ -120,6 +116,7 @@ local function CreateAddonFrame()
 		ns.CloseRestockListPullout()
 		ns.ClearRestockNewItems()
 		ns.ClearRestockGroupSelection()
+		ns.restockWindowOpenedByVisit = false
 	end)
 	return addonFrame
 end
@@ -256,10 +253,10 @@ local CLEAR_ICON = "Interface\\Buttons\\UI-GroupLoot-Pass-Up"
 local CLEAR_ICON_DOWN = "Interface\\Buttons\\UI-GroupLoot-Pass-Down"
 
 --[[
-    The side insets both control rows sit in, so the filter box at the top and the
-    add box at the bottom start and stop on the same two lines. Asymmetric because
-    InputBoxTemplate hangs its border art off the left edge -- the numbers are what
-    make the two boxes look evenly inset, not what makes them measure evenly.
+    The side insets of the control row, which holds the filter box at its left end
+    and the add box beside it at the right. Asymmetric because InputBoxTemplate
+    hangs its border art off the left edge -- the numbers are what make the two
+    boxes look evenly inset, not what makes them measure evenly.
 ]]
 local CONTROL_ROW_INSET_LEFT = 16
 local CONTROL_ROW_INSET_RIGHT = 12
@@ -285,10 +282,10 @@ local function CreateScrollFrame(addonFrame, listInset)
 	local scrollFrame = CreateFrame("ScrollFrame", nil, addonFrame, "UIPanelScrollFrameTemplate")
 	--[[
 	    The category pane owns the left of the inset, so the table starts past it.
-	    26 on the right for the scroll bar, and the add row's own space at the
-	    bottom. The column header is anchored to this frame's top corners rather
-	    than measured against the inset, so it inherits the same right edge the
-	    rows lay out from.
+	    26 on the right for the scroll bar, and the plain bottom margin
+	    (ns.RESTOCK_LIST_BOTTOM_INSET). The column header is anchored to this
+	    frame's top corners rather than measured against the inset, so it
+	    inherits the same right edge the rows lay out from.
 	]]
 	local left = 8 + ns.restockGroupPaneWidth + ns.RESTOCK_GROUP_PANE_GAP
 	scrollFrame:SetPoint("TOPLEFT", listInset, "TOPLEFT", left, -ListTopInset())
@@ -300,9 +297,8 @@ local function CreateScrollFrame(addonFrame, listInset)
 end
 
 --[[
-    One row across the top holding everything the player types into: the add box
-    and its Add button as a pair on the left, then the filter anchored right,
-    where a search field is conventionally looked for.
+    One row across the top holding everything the player types into: the filter
+    at its left end, then the add box and its Add button as a pair at the right.
 
     The two boxes look alike but do opposite things -- one changes the list, the
     other only narrows the view -- so they are kept apart by a wider gap than
@@ -319,8 +315,9 @@ local function CreateControlRow(addonFrame, listInset)
 end
 
 --[[
-    A text filter at the right end of the row. Once 2+ characters are typed, the list
-    shows only items whose name or type contains the text; clearing it shows everything.
+    A text filter at the left end of the row. Once 2+ characters are typed, the list
+    shows only items whose name, type or item ID contains the text; clearing it shows
+    everything.
 ]]
 local function CreateFilterBox(addonFrame, controlRow)
 	local box = CreateFrame("EditBox", nil, controlRow, "InputBoxTemplate")
@@ -431,7 +428,7 @@ local function CreateAddButton(addonFrame, controlRow)
 	addButton:SetHighlightFontObject("GameFontHighlight")
 	--[[
 	    The add box is captured, never resolved through GetParent: this button is
-	    parented to the add group and the box is not its child, so walking the chain
+	    parented to controlRow and the box is not its child, so walking the chain
 	    is both fragile and exactly the trap the row controls warn about.
 	]]
 	addButton:SetScript("OnClick", function()
@@ -607,6 +604,27 @@ function ns.HideRestockWindow()
 	if ns.restockerLoaded then
 		local menu = ns.restockWindow or ns.CreateRestockWindow()
 		return menu:Hide()
+	end
+end
+
+--[[
+    A merchant or bank visit closes the window only when that visit opened it:
+    a window the player opened stays open, and a loading screen, which fires the
+    _CLOSED events with nothing open, never closes it. OnHide clears the flag.
+]]
+ns.restockWindowOpenedByVisit = false
+
+function ns.ShowRestockWindowForVisit()
+	if ns.restockWindow and ns.restockWindow:IsShown() then
+		return
+	end
+	ns.ShowRestockWindow()
+	ns.restockWindowOpenedByVisit = ns.restockWindow ~= nil and ns.restockWindow:IsShown()
+end
+
+function ns.HideRestockWindowAfterVisit()
+	if ns.restockWindowOpenedByVisit then
+		ns.HideRestockWindow()
 	end
 end
 

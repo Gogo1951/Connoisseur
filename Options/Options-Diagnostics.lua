@@ -11,8 +11,9 @@ local AceConfigRegistry = LibStub("AceConfigRegistry-3.0")
 --[[
     A single runtime toggle gates the whole panel. When off, only the warning
     text and the enable toggle are visible; everything below is hidden. Every
-    gated section hides on that one condition, so the local SectionHeader
-    builder bakes it in rather than repeating it per widget.
+    gated section hides on that one condition: the local SectionHeader and
+    ReportOutput builders bake it in, and every other gated widget sets
+    hidden = Hidden itself.
 ]]
 
 local function DiagnosticsOn()
@@ -70,6 +71,7 @@ function ns.BuildDiagnosticsOptions()
 		buttonStartLog = {
 			type = "execute",
 			name = DiagnosticsStrings.EVENT_LOG_START,
+			desc = DiagnosticsStrings.EVENT_LOG_START_DESC,
 			order = 6,
 			hidden = Hidden,
 			func = function()
@@ -80,6 +82,7 @@ function ns.BuildDiagnosticsOptions()
 		buttonStopLog = {
 			type = "execute",
 			name = DiagnosticsStrings.EVENT_LOG_STOP,
+			desc = DiagnosticsStrings.EVENT_LOG_STOP_DESC,
 			order = 7,
 			hidden = Hidden,
 			func = function()
@@ -90,6 +93,7 @@ function ns.BuildDiagnosticsOptions()
 		buttonShowLog = {
 			type = "execute",
 			name = DiagnosticsStrings.EVENT_LOG_SHOW,
+			desc = DiagnosticsStrings.EVENT_LOG_SHOW_DESC,
 			order = 8,
 			hidden = Hidden,
 			func = function()
@@ -111,6 +115,7 @@ function ns.BuildDiagnosticsOptions()
 		buttonEvents = {
 			type = "execute",
 			name = DiagnosticsStrings.EVENTS_BUTTON,
+			desc = DiagnosticsStrings.EVENTS_BUTTON_DESC,
 			order = 14,
 			hidden = Hidden,
 			func = function()
@@ -125,6 +130,7 @@ function ns.BuildDiagnosticsOptions()
 		buttonApi = {
 			type = "execute",
 			name = DiagnosticsStrings.API_BUTTON,
+			desc = DiagnosticsStrings.API_BUTTON_DESC,
 			order = 21,
 			hidden = Hidden,
 			func = function()
@@ -139,6 +145,7 @@ function ns.BuildDiagnosticsOptions()
 		buttonContext = {
 			type = "execute",
 			name = DiagnosticsStrings.CONTEXT_BUTTON,
+			desc = DiagnosticsStrings.CONTEXT_BUTTON_DESC,
 			order = 26,
 			hidden = Hidden,
 			func = function()
@@ -153,6 +160,7 @@ function ns.BuildDiagnosticsOptions()
 		buttonSelection = {
 			type = "execute",
 			name = DiagnosticsStrings.SELECTION_BUTTON,
+			desc = DiagnosticsStrings.SELECTION_BUTTON_DESC,
 			order = 29,
 			hidden = Hidden,
 			func = function()
@@ -174,6 +182,7 @@ function ns.BuildDiagnosticsOptions()
 		buttonReadiness = {
 			type = "execute",
 			name = DiagnosticsStrings.READINESS_BUTTON,
+			desc = DiagnosticsStrings.READINESS_BUTTON_DESC,
 			order = 33,
 			hidden = Hidden,
 			func = function()
@@ -195,6 +204,7 @@ function ns.BuildDiagnosticsOptions()
 		buttonAddons = {
 			type = "execute",
 			name = DiagnosticsStrings.ADDONS_BUTTON,
+			desc = DiagnosticsStrings.ADDONS_BUTTON_DESC,
 			order = 37,
 			hidden = Hidden,
 			func = function()
@@ -209,6 +219,7 @@ function ns.BuildDiagnosticsOptions()
 		buttonSaved = {
 			type = "execute",
 			name = DiagnosticsStrings.SAVED_BUTTON,
+			desc = DiagnosticsStrings.SAVED_BUTTON_DESC,
 			order = 41,
 			hidden = Hidden,
 			func = function()
@@ -223,6 +234,7 @@ function ns.BuildDiagnosticsOptions()
 		buttonLibs = {
 			type = "execute",
 			name = DiagnosticsStrings.LIBS_BUTTON,
+			desc = DiagnosticsStrings.LIBS_BUTTON_DESC,
 			order = 51,
 			hidden = Hidden,
 			func = function()
@@ -246,6 +258,7 @@ function ns.BuildDiagnosticsOptions()
 		buttonTaintOn = {
 			type = "execute",
 			name = DiagnosticsStrings.TAINT_ON,
+			desc = DiagnosticsStrings.TAINT_ON_DESC,
 			order = 162,
 			hidden = Hidden,
 			func = function()
@@ -256,6 +269,7 @@ function ns.BuildDiagnosticsOptions()
 		buttonTaintOff = {
 			type = "execute",
 			name = DiagnosticsStrings.TAINT_OFF,
+			desc = DiagnosticsStrings.TAINT_OFF_DESC,
 			order = 163,
 			hidden = Hidden,
 			func = function()
@@ -294,15 +308,22 @@ function ns.BuildDiagnosticsOptions()
 		},
 	}
 
-	-- Validate Data: one section per data file, between Library Versions and Taint Log.
+	--[[
+	    Validate Data: one section per flavor-folder file, between Library Versions
+	    and Taint Log, titled with the folder this client loaded. Orders run from 63
+	    in steps of three, so a thirty-third file would collide with Taint Log (160).
+	]]
 	for index, source in ipairs(ns.DIAGNOSTIC_DATA_SOURCES) do
-		local order = 100 + index * 3
+		local order = 60 + index * 3
 		local field = "validateDataReport" .. index
-		args["headerValidateData" .. index] =
-			SectionHeader(string.format(DiagnosticsStrings.VALIDATE_TITLE, source.label), order)
+		args["headerValidateData" .. index] = SectionHeader(
+			string.format(DiagnosticsStrings.VALIDATE_TITLE, ns.DATA_FOLDER, source.label, ns.DATA_FOLDER),
+			order
+		)
 		args["buttonValidateData" .. index] = {
 			type = "execute",
 			name = DiagnosticsStrings.VALIDATE_BUTTON,
+			desc = string.format(DiagnosticsStrings.VALIDATE_BUTTON_DESC, ns.DATA_FOLDER, source.label, ns.DATA_FOLDER),
 			order = order + 1,
 			hidden = Hidden,
 			func = function()

@@ -59,9 +59,12 @@ function ns.BuildRestockView(items)
 	return view
 end
 
--- Does this item pass the text filter? Empty and one-character filters pass everything.
+--[[
+    Does this item pass the text filter? Empty and one-character filters pass
+    everything, and so does a New item: a row must never vanish the moment it is added.
+]]
 local function PassesTextFilter(view, item)
-	if not view.filter then
+	if not view.filter or view.groups[item] == L["RESTOCKER_GROUP_NEW"] then
 		return true
 	end
 	return ((item.itemName or ""):lower():find(view.filter, 1, true) ~= nil)
@@ -70,7 +73,7 @@ local function PassesTextFilter(view, item)
 end
 
 --[[
-    The category pane's contents: every group present in the profile, with how many
+    The category pane's contents: every group present in the list, with how many
     items each holds, plus the total.
 
     Counts are taken AFTER the text filter, so typing in the filter box narrows the
@@ -131,7 +134,7 @@ function ns.BuildRestockRenderList(items, view)
 	    the group name alone would file "New" alphabetically, landing it somewhere
 	    in the middle of the list, which is the one place it must not be.
 
-	    The type sort still matters with a category selected, because "All items" is
+	    The type sort matters when no category is selected, because "All items" is
 	    the default view and is the one that has to stay legible without headers.
 	]]
 	local newLabel = L["RESTOCKER_GROUP_NEW"]

@@ -1,35 +1,37 @@
 -- luacheck: allow defined, ignore 121 122 131 143
--- Headless test for the item memo's remembered misses (no WoW client needed).
---
--- Run it with:   lua Tests/Restocker-Cold-Item-Test.lua        (from Features/Restocker/)
---
--- Like the Starter List test, this does NOT model the feature. Every scenario loads the REAL
--- item memo (Features/Item-Cache.lua), the GET_ITEM_INFO_RECEIVED handler and the add box
--- (Restocker-List.lua), the ladders and the upgrader, the poison recipes, the login inflate
--- (Restocker-Saved-Format.lua) and the Restocker window's own redraw
--- (Restocker-Window-Filter.lua and Restocker-Window-Rows.lua). Only the client is simulated:
--- C_Item.GetItemInfo answers for an item once it has resolved, asking about any other item queues
--- a server query, and deliver() answers the queue, firing GET_ITEM_INFO_RECEIVED only while
--- the event is registered, which is all a real frame hears.
---
--- THE BUG THIS PINS DOWN. ns.GetItemData remembered every ID-keyed miss until
--- GET_ITEM_INFO_RECEIVED was heard, and that event is only registered while something is
--- waiting on it. A miss taken while nothing waited -- a window redraw, the login inflate of
--- every saved list -- still sent the query, the answer landed unheard, and the memo said
--- "missing" for the rest of the session without asking again. Scenario 1 is a listed item
--- drawn with a question mark all session. Scenario 2 is an item typed back in by id that
--- never arrived and kept the event registered for good. Scenario 3 is the login catch-up
--- upgrade parked forever, which only happened when no cold poison recipe was holding the
--- event through the load -- the reason it went unnoticed.
---
--- A miss is now remembered only while something waits, and the last waiter letting go
--- drops them all (scenario 6). Scenarios 4 and 5 pin what remembering is still for: a wait
--- asks the client about a cold item once rather than at every answer, and an item asked
--- about during a wait still arrives when its answer is heard.
---
--- Scenario 7 pins add-box input that names no item (an empty box, a typo): it is dropped
--- rather than parked, because no answer can ever clear such a key and a parked one held the
--- event registered for the rest of the session.
+--[[
+    Headless test for the item memo's remembered misses (no WoW client needed).
+
+    Run it with:   lua Tests/Restocker-Cold-Item-Test.lua        (from Features/Restocker/)
+
+    Like the Starter List test, this does NOT model the feature. Every scenario loads the REAL
+    item memo (Features/Item-Cache.lua), the GET_ITEM_INFO_RECEIVED handler and the add box
+    (Restocker-List.lua), the ladders and the upgrader, the poison recipes, the login inflate
+    (Restocker-Saved-Format.lua) and the Restocker window's own redraw
+    (Restocker-Window-Filter.lua and Restocker-Window-Rows.lua). Only the client is simulated:
+    C_Item.GetItemInfo answers for an item once it has resolved, asking about any other item queues
+    a server query, and deliver() answers the queue, firing GET_ITEM_INFO_RECEIVED only while
+    the event is registered, which is all a real frame hears.
+
+    THE BUG THIS PINS DOWN. ns.GetItemData remembered every ID-keyed miss until
+    GET_ITEM_INFO_RECEIVED was heard, and that event is only registered while something is
+    waiting on it. A miss taken while nothing waited -- a window redraw, the login inflate of
+    every saved list -- still sent the query, the answer landed unheard, and the memo said
+    "missing" for the rest of the session without asking again. Scenario 1 is a listed item
+    drawn with a question mark all session. Scenario 2 is an item typed back in by id that
+    never arrived and kept the event registered for good. Scenario 3 is the login catch-up
+    upgrade parked forever, which only happened when no cold poison recipe was holding the
+    event through the load -- the reason it went unnoticed.
+
+    A miss is now remembered only while something waits, and the last waiter letting go
+    drops them all (scenario 6). Scenarios 4 and 5 pin what remembering is still for: a wait
+    asks the client about a cold item once rather than at every answer, and an item asked
+    about during a wait still arrives when its answer is heard.
+
+    Scenario 7 pins add-box input that names no item (an empty box, a typo): it is dropped
+    rather than parked, because no answer can ever clear such a key and a parked one held the
+    event registered for the rest of the session.
+]]
 
 local ROOT = arg[1] or "../.."
 
@@ -68,10 +70,13 @@ local function session(level)
 				return key
 			end,
 		}),
-		CURRENT_EXPANSION = 0,
 	}
 
 	C_Item = {
+		-- IDs from 900000 up stand in for a typo: no item behind them on this client.
+		DoesItemExistByID = function(itemID)
+			return itemID < 900000
+		end,
 		GetItemInfo = function(request)
 			local itemID = type(request) == "number" and request or tonumber(tostring(request):match("item:(%d+)"))
 			if not itemID then
@@ -115,7 +120,10 @@ local function session(level)
 	function ns.SetEventRegistered(event, enabled)
 		registered[event] = enabled or nil
 	end
-	function ns.PrintMessage() end
+	local printed = {}
+	function ns.PrintMessage(message)
+		printed[#printed + 1] = message
+	end
 	-- The Starter List's retry queue, which its own test covers.
 	function ns.HasPendingStarterAdds()
 		return false
@@ -135,12 +143,12 @@ local function session(level)
 	end
 
 	local function loadAddonFile(path)
-		-- Addon files are chunks taking (addonName, ns) as varargs, the way WoW loads them.
+		-- Add-on files are chunks taking (addonName, ns) as varargs, the way WoW loads them.
 		return assert(loadfile(ROOT .. "/" .. path))("Consumable-Connoisseur", ns)
 	end
 	loadAddonFile("Features/Item-Cache.lua")
-	loadAddonFile("Data/Consumable-Upgrade-Paths.lua")
-	loadAddonFile("Data/Poison-Recipes.lua")
+	loadAddonFile("Data/Vanilla/Consumable-Upgrade-Paths-Vanilla.lua")
+	loadAddonFile("Data/Vanilla/Poison-Recipes-Vanilla.lua")
 	loadAddonFile("Features/Restocker/Restocker-Saved-Format.lua")
 	loadAddonFile("Features/Restocker/Restocker-Crafting-Reagents.lua")
 	loadAddonFile("Features/Restocker/Restocker-Upgrade.lua")
@@ -198,7 +206,13 @@ local function session(level)
 
 	ns.restockSettings = { currentList = "Test", lists = { Test = {} } }
 
-	local s = { ns = ns, settings = ns.restockSettings, list = ns.restockSettings.lists.Test, calls = calls }
+	local s = {
+		ns = ns,
+		settings = ns.restockSettings,
+		list = ns.restockSettings.lists.Test,
+		calls = calls,
+		printed = printed,
+	}
 
 	function s.resolve(...)
 		for _, itemID in ipairs({ ... }) do
@@ -359,6 +373,13 @@ check("and holds the event while it waits", s.registered(), true)
 check("its answer is heard", s.deliver(), 1)
 check("Symbol of Kings added", s.list[21177] and s.list[21177].itemName, "Symbol of Kings")
 check("event released", s.registered(), false)
+
+print("8. A typed id the client has no item for is refused, not parked")
+s = session()
+s.ns.AddRestockItem("999999")
+check("nothing parked", next(s.ns.restockItemWait), nil)
+check("the event stays unregistered", s.registered(), false)
+check("the player is told", s.printed[1], "RESTOCKER_UNKNOWN_ITEM")
 
 print("")
 if failures == 0 then

@@ -12,9 +12,9 @@ local _, ns = ...
     */** wildcard defaults resolve through a metatable. An explicit user
     value, including false, is never overridden either way.
 
-    Almost everything the user configures lives under `profile`, so it is
-    per-character: each character gets its own "Name - Realm" profile and can
-    run a different set of consumables. That is the point -- a level-15 alt and
+    The consumable settings live under `profile`, so they are per-character:
+    each character gets its own "Name - Realm" profile and can run a
+    different set of consumables. That is the point -- a level-15 alt and
     a raiding 60 want different buff food, and two Rogues want their own poison
     pairs. The stock Profiles panel (Options/Options-Profiles.lua) is therefore
     meaningful: switching, copying, or resetting a profile moves real settings.
@@ -51,51 +51,28 @@ local _, ns = ...
     the profile at login and after every profile change, and owns its
     version-stamp invalidation, so it never needs a default.
 ]]
---[[
-    Retired saved keys, cleared out of every saved file. Two eras are in here.
-
-    The readyCheck* set is the Ready Check report's own switches, retired when
-    it became the Readiness Report: its sections were re-cut rather than renamed
-    -- several switches split, one was dropped, and the defaults changed -- so
-    nothing there maps onto a new key.
-
-    readinessReport is the Readiness Report's first master switch, retired when
-    the report became opt-in. It has to be cleared rather than reused: AceDB
-    strips a value equal to its default at logout, but a value the player set
-    stays in the saved file after its key leaves the defaults, where nothing
-    fills or strips it any more, so a reused name would read back a choice made
-    under its old meaning. Its replacement is readinessReportEnabled below.
-
-    Features/Core.lua nils them all at the same point it clears the Restocker's
-    own retired keys.
-
-    Delete this list once no saved file can still be carrying them.
-]]
-ns.RETIRED_READY_CHECK_KEYS = {
-	"readyCheckReport",
-	"readyCheckHealthstone",
-	"readyCheckHealthPotion",
-	"readyCheckManaPotion",
-	"readyCheckScrolls",
-	"readyCheckWellFed",
-	"readyCheckPetFood",
-	"readyCheckBuffTimes",
-	"readyCheckSoulstone",
-	"readyCheckManaGem",
-	"readyCheckBandage",
-	"readinessReport",
-}
-
 ns.DATABASE_DEFAULTS = {
 	profile = {
 		ignoreList = {},
+		--[[
+		    Use Conjured Food & Water First: the Food and Water macros rank
+		    conjured items above anything that restores more (buff food still
+		    comes first). Off by default like every opt-in here, and while on
+		    it applies only while leveling ("leveling", below max level) unless
+		    the player picks another mode from the shared list: leveling is when
+		    free conjured food matters, solo or in a dungeon with a Mage friend,
+		    while at max level a raider wants the best. Per-character like the
+		    other consumable choices.
+		]]
+		useConjuredFirst = false,
+		conjuredFirstMode = "leveling",
 		combineHealthstones = false,
 		includeManaRunes = false,
 		--[[
 		    Early re-application: with earlyReapply on, a food/scroll/pet buff
 		    whose remaining time is under earlyReapplyThreshold (seconds)
 		    counts as already expired, so the macros offer a fresh application
-		    before a pull. See BuffCountsAsActive in Scanner-Character.lua.
+		    before a pull. See BuffCountsAsActive in Scanner-Auras.lua.
 		]]
 		earlyReapply = false,
 		earlyReapplyThreshold = 120,
@@ -142,7 +119,7 @@ ns.DATABASE_DEFAULTS = {
 		enableStealthEating = false,
 		--[[
 		    Rogue poison groups per weapon slot, keyed by ns.POISON_GROUP_BASE_ITEMS
-		    group IDs (4 = Instant Poison). See Data/Poisons.lua.
+		    group IDs (4 = Instant Poison). See ns.POISON_GROUPS in Data/Data.lua.
 		]]
 		mainHandPoisonGroup = 4,
 		offHandPoisonGroup = 4,
@@ -199,8 +176,7 @@ ns.DATABASE_DEFAULTS = {
 
 		    Beta soft launch: the report ships OFF and every player opts in. The
 		    key is deliberately a NEW one rather than the retired readinessReport,
-		    whose saved values belong to its old meaning; see
-		    ns.RETIRED_READY_CHECK_KEYS above, which clears it.
+		    whose saved values belong to its old meaning.
 		]]
 		readinessReportEnabled = false,
 		--[[

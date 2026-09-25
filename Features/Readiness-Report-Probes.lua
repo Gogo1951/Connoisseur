@@ -24,6 +24,9 @@ local _, ns = ...
     to fall off", and a raid buff someone else cast is exactly as worth catching
     as your own food. Auras carrying no duration (expirationTime 0) never
     expire, so they are skipped rather than reported as expiring in a moment.
+    So is an aura whose whole duration is at or under the threshold (a
+    two-minute shout, a drink): it is always under it, so it would be named on
+    every ready check.
 ]]
 function ns.GetExpiringBuffs(threshold)
 	local expiring = {}
@@ -35,7 +38,7 @@ function ns.GetExpiringBuffs(threshold)
 			break
 		end
 		local expiration = aura.expirationTime or 0
-		if expiration > 0 then
+		if expiration > 0 and (aura.duration or 0) > threshold then
 			local remaining = expiration - now
 			if remaining > 0 and remaining < threshold then
 				expiring[#expiring + 1] = { name = aura.name, remaining = remaining }
@@ -62,12 +65,11 @@ end
     Covered means a flask, or two DIFFERENT elixirs. Counting distinct auras is
     the whole test: the client only lets one battle and one guardian elixir sit
     on a character at once, so two elixir auras are already one of each and
-    nothing here needs to know which kind either one is (see Data/Elixirs.lua).
+    nothing here needs to know which kind either one is (see Data/{Game}/Elixirs-{Game}.lua).
 
-    Returns true while the data tables are empty, so the check reads as "nothing
-    to report" rather than firing on every character until the rows are pasted
-    in. An empty table cannot tell a flasked player from an unflasked one, and
-    of the two silences that is the right one.
+    Returns true when either data table is empty, so the check reads as
+    "nothing to report": an empty table cannot tell a flasked player from an
+    unflasked one, and of the two silences that is the right one.
 ]]
 function ns.HasFlaskOrElixirs()
 	--[[
@@ -238,11 +240,7 @@ end
     nil on Forever, whose Retail-style talents have no GetNumTalentTabs.
 ]]
 function ns.GetCurrentSpecLabel()
-	if not GetNumTalentTabs then
-		return nil
-	end
-
-	local tabs = GetNumTalentTabs()
+	local tabs = ns.GetNumTalentTabs()
 	if not tabs or tabs == 0 then
 		return nil
 	end
@@ -270,11 +268,7 @@ end
     spend. Forever has no UnitCharacterPoints, so the line never shows there.
 ]]
 function ns.GetUnspentTalentPoints()
-	if not UnitCharacterPoints then
-		return nil
-	end
-
-	local unspent = UnitCharacterPoints("player") or 0
+	local unspent = ns.UnitCharacterPoints("player") or 0
 	if unspent <= 0 then
 		return nil
 	end

@@ -3,7 +3,8 @@ local _, ns = ...
 --[[
     Utilities -- stateless, cross-cutting helpers used by multiple files: the
     color accessor, cross-client API shims, and small game-state predicates.
-    No module state, no SavedVariables.
+    No SavedVariables, and no module state beyond the hidden tooltip Era and
+    TBC read tooltip text through.
 ]]
 
 --------------------------------------------------------------------------------
@@ -30,9 +31,9 @@ end
 
 --[[
     "RRGGBB" to the {r, g, b} 0-1 triple the frame APIs take. Exposed rather than
-    kept private to the palette loop below so that a UI file needing a colour
-    from outside the brand palette can still write it as the hex it was chosen
-    as, instead of committing six hand-divided decimals no one can check by eye.
+    kept private to the palette loop below because the Restock window converts
+    its own colors (ns.RESTOCKER_WINDOW_COLORS in Data/Data.lua) with it too, so
+    every color is kept as the hex it was chosen as, never as hand-divided decimals.
 ]]
 function ns.HexToRGB(hex)
 	return {
@@ -55,73 +56,6 @@ for key, hex in pairs(ns.PALETTE) do
 end
 
 --------------------------------------------------------------------------------
--- Client Flavor
---------------------------------------------------------------------------------
-
---[[
-    The single source of truth for which game client we are running on. One
-    Lua codebase ships for Classic Era, TBC Anniversary and WoW Forever, and a
-    handful of spell mechanics and data rows differ between them. Anything that
-    must branch on flavor reads ns.IS_ERA / ns.IS_TBC / ns.IS_FOREVER — never
-    re-derives WOW_PROJECT_ID inline, and never assumes one flavor's behavior
-    is universal. WOW_PROJECT_ID is a client global set before addons load, so
-    these are safe to resolve here at file-load time.
-
-    Forever is the Retail client (it reports WOW_PROJECT_MAINLINE) running
-    Classic Era data, so every data or spell-mechanic branch treats it as Era:
-    test (ns.IS_ERA or ns.IS_FOREVER), never ns.IS_ERA alone.
-
-    The known flavor split — warlock Healthstone/Soulstone rank pinning — is
-    declared in data (rankIsTBCOnly in ns.CONJURE_SPELLS, Data/Data.lua) and
-    applied by ns.GetSmartSpell (Features/Macros/Engine.lua). See the
-    RECURRING BUG note on WarlockCreateHealthstone before touching either.
-]]
-ns.IS_ERA = (WOW_PROJECT_ID == WOW_PROJECT_CLASSIC)
-ns.IS_TBC = (WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC)
-ns.IS_FOREVER = (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE)
-
---[[
-    The same flavor as the number the Data/ tables flag their rows with -- the
-    upgrade ladders and the poison recipes both carry an expansion column, and
-    both resolve it against this. Forever carries Era's data, so it resolves to
-    Classic. Any other client counts as the newest, which lets every row
-    through rather than stranding a future client on Classic data.
-]]
-ns.CURRENT_EXPANSION = ns.EXPANSION_WRATH
-if ns.IS_ERA or ns.IS_FOREVER then
-	ns.CURRENT_EXPANSION = ns.EXPANSION_CLASSIC
-elseif ns.IS_TBC then
-	ns.CURRENT_EXPANSION = ns.EXPANSION_TBC
-end
-
---------------------------------------------------------------------------------
--- Item & Container API Shims
---------------------------------------------------------------------------------
-
---[[
-    Cross-client API shims, resolved once at load so call sites stay
-    branch-free and never hit "attempt to index nil" on a missing global. Each
-    shim picks the API by existence, never by a truthy result.
-
-    Item readers live on C_Item on all three target clients, and the legacy
-    globals are Blizzard's deprecated aliases of the same functions, so those
-    fall back freely.
-
-    C_Container is the container surface on all three target clients, so the
-    two container readers below are that surface and
-    nothing else -- which is why the Restocker calls C_Container directly with
-    no shim at all. Neither has a legacy fallback and
-    neither may be given one: the legacy GetContainerItemInfo returns a flat
-    list of values where C_Container returns a table, and every call site here
-    indexes the result (info.itemID, info.stackCount, info.hyperlink), so a
-    fallback could only ever error.
-]]
-ns.GetItemCount = (C_Item and C_Item.GetItemCount) or GetItemCount
-ns.GetItemIcon = (C_Item and C_Item.GetItemIconByID) or GetItemIcon
-ns.GetContainerNumSlots = C_Container.GetContainerNumSlots
-ns.GetContainerItemInfo = C_Container.GetContainerItemInfo
-
---------------------------------------------------------------------------------
 -- Spell Knowledge
 --------------------------------------------------------------------------------
 
@@ -139,6 +73,113 @@ end
 
 function ns.IsPlayerSpell(spellID)
 	return C_SpellBook.IsSpellKnown(spellID)
+end
+
+--------------------------------------------------------------------------------
+-- Client Differences
+--------------------------------------------------------------------------------
+
+--[[
+    One accessor per API the engines differ on, resolved once here so every
+    caller agrees and Diagnostics' API Endpoints show which side a client took.
+    Each answers on every client, neutrally where the client lacks the API:
+
+      ns.FetchPurchasedBankTabIDs()  Forever's character bank is the C_Bank
+                                     tabs the player bought; nil on Era and
+                                     TBC, which have BANK_CONTAINER and bags.
+      ns.GetNumTalentTabs()          The classic talent trees; nil on Forever,
+                                     whose talents are Retail's.
+      ns.UnitCharacterPoints(unit)   Unspent talent points; nil on Forever.
+      ns.IsSecretValue(value)        Forever's secret values; false elsewhere.
+      ns.GetItemTooltipLines(itemID) A tooltip's lines as { left, right }
+      ns.GetSpellTooltipLines(spellID) text pairs: C_TooltipInfo on Forever,
+                                     a hidden tooltip on Era and TBC.
+]]
+if C_Bank and C_Bank.FetchPurchasedBankTabIDs then
+	function ns.FetchPurchasedBankTabIDs()
+		return C_Bank.FetchPurchasedBankTabIDs(Enum.BankType.Character)
+	end
+else
+	function ns.FetchPurchasedBankTabIDs()
+		return nil
+	end
+end
+
+if GetNumTalentTabs then
+	ns.GetNumTalentTabs = GetNumTalentTabs
+else
+	function ns.GetNumTalentTabs()
+		return nil
+	end
+end
+
+if UnitCharacterPoints then
+	ns.UnitCharacterPoints = UnitCharacterPoints
+else
+	function ns.UnitCharacterPoints()
+		return nil
+	end
+end
+
+if issecretvalue then
+	ns.IsSecretValue = issecretvalue
+else
+	function ns.IsSecretValue()
+		return false
+	end
+end
+
+--[[
+    Only Validate Data reads tooltip text: feature code keeps what a tooltip
+    says about an ID as static data. Forever's C_TooltipInfo returns the lines
+    before any other add-on's tooltip hooks can add to them. Era and TBC ship
+    no C_TooltipInfo getters, so they fill a hidden tooltip, created on first
+    use, and read its lines back.
+]]
+if C_TooltipInfo and C_TooltipInfo.GetItemByID then
+	local function DataLines(data)
+		local lines = {}
+		for _, line in ipairs(data and data.lines or {}) do
+			lines[#lines + 1] = { line.leftText, line.rightText }
+		end
+		return lines
+	end
+
+	function ns.GetItemTooltipLines(itemID)
+		return DataLines(C_TooltipInfo.GetItemByID(itemID))
+	end
+
+	function ns.GetSpellTooltipLines(spellID)
+		return DataLines(C_TooltipInfo.GetSpellByID(spellID))
+	end
+else
+	local SCAN_TOOLTIP_NAME = "ConnoisseurScanTooltip"
+	local scanTooltip
+
+	-- A hidden right-hand string still holds text from an earlier tooltip, so only a shown one counts.
+	local function ScanLines(setter, id)
+		scanTooltip = scanTooltip or CreateFrame("GameTooltip", SCAN_TOOLTIP_NAME, nil, "GameTooltipTemplate")
+		scanTooltip:SetOwner(UIParent, "ANCHOR_NONE")
+		scanTooltip[setter](scanTooltip, id)
+		local lines = {}
+		for index = 1, scanTooltip:NumLines() do
+			local right = _G[SCAN_TOOLTIP_NAME .. "TextRight" .. index]
+			lines[index] = {
+				_G[SCAN_TOOLTIP_NAME .. "TextLeft" .. index]:GetText(),
+				right:IsShown() and right:GetText() or nil,
+			}
+		end
+		scanTooltip:Hide()
+		return lines
+	end
+
+	function ns.GetItemTooltipLines(itemID)
+		return ScanLines("SetItemByID", itemID)
+	end
+
+	function ns.GetSpellTooltipLines(spellID)
+		return ScanLines("SetSpellByID", spellID)
+	end
 end
 
 --------------------------------------------------------------------------------
@@ -212,6 +253,26 @@ end
 -- Game-State Predicates
 --------------------------------------------------------------------------------
 
+--[[
+    The level cap on this client, which the Leveling and Max Level modes
+    compare against: the smaller of the expansion's cap and the player's own,
+    the rule Blizzard's GameRulesUtil.GetEffectiveMaxLevelForPlayer applies on
+    all three clients, which ship both readers. Show Connoisseur Context prints
+    what each answers.
+]]
+function ns.GetMaxPlayerLevel()
+	return math.min(GetMaxLevelForPlayerExpansion(), GetMaxPlayerLevel())
+end
+
+--[[
+    The group-mode settings' shared test, behind every when-to-use dropdown
+    (Buff Food, Scroll Buffs, Pet Food Buffs, and Use Conjured Food & Water
+    First), which all offer the same six modes. Every group read here must
+    stay inside the group signature (ns.GroupSignatureChanged), or a join or
+    leave never rescans. The level modes need no signature: PLAYER_LEVEL_UP
+    already refreshes ns.cachedPlayerLevel and rebuilds every macro. An
+    unknown mode counts as active.
+]]
 function ns.IsModeActive(mode)
 	if mode == "always" then
 		return true
@@ -221,6 +282,16 @@ function ns.IsModeActive(mode)
 	end
 	if mode == "raid" then
 		return IsInRaid()
+	end
+	if mode == "solo" then
+		return not IsInGroup()
+	end
+	if mode == "leveling" or mode == "maxlevel" then
+		local atMaxLevel = (ns.cachedPlayerLevel or UnitLevel("player")) >= ns.GetMaxPlayerLevel()
+		if mode == "maxlevel" then
+			return atMaxLevel
+		end
+		return not atMaxLevel
 	end
 	return true
 end

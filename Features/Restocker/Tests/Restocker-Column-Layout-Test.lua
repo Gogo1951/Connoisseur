@@ -1,33 +1,35 @@
 -- luacheck: allow defined, ignore 121 122 131 143
--- Headless test for the Restock List's column layout (no WoW API needed).
---
--- Run it with:   lua Tests/Restocker-Column-Layout-Test.lua
---
--- It models the SAME walk as LayoutColumns in Restocker-Window-Columns.lua, which lays out both the
--- column header and every item row: start at the row's right edge, step left past the
--- remove control and the amount box, then past each column in reverse, opening a wider
--- gap wherever a column declares `gapBefore`.
---
--- Two things are worth a test rather than an eyeball, because neither is visible until
--- the addon is loaded in the client and both fail quietly:
---
---   1. HEADER AND ROWS MUST AGREE. The header sits outside the scroll frame and the rows
---      sit inside it, so they are different frames laid out at different times. They line
---      up only because both walk the same list from the same right edge. A heading that
---      drifts one gap off its column is still a readable header -- it just labels the
---      wrong column, which is worse than no header at all.
---
---   2. THE ITEM NAME IS WHAT PAYS. Columns claim a fixed strip on the right; the name
---      gets the remainder. Nothing clips or errors when that remainder gets small, the
---      name just quietly truncates, so the floor has to be checked arithmetically. Six
---      full-length captions put it under the floor even at the widest window this test
---      calls a minimum, which is what forced the short captions and the bands above
---      them.
---
--- The locale scenario at the end is the one that matters for translation: German and
--- Russian captions are longer than English, and the whole point of anchoring each cell to
--- its neighbour rather than to a fixed x is that a wider column has to reflow everything
--- without anything coming unaligned.
+--[[
+    Headless test for the Restock List's column layout (no WoW API needed).
+
+    Run it with:   lua Tests/Restocker-Column-Layout-Test.lua
+
+    It models the SAME walk as LayoutColumns in Restocker-Window-Columns.lua, which lays out both the
+    column header and every item row: start at the row's right edge, step left past the
+    remove control and the amount box, then past each column in reverse, opening a wider
+    gap wherever a column declares `gapBefore`.
+
+    Two things are worth a test rather than an eyeball, because neither is visible until
+    the add-on is loaded in the client and both fail quietly:
+
+      1. HEADER AND ROWS MUST AGREE. The header sits outside the scroll frame and the rows
+         sit inside it, so they are different frames laid out at different times. They line
+         up only because both walk the same list from the same right edge. A heading that
+         drifts one gap off its column is still a readable header -- it just labels the
+         wrong column, which is worse than no header at all.
+
+      2. THE ITEM NAME IS WHAT PAYS. Columns claim a fixed strip on the right; the name
+         gets the remainder. Nothing clips or errors when that remainder gets small, the
+         name just quietly truncates, so the floor has to be checked arithmetically. Six
+         full-length captions put it under the floor even at the widest window this test
+         calls a minimum, which is what forced the short captions and the bands above
+         them.
+
+    The locale scenario at the end is the one that matters for translation: German and
+    Russian captions are longer than English, and the whole point of anchoring each cell to
+    its neighbour rather than to a fixed x is that a wider column has to reflow everything
+    without anything coming unaligned.
+]]
 
 local ROW_INSET = 6
 local ICON_SIZE = 18
@@ -65,8 +67,10 @@ local GROUP_PANE_WIDTH = GROUP_PANE_MAX_WIDTH
 
 ---The table's row width for a given window width, matching CreateScrollFrame.
 local function rowWidthFor(windowWidth)
-	-- CreateListInset takes 2 + 4; the table starts past the pane and leaves 26 on
-	-- the right for the scroll bar.
+	--[[
+	    CreateListInset takes 2 + 4; the table starts past the pane and leaves 26 on
+	    the right for the scroll bar.
+	]]
 	return windowWidth - 2 - 4 - (8 + GROUP_PANE_WIDTH + GROUP_PANE_GAP) - 26
 end
 
@@ -163,8 +167,10 @@ local cells = layout(rowWidthFor(870), ENGLISH)
 local covered = {}
 for i, col in ipairs(COLUMNS) do
 	if col.group then
-		-- A band runs until the next column STARTS one, which `gapBefore` signals
-		-- just as much as `group` does.
+		--[[
+		    A band runs until the next column STARTS one, which `gapBefore` signals
+		    just as much as `group` does.
+		]]
 		local last = col
 		for j = i + 1, #COLUMNS do
 			if COLUMNS[j].group or COLUMNS[j].gapBefore then

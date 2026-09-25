@@ -48,6 +48,8 @@ read_globals = {
 	"GetLocale",
 	"GetMacroBody",
 	"GetMacroIndexByName",
+	"GetMaxLevelForPlayerExpansion",
+	"GetMaxPlayerLevel",
 	"GetMerchantItemInfo",
 	"GetMerchantItemLink",
 	"GetMerchantNumItems",

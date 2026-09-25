@@ -27,10 +27,11 @@ ns.RegisterMacroType({
 	    the potion lines — potions and healthstones live in separate cooldown
 	    categories, so one press fires one of each. The Healthstone topIDs
 	    come straight from the scan and are populated regardless of whether
-	    the standalone Healthstone macro is enabled. The engine gates this on
-	    having a potion to stack onto and sheds these lines first in the
-	    macro-length trim.
+	    the standalone Healthstone macro is enabled. With no potion to stack
+	    onto, the engine makes these lines the whole body; with one, it sheds
+	    them first in the macro-length trim.
 	]]
+	stackTypeName = "Healthstone",
 	getStackIDs = function(best)
 		local settings = ns.db and ns.db.profile
 		if not (settings and settings.combineHealthstones) then

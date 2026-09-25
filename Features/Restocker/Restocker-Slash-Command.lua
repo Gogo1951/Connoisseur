@@ -1,5 +1,6 @@
 local _, ns = ...
 local L = ns.L
+local GetColor = ns.GetColor
 
 --------------------------------------------------------------------------------
 -- Restock List Slash Command
@@ -8,22 +9,42 @@ local L = ns.L
 --[[
     One slash-help line: the command in C_INFO, then the localized description
     (TEXT restored for the tail, since ns.PrintMessage wraps the whole body in TEXT).
+    The subcommand words stay English, since they are what the parser below matches.
 ]]
-local function SlashHelpLine(command, description)
-	return ns.GetColor("INFO") .. command .. "|r" .. ns.GetColor("TEXT") .. "  " .. description
+local function SlashHelpLine(subcommand, description)
+	return GetColor("INFO")
+		.. L["RESTOCKER_COMMAND"]
+		.. " "
+		.. subcommand
+		.. "|r"
+		.. GetColor("TEXT")
+		.. "  "
+		.. description
 end
 
-ns.RESTOCKER_COMMANDS = {
-	show = SlashHelpLine("/crs show", L["RESTOCKER_HELP_SHOW"]),
-	config = SlashHelpLine("/crs config", L["OPTIONS_COMMAND_DESCRIPTION"]),
+local NAME = L["RESTOCKER_HELP_NAME_PLACEHOLDER"]
+
+local RESTOCKER_COMMANDS = {
+	show = SlashHelpLine("show", L["RESTOCKER_HELP_SHOW"]),
+	config = SlashHelpLine("config", L["OPTIONS_COMMAND_DESCRIPTION"]),
 	profile = {
-		add = SlashHelpLine("/crs profile add [name]", L["RESTOCKER_HELP_PROFILE_ADD"]),
-		delete = SlashHelpLine("/crs profile delete [name]", L["RESTOCKER_HELP_PROFILE_DELETE"]),
-		rename = SlashHelpLine("/crs profile rename [name]", L["RESTOCKER_HELP_PROFILE_RENAME"]),
-		copy = SlashHelpLine("/crs profile copy [name]", L["RESTOCKER_HELP_PROFILE_COPY"]),
-		use = SlashHelpLine("/crs profile use [name]", L["RESTOCKER_HELP_PROFILE_USE"]),
+		add = SlashHelpLine("profile add " .. NAME, L["RESTOCKER_HELP_PROFILE_ADD"]),
+		delete = SlashHelpLine("profile delete " .. NAME, L["RESTOCKER_HELP_PROFILE_DELETE"]),
+		rename = SlashHelpLine("profile rename " .. NAME, L["RESTOCKER_HELP_PROFILE_RENAME"]),
+		copy = SlashHelpLine("profile copy " .. NAME, L["RESTOCKER_HELP_PROFILE_COPY"]),
+		use = SlashHelpLine("profile use " .. NAME, L["RESTOCKER_HELP_PROFILE_USE"]),
 	},
 }
+
+-- The order help prints in: the table above is keyed for lookups, and pairs() would shuffle it.
+local COMMAND_ORDER = { "show", "config", "profile" }
+local PROFILE_SUBCOMMAND_ORDER = { "add", "delete", "rename", "copy", "use" }
+
+local function PrintProfileHelp()
+	for _, subcommand in ipairs(PROFILE_SUBCOMMAND_ORDER) do
+		ns.PrintMessage(RESTOCKER_COMMANDS.profile[subcommand])
+	end
+end
 
 --------------------------------------------------------------------------------
 -- Slash Commands
@@ -37,20 +58,18 @@ function ns.HandleRestockerCommand(args)
 		ns.ShowRestockWindow()
 	elseif command == "profile" then
 		if rest == "" or rest == nil then
-			for _, helpLine in pairs(ns.RESTOCKER_COMMANDS.profile) do
-				ns.PrintMessage(helpLine)
-			end
+			PrintProfileHelp()
 			return
 		end
 
 		local subcommand, name = strsplit(" ", rest, 2)
 
 		--[[
-		    Every profile subcommand needs a name; print its usage line instead of
+		    Every /crs profile subcommand needs a name; print its usage line instead of
 		    erroring on a nil table key when the name is missing.
 		]]
-		if (name == nil or name == "") and ns.RESTOCKER_COMMANDS.profile[subcommand] then
-			ns.PrintMessage(ns.RESTOCKER_COMMANDS.profile[subcommand])
+		if (name == nil or name == "") and RESTOCKER_COMMANDS.profile[subcommand] then
+			ns.PrintMessage(RESTOCKER_COMMANDS.profile[subcommand])
 			return
 		end
 
@@ -66,13 +85,11 @@ function ns.HandleRestockerCommand(args)
 			ns.CopyIntoCurrentRestockList(name)
 		end
 	elseif command == "help" then
-		for _, eachCommand in pairs(ns.RESTOCKER_COMMANDS) do
-			if type(eachCommand) == "table" then
-				for _, eachSubcommand in pairs(eachCommand) do
-					ns.PrintMessage(eachSubcommand)
-				end
+		for _, eachCommand in ipairs(COMMAND_ORDER) do
+			if eachCommand == "profile" then
+				PrintProfileHelp()
 			else
-				ns.PrintMessage(eachCommand)
+				ns.PrintMessage(RESTOCKER_COMMANDS[eachCommand])
 			end
 		end
 		return
