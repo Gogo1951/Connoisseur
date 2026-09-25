@@ -64,16 +64,7 @@ Macros that automatically use your best food, water, potions, healthstones, band
 * **Named lists** let a character switch loadouts or share one with an alt. Copy, rename, and delete all live in the window.
 * **Hold Shift** while opening a merchant or the bank to skip restocking for that visit.
 
-Every row carries its own toggles:
-
-| Toggle | What It Does |
-| --- | --- |
-| **Buy** | Buys the shortfall while a merchant window is open |
-| **Extra** | Buys a merchant's whole limited stock, the few-at-a-time goods they slowly restock, even past your target |
-| **Take** | Takes what you're short from the bank |
-| **Store** | Stores the surplus in the bank, or all of it with an Amount of 0 |
-| **Rep** | Skips merchants below the standing you pick, which also cuts the price: Friendly 5% off, up to Exalted 20% |
-| **Upgrade** | Lets the row climb its upgrade path as you level. Untick it to keep that exact item |
+<img width="800" src="https://github.com/user-attachments/assets/73bbf400-da83-42b2-b000-9a31ea392309" />
 
 ### Class & Race Features
 
@@ -97,7 +88,7 @@ Every row carries its own toggles:
 | Middle-Click | Clear this character's Ignore List |
 | Shift + Middle-Click | Open the Options Interface |
 
-<img src="https://github.com/user-attachments/assets/c57060c0-4eee-44ab-af88-48e077d886cc" width="260">
+<img width="300" src="https://github.com/user-attachments/assets/f0328eab-56bf-4957-9262-3627d7976bb8" />
 
 ### Options
 
@@ -113,7 +104,7 @@ Type `/foodie` to open the Options Interface, also found under **Options > AddOn
 
 Most settings are per character, so your raiding 60 and your level-15 alt keep their own consumable choices. Which macros exist, the Readiness Report, and your Restock Lists are account-wide.
 
-<img src="https://github.com/user-attachments/assets/c0e8e916-b3b9-4ce1-a5ff-d4b023a8ee20" width="800">
+<img width="800" src="https://github.com/user-attachments/assets/5223b8ad-b718-45b3-a585-68d550b7f5e3" />
 
 ## Testing & Localization Status
 
